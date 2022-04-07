@@ -10,10 +10,13 @@ function Curve(x0, y0, cx1, cy1, cx2, cy2, x1, y1) {
 
     this.getControlPointCurveMapping = function () {
         return [
-            { x: this.x0, y: this.y0, point: '0', curve: this },
-            { x: this.cx1, y: this.cy1, point: 'c1', curve: this },
-            { x: this.cx2, y: this.cy2, point: 'c2', curve: this },
-            { x: this.x1, y: this.y1, point: '1', curve: this },
+            // The x and y have to be wrapped in coords else D3 tries to read them as screen coords.
+            // it's really stupid. I don't know why it does that. 
+            // I'm probably using it wrong. 
+            { coords:{x: this.x0, y: this.y0}, point: '0', curve: this },
+            { coords:{x: this.cx1, y: this.cy1}, point: 'c1', curve: this },
+            { coords:{x: this.cx2, y: this.cy2}, point: 'c2', curve: this },
+            { coords:{x: this.x1, y: this.y1}, point: '1', curve: this },
         ]
     }
 
