@@ -10,37 +10,37 @@ function Curve(x0, y0, cx1, cy1, cx2, cy2, x1, y1) {
 
     this.getControlPointCurveMapping = function () {
         return [
-            [this.x0, this.y0, {point:'0', curve:this}], 
-            [this.cx1, this.cy1, {point:'c1', curve:this}], 
-            [this.cx2, this.cy2, {point:'c2', curve:this}], 
-            [this.x1, this.y1, {point:'1', curve:this}]
+            {x:this.x0, y:this.y0, point:'0', curve:this}, 
+            {x:this.cx1, y:this.cy1, point:'c1', curve:this}, 
+            {x:this.cx2, y:this.cy2, point:'c2', curve:this}, 
+            {x:this.x1, y:this.y1, point:'1', curve:this}, 
         ]
     }
 
     this.getPointControlPointParis = function () {
         return [
-            [[this.x0, this.y0], [this.cx1, this.cy1]],
-            [[this.x1, this.y1], [this.cx2, this.cy2]]
+            [{x:this.x0, y:this.y0}, {x:this.cx1, y:this.cy1}],
+            [{x:this.x1, y:this.y1}, {x:this.cx2, y:this.cy2}]
         ]
     }
 
-    this.update = function(point, value) {
-        switch (point) {
+    this.update = function(pointIndicator, newValue) {
+        switch (pointIndicator) {
             case "0":
-                this.x0 = value[0];
-                this.y0 = value[1];
+                this.x0 = newValue.x;
+                this.y0 = newValue.y;
                 break;
             case "c1":
-                this.cx1 = value[0];
-                this.cy1 = value[1];
+                this.cx1 = newValue.x;
+                this.cy1 = newValue.y;
                 break;
             case "c2":
-                this.cx2 = value[0];
-                this.cy2 = value[1];
+                this.cx2 = newValue.x;
+                this.cy2 = newValue.y;
                 break;
             case "1":
-                this.x1 = value[0];
-                this.y1 = value[1];
+                this.x1 = newValue.x;
+                this.y1 = newValue.y;
                 break;
         }
     }

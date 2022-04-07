@@ -31,9 +31,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .enter()
         .append('circle')
         .attr('r', 5.0)
-        .attr('cx', function (d) { return xScale(d[0]); })
-        .attr('cy', function (d) { return yScale(d[1]); })
-        .datum(function (d) { return d[2]; })
+        .attr('cx', function (d) { return xScale(d.x); })
+        .attr('cy', function (d) { return yScale(d.y); })
+        .datum(function (d) { return {point:d.point, curve:d.curve}; })
         .style('cursor', 'pointer')
         .style('fill', 'steelblue')
         .style("stroke", "black")
@@ -72,10 +72,10 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
         focus.selectAll('line')
             .data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
-            .attr('x1', function (d) { return xScale(d[0][0]); })
-            .attr('y1', function (d) { return yScale(d[0][1]); })
-            .attr('x2', function (d) { return xScale(d[1][0]); })
-            .attr('y2', function (d) { return yScale(d[1][1]); });
+            .attr('x1', function (d) { return xScale(d[0].x); })
+            .attr('y1', function (d) { return yScale(d[0].y); })
+            .attr('x2', function (d) { return xScale(d[1].x); })
+            .attr('y2', function (d) { return yScale(d[1].y); });
 
         warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .attr("cy", yCoor);
 
         let curvePointData = d3.select(this).datum();
-        curvePointData.curve.update(curvePointData.point, [xScale.invert(xCoor), yScale.invert(yCoor)])
+        curvePointData.curve.update(curvePointData.point, {x:xScale.invert(xCoor), y:yScale.invert(yCoor)})
 
         drawTimeline();
     }
