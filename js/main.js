@@ -30,17 +30,15 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .attr("opacity", "0.2")
         .attr("stroke-dasharray", ("3, 3"));
         
-    focus.selectAll('circle')
-    .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
-    .enter()
-    .append('circle')
-    .attr('r', 5.0)
-    .attr('cx', function (d) { return xScale(d.x); })
-    .attr('cy', function (d) { return yScale(d.y); })
-    .datum(function (d) { return {point:d.point, curve:d.curve}; })
-    .attr('cursor', 'pointer')
-    .attr('fill', 'steelblue')
-    .attr("stroke", "black")
+    focus.selectAll('.timeLineControlCircle')
+        .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
+        .enter()
+        .append('circle')
+        .classed("timeLineControlCircle", true)
+        .attr('r', 5.0)
+        .attr('cursor', 'pointer')
+        .attr('fill', 'steelblue')
+        .attr("stroke", "black")
         .call(d3.drag()
             .on('start', dragTimelineControlStart)
             .on('drag', draggingTimelineControl)
@@ -81,7 +79,12 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .attr('x2', function (d) { return xScale(d[1].x); })
             .attr('y2', function (d) { return yScale(d[1].y); });
 
-       warpControl1
+        focus.selectAll('.timeLineControlCircle')
+            .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
+            .attr('cx', function (d) { return xScale(d.coords.x); })
+            .attr('cy', function (d) { return yScale(d.coords.y); })
+
+        warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
     
@@ -91,19 +94,15 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
     }
     drawTimeline();
-
+    
     function dragTimelineControlStart(event, d) {
         d3.select(this).style("stroke", "")
     }
-    
+
     function draggingTimelineControl(event, d) {
         let xCoor = event.x;
         let yCoor = event.y;
-
-        d3.select(this)
-            .attr("cx", xCoor)
-            .attr("cy", yCoor);
-
+    
         let curvePointData = d3.select(this).datum();
         curvePointData.curve.update(curvePointData.point, {x:xScale.invert(xCoor), y:yScale.invert(yCoor)})
 
