@@ -1,12 +1,132 @@
-document.addEventListener("DOMContentLoaded", function(e) {
+document.addEventListener("DOMContentLoaded", function (e) {
+    let margin = { top: 20, right: 20, bottom: 30, left: 50 };
+    let width = window.innerWidth - margin.left - margin.right;
+    let height = window.innerHeight - margin.top - margin.bottom;
     let svg = d3.select("#svg_container").append("svg")
-        .attr("width", "100%")
-        .attr("height", "100%");
+        .attr("width", width)
+        .attr("height", height);
 
-    svg.append("circle")
-    .attr("cx", 10).attr("cy", 100).attr("r", 40).style("fill", "blue");
-    svg.append("circle")
-    .attr("cx", 50).attr("cy", 100).attr("r", 40).style("fill", "red");
-    svg.append("circle")
-    .attr("cx", 100).attr("cy", 100).attr("r", 40).style("fill", "green");
+    console.log(width, height)
+
+    let curves = [new Curve(10, 10, 10, 50, 95, 5, 100, 15), new Curve(100, 15, 105, 25, 20, 20, 30, 30)]
+
+    var xScale = d3.scaleLinear()
+        .rangeRound([0, width])
+        .domain([0, 150]);
+
+    var yScale = d3.scaleLinear()
+        .rangeRound([height, 0])
+        .domain([0, 50]);
+
+    let drag = d3.drag()
+        .on('start', dragStart)
+        .on('drag', dragging)
+        .on('end', dragEnd);
+
+    var focus = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    focus.selectAll('line').data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
+        .enter()
+        .append('line')
+        .attr("stroke-linecap", "round")
+        .attr("stroke-width", 1.5)
+        .attr("stroke", "black")
+        .attr("opacity", "0.2")
+        .style("stroke-dasharray", ("3, 3"));
+    focus.selectAll('circle')
+        .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
+        .enter()
+        .append('circle')
+        .attr('r', 5.0)
+        .attr('cx', function (d) { return xScale(d[0]); })
+        .attr('cy', function (d) { return yScale(d[1]); })
+        .datum(function (d) { return d[2]; })
+        .style('cursor', 'pointer')
+        .style('fill', 'steelblue')
+        .style("stroke", "black")
+        .call(drag);
+    
+    let timeline = focus.append("path")
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-linecap", "round")
+        .attr("stroke-width", 1.5);
+
+    let warpControl1 = focus.append("circle")
+        .datum(0.25)
+        .attr("r", 3.5)
+        .call(d3.drag().on('drag', warpControlDragged));
+    
+    let warpControl2 = focus.append("circle")
+        .datum(0.75)
+        .attr("r", 3.5)
+        .call(d3.drag().on('drag', warpControlDragged));
+
+    function drawTimeline() {
+        timeline.datum(curves)
+            .attr("d", function (curveData) {
+                console.log(curveData)
+                let path = d3.path();
+                curveData.forEach(curve => {
+                    path.moveTo(xScale(curve.x0), yScale(curve.y0))
+                    path.bezierCurveTo(xScale(curve.cx1), yScale(curve.cy1), xScale(curve.cx2), yScale(curve.cy2), xScale(curve.x1), yScale(curve.y1));
+                });
+                return path;
+            });
+
+        focus.selectAll('line')
+            .data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
+            .attr('x1', function (d) { return xScale(d[0][0]); })
+            .attr('y1', function (d) { return yScale(d[0][1]); })
+            .attr('x2', function (d) { return xScale(d[1][0]); })
+            .attr('y2', function (d) { return yScale(d[1][1]); });
+
+        warpControl1
+            .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
+            .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
+        
+            
+        warpControl2
+            .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
+            .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
+    }
+    drawTimeline();
+
+    function dragStart(event, d) {
+        d3.select(this).style("stroke", "")
+    }
+
+    function dragging(event, d) {
+        var xCoor = event.x;
+        var yCoor = event.y;
+
+        d3.select(this)
+            .attr("cx", xCoor)
+            .attr("cy", yCoor);
+
+        let curvePointData = d3.select(this).datum();
+        curvePointData.curve.update(curvePointData.point, [xScale.invert(xCoor), yScale.invert(yCoor)])
+
+        drawTimeline();
+    }
+
+    function dragEnd(event, d) {
+        d3.select(this)
+            .style("stroke", "black")
+    }
+
+    function warpControlDragged(event) {
+        var xCoor = event.x;
+        var yCoor = event.y;
+        let p = PathMath.getClosestPointOnPath(timeline, [xCoor, yCoor]);
+
+        d3.select(this)
+            .attr("cx", p.x)
+            .attr("cy", p.y)
+            .datum(p.percent);
+    }
+
 });
+
+
