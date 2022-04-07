@@ -18,30 +18,34 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
     let focus = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-    focus.selectAll('line').data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
+
+    focus.selectAll('.timeLineControlLine')
+        .data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
         .enter()
         .append('line')
+        .classed("timeLineControlLine", true)
         .attr("stroke-linecap", "round")
         .attr("stroke-width", 1.5)
         .attr("stroke", "black")
         .attr("opacity", "0.2")
-        .style("stroke-dasharray", ("3, 3"));
+        .attr("stroke-dasharray", ("3, 3"));
+        
     focus.selectAll('circle')
-        .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
-        .enter()
-        .append('circle')
-        .attr('r', 5.0)
-        .attr('cx', function (d) { return xScale(d.x); })
-        .attr('cy', function (d) { return yScale(d.y); })
-        .datum(function (d) { return {point:d.point, curve:d.curve}; })
-        .style('cursor', 'pointer')
-        .style('fill', 'steelblue')
-        .style("stroke", "black")
+    .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
+    .enter()
+    .append('circle')
+    .attr('r', 5.0)
+    .attr('cx', function (d) { return xScale(d.x); })
+    .attr('cy', function (d) { return yScale(d.y); })
+    .datum(function (d) { return {point:d.point, curve:d.curve}; })
+    .attr('cursor', 'pointer')
+    .attr('fill', 'steelblue')
+    .attr("stroke", "black")
         .call(d3.drag()
             .on('start', dragTimelineControlStart)
             .on('drag', draggingTimelineControl)
             .on('end', dragTimelineControlEnd));
-
+    
     let timeline = focus.append("path")
         .attr("fill", "none")
         .attr("stroke", "steelblue")
@@ -70,18 +74,18 @@ document.addEventListener("DOMContentLoaded", function (e) {
                 return path;
             });
 
-        focus.selectAll('line')
+        focus.selectAll('.timeLineControlLine')
             .data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
             .attr('x1', function (d) { return xScale(d[0].x); })
             .attr('y1', function (d) { return yScale(d[0].y); })
             .attr('x2', function (d) { return xScale(d[1].x); })
             .attr('y2', function (d) { return yScale(d[1].y); });
 
-        warpControl1
+       warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
-
-
+    
+            
         warpControl2
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
@@ -91,7 +95,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
     function dragTimelineControlStart(event, d) {
         d3.select(this).style("stroke", "")
     }
-
+    
     function draggingTimelineControl(event, d) {
         let xCoor = event.x;
         let yCoor = event.y;
