@@ -6,8 +6,6 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .attr("width", width)
         .attr("height", height);
 
-    console.log(width, height)
-
     let curves = [new Curve(10, 10, 10, 50, 95, 5, 100, 15), new Curve(100, 15, 105, 25, 20, 20, 30, 30)]
 
     let xScale = d3.scaleLinear()
@@ -17,11 +15,6 @@ document.addEventListener("DOMContentLoaded", function (e) {
     let yScale = d3.scaleLinear()
         .rangeRound([height, 0])
         .domain([0, 50]);
-
-    let drag = d3.drag()
-        .on('start', dragStart)
-        .on('drag', dragging)
-        .on('end', dragEnd);
 
     let focus = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -44,7 +37,10 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .style('cursor', 'pointer')
         .style('fill', 'steelblue')
         .style("stroke", "black")
-        .call(drag);
+        .call(d3.drag()
+            .on('start', dragTimelineControlStart)
+            .on('drag', draggingTimelineControl)
+            .on('end', dragTimelineControlEnd));
 
     let timeline = focus.append("path")
         .attr("fill", "none")
@@ -66,7 +62,6 @@ document.addEventListener("DOMContentLoaded", function (e) {
     function drawTimeline() {
         timeline.datum(curves)
             .attr("d", function (curveData) {
-                console.log(curveData)
                 let path = d3.path();
                 curveData.forEach(curve => {
                     path.moveTo(xScale(curve.x0), yScale(curve.y0))
@@ -93,11 +88,11 @@ document.addEventListener("DOMContentLoaded", function (e) {
     }
     drawTimeline();
 
-    function dragStart(event, d) {
+    function dragTimelineControlStart(event, d) {
         d3.select(this).style("stroke", "")
     }
 
-    function dragging(event, d) {
+    function draggingTimelineControl(event, d) {
         let xCoor = event.x;
         let yCoor = event.y;
 
@@ -111,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         drawTimeline();
     }
 
-    function dragEnd(event, d) {
+    function dragTimelineControlEnd(event, d) {
         d3.select(this)
             .style("stroke", "black")
     }
