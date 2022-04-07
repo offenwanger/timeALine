@@ -77,11 +77,11 @@ let PathMath = function () {
     function projectPointOntoNormal(point, normalVector, origin) {
         // handle edge case of straight normal
         if(normalVector.y == 0) {
-            return {x:point.x, y:origin.y}
+            return {point:{x:point.x, y:origin.y},neg:point.x > origin.x}
         }
 
         if(normalVector.x == 0) {
-            return {x:origin.x, y:point.y}
+            return {point:{x:origin.x, y:point.y},neg:point.y < origin.y}
         }
 
         let a = origin;
