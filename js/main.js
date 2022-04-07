@@ -10,11 +10,11 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
     let xScale = d3.scaleLinear()
         .rangeRound([0, width])
-        .domain([0, 150]);
+        .domain([0, width / 10]);
 
     let yScale = d3.scaleLinear()
         .rangeRound([height, 0])
-        .domain([0, 50]);
+        .domain([0, height / 10]);
 
     let focus = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .attr("stroke", "black")
         .attr("opacity", "0.2")
         .attr("stroke-dasharray", ("3, 3"));
-        
+
     focus.selectAll('.timeLineControlCircle')
         .data(curves.reduce((arr, curve) => arr.concat(curve.getControlPointCurveMapping()), []))
         .enter()
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .on('start', dragTimelineControlStart)
             .on('drag', draggingTimelineControl)
             .on('end', dragTimelineControlEnd));
-    
+
     let timeline = focus.append("path")
         .attr("fill", "none")
         .attr("stroke", "steelblue")
@@ -60,6 +60,22 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .datum(0.75)
         .attr("r", 3.5)
         .call(d3.drag().on('drag', warpControlDragged));
+
+    let dataAxis1Ctrl1 = focus.append("circle")
+        .datum(3)
+        .attr("r", 3.5)
+        .attr('cursor', 'pointer')
+        .call(d3.drag().on('drag', dataAxisControlDragged));
+
+    let dataAxis1Ctrl2 = focus.append("circle")
+        .datum(10)
+        .attr("r", 3.5)
+        .attr('cursor', 'pointer')
+        .call(d3.drag().on('drag', dataAxisControlDragged));
+
+    let dataAxis1Line = focus.append("line")
+        .attr("stroke-width", 1.5)
+        .attr("stroke", "black");
 
     function drawTimeline() {
         timeline.datum(curves)
@@ -84,17 +100,38 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .attr('cx', function (d) { return xScale(d.coords.x); })
             .attr('cy', function (d) { return yScale(d.coords.y); })
 
+        // does not require xScaling because we are pulling off the already scaled timeline
         warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
-    
-            
+
+
         warpControl2
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
+
+
+        let origin = { x: curves[0].x0, y: curves[0].y0 }
+        let controlVector = { x: curves[0].cx1 - curves[0].x0, y: curves[0].cy1 - curves[0].y0 }
+        let normal = PathMath.normalize(PathMath.rotatePoint90DegreesCounterClockwise(controlVector));
+
+        dataAxis1Ctrl1
+            .attr('cx', function (d) { return xScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).x); })
+            .attr('cy', function (d) { return yScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).y); });
+
+        dataAxis1Ctrl2
+            .attr('cx', function (d) { return xScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).x); })
+            .attr('cy', function (d) { return yScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).y); });
+
+        // does not need scaling because we are pulling off the already scaled control points.
+        dataAxis1Line
+            .attr("x1", dataAxis1Ctrl1.attr("cx"))
+            .attr("y1", dataAxis1Ctrl1.attr("cy"))
+            .attr("x2", dataAxis1Ctrl2.attr("cx"))
+            .attr("y2", dataAxis1Ctrl2.attr("cy"));
     }
     drawTimeline();
-    
+
     function dragTimelineControlStart(event, d) {
         d3.select(this).style("stroke", "")
     }
@@ -102,9 +139,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
     function draggingTimelineControl(event, d) {
         let xCoor = event.x;
         let yCoor = event.y;
-    
+
         let curvePointData = d3.select(this).datum();
-        curvePointData.curve.update(curvePointData.point, {x:xScale.invert(xCoor), y:yScale.invert(yCoor)})
+        curvePointData.curve.update(curvePointData.point, { x: xScale.invert(xCoor), y: yScale.invert(yCoor) })
 
         drawTimeline();
     }
@@ -114,14 +151,30 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .style("stroke", "black")
     }
 
-    function warpControlDragged(event) {
-        let dragPoint = {x:event.x,y:event.y};
-        let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
+    function dragTimelineControlStart(event, d) {
+        d3.select(this).style("stroke", "")
+    }
 
-        d3.select(this)
-            .attr("cx", p.x)
-            .attr("cy", p.y)
-            .datum(p.percent);
+    function dataAxisControlDragged(event) {
+        // needs to be in model coords
+        let dragPoint = { x: xScale.invert(event.x), y: yScale.invert(event.y) };
+
+        let origin = { x: curves[0].x0, y: curves[0].y0 }
+        let tangentVector = { x: curves[0].cx1 - curves[0].x0, y: curves[0].cy1 - curves[0].y0 }
+        let normalVector = PathMath.normalize(PathMath.rotatePoint90DegreesCounterClockwise(tangentVector));
+
+        let newPosition = PathMath.projectPointOntoNormal(dragPoint, normalVector, origin);
+        let dist = PathMath.distancebetween(origin, newPosition.point);
+
+        d3.select(this).datum(newPosition.neg ? -1 * dist : dist);
+        drawTimeline();
+    }
+
+    function warpControlDragged(event) {
+        let dragPoint = { x: event.x, y: event.y };
+        let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
+        d3.select(this).datum(p.percent);
+        drawTimeline();
     }
 
 });

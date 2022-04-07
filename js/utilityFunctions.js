@@ -54,10 +54,79 @@ let PathMath = function () {
 
         return Math.sqrt(a * a + b * b);
     }
+    
+    function getNormalAtPercentOfPath(path, percent) {
+        if (percent == 0 || percent == 1) {
+            console.error("No normal at extreme ends! Take the rotation of the control lines instead.");
+            return NaN
+        }
+
+        let point1 = getPointAtPercentOfPath(path, Math.max(0, percent - 0.001));
+        let point2 = getPointAtPercentOfPath(path, Math.min(path.node().getTotalLength(), percent + 0.001));
+        // this is now a vector pointing along the forward direction on the line
+        let difference = { x: point2.x - point1.x, y: point2.y - point1.y };
+        // rotat clockwise, 
+        return normalize(rotatePoint90DegreesCounterClockwise(difference));
+    }
+
+    function rotatePoint90DegreesCounterClockwise(point) {
+        return { x: -1 * point.y, y: point.x };
+    }
+
+    
+    function projectPointOntoNormal(point, normalVector, origin) {
+        // handle edge case of straight normal
+        if(normalVector.y == 0) {
+            return {x:point.x, y:origin.y}
+        }
+
+        if(normalVector.x == 0) {
+            return {x:origin.x, y:point.y}
+        }
+
+        let a = origin;
+        let b = {x:origin.x + normalVector.x, y:origin.y + normalVector.y}
+
+        var aToB = { x: b.x - a.x, y: b.y - a.y };
+        var aToPoint = { x: point.x - a.x, y: point.y - a.y };
+        var sqLenAToB = aToB.x * aToB.x + aToB.y * aToB.y;
+        var dot = aToPoint.x * aToB.x + aToPoint.y * aToB.y;
+        var t = dot / sqLenAToB;
+    
+        dot = ( b.x - a.x ) * ( point.y - a.y ) - ( b.y - a.y ) * ( point.x - a.x );
+        
+        return {
+            point: {
+                x: a.x + aToB.x * t,
+                y: a.y + aToB.y * t
+            },
+            neg: t < 0
+        };
+    }
+
+    function getPointAtDistanceAlongNormal(distance, normalVector, origin) {
+        return { x: normalVector.x*distance+origin.x, y: normalVector.y*distance+origin.y};
+    }  
+
+    function normalize(vector) {
+        let length = distancebetween(vector, { x: 0, y: 0 });
+        if (length == 0) {
+            console.error("cannot get normal for 0, 0!")
+            return vector;
+        }
+
+        return { x: vector.x / length, y: vector.y / length };
+    }
+
 
     return {
         getPointAtPercentOfPath,
         getClosestPointOnPath,
         distancebetween,
+        getNormalAtPercentOfPath,
+        rotatePoint90DegreesCounterClockwise,
+        projectPointOntoNormal,
+        getPointAtDistanceAlongNormal,
+        normalize
     }
 }();
