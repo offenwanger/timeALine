@@ -1,4 +1,4 @@
-let PathMath = function() {
+let PathMath = function () {
     function getPointAtPercentOfPath(path, percent) {
         return path.node().getPointAtLength((path.node().getTotalLength() * percent));
     }
@@ -47,7 +47,7 @@ let PathMath = function() {
 
         return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / pathNode.getTotalLength() };
     }
-    
+
     function distancebetween(point1, point2) {
         let a = point1.x - point2.x;
         let b = point1.y - point2.y;
