@@ -10,11 +10,11 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
     let curves = [new Curve(10, 10, 10, 50, 95, 5, 100, 15), new Curve(100, 15, 105, 25, 20, 20, 30, 30)]
 
-    var xScale = d3.scaleLinear()
+    let xScale = d3.scaleLinear()
         .rangeRound([0, width])
         .domain([0, 150]);
 
-    var yScale = d3.scaleLinear()
+    let yScale = d3.scaleLinear()
         .rangeRound([height, 0])
         .domain([0, 50]);
 
@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .on('drag', dragging)
         .on('end', dragEnd);
 
-    var focus = svg.append("g")
+    let focus = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
     focus.selectAll('line').data(curves.reduce((arr, curve) => arr.concat(curve.getPointControlPointParis()), []))
         .enter()
@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .style('fill', 'steelblue')
         .style("stroke", "black")
         .call(drag);
-    
+
     let timeline = focus.append("path")
         .attr("fill", "none")
         .attr("stroke", "steelblue")
@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .datum(0.25)
         .attr("r", 3.5)
         .call(d3.drag().on('drag', warpControlDragged));
-    
+
     let warpControl2 = focus.append("circle")
         .datum(0.75)
         .attr("r", 3.5)
@@ -85,8 +85,8 @@ document.addEventListener("DOMContentLoaded", function (e) {
         warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
-        
-            
+
+
         warpControl2
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
@@ -98,8 +98,8 @@ document.addEventListener("DOMContentLoaded", function (e) {
     }
 
     function dragging(event, d) {
-        var xCoor = event.x;
-        var yCoor = event.y;
+        let xCoor = event.x;
+        let yCoor = event.y;
 
         d3.select(this)
             .attr("cx", xCoor)
@@ -117,9 +117,8 @@ document.addEventListener("DOMContentLoaded", function (e) {
     }
 
     function warpControlDragged(event) {
-        var xCoor = event.x;
-        var yCoor = event.y;
-        let p = PathMath.getClosestPointOnPath(timeline, [xCoor, yCoor]);
+        let dragPoint = {x:event.x,y:event.y};
+        let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
 
         d3.select(this)
             .attr("cx", p.x)
