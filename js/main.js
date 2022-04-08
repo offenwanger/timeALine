@@ -1,6 +1,6 @@
 let loadData;
 
-document.addEventListener("DOMContentLoaded", function (e) { 
+document.addEventListener("DOMContentLoaded", function (e) {
     let margin = { top: 20, right: 20, bottom: 30, left: 50 };
     let width = window.innerWidth - margin.left - margin.right;
     let height = window.innerHeight - margin.top - margin.bottom;
@@ -60,6 +60,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .call(d3.drag()
             .on('drag', warpControlDragged)
             .on('end', drawData));
+    let warpControl1Label = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
 
     let warpControl2 = focus.append("circle")
         .datum(0.75)
@@ -67,6 +70,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .call(d3.drag()
             .on('drag', warpControlDragged)
             .on('end', drawData));
+    let warpControl2Label = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
 
     let dataAxis1Ctrl1 = focus.append("circle")
         .datum(3)
@@ -75,6 +81,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .call(d3.drag()
             .on('drag', dataAxisControlDragged)
             .on('end', drawData));
+    let dataAxis1Ctrl1Label = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
 
     let dataAxis1Ctrl2 = focus.append("circle")
         .datum(10)
@@ -83,6 +92,9 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .call(d3.drag()
             .on('drag', dataAxisControlDragged)
             .on('end', drawData));
+    let dataAxis1Ctrl2Label = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
 
     let dataAxis1Line = focus.append("line")
         .attr("stroke-width", 1.5)
@@ -115,11 +127,16 @@ document.addEventListener("DOMContentLoaded", function (e) {
         warpControl1
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
-
+        warpControl1Label
+            .attr("x", warpControl1.attr("cx") + 3)
+            .attr("y", warpControl1.attr("cy"));
 
         warpControl2
             .attr('cx', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).x; })
             .attr('cy', function (d) { return PathMath.getPointAtPercentOfPath(timeline, d).y; });
+        warpControl2Label
+            .attr("x", warpControl2.attr("cx") + 3)
+            .attr("y", warpControl2.attr("cy"));
 
 
         let origin = { x: curves[0].x0, y: curves[0].y0 }
@@ -129,10 +146,16 @@ document.addEventListener("DOMContentLoaded", function (e) {
         dataAxis1Ctrl1
             .attr('cx', function (d) { return xScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).x); })
             .attr('cy', function (d) { return yScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).y); });
+        dataAxis1Ctrl1Label
+            .attr("x", parseInt(dataAxis1Ctrl1.attr("cx")) + 3)
+            .attr("y", dataAxis1Ctrl1.attr("cy"));
 
         dataAxis1Ctrl2
             .attr('cx', function (d) { return xScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).x); })
             .attr('cy', function (d) { return yScale(PathMath.getPointAtDistanceAlongNormal(d, normal, origin).y); });
+        dataAxis1Ctrl2Label
+            .attr("x", parseInt(dataAxis1Ctrl2.attr("cx")) + 3)
+            .attr("y", dataAxis1Ctrl2.attr("cy"));
 
         // does not need scaling because we are pulling off the already scaled control points.
         dataAxis1Line
@@ -140,26 +163,29 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .attr("y1", dataAxis1Ctrl1.attr("cy"))
             .attr("x2", dataAxis1Ctrl2.attr("cx"))
             .attr("y2", dataAxis1Ctrl2.attr("cy"));
+
+
+
     }
     drawTimeline();
 
     function drawData() {
         let warpPoints = [
-            {from:0.25,to:warpControl1.datum()},
-            {from:0.75,to:warpControl2.datum()}
+            { from: 0.25, to: warpControl1.datum() },
+            { from: 0.75, to: warpControl2.datum() }
         ]
         focus.selectAll(".dataPoint")
-            .attr('cx', function (d) { 
+            .attr('cx', function (d) {
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]); 
+                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]);
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
-                return coords.x; 
+                return coords.x;
             })
-            .attr('cy', function (d) { 
+            .attr('cy', function (d) {
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]); 
+                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]);
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
-                return coords.y; 
+                return coords.y;
             });
     }
 
@@ -209,7 +235,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         drawTimeline();
     }
 
-    loadData = function() {
+    loadData = function () {
         FileHandler.getDataFile().then(result => {
             let data = result.data.map(item => [parseInt(item[0]), parseInt(item[1])])
 
@@ -224,6 +250,13 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
             data = data.filter(item => !isNaN(item[0] && !isNaN(item[1])));
 
+            warpControl1Label.text((timeLineRange[0] - timeLineRange[1]) * 0.25 + timeLineRange[0]).lower();
+            warpControl2Label.text((timeLineRange[0] - timeLineRange[1]) * 0.75 + timeLineRange[0]).lower();
+            dataAxis1Ctrl1Label.text(dataDimention1Range[0]).lower();
+            dataAxis1Ctrl2Label.text(dataDimention1Range[1]).lower();
+
+            drawTimeline();
+
             focus.selectAll(".dataPoint")
                 .data(data)
                 .enter()
@@ -231,7 +264,8 @@ document.addEventListener("DOMContentLoaded", function (e) {
                 .classed("dataPoint", true)
                 .attr('r', 3.0)
                 .attr('fill', 'red')
-                .attr("stroke", "black");
+                .attr("stroke", "black")
+                .lower();
 
             drawData();
         });

@@ -54,13 +54,13 @@ let PathMath = function () {
 
         return Math.sqrt(a * a + b * b);
     }
-    
+
     function getNormalAtPercentOfPath(path, percent) {
         // this is not 100% accurate but will be a reasonable approximation
         // there's some stange gankyness when it gets too close to the end, so just use a close vector
         if (percent < 0.001) {
             percent = 0.001
-        } else if(percent > 0.999) {
+        } else if (percent > 0.999) {
             percent = .999
         }
 
@@ -68,7 +68,7 @@ let PathMath = function () {
         let point2 = getPointAtPercentOfPath(path, Math.min(path.node().getTotalLength(), percent + 0.001));
         // this is now a vector pointing along the forward direction on the line
         let difference = { x: point2.x - point1.x, y: point2.y - point1.y };
-        
+
         // rotate clockwise, 
         return normalize(rotatePoint90DegreesCounterClockwiseLayoutCoords(difference));
     }
@@ -77,32 +77,32 @@ let PathMath = function () {
         return { x: -1 * point.y, y: point.x };
     }
 
-    
+
     function rotatePoint90DegreesCounterClockwiseLayoutCoords(point) {
         return { x: point.y, y: -1 * point.x };
     }
-    
+
     function projectPointOntoNormal(point, normalVector, origin) {
         // handle edge case of straight normal
-        if(normalVector.y == 0) {
-            return {point:{x:point.x, y:origin.y},neg:point.x > origin.x}
+        if (normalVector.y == 0) {
+            return { point: { x: point.x, y: origin.y }, neg: point.x > origin.x }
         }
 
-        if(normalVector.x == 0) {
-            return {point:{x:origin.x, y:point.y},neg:point.y < origin.y}
+        if (normalVector.x == 0) {
+            return { point: { x: origin.x, y: point.y }, neg: point.y < origin.y }
         }
 
         let a = origin;
-        let b = {x:origin.x + normalVector.x, y:origin.y + normalVector.y}
+        let b = { x: origin.x + normalVector.x, y: origin.y + normalVector.y }
 
         var aToB = { x: b.x - a.x, y: b.y - a.y };
         var aToPoint = { x: point.x - a.x, y: point.y - a.y };
         var sqLenAToB = aToB.x * aToB.x + aToB.y * aToB.y;
         var dot = aToPoint.x * aToB.x + aToPoint.y * aToB.y;
         var t = dot / sqLenAToB;
-    
-        dot = ( b.x - a.x ) * ( point.y - a.y ) - ( b.y - a.y ) * ( point.x - a.x );
-        
+
+        dot = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
+
         return {
             point: {
                 x: a.x + aToB.x * t,
@@ -113,8 +113,8 @@ let PathMath = function () {
     }
 
     function getPointAtDistanceAlongNormal(distance, normalVector, origin) {
-        return { x: normalVector.x*distance+origin.x, y: normalVector.y*distance+origin.y};
-    }  
+        return { x: normalVector.x * distance + origin.x, y: normalVector.y * distance + origin.y };
+    }
 
     function normalize(vector) {
         let length = distancebetween(vector, { x: 0, y: 0 });
@@ -137,9 +137,9 @@ let PathMath = function () {
 
     function warpPercent(warpPoints, percent) {
         // make a copy of the array
-        let wp = warpPoints.concat([{from:0,to:0}, {from:1,to:1}]);
+        let wp = warpPoints.concat([{ from: 0, to: 0 }, { from: 1, to: 1 }]);
         wp.sort((a, b) => {
-            if(a.from == b.from) {
+            if (a.from == b.from) {
                 return a.to - b.to;
             } else {
                 return a.from - b.from;
@@ -147,13 +147,13 @@ let PathMath = function () {
         });
 
         // There might be some edge cases around this, but we'll deal with those when they come.
-        if(percent == 0) return 0;
+        if (percent == 0) return 0;
 
-        for(let i = 0;i<wp.length - 1 ;i++) {
-            if(percent > wp[i].from && percent <= wp[i+1].from) {
+        for (let i = 0; i < wp.length - 1; i++) {
+            if (percent > wp[i].from && percent <= wp[i + 1].from) {
                 // upper.from and lower.from must strictly be different numbers
                 let lower = wp[i]
-                let upper = wp[i+1]
+                let upper = wp[i + 1]
                 let percentBetweenTwoControls = (percent - lower.from) / (upper.from - lower.from)
                 return ((upper.to - lower.to) * percentBetweenTwoControls) + lower.to;
             }

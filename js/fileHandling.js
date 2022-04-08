@@ -1,4 +1,4 @@
-let FileHandler = function() {
+let FileHandler = function () {
     async function getDataFile() {
         let fileHandle = await window.showOpenFilePicker();
         let file = await fileHandle[0].getFile();
