@@ -135,6 +135,34 @@ let PathMath = function () {
         return ((axisDistTop - axisDistBottom) * percent) + axisDistBottom;
     }
 
+    function warpPercent(warpPoints, percent) {
+        // make a copy of the array
+        let wp = warpPoints.concat([{from:0,to:0}, {from:1,to:1}]);
+        wp.sort((a, b) => {
+            if(a.from == b.from) {
+                return a.to - b.to;
+            } else {
+                return a.from - b.from;
+            }
+        });
+
+        // There might be some edge cases around this, but we'll deal with those when they come.
+        if(percent == 0) return 0;
+
+        for(let i = 0;i<wp.length - 1 ;i++) {
+            if(percent > wp[i].from && percent <= wp[i+1].from) {
+                // upper.from and lower.from must strictly be different numbers
+                let lower = wp[i]
+                let upper = wp[i+1]
+                let percentBetweenTwoControls = (percent - lower.from) / (upper.from - lower.from)
+                return ((upper.to - lower.to) * percentBetweenTwoControls) + lower.to;
+            }
+        }
+
+        console.error("Code should be unreachable!", percent);
+        return 0;
+    }
+
 
     return {
         getPointAtPercentOfPath,
@@ -147,6 +175,7 @@ let PathMath = function () {
         getPointAtDistanceAlongNormal,
         normalize,
         getCoordsForPercentAndDist,
-        getDistForAxisPercent
+        getDistForAxisPercent,
+        warpPercent,
     }
 }();

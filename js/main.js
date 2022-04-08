@@ -144,16 +144,20 @@ document.addEventListener("DOMContentLoaded", function (e) {
     drawTimeline();
 
     function drawData() {
+        let warpPoints = [
+            {from:0.25,to:warpControl1.datum()},
+            {from:0.75,to:warpControl2.datum()}
+        ]
         focus.selectAll(".dataPoint")
             .attr('cx', function (d) { 
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = /* warp the percent */ d[0]; 
+                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]); 
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
                 return coords.x; 
             })
             .attr('cy', function (d) { 
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = /* warp the percent */ d[0]; 
+                let convertedPercent = PathMath.warpPercent(warpPoints, d[0]); 
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
                 return coords.y; 
             });
