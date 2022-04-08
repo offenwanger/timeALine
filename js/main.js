@@ -1,4 +1,6 @@
-document.addEventListener("DOMContentLoaded", function (e) {
+let loadData;
+
+document.addEventListener("DOMContentLoaded", function (e) { 
     let margin = { top: 20, right: 20, bottom: 30, left: 50 };
     let width = window.innerWidth - margin.left - margin.right;
     let height = window.innerHeight - margin.top - margin.bottom;
@@ -8,13 +10,14 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
     let curves = [new Curve(10, 10, 10, 50, 95, 5, 100, 15), new Curve(100, 15, 105, 25, 20, 20, 30, 30)]
 
+    let zoomValue = 10
     let xScale = d3.scaleLinear()
         .rangeRound([0, width])
-        .domain([0, width / 10]);
+        .domain([0, width / zoomValue]);
 
     let yScale = d3.scaleLinear()
         .rangeRound([height, 0])
-        .domain([0, height / 10]);
+        .domain([0, height / zoomValue]);
 
     let focus = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -54,24 +57,32 @@ document.addEventListener("DOMContentLoaded", function (e) {
     let warpControl1 = focus.append("circle")
         .datum(0.25)
         .attr("r", 3.5)
-        .call(d3.drag().on('drag', warpControlDragged));
+        .call(d3.drag()
+            .on('drag', warpControlDragged)
+            .on('end', drawData));
 
     let warpControl2 = focus.append("circle")
         .datum(0.75)
         .attr("r", 3.5)
-        .call(d3.drag().on('drag', warpControlDragged));
+        .call(d3.drag()
+            .on('drag', warpControlDragged)
+            .on('end', drawData));
 
     let dataAxis1Ctrl1 = focus.append("circle")
         .datum(3)
         .attr("r", 3.5)
         .attr('cursor', 'pointer')
-        .call(d3.drag().on('drag', dataAxisControlDragged));
+        .call(d3.drag()
+            .on('drag', dataAxisControlDragged)
+            .on('end', drawData));
 
     let dataAxis1Ctrl2 = focus.append("circle")
         .datum(10)
         .attr("r", 3.5)
         .attr('cursor', 'pointer')
-        .call(d3.drag().on('drag', dataAxisControlDragged));
+        .call(d3.drag()
+            .on('drag', dataAxisControlDragged)
+            .on('end', drawData));
 
     let dataAxis1Line = focus.append("line")
         .attr("stroke-width", 1.5)
@@ -132,6 +143,22 @@ document.addEventListener("DOMContentLoaded", function (e) {
     }
     drawTimeline();
 
+    function drawData() {
+        focus.selectAll(".dataPoint")
+            .attr('cx', function (d) { 
+                let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
+                let convertedPercent = /* warp the percent */ d[0]; 
+                let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
+                return coords.x; 
+            })
+            .attr('cy', function (d) { 
+                let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
+                let convertedPercent = /* warp the percent */ d[0]; 
+                let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist);
+                return coords.y; 
+            });
+    }
+
     function dragTimelineControlStart(event, d) {
         d3.select(this).style("stroke", "")
     }
@@ -149,6 +176,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
     function dragTimelineControlEnd(event, d) {
         d3.select(this)
             .style("stroke", "black")
+        drawData();
     }
 
     function dragTimelineControlStart(event, d) {
@@ -177,6 +205,33 @@ document.addEventListener("DOMContentLoaded", function (e) {
         drawTimeline();
     }
 
+    loadData = function() {
+        FileHandler.getDataFile().then(result => {
+            let data = result.data.map(item => [parseInt(item[0]), parseInt(item[1])])
+
+            let timeLineRange = d3.extent(data.map(item => item[0]).filter(item => item));
+            let dataDimention1Range = d3.extent(data.map(item => item[1]).filter(item => item));
+
+            data = data.map(item => {
+                let percent0 = (item[0] - timeLineRange[0]) / (timeLineRange[1] - timeLineRange[0])
+                let percent1 = (item[1] - dataDimention1Range[0]) / (dataDimention1Range[1] - dataDimention1Range[0])
+                return [percent0, percent1];
+            })
+
+            data = data.filter(item => !isNaN(item[0] && !isNaN(item[1])));
+
+            focus.selectAll(".dataPoint")
+                .data(data)
+                .enter()
+                .append('circle')
+                .classed("dataPoint", true)
+                .attr('r', 3.0)
+                .attr('fill', 'red')
+                .attr("stroke", "black");
+
+            drawData();
+        });
+    }
 });
 
 

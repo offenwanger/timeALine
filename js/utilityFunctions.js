@@ -56,23 +56,31 @@ let PathMath = function () {
     }
     
     function getNormalAtPercentOfPath(path, percent) {
-        if (percent == 0 || percent == 1) {
-            console.error("No normal at extreme ends! Take the rotation of the control lines instead.");
-            return NaN
+        // this is not 100% accurate but will be a reasonable approximation
+        // there's some stange gankyness when it gets too close to the end, so just use a close vector
+        if (percent < 0.001) {
+            percent = 0.001
+        } else if(percent > 0.999) {
+            percent = .999
         }
 
         let point1 = getPointAtPercentOfPath(path, Math.max(0, percent - 0.001));
         let point2 = getPointAtPercentOfPath(path, Math.min(path.node().getTotalLength(), percent + 0.001));
         // this is now a vector pointing along the forward direction on the line
         let difference = { x: point2.x - point1.x, y: point2.y - point1.y };
-        // rotat clockwise, 
-        return normalize(rotatePoint90DegreesCounterClockwise(difference));
+        
+        // rotate clockwise, 
+        return normalize(rotatePoint90DegreesCounterClockwiseLayoutCoords(difference));
     }
 
     function rotatePoint90DegreesCounterClockwise(point) {
         return { x: -1 * point.y, y: point.x };
     }
 
+    
+    function rotatePoint90DegreesCounterClockwiseLayoutCoords(point) {
+        return { x: point.y, y: -1 * point.x };
+    }
     
     function projectPointOntoNormal(point, normalVector, origin) {
         // handle edge case of straight normal
@@ -118,6 +126,15 @@ let PathMath = function () {
         return { x: vector.x / length, y: vector.y / length };
     }
 
+    function getCoordsForPercentAndDist(path, pathPercent, dist) {
+        let normalVector = getNormalAtPercentOfPath(path, pathPercent);
+        return getPointAtDistanceAlongNormal(dist, normalVector, getPointAtPercentOfPath(path, pathPercent))
+    }
+
+    function getDistForAxisPercent(percent, axisDistTop, axisDistBottom) {
+        return ((axisDistTop - axisDistBottom) * percent) + axisDistBottom;
+    }
+
 
     return {
         getPointAtPercentOfPath,
@@ -125,8 +142,11 @@ let PathMath = function () {
         distancebetween,
         getNormalAtPercentOfPath,
         rotatePoint90DegreesCounterClockwise,
+        rotatePoint90DegreesCounterClockwiseLayoutCoords,
         projectPointOntoNormal,
         getPointAtDistanceAlongNormal,
-        normalize
+        normalize,
+        getCoordsForPercentAndDist,
+        getDistForAxisPercent
     }
 }();
