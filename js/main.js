@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .attr("width", width)
         .attr("height", height);
 
-    let curves = [new Curve(10, 20, 10, 50, 50, 50, 50, 20), new Curve(50, 20, 50, 5, 25, 20, 40, 30)]
+    let curves = [new Curve(10, 20, 20,20, 30, 10, 40, 10), new Curve(40, 10, 50, 10, 50, 20, 60, 20)]
 
     let zoomValue = 10
     let xScale = d3.scaleLinear()
