@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function (e) {
         .attr("width", width)
         .attr("height", height);
 
-    let curves = [new Curve(10, 10, 10, 50, 95, 5, 100, 15), new Curve(100, 15, 105, 25, 20, 20, 30, 30)]
+    let curves = [new Curve(10, 20, 10, 50, 50, 50, 50, 20), new Curve(50, 20, 50, 5, 25, 20, 40, 30)]
 
     let zoomValue = 10
     let xScale = d3.scaleLinear()
@@ -71,6 +71,13 @@ document.addEventListener("DOMContentLoaded", function (e) {
             .on('drag', warpControlDragged)
             .on('end', drawData));
     let warpControl2Label = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
+
+    let startLabel = focus.append("text")
+        .attr("text-anchor", "left")
+        .style("font-size", "16px");
+    let endLabel = focus.append("text")
         .attr("text-anchor", "left")
         .style("font-size", "16px");
 
@@ -137,6 +144,13 @@ document.addEventListener("DOMContentLoaded", function (e) {
         warpControl2Label
             .attr("x", warpControl2.attr("cx") + 3)
             .attr("y", warpControl2.attr("cy"));
+
+        startLabel
+            .attr('x', function (d) { return PathMath.getPointAtPercentOfPath(timeline, 0).x; })
+            .attr('y', function (d) { return PathMath.getPointAtPercentOfPath(timeline, 0).y; });
+        endLabel
+            .attr('x', function (d) { return PathMath.getPointAtPercentOfPath(timeline, 1).x; })
+            .attr('y', function (d) { return PathMath.getPointAtPercentOfPath(timeline, 1).y; });
 
 
         let origin = { x: curves[0].x0, y: curves[0].y0 }
@@ -250,8 +264,11 @@ document.addEventListener("DOMContentLoaded", function (e) {
 
             data = data.filter(item => !isNaN(item[0] && !isNaN(item[1])));
 
-            warpControl1Label.text((timeLineRange[0] - timeLineRange[1]) * 0.25 + timeLineRange[0]).lower();
-            warpControl2Label.text((timeLineRange[0] - timeLineRange[1]) * 0.75 + timeLineRange[0]).lower();
+            warpControl1Label.text(new Date((timeLineRange[1] - timeLineRange[0]) * 0.25 + timeLineRange[0]).toDateString()).lower();
+            warpControl2Label.text(new Date((timeLineRange[1] - timeLineRange[0]) * 0.75 + timeLineRange[0]).toDateString()).lower();
+            startLabel.text(new Date(timeLineRange[0]).toDateString()).lower();
+            endLabel.text(new Date(timeLineRange[1]).toDateString()).lower();
+
             dataAxis1Ctrl1Label.text(dataDimention1Range[0]).lower();
             dataAxis1Ctrl2Label.text(dataDimention1Range[1]).lower();
 
