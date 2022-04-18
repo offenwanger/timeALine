@@ -126,8 +126,9 @@ let PathMath = function () {
         return { x: vector.x / length, y: vector.y / length };
     }
 
-    function getCoordsForPercentAndDist(path, pathPercent, dist) {
-        let normalVector = getNormalAtPercentOfPath(path, pathPercent);
+    function getCoordsForPercentAndDist(path, pathPercent, dist, dynamicNormals = true) {
+        let normalVector = getNormalAtPercentOfPath(path, 0);
+        if (dynamicNormals) normalVector = getNormalAtPercentOfPath(path, pathPercent);
         return getPointAtDistanceAlongNormal(dist, normalVector, getPointAtPercentOfPath(path, pathPercent))
     }
 
