@@ -1,0 +1,27 @@
+body {
+    position: absolute;
+}
+
+#input-box {
+    display: none;
+    position: absolute;
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: default;
+    color: transparent;
+    caret-color: black;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    overflow: hidden;
+    resize: none;
+}
+
+#mode-indicator {
+    display: none;
+    position: absolute;
+}
+
+#mode-indicator  > img {
+    display: none;
+}

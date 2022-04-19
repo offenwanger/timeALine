@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="js/integrated/integrated.css">
+
+    <script src="lib/jquery-3.4.1.min.js"></script>
+    <script src="lib/papaparse.min.js" charset="utf-8"></script>
+    <script src="lib/d3.v7.min.js" charset="utf-8"></script>
+    <script src="lib/d3-annotation.min.js" charset="utf-8"></script>
+
+    <script src="js/utilityFunctions.js" charset="utf-8"></script>
+    <script src="js/dataStructure.js" charset="utf-8"></script>
+    <script src="js/fileHandling.js" charset="utf-8"></script>
+
+    <script src="js/integrated/lineDrawing.js" charset="utf-8"></script>
+    <script src="js/integrated/integrated.js" charset="utf-8"></script>
+</head>
+
+<body>
+    <button class="tool-button" id="line-brush"><img src="icons/newLine.png" /></button>
+    <button class="tool-button" id="add-data"><img src="icons/addData.png" /></button>
+    <button class="tool-button" id="straight-normals"><img src="icons/straight-normals.png" /></button>
+    <button class="tool-button" id="dynamic-normals"><img src="icons/dynamic-normals.png" /></button>
+
+    <div id="svg_container"></div>
+
+
+    <div id="mode-indicator">
+        <img id="line-brush-indicator" src="icons/newLine.png" />
+        <img id="add-data-indicator" src="icons/addData.png" />
+        <img id="straight-normals-indicator" src="icons/straight-normals.png" />
+        <img id="dynamic-normals-indicator" src="icons/dynamic-normals.png" />
+    </div>
+
+    <textarea id="input-box" type="text"></textarea>
+</body>
+
+</html>
