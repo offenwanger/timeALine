@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const DYNAMIC = 1;
     let normalsSetting = DYNAMIC;
 
+    let lineDrawn = false;
+
     let margin = { top: 20, right: 20, bottom: 30, left: 50 };
     let width = window.innerWidth - margin.left - margin.right;
     let height = window.innerHeight - margin.top - margin.bottom;
@@ -22,27 +24,31 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('fill', 'white')
         .call(d3.drag()
             .on('start', function (e) {
+                if(lineDrawn) return;
                 draggedPoints = [];
             })
             .on('drag', function (e) {
+                if(lineDrawn) return;
                 draggedPoints.push({ x: e.x, y: e.y });
                 drawTimeline()
             })
             .on('end', function (e) {
+                if(lineDrawn) return;
                 let result = [];
                 for (let i = 0; i < draggedPoints.length; i += 10) {
                     result.push(draggedPoints[i]);
                 }
+                lineDrawn = true;
                 draggedPoints = result;
                 drawTimeline()
                 drawData();
             }));
 
 
-    var Gen = d3.line()
-        .x((p) => p.x)
-        .y((p) => p.y)
-        .curve(d3.curveCatmullRom.alpha(0.5));
+            var Gen = d3.line()
+            .x((p) => p.x)
+            .y((p) => p.y)
+            .curve(d3.curveCatmullRom.alpha(0.5));
 
     let draggedPoints = [];
 
