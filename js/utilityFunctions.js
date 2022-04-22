@@ -58,14 +58,14 @@ let PathMath = function () {
     function getNormalAtPercentOfPath(path, percent) {
         // this is not 100% accurate but will be a reasonable approximation
         // there's some stange gankyness when it gets too close to the end, so just use a close vector
-        if (percent < 0.001) {
-            percent = 0.001
-        } else if (percent > 0.999) {
-            percent = .999
+        if (percent < 0.01) {
+            percent = 0.01
+        } else if (percent > 0.99) {
+            percent = .99
         }
 
-        let point1 = getPointAtPercentOfPath(path, Math.max(0, percent - 0.001));
-        let point2 = getPointAtPercentOfPath(path, Math.min(path.node().getTotalLength(), percent + 0.001));
+        let point1 = getPointAtPercentOfPath(path, percent - 0.01);
+        let point2 = getPointAtPercentOfPath(path, percent + 0.01);
         // this is now a vector pointing along the forward direction on the line
         let difference = { x: point2.x - point1.x, y: point2.y - point1.y };
 
@@ -112,18 +112,62 @@ let PathMath = function () {
         };
     }
 
+    function projectPointOntoLine(point, lineStart, lineEnd) {
+        if (pointIsEqual(point, lineStart)) {
+            return {
+                point,
+                distance: 0,
+                percent: 0
+            };
+        } else if (pointIsEqual(point, lineEnd)) {
+            return {
+                point,
+                distance: 0,
+                percent: 1
+            };
+        }
+
+        let lineStartToLineEnd = subtractPoints(lineEnd, lineStart);
+        let lineStartToPoint = subtractPoints(point, lineStart);
+        let len = vectorLength(lineStartToLineEnd)
+        let dot = lineStartToPoint.x * lineStartToLineEnd.x + lineStartToPoint.y * lineStartToLineEnd.y;
+        let projLen = dot / len;
+        let projPercent = projLen / len;
+        let projectVector = scalarMultiplyPoint(lineStartToLineEnd, projPercent)
+        let projectedPoint = {
+            x: lineStart.x + projectVector.x,
+            y: lineStart.y + projectVector.y
+        }
+
+        let dotThing = (lineEnd.x - lineStart.x) * (point.y - lineStart.y) - (lineEnd.y - lineStart.y) * (point.x - lineStart.x);
+        let negation = dotThing / Math.abs(dotThing);
+
+        let distance = negation * distancebetween(point, projectedPoint);
+
+
+        return {
+            point: projectedPoint,
+            distance,
+            percent: projPercent
+        };
+    }
+
     function getPointAtDistanceAlongNormal(distance, normalVector, origin) {
         return { x: normalVector.x * distance + origin.x, y: normalVector.y * distance + origin.y };
     }
 
     function normalize(vector) {
-        let length = distancebetween(vector, { x: 0, y: 0 });
+        let length = vectorLength(vector);
         if (length == 0) {
             console.error("cannot get normal for 0, 0!")
             return vector;
         }
 
         return { x: vector.x / length, y: vector.y / length };
+    }
+
+    function vectorLength(vector) {
+        return distancebetween(vector, { x: 0, y: 0 });
     }
 
     function getCoordsForPercentAndDist(path, pathPercent, dist, dynamicNormals = true) {
@@ -164,6 +208,48 @@ let PathMath = function () {
         return 0;
     }
 
+    function pointsToPercentDistMapping(points, lineStart, lineEnd) {
+        let result = []
+        points.forEach(point => {
+            let projection = projectPointOntoLine(point, lineStart, lineEnd);
+            result.push({ percent: projection.percent, dist: projection.distance })
+        })
+        return result;
+    }
+
+    function percentDistMappingToPoints(mapping, lineStart, lineEnd) {
+        let lineVector = subtractPoints(lineEnd, lineStart);
+        let normal = rotatePoint90DegreesCounterClockwise(normalize(lineVector));
+        let result = [];
+        mapping.forEach(entry => {
+            origin = {
+                x: lineVector.x * entry.percent + lineStart.x,
+                y: lineVector.y * entry.percent + lineStart.y
+            }
+
+            result.push(getPointAtDistanceAlongNormal(entry.dist, normal, origin));
+        });
+        return result;
+    }
+
+    function subtractPoints(point1, point2) {
+        return {
+            x: point1.x - point2.x,
+            y: point1.y - point2.y
+        }
+    }
+
+    function pointIsEqual(point1, point2) {
+        return point1.x == point2.x && point1.y == point2.y;
+    }
+
+    function scalarMultiplyPoint(point, scalar) {
+        return {
+            x: point.x * scalar,
+            y: point.y * scalar
+        }
+    }
+
 
     return {
         getPointAtPercentOfPath,
@@ -178,5 +264,7 @@ let PathMath = function () {
         getCoordsForPercentAndDist,
         getDistForAxisPercent,
         warpPercent,
+        pointsToPercentDistMapping,
+        percentDistMappingToPoints,
     }
 }();
