@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let lineDrawer = createLineDrawer(svg);
     lineDrawer.setOnDrawFinished((linePoints, line, lineTouchTarget) => {
-        console.log(linePoints, line, lineTouchTarget)
         clearMode();
     });
 
