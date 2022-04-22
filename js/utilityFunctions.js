@@ -48,6 +48,23 @@ let PathMath = function () {
         return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / pathNode.getTotalLength() };
     }
 
+    function remapLinePointsAroundNewPoint(line, startPercent, endPercent, newPointPercent, pixelPercision = 50) {
+        let resultBefore = [];
+        let totalLength = line.node().getTotalLength();
+        for (let len = totalLength * startPercent; len < totalLength * newPointPercent; len += pixelPercision) {
+            resultBefore.push(line.node().getPointAtLength(len));
+        }
+        resultBefore = resultBefore.map(p => { return { x: p.x, y: p.y }; });
+
+        let resultAfter = [];
+        for (let len = totalLength * newPointPercent; len < totalLength * endPercent; len += pixelPercision) {
+            resultAfter.push(line.node().getPointAtLength(len));
+        }
+        resultAfter = resultAfter.map(p => { return { x: p.x, y: p.y }; });
+
+        return { before: resultBefore, after: resultAfter };
+    }
+
     function distancebetween(point1, point2) {
         let a = point1.x - point2.x;
         let b = point1.y - point2.y;
@@ -266,5 +283,6 @@ let PathMath = function () {
         warpPercent,
         pointsToPercentDistMapping,
         percentDistMappingToPoints,
+        remapLinePointsAroundNewPoint,
     }
 }();

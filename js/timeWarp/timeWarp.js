@@ -13,12 +13,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         lineDrawer.setIsDrawing(false);
         let segments = [{
             controlPoint: createControlPoint(points[0]),
+            percent: 0,
             timePeg: createTimeEndPeg(0),
-            points,
+            points: points.slice(0, points.length - 1),
         }, {
             controlPoint: createControlPoint(points[points.length - 1]),
+            percent: 1,
             timePeg: createTimeEndPeg(1),
-            points: []
+            points: [points[points.length - 1]]
         }
         ];
 
@@ -32,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         for (let i = 0; i < segments.length; i++) {
             bindControlPointEvents(segments[i].controlPoint, i, lineData);
         }
+        bindTouchTargetEvents(lineData.touchTarget, lineData);
 
         timelines.push(lineData);
         drawLine(lineData);
@@ -46,10 +49,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         lineData.segments.forEach(segment => {
             let peg = segment.timePeg;
-            let percent = peg.datum()
-            let coords = PathMath.getPointAtPercentOfPath(lineData.timeControl, percent);
-            peg.attr("x", coords.x - peg.attr("width") / 2)
-            peg.attr("y", coords.y - peg.attr("height") / 2)
+            if (peg) {
+                let percent = peg.datum()
+                let coords = PathMath.getPointAtPercentOfPath(lineData.timeControl, percent);
+                peg.attr("x", coords.x - peg.attr("width") / 2)
+                peg.attr("y", coords.y - peg.attr("height") / 2)
+            }
         })
     }
 
@@ -77,6 +82,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function bindControlPointEvents(point, index, lineData) {
         let rearMapping = []
         let forwardMapping = []
+        point.on("dblclick", (e) => {
+            if (index != 0 && index != lineData.segments.length - 1) {
+                let segment = lineData.segments.splice(index, 1)[0];
+                lineData.segments[index - 1].points = lineData.segments[index - 1].points.concat(segment.points);
+                segment.controlPoint.remove();
+            }
+
+            for (let i = 0; i < lineData.segments.length; i++) {
+                bindControlPointEvents(lineData.segments[i].controlPoint, i, lineData);
+            }
+        });
+
         point.on(".drag", null);
         point.call(d3.drag()
             .on('start', function (e) {
@@ -129,12 +146,92 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     lineData.segments[index].points = PathMath.percentDistMappingToPoints(forwardMapping, startPoint, endPoint);
                 }
 
+                if (index == lineData.segments.length - 1) {
+                    lineData.segments[index].points[0] = { x: e.x, y: e.y };
+                }
+
                 drawLine(lineData)
             })
             .on('end', function (e) {
-
+                lineData.segments[index].percent = PathMath.getClosestPointOnPath(lineData.line, { x: e.x, y: e.y }).percent;
+                console.log(lineData.segments[index].percent)
             }));
 
+    }
+
+    function bindTouchTargetEvents(target, lineData) {
+        target.on("dblclick", (e) => {
+            let newPoint = PathMath.getClosestPointOnPath(lineData.line, { x: e.x, y: e.y });
+            let index = 0
+            for (let i = 0; i < lineData.segments.length - 1; i++) {
+                if (newPoint.percent >= lineData.segments[i].percent && newPoint.percent <= lineData.segments[i + 1].percent) {
+                    index = i;
+                    break;
+                }
+            }
+
+            let startPercent = lineData.segments[index].percent;
+            let endPercent = lineData.segments[index + 1].percent;
+
+            let newSegmentPoints = PathMath.remapLinePointsAroundNewPoint(lineData.line, startPercent, endPercent, newPoint.percent);
+
+            lineData.segments[index].points = newSegmentPoints.before;
+
+            let newSegment = {
+                controlPoint: createControlPoint(newSegmentPoints.after[0]),
+                percent: newPoint.percent,
+                points: newSegmentPoints.after,
+            }
+
+            lineData.segments.splice(index + 1, 0, newSegment);
+
+            for (let i = 0; i < lineData.segments.length; i++) {
+                bindControlPointEvents(lineData.segments[i].controlPoint, i, lineData);
+            }
+
+            drawLine(lineData);
+        });
+
+        let targetPointIndex;
+        let targetSegmentIndex;
+        target.call(d3.drag()
+            .on('start', (e) => {
+                let newPoint = PathMath.getClosestPointOnPath(lineData.line, { x: e.x, y: e.y });
+                for (let i = 0; i < lineData.segments.length - 1; i++) {
+                    if (newPoint.percent >= lineData.segments[i].percent && newPoint.percent <= lineData.segments[i + 1].percent) {
+                        targetSegmentIndex = i;
+                        break;
+                    }
+                }
+
+                let startPercent = lineData.segments[targetSegmentIndex].percent;
+                let endPercent = lineData.segments[targetSegmentIndex + 1].percent;
+
+                let newSegmentPoints = PathMath.remapLinePointsAroundNewPoint(lineData.line, startPercent, endPercent, newPoint.percent);
+                lineData.segments[targetSegmentIndex].points = newSegmentPoints.before.concat(newSegmentPoints.after);
+
+                targetPointIndex = newSegmentPoints.before.length;
+            })
+            .on('drag', (e) => {
+                let draggedPoints = lineData.segments[targetSegmentIndex].points;
+                draggedPoints[targetPointIndex].x += e.dx;
+                draggedPoints[targetPointIndex].y += e.dy;
+                for (let i = 1; i < Math.max(targetPointIndex, draggedPoints.length - targetPointIndex); i++) {
+                    if (targetPointIndex - i > 0) {
+                        let falloff = (targetPointIndex - i) / targetPointIndex
+                        draggedPoints[targetPointIndex - i].x += e.dx * falloff;
+                        draggedPoints[targetPointIndex - i].y += e.dy * falloff;
+                    }
+                    if (targetPointIndex + i < draggedPoints.length) {
+                        let falloff = ((draggedPoints.length) - (targetPointIndex + i)) / (draggedPoints.length - targetPointIndex);
+                        draggedPoints[targetPointIndex + i].x += e.dx * falloff;
+                        draggedPoints[targetPointIndex + i].y += e.dy * falloff;
+                    }
+                }
+
+                drawLine(lineData);
+            })
+            .on('end', () => { }))
     }
 
     function createTimeEndPeg(percent) {
