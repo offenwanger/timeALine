@@ -30,7 +30,6 @@ describe('Test Math', function () {
             let result = PathMath.pointsToPercentDistMapping(points, { x: 0, y: 0 }, { x: 20, y: 0 });
 
             for (let i = 0; i < points.length; i++) {
-                console.log(result[i])
                 expect(expectedResult[i].percent).to.be.closeTo(result[i].percent, .0001);
                 expect(expectedResult[i].dist).to.be.closeTo(result[i].dist, .0001);
             }
