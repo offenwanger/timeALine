@@ -244,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             // figure out if the point should go before or after targetIndex
             let insertIndex = targetIndex + 1;
-            console.log(p, PathMath.getClosestPointOnPath(timeline, draggedPoints[targetIndex]))
             if (p.percent < PathMath.getClosestPointOnPath(timeline, draggedPoints[targetIndex]).percent) {
                 insertIndex--;
             }
