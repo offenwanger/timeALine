@@ -267,6 +267,13 @@ let PathMath = function () {
         }
     }
 
+    function normalVectorToDegrees(vector) {
+        var angle = Math.atan2(vector.y, vector.x);   //radians
+        // you need to devide by PI, and MULTIPLY by 180:
+        var degrees = 180 * angle / Math.PI;  //degrees
+        return (360 + Math.round(degrees)) % 360 - 90; //round number, avoid decimal fragments
+    }
+
 
     return {
         getPointAtPercentOfPath,
@@ -284,5 +291,6 @@ let PathMath = function () {
         pointsToPercentDistMapping,
         percentDistMappingToPoints,
         remapLinePointsAroundNewPoint,
+        normalVectorToDegrees,
     }
 }();
