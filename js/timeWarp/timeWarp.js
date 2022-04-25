@@ -154,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             })
             .on('end', function (e) {
                 lineData.segments[index].percent = PathMath.getClosestPointOnPath(lineData.line, { x: e.x, y: e.y }).percent;
-                console.log(lineData.segments[index].percent)
             }));
 
     }
