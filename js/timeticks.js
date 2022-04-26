@@ -53,13 +53,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let draggedPoints = [];
 
     let zoomValue = 10
-    let xScale = d3.scaleLinear()
-        .rangeRound([0, width])
-        .domain([0, width / zoomValue]);
-
-    let yScale = d3.scaleLinear()
-        .rangeRound([height, 0])
-        .domain([0, height / zoomValue]);
 
     let focus = svg.append('g')
         .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
@@ -151,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .attr('x2', dataAxis1Ctrl2.attr('cx'))
             .attr('y2', dataAxis1Ctrl2.attr('cy'));
 
-        drawTicks();
+        recalculateTicks();
         drawAnnotations();
 
     }
@@ -188,13 +181,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         drawTimeline();
     }
 
-    function drawTicks() {
+    let tickData;
+    function recalculateTicks() {
         let totalLength = timeline.node().getTotalLength()
         let tickCount = Math.floor(totalLength / 50);
         let tickDist = totalLength / tickCount;
 
-        let tickData = [...Array(tickCount).keys()].map(val => val * tickDist).map(len => {
+        tickData = [...Array(tickCount).keys()].map(val => val * tickDist).map((len, index) => {
             return {
+                index,
                 point: timeline.node().getPointAtLength(len),
                 rotation: PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength)),
                 size: 10
@@ -203,12 +198,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let ticks = focus.selectAll(".time-tick").data(tickData);
         ticks.exit().remove();
-        ticks.enter().append("line")
+        let newticks = ticks.enter().append("line")
             .classed("time-tick", true)
             .style("stroke", "black")
-            .style("stroke-width", 3);
+            .style("stroke-width", 3)
+        setTimeTickHandlers(newticks, timeline)
+        drawTicks();
+    }
 
-        focus.selectAll(".time-tick")
+    function drawTicks() {
+        focus.selectAll(".time-tick").data(tickData)
             .attr('transform', function (d) { return "rotate(" + d.rotation + " " + d.point.x + " " + d.point.y + ")" })
             .attr("x1", function (d) { return d.point.x })
             .attr("y1", function (d) { return d.point.y + d.size / 2 })
@@ -216,12 +215,69 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .attr("y2", function (d) { return d.point.y - d.size / 2 });
     }
 
-    function warpControlDragged(event) {
-        let dragPoint = { x: event.x, y: event.y };
-        let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
-        d3.select(this).datum(p.percent);
-        drawTimeline();
+    let timePegs = []
+
+    function setTimeTickHandlers(ticks, line) {
+        let startPercent;
+        ticks.call(d3.drag()
+            .on('start', (event) => {
+                if (draggedPoints.length < 2) return;
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(line, dragPoint);
+                startPercent = linePercentToDataPercent(p.percent);
+
+                drawTicks();
+            })
+            .on('drag', (event, d) => {
+                if (draggedPoints.length < 2) return;
+
+                let index = d.index;
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
+
+                let totalLength = line.node().getTotalLength()
+                let tickCount = Math.floor(totalLength / 50);
+
+                let splitLen = p.percent * totalLength;
+                let distLower = splitLen / index;
+                let distUpper = (totalLength - splitLen) / (tickCount - index)
+
+                tickData = [...Array(tickCount).keys()].map((val, i) => {
+                    if (index > i) {
+                        return val * distLower;
+                    } else {
+                        return splitLen + ((val - index) * distUpper);
+                    }
+                }).map((len, index) => {
+                    return {
+                        index,
+                        point: timeline.node().getPointAtLength(len),
+                        rotation: PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength)),
+                        size: 10
+                    }
+                });
+
+                drawTicks();
+            })
+            .on('end', (event) => {
+                if (draggedPoints.length < 2) return;
+                timePegs.push()
+
+                recalculateTicks();
+                // set up a peg
+            }))
     }
+
+    function linePercentToDataPercent(percent) {
+        if (timePegs.length == 0) return percent;
+    }
+
+    function dataPercentToLinePercent(percent) {
+        if (timePegs.length == 0) return percent;
+    }
+
 
     let targetIndex;
     function timelineDragStart(e) {
