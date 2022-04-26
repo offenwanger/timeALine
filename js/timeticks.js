@@ -154,13 +154,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         focus.selectAll('.dataPoint')
             .attr('cx', function (d) {
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = d[0];
+                let convertedPercent = dataPercentToLinePercent(d[0], timePegs);
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist, normalsSetting == DYNAMIC);
                 return coords.x;
             })
             .attr('cy', function (d) {
                 let dist = PathMath.getDistForAxisPercent(d[1], dataAxis1Ctrl2.datum(), dataAxis1Ctrl1.datum());
-                let convertedPercent = d[0];
+                let convertedPercent = dataPercentToLinePercent(d[0], timePegs);
                 let coords = PathMath.getCoordsForPercentAndDist(timeline, convertedPercent, zoomValue * dist, normalsSetting == DYNAMIC);
                 return coords.y;
             });
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let tickData;
     function recalculateTicks() {
         let totalLength = timeline.node().getTotalLength()
-        let tickCount = Math.floor(totalLength / 50);
+        let tickCount = Math.floor(totalLength / 40);
         let tickDist = totalLength / tickCount;
 
         tickData = [...Array(tickCount).keys()].map(val => val * tickDist).map((len, index) => {
@@ -192,27 +192,43 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 index,
                 point: timeline.node().getPointAtLength(len),
                 rotation: PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength)),
-                size: 10
+                size: getTickSize(len / totalLength, timePegs)
             }
         });
 
         let ticks = focus.selectAll(".time-tick").data(tickData);
         ticks.exit().remove();
-        let newticks = ticks.enter().append("line")
+        ticks.enter().append("line")
             .classed("time-tick", true)
             .style("stroke", "black")
-            .style("stroke-width", 3)
-        setTimeTickHandlers(newticks, timeline)
         drawTicks();
+
+        let tickTargets = focus.selectAll(".time-tick-target").data(tickData);
+        tickTargets.exit().remove();
+        let newtickTargets = tickTargets.enter().append("line")
+            .classed("time-tick-target", true)
+            .style("stroke", "white")
+            .style("opacity", "0")
+            .attr('stroke-linecap', 'round')
+        setTimeTickHandlers(newtickTargets, timeline)
     }
 
     function drawTicks() {
+        focus.selectAll(".time-tick-target").data(tickData)
+            .attr('transform', function (d) { return "rotate(" + d.rotation + " " + d.point.x + " " + d.point.y + ")" })
+            .style("stroke-width", function (d) { return d.size.width + 5 })
+            .attr("x1", function (d) { return d.point.x })
+            .attr("y1", function (d) { return d.point.y + d.size.length / 2 + 5 })
+            .attr("x2", function (d) { return d.point.x })
+            .attr("y2", function (d) { return d.point.y - d.size.length / 2 - 5 })
+
         focus.selectAll(".time-tick").data(tickData)
             .attr('transform', function (d) { return "rotate(" + d.rotation + " " + d.point.x + " " + d.point.y + ")" })
+            .style("stroke-width", function (d) { return d.size.width })
             .attr("x1", function (d) { return d.point.x })
-            .attr("y1", function (d) { return d.point.y + d.size / 2 })
+            .attr("y1", function (d) { return d.point.y + d.size.length / 2 })
             .attr("x2", function (d) { return d.point.x })
-            .attr("y2", function (d) { return d.point.y - d.size / 2 });
+            .attr("y2", function (d) { return d.point.y - d.size.length / 2 })
     }
 
     let timePegs = []
@@ -225,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
                 let dragPoint = { x: event.x, y: event.y };
                 let p = PathMath.getClosestPointOnPath(line, dragPoint);
-                startPercent = linePercentToDataPercent(p.percent);
+                startPercent = p.percent;
 
                 drawTicks();
             })
@@ -238,44 +254,152 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
 
                 let totalLength = line.node().getTotalLength()
-                let tickCount = Math.floor(totalLength / 50);
+                let tickCount = Math.floor(totalLength / 40);
 
                 let splitLen = p.percent * totalLength;
                 let distLower = splitLen / index;
                 let distUpper = (totalLength - splitLen) / (tickCount - index)
 
-                tickData = [...Array(tickCount).keys()].map((val, i) => {
+                tickData.forEach((data, i) => {
+                    let len
                     if (index > i) {
-                        return val * distLower;
+                        len = i * distLower;
                     } else {
-                        return splitLen + ((val - index) * distUpper);
+                        len = splitLen + ((i - index) * distUpper);
                     }
-                }).map((len, index) => {
-                    return {
-                        index,
-                        point: timeline.node().getPointAtLength(len),
-                        rotation: PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength)),
-                        size: 10
-                    }
+                    data.point = timeline.node().getPointAtLength(len);
+                    data.rotation = PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength));
                 });
 
                 drawTicks();
             })
             .on('end', (event) => {
                 if (draggedPoints.length < 2) return;
-                timePegs.push()
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(line, dragPoint);
+
+                let dataPercent = linePercentToDataPercent(startPercent, timePegs);
+                let linePercent = p.percent;
+
+                let newPeg = { dataPercent, linePercent };
+
+                let pegIndex = -1
+                let existingPeg = timePegs.find(peg => Math.abs(peg.dataPercent - newPeg.dataPercent) < 0.0001)
+                if (existingPeg) {
+                    pegIndex = timePegs.indexOf(existingPeg);
+                    // just to make sure they are consistent
+                    dataPercent = existingPeg.dataPercent;
+                    existingPeg.linePercent = linePercent;
+                } else {
+                    timePegs.push(newPeg)
+                    timePegs.sort((a, b) => a.linePercent - b.linePercent)
+                    pegIndex = timePegs.indexOf(newPeg);
+                }
+
+                // eliminate pegs that have been dragged over. 
+                timePegs = timePegs.filter((peg, index) => {
+                    if (index == pegIndex) return true;
+                    if (index < pegIndex) {
+                        return peg.dataPercent < dataPercent
+                    } else {
+                        return peg.dataPercent > dataPercent
+                    }
+                })
 
                 recalculateTicks();
-                // set up a peg
+                drawData();
             }))
     }
 
-    function linePercentToDataPercent(percent) {
+    function linePercentToDataPercent(percent, timePegs) {
         if (timePegs.length == 0) return percent;
+
+        let indexAfter = 0
+        while (percent > timePegs[indexAfter].linePercent) {
+            indexAfter++;
+            if (indexAfter == timePegs.length) break;
+        }
+
+        let pegBefore;
+        let pegAfter;
+
+        if (indexAfter == 0) {
+            pegBefore = { dataPercent: 0, linePercent: 0 }
+        } else {
+            pegBefore = timePegs[indexAfter - 1];
+        }
+
+        if (indexAfter == timePegs.length) {
+            pegAfter = { dataPercent: 1, linePercent: 1 }
+        } else {
+            pegAfter = timePegs[indexAfter];
+        }
+
+        let percentBetweenTwoPegs = (percent - pegBefore.linePercent) / (pegAfter.linePercent - pegBefore.linePercent)
+        return ((pegAfter.dataPercent - pegBefore.dataPercent) * percentBetweenTwoPegs) + pegBefore.dataPercent;
     }
 
-    function dataPercentToLinePercent(percent) {
+    function dataPercentToLinePercent(percent, timePegs) {
         if (timePegs.length == 0) return percent;
+
+        let indexAfter = 0
+        while (percent > timePegs[indexAfter].dataPercent) {
+            indexAfter++;
+            if (indexAfter == timePegs.length) break;
+        }
+
+        let pegBefore;
+        let pegAfter;
+
+        if (indexAfter == 0) {
+            pegBefore = { dataPercent: 0, linePercent: 0 }
+        } else {
+            pegBefore = timePegs[indexAfter - 1];
+        }
+
+        if (indexAfter == timePegs.length) {
+            pegAfter = { dataPercent: 1, linePercent: 1 }
+        } else {
+            pegAfter = timePegs[indexAfter];
+        }
+
+        let percentBetweenTwoPegs = (percent - pegBefore.dataPercent) / (pegAfter.dataPercent - pegBefore.dataPercent)
+        return ((pegAfter.linePercent - pegBefore.linePercent) * percentBetweenTwoPegs) + pegBefore.linePercent;
+    }
+
+    function getTickSize(percent, timePegs) {
+        if (timePegs.length == 0) return { length: 10, width: 3 };
+
+        let indexAfter = 0
+        while (percent > timePegs[indexAfter].linePercent) {
+            indexAfter++;
+            if (indexAfter == timePegs.length) break;
+        }
+
+        let pegBefore;
+        let pegAfter;
+
+        if (indexAfter == 0) {
+            pegBefore = { dataPercent: 0, linePercent: 0 }
+        } else {
+            pegBefore = timePegs[indexAfter - 1];
+        }
+
+        if (indexAfter == timePegs.length) {
+            pegAfter = { dataPercent: 1, linePercent: 1 }
+        } else {
+            pegAfter = timePegs[indexAfter];
+        }
+
+        let ratio = (pegAfter.dataPercent - pegBefore.dataPercent) / (pegAfter.linePercent - pegBefore.linePercent)
+
+        return { length: 10 * ratio, width: 3 * ratio }
+
+    }
+
+    function sigmoid(z) {
+        return 2 / (1 + Math.exp(-z + 1));
     }
 
 
