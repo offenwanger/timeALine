@@ -292,5 +292,13 @@ let PathMath = function () {
         percentDistMappingToPoints,
         remapLinePointsAroundNewPoint,
         normalVectorToDegrees,
+        subtractPoints,
     }
 }();
+
+let idCounter = 0;
+function getUniqueId() {
+    // ensures uniqueness if we get three at the same time.
+    idCounter++
+    return Date.now() + "_" + idCounter;
+}
