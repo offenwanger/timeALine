@@ -1,7 +1,6 @@
 let DataStructures = function () {
     function Timeline(points) {
         this.id = getUniqueId();
-        this.path = []
         this.startPoint = { boundTimepoint: -1 };
         this.endPoint = { boundTimepoint: -1 };
         this.warpControls = []

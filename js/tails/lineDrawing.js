@@ -48,8 +48,8 @@ let createLineDrawer = function (svg) {
             drawingLineTarget.attr('d', lineGenerator(result));
 
             drawFinishedCallback(result, drawingLine.clone(), drawingLineTarget.clone());
-            draggedPoints = [];
 
+            draggedPoints = [];
             drawingLine.attr('d', lineGenerator([]));
             drawingLineTarget.attr('d', lineGenerator([]));
 

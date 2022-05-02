@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let lineResolution = 20;
 
-    let timelineData = [];
     let timelineModels = [];
 
     let lineDrawer = createLineDrawer(svg);
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         lineDrawer.setCanDraw(false);
 
         let newTimelineData = new DataStructures.Timeline(points);
-        timelineData.push(newTimelineData);
         let newTimelineModel = {
             timelineData: newTimelineData,
             path: line,
@@ -137,26 +135,84 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function bindTouchTargetEvents(target, model) {
         let targetPointIndex;
-        let targetSegmentIndex;
+        let targetLength;
+        let dragPoints;
         target.call(d3.drag()
             .on('start', (e) => {
-                // add a point at the nearest point clicked
+                let p = PathMath.getClosestPointOnPath(model.path, { x: e.x, y: e.y });
+                // copy the array
+                dragPoints = model.timelineData.points.map(point => { return { x: point.x, y: point.y } })
+                targetLength = p.percent * model.path.node().getTotalLength();
+                if (p.percent < 0.0001) {
+                    // set the target for first point on the line that's not the start point
+                    targetPointIndex = 1;
+                } else if (p.percent > 0.999) {
+                    // set the target for the last point on the line that's not the end point
+                    targetPointIndex = dragPoints.length - 1;
+                } else {
+                    targetPointIndex = getInsertIndex(p.percent, model.path)
+                    dragPoints.splice(targetPointIndex, 0, { x: p.x, y: p.y });
+                    model.path.attr('d', lineDrawer.lineGenerator(dragPoints));
+                }
             })
             .on('drag', (e) => {
-                // drag that point using the stupid algorithm (careful not to move the endpoints)
-                // or implement the less stupid algorithm (get points within x distance of the main point, actually, 
-                //   they won't be much different in this system)
+                dragPoints[targetPointIndex].x += e.dx;
+                dragPoints[targetPointIndex].y += e.dy;
+
+                let dx = e.dx;
+                let dy = e.dy;
+
+                let touchRange = 100;
+                for (let i = 1; i < targetPointIndex; i++) {
+                    let dist = targetLength - i * lineResolution;
+                    let str = gaussian(Math.max(0, (touchRange - dist) / touchRange));
+                    let dxi = dx * str;
+                    let dyi = dy * str;
+
+                    dragPoints[i].x += dxi;
+                    dragPoints[i].y += dyi;
+                }
+
+                for (let i = targetPointIndex + 1; i < dragPoints.length - 1; i++) {
+                    let dist = i * lineResolution - targetLength;
+                    let str = gaussian(Math.max(0, (touchRange - dist) / touchRange));
+                    let dxi = dx * str;
+                    let dyi = dy * str;
+
+                    dragPoints[i].x += dxi;
+                    dragPoints[i].y += dyi;
+                }
+
+                // TODO implement the less stupid algorithm (get points within x distance of the main point)
+                model.path.attr('d', lineDrawer.lineGenerator(dragPoints));
             })
             .on('end', (e) => {
-                // respace the line points
+                let newPoints = lineDrawer.remapPointsWithResolution(dragPoints, lineResolution);
+                newPoints = lineDrawer.remapPointsWithResolution(newPoints, lineResolution);
+                model.timelineData.setPoints(newPoints);
+
+                dataUpdated(model);
             }));
     }
 
+    function getInsertIndex(percent, line) {
+        // This assumes one point every lineResolution along the path
+        let len = line.node().getTotalLength() * percent;
+        return Math.floor(len / lineResolution) + 1;
+    }
 
     function dataUpdated(model) {
         model.path.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
+        model.touchTarget.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
 
         // update the ticks
+    }
+
+    function gaussian(x) {
+        let a = 1;
+        let b = 1;
+        let c = 1 / 3
+        return a * Math.exp(-(x - b) * (x - b) / (2 * c * c));
     }
 
 });
