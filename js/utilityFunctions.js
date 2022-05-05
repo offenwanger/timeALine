@@ -45,7 +45,7 @@ let PathMath = function () {
             }
         }
 
-        return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / pathNode.getTotalLength() };
+        return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / pathNode.getTotalLength(), length: bestLength };
     }
 
     function remapLinePointsAroundNewPoint(line, startPercent, endPercent, newPointPercent, pixelPercision = 50) {
