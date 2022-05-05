@@ -1,3 +1,5 @@
+let loadData;
+
 document.addEventListener('DOMContentLoaded', function (e) {
     let margin = { top: 20, right: 20, bottom: 30, left: 50 };
     let width = window.innerWidth - margin.left - margin.right;
@@ -229,6 +231,39 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let b = 1;
         let c = 1 / 3
         return a * Math.exp(-(x - b) * (x - b) / (2 * c * c));
+    }
+
+    loadData = function () {
+        FileHandler.getDataFile().then(result => {
+            let data = result.data.map(item => { return { time: parseInt(item[0]), val: parseInt(item[1]) } });
+
+            let model = timelineModels[0];
+
+            let timeRange = d3.extent(data.map(item => item.time).filter(item => item));
+            model.timelineData.timePegs.forEach(peg => {
+                let start = model.timelineData.startPoint.boundTimepoint != -1 ? model.timelineData.startPoint.boundTimepoint : 0;
+                let end = model.timelineData.endPoint.boundTimepoint != -1 ? model.timelineData.endPoint.boundTimepoint : 1;
+
+                let percent = (peg.boundTimepoint - start) / (end - start)
+
+                peg.boundTimepoint = Math.floor((timeRange[1] - timeRange[0]) * percent + timeRange[0]);
+            })
+            model.timelineData.startPoint.boundTimepoint = timeRange[0]
+            model.timelineData.endPoint.boundTimepoint = timeRange[1]
+
+            let valRange = d3.extent(data.map(item => item.val).filter(item => item));
+
+            // add a data line
+
+            data = data.filter(item => !isNaN(item.time && !isNaN(item.val)));
+
+            ticker.update(
+                model.timelineData.id,
+                model.timelineData.startPoint,
+                model.timelineData.timePegs,
+                model.timelineData.endPoint,
+                model.path);
+        });
     }
 
 });

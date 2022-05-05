@@ -385,7 +385,7 @@ let createTimeTicker = function (svg) {
     function createAnnotationData(timePegs, path) {
         let annotationData = [];
         for (let i = 0; i < timePegs.length; i++) {
-            let text = timePegs[i].boundTimepoint == -1 || timePegs[i].boundTimepoint < 1 ? "--" : new Date(timePegs.boundTimepoint).toDateString();
+            let text = timePegs[i].boundTimepoint == -1 || timePegs[i].boundTimepoint < 1 ? "--" : new Date(timePegs[i].boundTimepoint).toDateString();
 
             annotationData.push({
                 note: {
