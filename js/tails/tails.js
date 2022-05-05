@@ -20,8 +20,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             timelineData: newTimelineData,
             path: line,
             touchTarget: touchTarget,
-            timeTickData: [],
-            timePegData: [],
         }
         newTimelineModel.startControl = createLineStartControl(newTimelineModel);
         newTimelineModel.endControl = createLineEndControl(newTimelineModel);
@@ -96,7 +94,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     let ticker = createTimeTicker(svg);
-    ticker.setTimePegsUpdatedCallback(function (model) {
+    ticker.setTimePegsUpdatedCallback(function (timelineId, pegs) {
+        let model = getModelById(timelineId);
+        model.timelineData.timePegs = pegs;
         dataUpdated(model);
     })
 
@@ -212,9 +212,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         model.path.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
         model.touchTarget.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
 
-        ticker.update(model);
+        ticker.update(
+            model.timelineData.id,
+            model.timelineData.startPoint,
+            model.timelineData.timePegs,
+            model.timelineData.endPoint,
+            model.path);
     }
 
+    function getModelById(id) {
+        return timelineModels.find(model => model.timelineData.id == id);
+    }
 
     function gaussian(x) {
         let a = 1;
