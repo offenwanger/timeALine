@@ -132,6 +132,7 @@ let createTimeTicker = function (svg) {
             })
             .on('drag', (event) => {
                 let path = timeTickSets[id].data.path;
+                let pathLength = timeTickSets[id].data.pathLength;
 
                 let dragPoint = { x: event.x, y: event.y };
                 let p = PathMath.getClosestPointOnPath(path, dragPoint);
