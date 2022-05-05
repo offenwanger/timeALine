@@ -3,7 +3,7 @@ let DataStructures = function () {
         this.id = getUniqueId();
         this.startPoint = { boundTimepoint: -1 };
         this.endPoint = { boundTimepoint: -1 };
-        this.warpControls = []
+        this.timePegs = []
         this.dataSets = []
 
         this.setPoints = function (points) {
@@ -24,7 +24,7 @@ let DataStructures = function () {
         this.setPoints(points);
     }
 
-    function WarpControl(lengthAlongLine, boundTimepoint = -1, labelOffset = { x: 10, y: 10 }) {
+    function TimePeg(lengthAlongLine, boundTimepoint = -1, labelOffset = { x: 10, y: 10 }) {
         this.lengthAlongLine = lengthAlongLine;
         this.boundTimepoint = boundTimepoint;
         this.labelOffset = labelOffset
@@ -40,7 +40,7 @@ let DataStructures = function () {
 
     return {
         Timeline,
-        WarpControl,
+        TimePeg,
         DataSet,
     }
 }();

@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             timelineData: newTimelineData,
             path: line,
             touchTarget: touchTarget,
-            tickMarks: [/** bring this code over from the tick marks code */]
+            timeTicks: [],
+            timePegs: []
         }
         newTimelineModel.startControl = createLineStartControl(newTimelineModel);
         newTimelineModel.endControl = createLineEndControl(newTimelineModel);
@@ -28,6 +29,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         bindTouchTargetEvents(touchTarget, newTimelineModel);
 
         timelineModels.push(newTimelineModel)
+
+        dataUpdated(newTimelineModel)
     });
     lineDrawer.setCanDraw(true);
     lineDrawer.setLineResolution(lineResolution)
@@ -205,7 +208,218 @@ document.addEventListener('DOMContentLoaded', function (e) {
         model.path.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
         model.touchTarget.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
 
-        // update the ticks
+        recalculateTicks(model);
+    }
+
+    const minTickDist = 30;
+    const tickLength = 8;
+    const tickWidth = 3;
+    function recalculateTicks(model) {
+        let pegD = []
+        let tickD = []
+
+        let lineLen = model.path.node().getTotalLength();
+        let rangeData = getTimeRangeData(
+            model.timelineData.startPoint,
+            model.timelineData.timePegs,
+            model.timelineData.endPoint,
+            lineLen);
+        let totalTimeChange = rangeData[rangeData.length - 1].time - rangeData[0].time;
+
+
+        for (let i = 0; i < rangeData.length - 1; i++) {
+            let chunkLen = rangeData[i + 1].line - rangeData[i].line;
+            // TODO: Ditch this
+            if (chunkLen == 0) chunkLen = 0.00001;
+
+            let tickCount = Math.floor((chunkLen - minTickDist) / minTickDist);
+            let tickDist = chunkLen / (tickCount + 1)
+
+            let normalizedChangeRatio =
+                ((rangeData[i + 1].time - rangeData[i].time) / totalTimeChange) /
+                (chunkLen / lineLen);
+
+            tickD.push(...Array.from(Array(tickCount).keys()).map(i => {
+                return {
+                    lengthAlongLine: (i + 1) * tickDist,
+                    size: sigmoid(normalizedChangeRatio),
+                }
+            }));
+        }
+
+        let timePegs = model.timelineData.timePegs;
+        for (let i = 0; i < timePegs.length; i++) {
+            let nCRBefore =
+                ((rangeData[i + 1].time - rangeData[i].time) / totalTimeChange) /
+                (chunkLen / lineLen);
+            let nCRAfter =
+                ((rangeData[i + 2].time - rangeData[i + 1].time) / totalTimeChange) /
+                (chunkLen / lineLen);
+
+            pegD.push({
+                lengthAlongLine: timePegs[i].lengthAlongLine,
+                size: sigmoid((nCRBefore + nCRAfter / 2))
+            })
+        }
+
+        let ticks = svg.selectAll(".time-tick-" + model.timelineData.id).data(tickD);
+        ticks.exit().remove();
+        ticks.enter().append("line")
+            .classed("time-tick-" + model.timelineData.id, true)
+            .style("stroke", "black");
+
+        let tickTargets = svg.selectAll(".time-tick-target-" + model.timelineData.id).data(tickD);
+        tickTargets.exit().remove();
+        let newtickTargets = tickTargets.enter().append("line")
+            .classed("time-tick-target-" + model.timelineData.id, true)
+            .style("stroke", "white")
+            .style("opacity", "0")
+            .attr('stroke-linecap', 'round');
+
+        setTimeTickHandlers(newtickTargets, model);
+
+        drawTicks(model)
+
+        // TODO: update peg data
+    }
+
+    function drawTicks(model) {
+        svg.selectAll(".time-tick-" + model.timelineData.id)
+            .attr('transform', function (d) {
+                return "rotate(" +
+                    PathMath.normalVectorToDegrees(
+                        PathMath.getNormalAtPercentOfPath(
+                            model.path, d.lengthAlongLine / model.path.node().getTotalLength())) +
+                    " " +
+                    model.path.node().getPointAtLength(d.lengthAlongLine).x +
+                    " " +
+                    model.path.node().getPointAtLength(d.lengthAlongLine).y +
+                    ")"
+            })
+            .style("stroke-width", function (d) { return d.size * tickWidth })
+            .attr("x1", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).x })
+            .attr("y1", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 })
+            .attr("x2", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).x })
+            .attr("y2", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 });
+
+
+        svg.selectAll(".time-tick-target-" + model.timelineData.id)
+            .attr('transform', function (d) {
+                return "rotate(" +
+                    PathMath.normalVectorToDegrees(
+                        PathMath.getNormalAtPercentOfPath(
+                            model.path, d.lengthAlongLine / model.path.node().getTotalLength())) +
+                    " " +
+                    model.path.node().getPointAtLength(d.lengthAlongLine).x +
+                    " " +
+                    model.path.node().getPointAtLength(d.lengthAlongLine).y +
+                    ")"
+            }).style("stroke-width", function (d) { return d.size * tickWidth + 5 })
+            .attr("x1", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).x })
+            .attr("y1", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 + 5 })
+            .attr("x2", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).x })
+            .attr("y2", function (d) { return model.path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 + 5 });
+    }
+
+    function setTimeTickHandlers(ticks, model) {
+        let line = model.path;
+        let startPercent;
+        ticks.call(d3.drag()
+            .on('start', (event) => {
+                if (draggedPoints.length < 2) return;
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(line, dragPoint);
+                startPercent = p.percent;
+
+                drawTicks();
+            })
+            .on('drag', (event, d) => {
+                if (draggedPoints.length < 2) return;
+
+                let index = d.index;
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(timeline, dragPoint);
+
+                let totalLength = line.node().getTotalLength()
+                let tickCount = Math.floor(totalLength / 40);
+
+                let splitLen = p.percent * totalLength;
+                let distLower = splitLen / index;
+                let distUpper = (totalLength - splitLen) / (tickCount - index)
+
+                tickData.forEach((data, i) => {
+                    let len
+                    if (index > i) {
+                        len = i * distLower;
+                    } else {
+                        len = splitLen + ((i - index) * distUpper);
+                    }
+                    data.point = timeline.node().getPointAtLength(len);
+                    data.rotation = PathMath.normalVectorToDegrees(PathMath.getNormalAtPercentOfPath(timeline, len / totalLength));
+                });
+
+                drawTicks();
+            })
+            .on('end', (event) => {
+                if (draggedPoints.length < 2) return;
+
+                let dragPoint = { x: event.x, y: event.y };
+                let p = PathMath.getClosestPointOnPath(line, dragPoint);
+
+                let dataPercent = linePercentToDataPercent(startPercent, timePegs);
+                let linePercent = p.percent;
+
+                let newPeg = { dataPercent, linePercent };
+
+                let pegIndex = -1
+                let existingPeg = timePegs.find(peg => Math.abs(peg.dataPercent - newPeg.dataPercent) < 0.0001)
+                if (existingPeg) {
+                    pegIndex = timePegs.indexOf(existingPeg);
+                    // just to make sure they are consistent
+                    dataPercent = existingPeg.dataPercent;
+                    existingPeg.linePercent = linePercent;
+                } else {
+                    timePegs.push(newPeg)
+                    timePegs.sort((a, b) => a.linePercent - b.linePercent)
+                    pegIndex = timePegs.indexOf(newPeg);
+                }
+
+                // eliminate pegs that have been dragged over. 
+                timePegs = timePegs.filter((peg, index) => {
+                    if (index == pegIndex) return true;
+                    if (index < pegIndex) {
+                        return peg.dataPercent < dataPercent
+                    } else {
+                        return peg.dataPercent > dataPercent
+                    }
+                })
+
+                recalculateTicks();
+                drawData();
+            }))
+    }
+
+    function getTimeRangeData(start, pegs, end, lineLength) {
+        let returnable = [];
+        let time = start.boundTimepoint == -1 ?
+            0 : start.boundTimepoint;
+
+        returnable.push({ line: 0, time });
+
+        let len = pegs.length;
+        for (let i = 0; i < len; i++) {
+            time = pegs[i].boundTimepoint == -1 ?
+                (i + 1) / (len + 1) : pegs[i].boundTimepoint;
+            returnable.push({ line: pegs[i].lengthAlongLine, time });
+        }
+
+        time = end.boundTimepoint == -1 ?
+            1 : end.boundTimepoint;
+        returnable.push({ line: lineLength, time });
+
+        return returnable;
     }
 
     function gaussian(x) {
@@ -213,6 +427,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let b = 1;
         let c = 1 / 3
         return a * Math.exp(-(x - b) * (x - b) / (2 * c * c));
+    }
+
+    function sigmoid(x) {
+        return 2 / (Math.exp(1 - x) + 1);
     }
 
 });
