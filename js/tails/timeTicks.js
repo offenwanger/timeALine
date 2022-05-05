@@ -8,7 +8,7 @@ let createTimeTicker = function (svg) {
 
     /** Element management **/
     function update(id, startPoint, timePegs, endPoint, path) {
-        let lineLength = path.node().getTotalLength();
+        let pathLength = path.node().getTotalLength();
         if (!timeTickSets[id]) {
             timeTickSets[id] = { timeTickData: [], data: {} };
         }
@@ -16,10 +16,11 @@ let createTimeTicker = function (svg) {
         timeTickSets[id].data.timePegs = timePegs;
         timeTickSets[id].data.endPoint = endPoint;
         timeTickSets[id].data.path = path;
+        timeTickSets[id].data.pathLength = pathLength;
 
-        let timeRangeData = getTimeRangeData(startPoint, timePegs, endPoint, lineLength);
+        let timeRangeData = getTimeRangeData(startPoint, timePegs, endPoint, pathLength);
 
-        let timePegData = createPegDataset(timePegs, timeRangeData, lineLength);
+        let timePegData = createPegDataset(timePegs, timeRangeData, path, pathLength);
         let pegs = svg.selectAll(".time-peg-" + id).data(timePegData);
         pegs.exit().remove();
         pegs.enter().append("line")
@@ -38,9 +39,17 @@ let createTimeTicker = function (svg) {
 
         timeTickSets[id].timeTickData = resizeTicks(
             createTickDataset(timeRangeData.map(item => item.line))
-                .map(len => { return { lengthAlongLine: len, size: 1 } }),
+                .map(len => {
+                    let pos = path.node().getPointAtLength(len);
+                    return {
+                        lengthAlongLine: len,
+                        size: 1,
+                        x: pos.x,
+                        y: pos.y
+                    }
+                }),
             timeRangeData,
-            lineLength);
+            pathLength);
 
         let ticks = svg.selectAll(".time-tick-" + id).data(timeTickSets[id].timeTickData);
         ticks.exit().remove();
@@ -58,76 +67,57 @@ let createTimeTicker = function (svg) {
 
         setTimeTickHandlers(newtickTargets, id);
 
-        draw(id, path)
+        draw(id, path, pathLength)
+        drawAnnotations(timePegs, path);
     }
 
-    function draw(id, path) {
+    function draw(id, path, pathLength) {
         svg.selectAll(".time-tick-" + id)
             .attr('transform', function (d) {
                 return "rotate(" +
                     PathMath.normalVectorToDegrees(
-                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / path.node().getTotalLength())) +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).x +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).y +
-                    ")"
+                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / pathLength)) + " " + d.x + " " + d.y + ")"
             })
             .style("stroke-width", function (d) { return d.size * tickWidth })
-            .attr("x1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 })
-            .attr("x2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 });
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + d.size * tickLength / 2 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - d.size * tickLength / 2 });
 
 
         svg.selectAll(".time-tick-target-" + id)
             .attr('transform', function (d) {
                 return "rotate(" +
                     PathMath.normalVectorToDegrees(
-                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / path.node().getTotalLength())) +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).x +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).y +
-                    ")"
+                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / pathLength)) + " " + d.x + " " + d.y + ")"
             }).style("stroke-width", function (d) { return d.size * tickWidth + 5 })
-            .attr("x1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 + 5 })
-            .attr("x2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 + 5 });
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + d.size * tickLength / 2 + 5 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - d.size * tickLength / 2 + 5 });
 
         svg.selectAll(".time-peg-" + id)
             .attr('transform', function (d) {
                 return "rotate(" +
                     PathMath.normalVectorToDegrees(
-                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / path.node().getTotalLength())) +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).x +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).y +
-                    ")"
+                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / pathLength)) + " " + d.x + " " + d.y + ")"
             })
             .style("stroke-width", function (d) { return d.size * tickWidth })
-            .attr("x1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 })
-            .attr("x2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 });
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + d.size * tickLength / 2 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - d.size * tickLength / 2 });
 
         svg.selectAll(".time-peg-target-" + id)
             .attr('transform', function (d) {
                 return "rotate(" +
                     PathMath.normalVectorToDegrees(
-                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / path.node().getTotalLength())) +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).x +
-                    " " +
-                    path.node().getPointAtLength(d.lengthAlongLine).y +
-                    ")"
+                        PathMath.getNormalAtPercentOfPath(path, d.lengthAlongLine / pathLength)) + " " + d.x + " " + d.y + ")"
             }).style("stroke-width", function (d) { return d.size * tickWidth + 5 })
-            .attr("x1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y1", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y + d.size * tickLength / 2 + 5 })
-            .attr("x2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).x })
-            .attr("y2", function (d) { return path.node().getPointAtLength(d.lengthAlongLine).y - d.size * tickLength / 2 + 5 });
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + d.size * tickLength / 2 + 5 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - d.size * tickLength / 2 + 5 });
     }
 
     /** Input Handlers **/
@@ -152,7 +142,8 @@ let createTimeTicker = function (svg) {
                 // get the current data
                 let startPoint = timeTickSets[id].data.startPoint;
                 let endPoint = timeTickSets[id].data.endPoint;
-                drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path)
+                drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path, pathLength)
+                drawAnnotations(tempPegSet, path);
             })
             .on('end', (event) => {
                 let path = timeTickSets[id].data.path;
@@ -166,7 +157,7 @@ let createTimeTicker = function (svg) {
             }))
     }
 
-    function setTimeTickHandlers(ticks, id, startPoint, timePegs, endPoint, path) {
+    function setTimeTickHandlers(ticks, id) {
         let newPeg;
         ticks.call(d3.drag()
             .on('start', (event) => {
@@ -175,10 +166,11 @@ let createTimeTicker = function (svg) {
                 let timePegs = timeTickSets[id].data.timePegs;
                 let endPoint = timeTickSets[id].data.endPoint;
                 let path = timeTickSets[id].data.path;
+                let pathLength = timeTickSets[id].data.pathLength;
 
                 let dragPoint = { x: event.x, y: event.y };
                 let p = PathMath.getClosestPointOnPath(path, dragPoint);
-                let rangeData = getTimeRangeData(startPoint, timePegs, endPoint, path.node().getTotalLength());
+                let rangeData = getTimeRangeData(startPoint, timePegs, endPoint, pathLength);
 
                 let boundTimepoint = getTimeForLength(p.length, rangeData);
 
@@ -190,6 +182,7 @@ let createTimeTicker = function (svg) {
                 let timePegs = timeTickSets[id].data.timePegs;
                 let endPoint = timeTickSets[id].data.endPoint;
                 let path = timeTickSets[id].data.path;
+                let pathLength = timeTickSets[id].data.pathLength;
 
                 let dragPoint = { x: event.x, y: event.y };
                 let p = PathMath.getClosestPointOnPath(path, dragPoint);
@@ -198,7 +191,8 @@ let createTimeTicker = function (svg) {
 
                 let tempPegSet = addTimePegToSet(timePegs, newPeg);
 
-                drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path);
+                drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path, pathLength);
+                drawAnnotations(tempPegSet, path);
             })
             .on('end', (event) => {
                 let timePegs = timeTickSets[id].data.timePegs;
@@ -213,41 +207,45 @@ let createTimeTicker = function (svg) {
             }))
     }
 
-    function drawWithTempPegSet(pegs, id, startPoint, endPoint, path) {
-        let totalLength = path.node().getTotalLength();
-        let timeRangeData = getTimeRangeData(startPoint, pegs, endPoint, totalLength);
-        let pegData = createPegDataset(pegs, timeRangeData, path.node().getTotalLength());
+    function drawWithTempPegSet(pegs, id, startPoint, endPoint, path, pathLength) {
+        let timeRangeData = getTimeRangeData(startPoint, pegs, endPoint, pathLength);
+        let pegData = createPegDataset(pegs, timeRangeData, path, pathLength);
         let pegsElements = svg.selectAll(".time-peg-" + id).data(pegData);
+
         pegsElements.exit().remove();
         pegsElements.enter().append("line")
             .classed("time-peg-" + id, true)
-            .style("stroke", "steelblue");
+            .style("stroke", "black");
 
-        let tickData = resizeTicks(timeTickSets[id].timeTickData, timeRangeData, totalLength);
+        let tickData = resizeTicks(timeTickSets[id].timeTickData, timeRangeData, pathLength);
         svg.selectAll(".time-tick-" + id).data(tickData);
 
-        draw(id, path);
+        draw(id, path, pathLength);
 
     }
 
     /** Data manipulation **/
 
-    function createPegDataset(timePegs, rangeData, lineLen) {
+    function createPegDataset(timePegs, rangeData, path, pathLength) {
         let returnable = []
         for (let i = 0; i < timePegs.length; i++) {
             let totalTimeChange = rangeData[rangeData.length - 1].time - rangeData[0].time;
 
             let ratioBefore =
                 ((rangeData[i + 1].time - rangeData[i].time) / totalTimeChange) /
-                ((rangeData[i + 1].line - rangeData[i].line) / lineLen);
+                ((rangeData[i + 1].line - rangeData[i].line) / pathLength);
             let ratioAfter =
                 ((rangeData[i + 2].time - rangeData[i + 1].time) / totalTimeChange) /
-                ((rangeData[i + 2].line - rangeData[i + 1].line) / lineLen);
+                ((rangeData[i + 2].line - rangeData[i + 1].line) / pathLength);
+
+            let pos = path.node().getPointAtLength(timePegs[i].lengthAlongLine);
 
             returnable.push({
                 lengthAlongLine: timePegs[i].lengthAlongLine,
                 size: sigmoid((ratioBefore + ratioAfter) / 2),
-                index: i
+                index: i,
+                x: pos.x,
+                y: pos.y
             })
         }
 
@@ -294,6 +292,8 @@ let createTimeTicker = function (svg) {
                     returnable.push({
                         lengthAlongLine: tick.lengthAlongLine,
                         size,
+                        x: tick.x,
+                        y: tick.y,
                     });
                 })
         }
@@ -305,16 +305,16 @@ let createTimeTicker = function (svg) {
         let returnable = []
         let added = false;
         for (let i = 0; i < timePegs.length; i++) {
-            if (timePegs[i].lengthAlongLine < peg.lengthAlongLine && timePegs[i].boundTimepoint < peg.boundTimepoint) {
-                returnable.push(timePegs[i]);
-            } else if (timePegs[i].lengthAlongLine > peg.lengthAlongLine && timePegs[i].boundTimepoint > peg.boundTimepoint) {
-                returnable.push(timePegs[i]);
-            }
-
             if (timePegs[i].lengthAlongLine > peg.lengthAlongLine && !added) {
                 // the first time timePegs[i].lengthAlongLine is greater than peg's, add peg.
                 returnable.push(peg);
                 added = true;
+            }
+
+            if (timePegs[i].lengthAlongLine < peg.lengthAlongLine && timePegs[i].boundTimepoint < peg.boundTimepoint) {
+                returnable.push(timePegs[i]);
+            } else if (timePegs[i].lengthAlongLine > peg.lengthAlongLine && timePegs[i].boundTimepoint > peg.boundTimepoint) {
+                returnable.push(timePegs[i]);
             }
         }
 
@@ -363,6 +363,43 @@ let createTimeTicker = function (svg) {
 
     function sigmoid(x) {
         return 3 / (Math.exp(1 - x) + 1);
+    }
+
+    /** Annotations **/
+
+    let annotationGroup = svg.append("g");
+    function drawAnnotations(timePegs, path) {
+        const makeAnnotations = d3.annotation()
+            .accessors({
+                x: d => d.x,
+                y: d => d.y,
+            });
+
+        let annotations = createAnnotationData(timePegs, path)
+
+        makeAnnotations.annotations(annotations);
+        annotationGroup.call(makeAnnotations);
+    }
+
+    function createAnnotationData(timePegs, path) {
+        let annotationData = [];
+        for (let i = 0; i < timePegs.length; i++) {
+            let text = timePegs[i].boundTimepoint == -1 || timePegs[i].boundTimepoint < 1 ? "--" : new Date(timePegs.boundTimepoint).toDateString();
+
+            annotationData.push({
+                note: {
+                    label: text
+                },
+                data: path.node().getPointAtLength(timePegs[i].lengthAlongLine),
+                // hack to get around the broken drag events from the new d3 version
+                className: "annotationId-" + i,
+
+                dy: timePegs[i].labelOffset.x,
+                dx: timePegs[i].labelOffset.y,
+            });
+        }
+
+        return annotationData;
     }
 
     return {
