@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             timelineData: newTimelineData,
             path: line,
             touchTarget: touchTarget,
+            dataManagers: []
         }
         newTimelineModel.startControl = createLineStartControl(newTimelineModel);
         newTimelineModel.endControl = createLineEndControl(newTimelineModel);
@@ -220,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             model.timelineData.timePegs,
             model.timelineData.endPoint,
             model.path);
+
+        model.dataManagers.forEach(manager => manager.updatePath(model.path));
     }
 
     function getModelById(id) {
@@ -251,10 +254,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             model.timelineData.startPoint.boundTimepoint = timeRange[0]
             model.timelineData.endPoint.boundTimepoint = timeRange[1]
 
-            let valRange = d3.extent(data.map(item => item.val).filter(item => item));
-
-            // add a data line
-
             data = data.filter(item => !isNaN(item.time && !isNaN(item.val)));
 
             ticker.update(
@@ -263,6 +262,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 model.timelineData.timePegs,
                 model.timelineData.endPoint,
                 model.path);
+
+            model.dataManagers.push(createDataPointManager(svg, model.timelineData.id, data, model.path, ticker))
         });
     }
 

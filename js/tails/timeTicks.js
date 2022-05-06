@@ -341,6 +341,27 @@ let createTimeTicker = function (svg) {
         return (rangeData[i].time - rangeData[i - 1].time) * percentBetweenPegs + rangeData[i - 1].time;
     }
 
+    function getLengthForTime(time, id) {
+        let startPoint = timeTickSets[id].data.startPoint;
+        let timePegs = timeTickSets[id].data.timePegs;
+        let endPoint = timeTickSets[id].data.endPoint;
+        let pathLength = timeTickSets[id].data.pathLength;
+
+        let rangeData = getTimeRangeData(startPoint, timePegs, endPoint, pathLength);
+
+        if (time < 0) { console.error("Time out of bounds, must be positive " + length); return null; }
+
+        let i = 0
+        while (i < rangeData.length && time > rangeData[i].time) i++;
+
+        if (i == 0) return 0;
+
+        if (i == rangeData.length) { console.error("Time out of bounds: " + time + " max time is " + rangeData[rangeData.length - 1].time); return null; }
+
+        let percentBetweenPegs = (time - rangeData[i - 1].time) / (rangeData[i].time - rangeData[i - 1].time);
+        return (rangeData[i].line - rangeData[i - 1].line) * percentBetweenPegs + rangeData[i - 1].line;
+    }
+
     function getTimeRangeData(start, pegs, end, lineLength) {
         let returnable = [];
         let time = start.boundTimepoint == -1 ?
@@ -405,6 +426,7 @@ let createTimeTicker = function (svg) {
 
     return {
         setTimePegsUpdatedCallback: function (callback) { timePegsUpdatedCallback = callback; },
+        getLengthForTime,
         update,
     }
 }
