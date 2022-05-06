@@ -26,6 +26,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
         newTimelineModel.startControl = createLineStartControl(newTimelineModel);
         newTimelineModel.endControl = createLineEndControl(newTimelineModel);
+        newTimelineModel.ticker = new TimeLineTicker(svg,
+            newTimelineData.id,
+            newTimelineData.startPoint,
+            newTimelineData.timePegs,
+            newTimelineData.endPoint,
+            newTimelineModel.path);
+        newTimelineModel.ticker.setTimePegsUpdatedCallback(function (start, pegs, end) {
+            newTimelineModel.timelineData.startPoint.boundTimepoint = start.boundTimepoint;
+            newTimelineModel.timelineData.startPoint.labelOffset = start.labelOffset;
+            newTimelineModel.timelineData.timePegs = pegs;
+            newTimelineModel.timelineData.endPoint.boundTimepoint = end.boundTimepoint;
+            newTimelineModel.timelineData.endPoint.labelOffset = end.labelOffset;
+            dataUpdated(newTimelineModel);
+        })
 
         bindTouchTargetEvents(touchTarget, newTimelineModel);
 
@@ -95,13 +109,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         return controlPoint;
     }
-
-    let ticker = new TimeLineTicker(svg);
-    ticker.setTimePegsUpdatedCallback(function (timelineId, pegs) {
-        let model = getModelById(timelineId);
-        model.timelineData.timePegs = pegs;
-        dataUpdated(model);
-    })
 
     function createLineEndControl(model) {
         let coords = model.timelineData.points[model.timelineData.points.length - 1];
@@ -215,8 +222,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         model.path.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
         model.touchTarget.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
 
-        ticker.update(
-            model.timelineData.id,
+        model.ticker.update(
             model.timelineData.startPoint,
             model.timelineData.timePegs,
             model.timelineData.endPoint,
@@ -256,14 +262,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             data = data.filter(item => !isNaN(item.time && !isNaN(item.val)));
 
-            ticker.update(
-                model.timelineData.id,
+            model.ticker.update(
                 model.timelineData.startPoint,
                 model.timelineData.timePegs,
                 model.timelineData.endPoint,
                 model.path);
 
-            model.dataManagers.push(new TimeLineDataSet(svg, model.timelineData.id, data, model.path, ticker))
+            model.dataManagers.push(new TimeLineDataSet(svg, model.timelineData.id, data, model.path, model.ticker))
         });
     }
 

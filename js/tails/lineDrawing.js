@@ -1,8 +1,12 @@
 function TimeLineDrawer(svg) {
-    let canDraw = false;
-    let drawFinishedCallback = () => { };
-    let draggedPoints = [];
-    let lineResolution = 50;
+    let mCanDraw = false;
+    let mDrawFinishedCallback = () => { };
+    let mDraggedPoints = [];
+    let mLineResolution = 50;
+    let mLineGenerator = d3.line()
+        .x((p) => p.x)
+        .y((p) => p.y)
+        .curve(d3.curveCatmullRom.alpha(0.5));
 
     svg.append('rect')
         .attr('x', 0)
@@ -28,36 +32,31 @@ function TimeLineDrawer(svg) {
         .attr('stroke-width', 50)
         .attr('opacity', '0');
 
-    let lineGenerator = d3.line()
-        .x((p) => p.x)
-        .y((p) => p.y)
-        .curve(d3.curveCatmullRom.alpha(0.5));
-
     function onDragged(e) {
-        if (canDraw) {
-            draggedPoints.push({ x: e.x, y: e.y });
-            drawingLine.attr('d', lineGenerator(draggedPoints));
-            drawingLineTarget.attr('d', lineGenerator(draggedPoints));
+        if (mCanDraw) {
+            mDraggedPoints.push({ x: e.x, y: e.y });
+            drawingLine.attr('d', mLineGenerator(mDraggedPoints));
+            drawingLineTarget.attr('d', mLineGenerator(mDraggedPoints));
         }
     }
 
     function onDragEnd() {
-        if (canDraw) {
-            let result = getPointsFromLine(drawingLine, lineResolution);
-            drawingLine.attr('d', lineGenerator(result));
-            drawingLineTarget.attr('d', lineGenerator(result));
+        if (mCanDraw) {
+            let result = getPointsFromLine(drawingLine, mLineResolution);
+            drawingLine.attr('d', mLineGenerator(result));
+            drawingLineTarget.attr('d', mLineGenerator(result));
 
-            drawFinishedCallback(result, drawingLine.clone(), drawingLineTarget.clone());
+            mDrawFinishedCallback(result, drawingLine.clone(), drawingLineTarget.clone());
 
-            draggedPoints = [];
-            drawingLine.attr('d', lineGenerator([]));
-            drawingLineTarget.attr('d', lineGenerator([]));
+            mDraggedPoints = [];
+            drawingLine.attr('d', mLineGenerator([]));
+            drawingLineTarget.attr('d', mLineGenerator([]));
 
         }
     }
 
     function remapPointsWithResolution(points, resolution) {
-        let line = drawingLine.clone().attr('d', lineGenerator(points));
+        let line = drawingLine.clone().attr('d', mLineGenerator(points));
         let result = getPointsFromLine(line, resolution);
         line.remove();
         return result;
@@ -73,9 +72,9 @@ function TimeLineDrawer(svg) {
     }
 
     // accessors
-    this.setCanDraw = function (to) { canDraw = to };
-    this.setOnDrawFinished = function (callback) { drawFinishedCallback = callback; };
-    this.setLineResolution = function (resolution) { lineResolution = resolution; };
+    this.setCanDraw = function (canDraw) { mCanDraw = canDraw };
+    this.setOnDrawFinished = function (callback) { mDrawFinishedCallback = callback; };
+    this.setLineResolution = function (resolution) { mLineResolution = resolution; };
     this.remapPointsWithResolution = remapPointsWithResolution;
-    this.lineGenerator = lineGenerator;
+    this.lineGenerator = mLineGenerator;
 }
