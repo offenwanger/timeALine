@@ -94,6 +94,10 @@ let PathMath = function () {
         return { x: -1 * point.y, y: point.x };
     }
 
+    function rotatePoint90DegreesClockwise(point) {
+        return { x: point.y, y: -1 * point.x };
+    }
+
 
     function rotatePoint90DegreesCounterClockwiseLayoutCoords(point) {
         return { x: point.y, y: -1 * point.x };
@@ -256,6 +260,13 @@ let PathMath = function () {
         }
     }
 
+    function addPoints(point1, point2) {
+        return {
+            x: point1.x + point2.x,
+            y: point1.y + point2.y
+        }
+    }
+
     function pointIsEqual(point1, point2) {
         return point1.x == point2.x && point1.y == point2.y;
     }
@@ -281,6 +292,7 @@ let PathMath = function () {
         distancebetween,
         getNormalAtPercentOfPath,
         rotatePoint90DegreesCounterClockwise,
+        rotatePoint90DegreesClockwise,
         rotatePoint90DegreesCounterClockwiseLayoutCoords,
         projectPointOntoNormal,
         getPointAtDistanceAlongNormal,
@@ -293,6 +305,8 @@ let PathMath = function () {
         remapLinePointsAroundNewPoint,
         normalVectorToDegrees,
         subtractPoints,
+        addPoints,
+        scalarMultiplyPoint,
     }
 }();
 

@@ -13,8 +13,34 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     const tickWidth = 3;
     const minTickDist = 30;
 
+    const tailLength = 70;
+
     let mAnnotationGroup = svg.append("g");
     let mGroup = svg.append("g");
+
+    /** TAILS */
+
+    // when dragging tick, if the length position is either end, reposition on the tails
+    // update the start/end points range
+
+    // when dragging tail tick, if tick in main line, update end point
+
+    // in get length for time, check if time in is tails
+    // return a 'is tail' value
+
+    let tail1 = mGroup.append('line')
+        .attr('stroke-width', 1.5)
+        .attr('stroke', 'black')
+        .style('opacity', 0.5)
+        .style("stroke-dasharray", ("5, 5"))
+        .lower();
+
+    let tail2 = mGroup.append('line')
+        .attr('stroke-width', 1.5)
+        .attr('stroke', 'black')
+        .style('opacity', 0.5)
+        .style("stroke-dasharray", ("5, 5"))
+        .lower();
 
     update(startPoint, timePegs, endPoint, path)
 
@@ -74,8 +100,86 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
 
         setTimeTickHandlers(newtickTargets);
 
-        draw()
+        updateTails();
+
+        draw();
         drawAnnotations(mStartPoint, mTimePegs, mEndPoint);
+    }
+
+    function updateTails() {
+        let normal1 = PathMath.getNormalAtPercentOfPath(mPath, 0);
+        let tail1End = PathMath.getPointAtDistanceAlongNormal(
+            tailLength,
+            PathMath.rotatePoint90DegreesClockwise(normal1),
+            mStartPoint);
+        tail1
+            .attr('x1', mStartPoint.x)
+            .attr('y1', mStartPoint.y)
+            .attr('x2', tail1End.x)
+            .attr('y2', tail1End.y);
+        updateTailTicks(mStartPoint, tail1End, normal1, 1);
+
+        let normal2 = PathMath.getNormalAtPercentOfPath(mPath, 1);
+        let tail2End = PathMath.getPointAtDistanceAlongNormal(
+            tailLength,
+            PathMath.rotatePoint90DegreesCounterClockwise(normal2),
+            mEndPoint);
+        tail2
+            .attr('x1', mEndPoint.x)
+            .attr('y1', mEndPoint.y)
+            .attr('x2', tail2End.x)
+            .attr('y2', tail2End.y);
+        updateTailTicks(mEndPoint, tail2End, normal2, 2);
+    }
+
+    function updateTailTicks(start, end, normal, num) {
+        let data = [.5, 1].map(percent =>
+            PathMath.addPoints(start,
+                PathMath.scalarMultiplyPoint(
+                    PathMath.subtractPoints(end, start),
+                    percent)));
+
+        mGroup.selectAll(".tail-" + num + "-tick-" + mId).remove();
+        mGroup.selectAll(".tail-" + num + "-tick-" + mId)
+            .data(data)
+            .enter()
+            .append("line")
+            .classed("tail-" + num + "-tick-" + mId, true)
+            .style("stroke", "black")
+            .style("stroke-width", tickWidth)
+            .style("opacity", 0.5)
+            .attr('transform', function (d) {
+                return "rotate(" +
+                    PathMath.normalVectorToDegrees(normal) + " " + d.x + " " + d.y + ")"
+            })
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + tickLength / 2 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - tickLength / 2 });
+
+        mGroup.selectAll(".tail-" + num + "-tick-target-" + mId).remove();
+        let tickTargets = mGroup.selectAll(".tail-" + num + "-tick-target-" + mId).data(mTimeTickData)
+            .enter()
+            .append("line")
+            .classed("tail-" + num + "-tick-target-" + mId, true)
+            .style("stroke", "white")
+            .style("opacity", "0")
+            .attr('stroke-linecap', 'round')
+            .attr('transform', function (d) {
+                return "rotate(" +
+                    PathMath.normalVectorToDegrees(normal) + " " + d.x + " " + d.y + ")"
+            })
+            .style("stroke-width", tickWidth)
+            .attr("x1", function (d) { return d.x })
+            .attr("y1", function (d) { return d.y + tickLength / 2 })
+            .attr("x2", function (d) { return d.x })
+            .attr("y2", function (d) { return d.y - tickLength / 2 });
+
+        setTimeTickHandlers(tickTargets, num)
+    }
+
+    function setTailTickHandlers(ticks, num) {
+
     }
 
     function draw() {
