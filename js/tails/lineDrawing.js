@@ -1,4 +1,4 @@
-let createLineDrawer = function (svg) {
+function TimeLineDrawer(svg) {
     let canDraw = false;
     let drawFinishedCallback = () => { };
     let draggedPoints = [];
@@ -72,11 +72,10 @@ let createLineDrawer = function (svg) {
         return result.map(p => { return { x: p.x, y: p.y }; });
     }
 
-    return {
-        setCanDraw: (draw) => canDraw = draw,
-        setOnDrawFinished: (callback) => drawFinishedCallback = callback,
-        lineGenerator,
-        setLineResolution: (resolution) => lineResolution = resolution,
-        remapPointsWithResolution,
-    }
+    // accessors
+    this.setCanDraw = function (to) { canDraw = to };
+    this.setOnDrawFinished = function (callback) { drawFinishedCallback = callback; };
+    this.setLineResolution = function (resolution) { lineResolution = resolution; };
+    this.remapPointsWithResolution = remapPointsWithResolution;
+    this.lineGenerator = lineGenerator;
 }

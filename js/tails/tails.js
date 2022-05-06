@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let timelineModels = [];
 
-    let lineDrawer = createLineDrawer(svg);
+    let lineDrawer = new TimeLineDrawer(svg);
     lineDrawer.setOnDrawFinished((points, line, touchTarget) => {
         // only allow one line to be drawn for now.
         lineDrawer.setCanDraw(false);
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         return controlPoint;
     }
 
-    let ticker = createTimeTicker(svg);
+    let ticker = new TimeLineTicker(svg);
     ticker.setTimePegsUpdatedCallback(function (timelineId, pegs) {
         let model = getModelById(timelineId);
         model.timelineData.timePegs = pegs;
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 model.timelineData.endPoint,
                 model.path);
 
-            model.dataManagers.push(createDataPointManager(svg, model.timelineData.id, data, model.path, ticker))
+            model.dataManagers.push(new TimeLineDataSet(svg, model.timelineData.id, data, model.path, ticker))
         });
     }
 

@@ -1,4 +1,4 @@
-let createDataPointManager = function (svg, id, data, path, ticker) {
+function TimeLineDataSet(svg, id, data, path, ticker) {
     let lowValDist = 30;
     let highValDist = 100;
     let lowVal;
@@ -127,8 +127,7 @@ let createDataPointManager = function (svg, id, data, path, ticker) {
         drawData();
     }
 
-    return {
-        updatePath,
-        remove
-    }
+    // accessors
+    this.updatePath = updatePath;
+    this.remove = remove;
 }

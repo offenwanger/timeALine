@@ -1,4 +1,4 @@
-let createTimeTicker = function (svg) {
+function TimeLineTicker(svg) {
     let timePegsUpdatedCallback = function (id, timePegs) { };
     let timeTickSets = {};
 
@@ -422,9 +422,8 @@ let createTimeTicker = function (svg) {
         annotationGroup.call(makeAnnotations);
     }
 
-    return {
-        setTimePegsUpdatedCallback: function (callback) { timePegsUpdatedCallback = callback; },
-        getLengthForTime,
-        update,
-    }
+    // accessors
+    this.setTimePegsUpdatedCallback = function (callback) { timePegsUpdatedCallback = callback; };
+    this.getLengthForTime = getLengthForTime;
+    this.update = update;
 }
