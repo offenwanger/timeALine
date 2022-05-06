@@ -1,8 +1,8 @@
 let DataStructures = function () {
     function Timeline(points) {
         this.id = getUniqueId();
-        this.startPoint = { boundTimepoint: -1 };
-        this.endPoint = { boundTimepoint: -1 };
+        this.startPoint = new CapPoint(0, 0);
+        this.endPoint = new CapPoint(1, 1);
         this.timePegs = []
         this.dataSets = []
 
@@ -26,6 +26,13 @@ let DataStructures = function () {
 
     function TimePeg(lengthAlongLine, boundTimepoint = -1, labelOffset = { x: 10, y: 10 }) {
         this.lengthAlongLine = lengthAlongLine;
+        this.boundTimepoint = boundTimepoint;
+        this.labelOffset = labelOffset
+    }
+
+    function CapPoint(x, y, boundTimepoint = -1, labelOffset = { x: 10, y: 10 }) {
+        this.x = x;
+        this.y = y;
         this.boundTimepoint = boundTimepoint;
         this.labelOffset = labelOffset
     }

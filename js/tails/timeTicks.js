@@ -68,7 +68,7 @@ let createTimeTicker = function (svg) {
         setTimeTickHandlers(newtickTargets, id);
 
         draw(id, path, pathLength)
-        drawAnnotations(timePegs, path);
+        drawAnnotations(startPoint, timePegs, endPoint, path, pathLength);
     }
 
     function draw(id, path, pathLength) {
@@ -144,7 +144,7 @@ let createTimeTicker = function (svg) {
                 let startPoint = timeTickSets[id].data.startPoint;
                 let endPoint = timeTickSets[id].data.endPoint;
                 drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path, pathLength)
-                drawAnnotations(tempPegSet, path);
+                drawAnnotations(startPoint, tempPegSet, endPoint, path, pathLength);
             })
             .on('end', (event) => {
                 let path = timeTickSets[id].data.path;
@@ -193,7 +193,7 @@ let createTimeTicker = function (svg) {
                 let tempPegSet = addTimePegToSet(timePegs, newPeg);
 
                 drawWithTempPegSet(tempPegSet, id, startPoint, endPoint, path, pathLength);
-                drawAnnotations(tempPegSet, path);
+                drawAnnotations(startPoint, tempPegSet, endPoint, path, pathLength);
             })
             .on('end', (event) => {
                 let timePegs = timeTickSets[id].data.timePegs;
@@ -390,38 +390,36 @@ let createTimeTicker = function (svg) {
     /** Annotations **/
 
     let annotationGroup = svg.append("g");
-    function drawAnnotations(timePegs, path) {
+    function drawAnnotations(startPoint, timePegs, endPoint, path, pathLength) {
         const makeAnnotations = d3.annotation()
             .accessors({
                 x: d => d.x,
                 y: d => d.y,
             });
 
-        let annotations = createAnnotationData(timePegs, path)
+        let allPoints = timePegs.concat([
+            { boundTimepoint: startPoint.boundTimepoint, lengthAlongLine: 0, labelOffset: startPoint.labelOffset },
+            { boundTimepoint: endPoint.boundTimepoint, lengthAlongLine: pathLength, labelOffset: endPoint.labelOffset }]);
 
-        makeAnnotations.annotations(annotations);
-        annotationGroup.call(makeAnnotations);
-    }
-
-    function createAnnotationData(timePegs, path) {
         let annotationData = [];
-        for (let i = 0; i < timePegs.length; i++) {
-            let text = timePegs[i].boundTimepoint == -1 || timePegs[i].boundTimepoint < 1 ? "--" : new Date(timePegs[i].boundTimepoint).toDateString();
+        for (let i = 0; i < allPoints.length; i++) {
+            let text = allPoints[i].boundTimepoint == -1 || allPoints[i].boundTimepoint < 1 ? "--" : new Date(allPoints[i].boundTimepoint).toDateString();
 
             annotationData.push({
                 note: {
                     label: text
                 },
-                data: path.node().getPointAtLength(timePegs[i].lengthAlongLine),
+                data: path.node().getPointAtLength(allPoints[i].lengthAlongLine),
                 // hack to get around the broken drag events from the new d3 version
                 className: "annotationId-" + i,
 
-                dy: timePegs[i].labelOffset.x,
-                dx: timePegs[i].labelOffset.y,
+                dy: allPoints[i].labelOffset.x,
+                dx: allPoints[i].labelOffset.y,
             });
         }
 
-        return annotationData;
+        makeAnnotations.annotations(annotationData);
+        annotationGroup.call(makeAnnotations);
     }
 
     return {
