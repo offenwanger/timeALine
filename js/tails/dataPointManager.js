@@ -72,9 +72,9 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
 
     function drawData() {
         data.forEach(d => {
+            let { origin, normal } = ticker.getOriginAndNormalForTime(d.time);
             let dist = PathMath.getDistForAxisPercent((d.val - mLowVal) / (mHighVal - mLowVal), mHighValDist, mLowValDist);
-            let percent = ticker.getLengthForTime(d.time, id) / mPathLength;
-            let coords = PathMath.getCoordsForPercentAndDist(mPath, percent, dist);
+            let coords = PathMath.getPointAtDistanceAlongNormal(dist, normal, origin);
             d.x = coords.x;
             d.y = coords.y;
         })

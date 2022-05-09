@@ -18,6 +18,8 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     let mAnnotationGroup = svg.append("g");
     let mGroup = svg.append("g");
 
+    let mTail1Normal;
+    let mTail2Normal;
     let mTail1Direction;
     let mTail2Direction;
 
@@ -45,12 +47,14 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     update(startPoint, timePegs, endPoint, path)
 
     /** Element management **/
-    function update(startPoint, timePegs, endPoint, path) {
+    function update(startPoint, timePegs, endPoint, path, timeRangeMin = 0, timeRangeMax = 1) {
         mStartPoint = startPoint;
         mTimePegs = timePegs;
         mEndPoint = endPoint;
         mPath = path;
         mPathLength = path.node().getTotalLength();
+        mRangeMin = timeRangeMin;
+        mRangeMax = timeRangeMax
 
         let timeRangeData = getTimeRangeData(mStartPoint, mTimePegs, mEndPoint, mPathLength);
 
@@ -107,25 +111,25 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     }
 
     function updateTails() {
-        let normal1 = PathMath.getNormalAtPercentOfPath(mPath, 0);
-        mTail1Direction = PathMath.rotatePoint90DegreesClockwise(normal1);
+        mTail1Normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
+        mTail1Direction = PathMath.rotatePoint90DegreesClockwise(mTail1Normal);
         let tail1End = PathMath.getPointAtDistanceAlongNormal(tailLength, mTail1Direction, mStartPoint);
         tail1
             .attr('x1', mStartPoint.x)
             .attr('y1', mStartPoint.y)
             .attr('x2', tail1End.x)
             .attr('y2', tail1End.y);
-        updateTailTicks(mStartPoint, tail1End, normal1, 1);
+        updateTailTicks(mStartPoint, tail1End, mTail1Normal, 1);
 
-        let normal2 = PathMath.getNormalAtPercentOfPath(mPath, 1);
-        mTail2Direction = PathMath.rotatePoint90DegreesCounterClockwise(normal2);
+        mTail2Normal = PathMath.getNormalAtPercentOfPath(mPath, 1);
+        mTail2Direction = PathMath.rotatePoint90DegreesCounterClockwise(mTail2Normal);
         let tail2End = PathMath.getPointAtDistanceAlongNormal(tailLength, mTail2Direction, mEndPoint);
         tail2
             .attr('x1', mEndPoint.x)
             .attr('y1', mEndPoint.y)
             .attr('x2', tail2End.x)
             .attr('y2', tail2End.y);
-        updateTailTicks(mEndPoint, tail2End, normal2, 2);
+        updateTailTicks(mEndPoint, tail2End, mTail2Normal, 2);
     }
 
     function updateTailTicks(start, end, normal, num) {
@@ -493,20 +497,44 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
         return (rangeData[i].time - rangeData[i - 1].time) * percentBetweenPegs + rangeData[i - 1].time;
     }
 
-    function getLengthForTime(time) {
+    function getOriginAndNormalForTime(time) {
         let rangeData = getTimeRangeData(mStartPoint, mTimePegs, mEndPoint);
+        if (time < mStartPoint.boundTimepoint) {
+            let timeInTail = mStartPoint.boundTimepoint - time;
+            let maxTimeInTail = mStartPoint.boundTimepoint - mRangeMin;
+            let x;
+            if (timeInTail < maxTimeInTail / 2) {
+                x = 2 * timeInTail / maxTimeInTail;
+            } else {
+                x = 20 * (2 * timeInTail / maxTimeInTail - 1)
+            }
 
-        if (time < 0) { console.error("Time out of bounds, must be positive " + length); return null; }
+            let originLen = tailLength * (-1 / (x + 1) + 1);
+            let origin = PathMath.getPointAtDistanceAlongNormal(originLen, mTail1Direction, mStartPoint);
+            return { origin, normal: mTail1Normal }
+        } else if (time > mEndPoint.boundTimepoint) {
+            let timeInTail = time - mEndPoint.boundTimepoint;
+            let maxTimeInTail = mRangeMax - mEndPoint.boundTimepoint;
+            let x;
+            if (timeInTail < maxTimeInTail / 2) {
+                x = 2 * timeInTail / maxTimeInTail;
+            } else {
+                x = 20 * (2 * timeInTail / maxTimeInTail - 1)
+            }
+            let originLen = tailLength * (-1 / (x + 1) + 1);
+            let origin = PathMath.getPointAtDistanceAlongNormal(originLen, mTail2Direction, mEndPoint);
 
-        let i = 0
-        while (i < rangeData.length && time > rangeData[i].time) i++;
+            return { origin, normal: mTail2Normal }
+        } else {
+            let i = 1
+            while (i < rangeData.length && time > rangeData[i].time) i++;
 
-        if (i == 0) return 0;
-
-        if (i == rangeData.length) { console.error("Time out of bounds: " + time + " max time is " + rangeData[rangeData.length - 1].time); return null; }
-
-        let percentBetweenPegs = (time - rangeData[i - 1].time) / (rangeData[i].time - rangeData[i - 1].time);
-        return (rangeData[i].line - rangeData[i - 1].line) * percentBetweenPegs + rangeData[i - 1].line;
+            let percentBetweenPegs = (time - rangeData[i - 1].time) / (rangeData[i].time - rangeData[i - 1].time);
+            let len = (rangeData[i].line - rangeData[i - 1].line) * percentBetweenPegs + rangeData[i - 1].line;
+            let origin = mPath.node().getPointAtLength(len);
+            let normal = PathMath.getNormalAtPercentOfPath(mPath, len / mPathLength);
+            return { origin, normal };
+        }
     }
 
     function getTimeRangeData(start, pegs, end) {
@@ -570,7 +598,8 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
 
     // accessors
     this.setTimePegsUpdatedCallback = function (callback) { mTimePegsUpdatedCallback = callback; };
-    this.getLengthForTime = getLengthForTime;
+    this.getOriginAndNormalForTime = getOriginAndNormalForTime;
+    this.getLineRange = function () { return [mStartPoint.boundTimepoint, mEndPoint.boundTimepoint]; };
     this.update = update;
     this.remove = function () {
         mAnnotationGroup.remove();

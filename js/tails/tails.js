@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let newTimelineData = new DataStructures.Timeline(points);
         let newTimelineModel = {
             timelineData: newTimelineData,
+            dataTimeRanges: [],
             path: line,
             touchTarget: touchTarget,
             dataManagers: []
@@ -222,11 +223,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
         model.path.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
         model.touchTarget.attr('d', lineDrawer.lineGenerator(model.timelineData.points));
 
+        // TODO: Handle multiple datasets
+        let timeRange = model.dataTimeRanges.length > 0 ? model.dataTimeRanges[0] : [0, 1];
+
         model.ticker.update(
             model.timelineData.startPoint,
             model.timelineData.timePegs,
             model.timelineData.endPoint,
-            model.path);
+            model.path,
+            timeRange[0],
+            timeRange[1]);
 
         model.dataManagers.forEach(manager => manager.updatePath(model.path));
     }
@@ -248,7 +254,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             let model = timelineModels[0];
 
+            model.timelineData.dataSets.push(new DataStructures.DataSet(data));
+
             let timeRange = d3.extent(data.map(item => item.time).filter(item => item));
+            model.dataTimeRanges.push(timeRange);
+
             model.timelineData.timePegs.forEach(peg => {
                 let start = model.timelineData.startPoint.boundTimepoint != -1 ? model.timelineData.startPoint.boundTimepoint : 0;
                 let end = model.timelineData.endPoint.boundTimepoint != -1 ? model.timelineData.endPoint.boundTimepoint : 1;
@@ -266,7 +276,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 model.timelineData.startPoint,
                 model.timelineData.timePegs,
                 model.timelineData.endPoint,
-                model.path);
+                model.path,
+                timeRange[0],
+                timeRange[1]);
 
             model.dataManagers.push(new TimeLineDataSet(svg, model.timelineData.id, data, model.path, model.ticker))
         });
