@@ -599,7 +599,7 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     // accessors
     this.setTimePegsUpdatedCallback = function (callback) { mTimePegsUpdatedCallback = callback; };
     this.getOriginAndNormalForTime = getOriginAndNormalForTime;
-    this.getLineRange = function () { return [mStartPoint.boundTimepoint, mEndPoint.boundTimepoint]; };
+    this.getTimeRange = function () { return [mStartPoint.boundTimepoint, mEndPoint.boundTimepoint]; };
     this.update = update;
     this.remove = function () {
         mAnnotationGroup.remove();
