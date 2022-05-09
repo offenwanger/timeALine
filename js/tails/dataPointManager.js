@@ -1,6 +1,7 @@
 function TimeLineDataSet(svg, id, data, path, ticker) {
     let mLowValDist = 30;
     let mHighValDist = 100;
+    let mData = data;
 
     let valRange = d3.extent(data.map(item => item.val));
     let mLowVal = valRange[0];
@@ -10,6 +11,8 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
 
     let mPath = path;
     let mPathLength = path.node().getTotalLength();
+
+    const tailPointCount = 20;
 
     let dataAxisCtrlLow = mGroup.append('circle')
         .attr("ctrl", "low")
@@ -71,16 +74,51 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
     }
 
     function drawData() {
-        data.forEach(d => {
+        let mainData = mData.filter(d => d.time >= ticker.getTimeRange()[0] && d.time <= ticker.getTimeRange()[1]);
+        mainData.forEach(d => {
             let { origin, normal } = ticker.getOriginAndNormalForTime(d.time);
             let dist = PathMath.getDistForAxisPercent((d.val - mLowVal) / (mHighVal - mLowVal), mHighValDist, mLowValDist);
             let coords = PathMath.getPointAtDistanceAlongNormal(dist, normal, origin);
             d.x = coords.x;
             d.y = coords.y;
+            d.opacity = 1;
         })
 
-        mGroup.selectAll('.data_point_' + id).data(data)
-            .enter()
+        let tail1Points = mData.filter(d => d.time < ticker.getTimeRange()[0]);
+        let n = Math.ceil(tail1Points.length / tailPointCount);
+        let fades = Array.from(Array(tailPointCount + 1).keys()).map(fade => (fade / tailPointCount) * .5);
+        for (let i = 0; i < tail1Points.length; i += n) {
+            let d = tail1Points[i];
+            let { origin, normal } = ticker.getOriginAndNormalForTime(d.time);
+            let dist = PathMath.getDistForAxisPercent((d.val - mLowVal) / (mHighVal - mLowVal), mHighValDist, mLowValDist);
+            let coords = PathMath.getPointAtDistanceAlongNormal(dist, normal, origin);
+            d.x = coords.x;
+            d.y = coords.y;
+            d.opacity = fades.splice(Math.floor(Math.random() * fades.length), 1);
+            if (!d.opacity) d.opacity = 0;
+            mainData.push(d);
+        }
+        console.log(mainData.length)
+
+        let tail2Points = mData.filter(d => d.time > ticker.getTimeRange()[1]);
+        n = Math.ceil(tail2Points.length / tailPointCount);
+        fades = Array.from(Array(tailPointCount + 1).keys()).map(fade => (fade - tailPointCount / 2) / tailPointCount);
+        for (let i = 0; i < tail2Points.length; i += n) {
+            let d = tail2Points[i];
+            let { origin, normal } = ticker.getOriginAndNormalForTime(d.time);
+            let dist = PathMath.getDistForAxisPercent((d.val - mLowVal) / (mHighVal - mLowVal), mHighValDist, mLowValDist);
+            let coords = PathMath.getPointAtDistanceAlongNormal(dist, normal, origin);
+            d.x = coords.x;
+            d.y = coords.y;
+            d.opacity = fades.splice(Math.floor(Math.random() * fades.length), 1);
+            if (!d.opacity) d.opacity = 0;
+            mainData.push(d);
+        }
+        console.log(mainData.length)
+
+        let points = mGroup.selectAll('.data_point_' + id).data(mainData);
+        points.exit().remove();
+        points.enter()
             .append('circle')
             .classed('data_point_' + id, true)
             .attr('r', 3.0)
@@ -91,6 +129,7 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
         mGroup.selectAll('.data_point_' + id)
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y })
+            .style('opacity', function (d) { return d.opacity })
     }
 
     function dataAxisControlDragged(event) {
