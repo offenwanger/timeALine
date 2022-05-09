@@ -18,10 +18,10 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     let mAnnotationGroup = svg.append("g");
     let mGroup = svg.append("g");
 
-    /** TAILS */
+    let mTail1Direction;
+    let mTail2Direction;
 
-    // when dragging tick, if the length position is either end, reposition on the tails
-    // update the start/end points range
+    /** TAILS */
 
     // when dragging tail tick, if tick in main line, update end point
 
@@ -108,10 +108,8 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
 
     function updateTails() {
         let normal1 = PathMath.getNormalAtPercentOfPath(mPath, 0);
-        let tail1End = PathMath.getPointAtDistanceAlongNormal(
-            tailLength,
-            PathMath.rotatePoint90DegreesClockwise(normal1),
-            mStartPoint);
+        mTail1Direction = PathMath.rotatePoint90DegreesClockwise(normal1);
+        let tail1End = PathMath.getPointAtDistanceAlongNormal(tailLength, mTail1Direction, mStartPoint);
         tail1
             .attr('x1', mStartPoint.x)
             .attr('y1', mStartPoint.y)
@@ -120,10 +118,8 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
         updateTailTicks(mStartPoint, tail1End, normal1, 1);
 
         let normal2 = PathMath.getNormalAtPercentOfPath(mPath, 1);
-        let tail2End = PathMath.getPointAtDistanceAlongNormal(
-            tailLength,
-            PathMath.rotatePoint90DegreesCounterClockwise(normal2),
-            mEndPoint);
+        mTail2Direction = PathMath.rotatePoint90DegreesCounterClockwise(normal2);
+        let tail2End = PathMath.getPointAtDistanceAlongNormal(tailLength, mTail2Direction, mEndPoint);
         tail2
             .attr('x1', mEndPoint.x)
             .attr('y1', mEndPoint.y)
@@ -236,33 +232,45 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     function setPegHandlers(pegs) {
         let otherPegs;
         let draggedPeg;
+        let nextPeg;
+        let previousPeg;
         pegs.call(d3.drag()
             .on('start', (event, d) => {
                 draggedPeg = mTimePegs[d.index];
                 otherPegs = mTimePegs.filter(p => p != draggedPeg);
+                nextPeg = d.index < mTimePegs.length - 1 ?
+                    mTimePegs[d.index + 1] : {
+                        lengthAlongLine: mPathLength,
+                        boundTimepoint: mEndPoint.boundTimepoint
+                    };
+                previousPeg = d.index > 0 ?
+                    mTimePegs[d.index - 1] : {
+                        lengthAlongLine: 0,
+                        boundTimepoint: mStartPoint.boundTimepoint
+                    };
             })
-            .on('drag', (event) => {
+            .on('drag', (event, d) => {
                 let dragPoint = { x: event.x, y: event.y };
-                let p = PathMath.getClosestPointOnPath(path, dragPoint);
 
-                draggedPeg.lengthAlongLine = p.length;
-                let tempPegSet = addTimePegToSet(otherPegs, draggedPeg);
+                let result = getPegsAfterDrag(dragPoint, draggedPeg, nextPeg, previousPeg, mStartPoint, otherPegs, mEndPoint);
 
-                drawTempData(mStartPoint, tempPegSet, mEndPoint)
-                drawAnnotations(mStartPoint, tempPegSet, mEndPoint);
+                drawTempData(result.startPoint, result.timePegs, result.endPoint);
+                drawAnnotations(result.startPoint, result.timePegs, result.endPoint);
             })
             .on('end', (event) => {
                 let dragPoint = { x: event.x, y: event.y };
-                let p = PathMath.getClosestPointOnPath(mPath, dragPoint);
 
-                draggedPeg.lengthAlongLine = p.length;
+                let result = getPegsAfterDrag(dragPoint, draggedPeg, nextPeg, previousPeg, mStartPoint, otherPegs, mEndPoint);
 
-                mTimePegsUpdatedCallback(mStartPoint, addTimePegToSet(otherPegs, draggedPeg), mEndPoint);
+                mTimePegsUpdatedCallback(result.startPoint, result.timePegs, result.endPoint);
             }))
     }
 
+
     function setTimeTickHandlers(ticks) {
         let newPeg;
+        let previousPeg;
+        let nextPeg;
         ticks.call(d3.drag()
             .on('start', (event) => {
                 let dragPoint = { x: event.x, y: event.y };
@@ -272,26 +280,85 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
                 let boundTimepoint = getTimeForLength(p.length, rangeData);
 
                 newPeg = new DataStructures.TimePeg(p.length, boundTimepoint);
+
+                if (mTimePegs.length == 0) {
+                    nextPeg = { lengthAlongLine: mPathLength, boundTimepoint: mEndPoint.boundTimepoint }
+                    previousPeg = { lengthAlongLine: 0, boundTimepoint: mStartPoint.boundTimepoint }
+                } else {
+                    let i = 0;
+                    for (i; i < mTimePegs.length; i++) {
+                        if (mTimePegs[i].lengthAlongLine > newPeg.lengthAlongLine) {
+                            previousPeg = i == 0 ? { lengthAlongLine: 0, boundTimepoint: mStartPoint.boundTimepoint } : mTimePegs[i - 1]
+                            nextPeg = mTimePegs[i]
+                            break;
+                        }
+                    }
+                    if (i == mTimePegs.length) {
+                        previousPeg = mTimePegs[i - 1]
+                        nextPeg = { lengthAlongLine: mPathLength, boundTimepoint: mEndPoint.boundTimepoint }
+                    }
+                }
             })
             .on('drag', (event, d) => {
                 let dragPoint = { x: event.x, y: event.y };
-                let p = PathMath.getClosestPointOnPath(mPath, dragPoint);
 
-                newPeg.lengthAlongLine = p.length;
+                let result = getPegsAfterDrag(dragPoint, newPeg, nextPeg, previousPeg, mStartPoint, mTimePegs, mEndPoint);
 
-                let tempPegSet = addTimePegToSet(mTimePegs, newPeg);
-
-                drawTempData(mStartPoint, tempPegSet, mEndPoint);
-                drawAnnotations(mStartPoint, tempPegSet, mEndPoint);
+                drawTempData(result.startPoint, result.timePegs, result.endPoint);
+                drawAnnotations(result.startPoint, result.timePegs, result.endPoint);
             })
             .on('end', (event) => {
                 let dragPoint = { x: event.x, y: event.y };
                 let p = PathMath.getClosestPointOnPath(mPath, dragPoint);
 
-                newPeg.lengthAlongLine = p.length;
+                let result = getPegsAfterDrag(dragPoint, newPeg, nextPeg, previousPeg, mStartPoint, mTimePegs, mEndPoint);
 
-                mTimePegsUpdatedCallback(mStartPoint, addTimePegToSet(mTimePegs, newPeg), mEndPoint);
+                mTimePegsUpdatedCallback(result.startPoint, result.timePegs, result.endPoint);
             }))
+    }
+
+    function getPegsAfterDrag(dragPoint, draggedPeg, nextPeg, previousPeg, startPoint, otherPegs, endPoint) {
+        let p = PathMath.getClosestPointOnPath(mPath, dragPoint);
+        let distToPath = PathMath.distancebetween(p, dragPoint)
+
+        startPoint = Object.assign({}, startPoint);
+        endPoint = Object.assign({}, endPoint);
+
+        let projectedPoint1 = PathMath.projectPointOntoNormal(dragPoint, mTail1Direction, startPoint);
+        let projectedPoint2 = PathMath.projectPointOntoNormal(dragPoint, mTail2Direction, endPoint);
+        if (!projectedPoint1.neg && PathMath.distancebetween(projectedPoint1.point, dragPoint) < distToPath) {
+            let lineLen = nextPeg.lengthAlongLine;
+            let tailLen = PathMath.distancebetween(startPoint, projectedPoint1.point);
+
+            let startPointPercent = tailLen / (lineLen + tailLen);
+            let timeDiff = nextPeg.boundTimepoint - draggedPeg.boundTimepoint;
+            let newStartPointTime = timeDiff * startPointPercent + draggedPeg.boundTimepoint;
+
+            startPoint.boundTimepoint = newStartPointTime;
+
+            let timePegs = otherPegs.filter(peg => peg.boundTimepoint > newStartPointTime);
+
+            return { startPoint, timePegs, endPoint };
+
+        } else if (!projectedPoint2.neg && PathMath.distancebetween(projectedPoint2.point, dragPoint) < distToPath) {
+            let lineLen = mPathLength - previousPeg.lengthAlongLine;
+            let tailLen = PathMath.distancebetween(endPoint, projectedPoint2.point);
+
+            let endPointPercent = lineLen / (lineLen + tailLen);
+            let timeDiff = draggedPeg.boundTimepoint - previousPeg.boundTimepoint;
+            let newEndPointTime = timeDiff * endPointPercent + previousPeg.boundTimepoint;
+
+            endPoint.boundTimepoint = newEndPointTime;
+
+            let timePegs = otherPegs.filter(peg => peg.boundTimepoint < newEndPointTime);
+
+            return { startPoint, timePegs, endPoint };
+        } else {
+            draggedPeg.lengthAlongLine = p.length;
+            let timePegs = addTimePegToSet(otherPegs, draggedPeg);
+
+            return { startPoint, timePegs, endPoint };
+        }
     }
 
     function drawTempData(startPoint, pegs, endPoint) {
