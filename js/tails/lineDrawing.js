@@ -8,7 +8,9 @@ function TimeLineDrawer(svg) {
         .y((p) => p.y)
         .curve(d3.curveCatmullRom.alpha(0.5));
 
-    svg.append('rect')
+    let lineDrawingGroup = svg.append('g');
+
+    lineDrawingGroup.append('rect')
         .attr('x', 0)
         .attr('y', 0)
         .attr('width', svg.attr('width'))
@@ -19,14 +21,14 @@ function TimeLineDrawer(svg) {
             .on('drag', onDragged)
             .on('end', onDragEnd));
 
-    let drawingLine = svg.append('path')
+    let drawingLine = lineDrawingGroup.append('path')
         .attr('fill', 'none')
         .attr('stroke', 'steelblue')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5);
 
-    let drawingLineTarget = svg.append('path')
+    let drawingLineTarget = lineDrawingGroup.append('path')
         .attr('fill', 'none')
         .attr('stroke', 'white')
         .attr('stroke-width', 50)
@@ -77,4 +79,5 @@ function TimeLineDrawer(svg) {
     this.setLineResolution = function (resolution) { mLineResolution = resolution; };
     this.remapPointsWithResolution = remapPointsWithResolution;
     this.lineGenerator = mLineGenerator;
+    this.sink = function () { lineDrawingGroup.lower(); };
 }
