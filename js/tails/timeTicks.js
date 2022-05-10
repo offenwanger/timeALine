@@ -15,7 +15,7 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
 
     const tailLength = 70;
 
-    let mAnnotationGroup = svg.append("g");
+    let mAnnotationGroup = svg.append("g").lower();
     let mGroup = svg.append("g");
 
     let mTail1Normal;
@@ -133,11 +133,13 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
     }
 
     function updateTailTicks(start, end, normal, num) {
-        let data = [.5, 1].map(percent =>
-            PathMath.addPoints(start,
+        let data = [.5, 1].map(percent => {
+            let pos = PathMath.addPoints(start,
                 PathMath.scalarMultiplyPoint(
                     PathMath.subtractPoints(end, start),
-                    percent)));
+                    percent));
+            return { percent, x: pos.x, y: pos.y };
+        });
 
         mGroup.selectAll(".tail-" + num + "-tick-" + mId).remove();
         mGroup.selectAll(".tail-" + num + "-tick-" + mId)
@@ -158,7 +160,7 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
             .attr("y2", function (d) { return d.y - tickLength / 2 });
 
         mGroup.selectAll(".tail-" + num + "-tick-target-" + mId).remove();
-        let tickTargets = mGroup.selectAll(".tail-" + num + "-tick-target-" + mId).data(mTimeTickData)
+        let tickTargets = mGroup.selectAll(".tail-" + num + "-tick-target-" + mId).data(data)
             .enter()
             .append("line")
             .classed("tail-" + num + "-tick-target-" + mId, true)
@@ -175,11 +177,7 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
             .attr("x2", function (d) { return d.x })
             .attr("y2", function (d) { return d.y - tickLength / 2 });
 
-        setTimeTickHandlers(tickTargets, num)
-    }
-
-    function setTailTickHandlers(ticks, num) {
-
+        setTailTickHandlers(tickTargets, num)
     }
 
     function draw() {
@@ -321,47 +319,177 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
             }))
     }
 
-    function getPegsAfterDrag(dragPoint, draggedPeg, nextPeg, previousPeg, startPoint, otherPegs, endPoint) {
-        let p = PathMath.getClosestPointOnPath(mPath, dragPoint);
-        let distToPath = PathMath.distancebetween(p, dragPoint)
+    function getPegsAfterDrag(mousePoint, draggedPeg, nextPeg, previousPeg, startPoint, otherPegs, endPoint) {
+        let projection = mousePositionToTimeline(mousePoint);
 
-        startPoint = Object.assign({}, startPoint);
-        endPoint = Object.assign({}, endPoint);
-
-        let projectedPoint1 = PathMath.projectPointOntoNormal(dragPoint, mTail1Direction, startPoint);
-        let projectedPoint2 = PathMath.projectPointOntoNormal(dragPoint, mTail2Direction, endPoint);
-        if (!projectedPoint1.neg && PathMath.distancebetween(projectedPoint1.point, dragPoint) < distToPath) {
+        if (projection.tail == 1) {
             let lineLen = nextPeg.lengthAlongLine;
-            let tailLen = PathMath.distancebetween(startPoint, projectedPoint1.point);
+            let tailLen = projection.length;
 
             let startPointPercent = tailLen / (lineLen + tailLen);
             let timeDiff = nextPeg.boundTimepoint - draggedPeg.boundTimepoint;
             let newStartPointTime = timeDiff * startPointPercent + draggedPeg.boundTimepoint;
 
+            // copy startpoint to avoid modification
+            startPoint = Object.assign({}, startPoint);
             startPoint.boundTimepoint = newStartPointTime;
 
             let timePegs = otherPegs.filter(peg => peg.boundTimepoint > newStartPointTime);
 
             return { startPoint, timePegs, endPoint };
 
-        } else if (!projectedPoint2.neg && PathMath.distancebetween(projectedPoint2.point, dragPoint) < distToPath) {
+        } else if (projection.tail == 2) {
             let lineLen = mPathLength - previousPeg.lengthAlongLine;
-            let tailLen = PathMath.distancebetween(endPoint, projectedPoint2.point);
+            let tailLen = projection.length;
 
             let endPointPercent = lineLen / (lineLen + tailLen);
             let timeDiff = draggedPeg.boundTimepoint - previousPeg.boundTimepoint;
             let newEndPointTime = timeDiff * endPointPercent + previousPeg.boundTimepoint;
 
+            // copy endpoint to avoid modification
+            endPoint = Object.assign({}, endPoint);
             endPoint.boundTimepoint = newEndPointTime;
 
             let timePegs = otherPegs.filter(peg => peg.boundTimepoint < newEndPointTime);
 
             return { startPoint, timePegs, endPoint };
         } else {
-            draggedPeg.lengthAlongLine = p.length;
+            draggedPeg.lengthAlongLine = projection.length;
             let timePegs = addTimePegToSet(otherPegs, draggedPeg);
-
             return { startPoint, timePegs, endPoint };
+        }
+    }
+
+    function setTailTickHandlers(ticks, tail) {
+        let boundTimepoint;
+        let fakePeg;
+        ticks.call(d3.drag()
+            .on('start', (event, d) => {
+                boundTimepoint = getTimeForTailPercent(d.percent, tail);
+                console.log(d.percent, tail, boundTimepoint)
+                fakePeg = { boundTimepoint: getTimeForTailPercent(d.percent * 2, tail), tailLen: d.percent * tailLength };
+            })
+            .on('drag', (event, d) => {
+                let mousePoint = { x: event.x, y: event.y };
+
+                let { startPoint, timePegs, endPoint } = getPegsAfterTailDrag(mousePoint, tail, boundTimepoint, fakePeg)
+
+                drawTempData(startPoint, timePegs, endPoint);
+                drawAnnotations(startPoint, timePegs, endPoint);
+            })
+            .on('end', (event) => {
+                let mousePoint = { x: event.x, y: event.y };
+                let { startPoint, timePegs, endPoint } = getPegsAfterTailDrag(mousePoint, tail, boundTimepoint, fakePeg)
+
+                mTimePegsUpdatedCallback(startPoint, timePegs, endPoint);
+            }))
+    }
+
+    function getPegsAfterTailDrag(mousePoint, tail, boundTimepoint, fakePeg) {
+        // {position, length, tail}
+        let projection = mousePositionToTimeline(mousePoint);
+        if (tail == 1) {
+            if (projection.tail == 1) {
+                let nextPeg = mTimePegs.length > 0 ? mTimePegs[0] : { lengthAlongLine: mPathLength, boundTimepoint: mEndPoint.boundTimepoint };
+                let lineLen = nextPeg.lengthAlongLine;
+                let tailLen = projection.length;
+
+                let startPointPercent = tailLen / (lineLen + tailLen);
+                let timeDiff = nextPeg.boundTimepoint - boundTimepoint;
+                let newStartPointTime = timeDiff * startPointPercent + boundTimepoint;
+
+                let startPoint = Object.assign({}, mStartPoint);
+                startPoint.boundTimepoint = newStartPointTime;
+
+                return { startPoint, timePegs: mTimePegs, endPoint: mEndPoint };
+            } else if (projection.tail == 2) {
+                let lineLen = projection.length + mPathLength + fakePeg.tailLen;
+                let timeLen = boundTimepoint - fakePeg.boundTimepoint;
+
+                let startPoint = Object.assign({}, mStartPoint);
+                startPoint.boundTimepoint = (timeLen * fakePeg.tailLen / lineLen) + fakePeg.boundTimepoint;
+                let endPoint = Object.assign({}, mEndPoint);
+                endPoint.boundTimepoint = (timeLen * (fakePeg.tailLen + mPathLength) / lineLen) + fakePeg.boundTimepoint;
+                let timePegs = [];
+
+                return { startPoint, timePegs, endPoint };
+            } else {
+                let lineLen = projection.length + fakePeg.tailLen;
+                let timeLen = boundTimepoint - fakePeg.boundTimepoint;
+
+                let startPoint = Object.assign({}, mStartPoint);
+                startPoint.boundTimepoint = (timeLen * fakePeg.tailLen / lineLen) + fakePeg.boundTimepoint;
+                let timePegs = addTimePegToSet(mTimePegs, new DataStructures.TimePeg(projection.length, boundTimepoint));
+
+                return { startPoint, timePegs, endPoint: mEndPoint };
+            }
+        } else if (tail == 2) {
+            if (projection.tail == 1) {
+                let lineLen = projection.length + mPathLength + fakePeg.tailLen;
+                let timeLen = fakePeg.boundTimepoint - boundTimepoint;
+
+                let startPoint = Object.assign({}, mStartPoint);
+                startPoint.boundTimepoint = (timeLen * projection.length / lineLen) + boundTimepoint;
+                let endPoint = Object.assign({}, mEndPoint);
+                endPoint.boundTimepoint = (timeLen * (fakePeg.tailLen + mPathLength) / lineLen) + boundTimepoint;
+                let timePegs = [];
+
+                return { startPoint, timePegs, endPoint };
+
+            } else if (projection.tail == 2) {
+                let previousPeg = mTimePegs.length > 0 ? mTimePegs[mTimePegs.length - 1] : { lengthAlongLine: 0, boundTimepoint: mStartPoint.boundTimepoint };
+                let lineLen = mPathLength - previousPeg.lengthAlongLine;
+                let tailLen = projection.length;
+
+                let endPointPercent = lineLen / (lineLen + tailLen);
+                let timeDiff = boundTimepoint - previousPeg.boundTimepoint;
+                let newEndPointTime = timeDiff * endPointPercent + previousPeg.boundTimepoint;
+
+                let endPoint = Object.assign({}, mEndPoint);
+                endPoint.boundTimepoint = newEndPointTime;
+
+                return { startPoint: mStartPoint, timePegs: mTimePegs, endPoint };
+            } else {
+                let lineLen = (mPathLength - projection.length) + fakePeg.tailLen;
+                let timeLen = fakePeg.boundTimepoint - boundTimepoint;
+
+                let endPoint = Object.assign({}, mEndPoint);
+                endPoint.boundTimepoint = (timeLen * (mPathLength - projection.length) / lineLen) + boundTimepoint;
+                let timePegs = addTimePegToSet(mTimePegs, new DataStructures.TimePeg(projection.length, boundTimepoint));
+
+                return { startPoint: mStartPoint, timePegs, endPoint };
+            }
+        } else throw new Error("Invalid tail: " + tail);
+    }
+
+    function mousePositionToTimeline(mousePoint) {
+        let p = PathMath.getClosestPointOnPath(mPath, mousePoint);
+        let distToPath = PathMath.distancebetween(p, mousePoint)
+
+        let projection = PathMath.projectPointOntoNormal(mousePoint, mTail1Direction, mStartPoint);
+        let length = PathMath.distancebetween(projection.point, mStartPoint);
+        if (!projection.neg && length < distToPath) {
+            return {
+                position: projection.point,
+                length,
+                tail: 1,
+            }
+        }
+
+        projection = PathMath.projectPointOntoNormal(mousePoint, mTail2Direction, mEndPoint);
+        length = PathMath.distancebetween(projection.point, mEndPoint);
+        if (!projection.neg && length < distToPath) {
+            return {
+                position: projection.point,
+                length,
+                tail: 2,
+            }
+        }
+
+        return {
+            position: p,
+            length: p.length,
+            tail: 0
         }
     }
 
@@ -497,31 +625,50 @@ function TimeLineTicker(svg, id, startPoint, timePegs, endPoint, path) {
         return (rangeData[i].time - rangeData[i - 1].time) * percentBetweenPegs + rangeData[i - 1].time;
     }
 
+    function getTimeForTailPercent(percent, tail) {
+        if (tail == 1) {
+            let tailTime = mStartPoint.boundTimepoint - mRangeMin;
+            if (tailTime <= 0) tailTime = tailLength * (mRangeMax - mRangeMin) / mPathLength;
+
+            return mStartPoint.boundTimepoint - percent * tailTime;
+
+        } else if (tail == 2) {
+            let tailTime = mRangeMax - mEndPoint.boundTimepoint;
+            if (tailTime <= 0) tailTime = tailLength * (mRangeMax - mRangeMin) / mPathLength;
+
+            return mEndPoint.boundTimepoint + percent * tailTime;
+        } else {
+            throw new Error("Time not in tails!");
+        }
+    }
+
+    function getTailPercentForTime(time) {
+        if (time < mStartPoint.boundTimepoint) {
+            let tailTime = mStartPoint.boundTimepoint - mRangeMin;
+            if (tailTime <= 0) tailTime = tailLength * (mRangeMax - mRangeMin) / mPathLength;
+
+            return (mStartPoint.boundTimepoint - time) / tailTime;
+
+        } else if (time > mEndPoint.boundTimepoint) {
+            let tailTime = mRangeMax - mEndPoint.boundTimepoint;
+            if (tailTime <= 0) tailTime = tailLength * (mRangeMax - mRangeMin) / mPathLength;
+
+            return (time - mEndPoint.boundTimepoint) / tailTime;
+        } else {
+            throw new Error("Time not in tails!");
+        }
+    }
+
     function getOriginAndNormalForTime(time) {
         let rangeData = getTimeRangeData(mStartPoint, mTimePegs, mEndPoint);
         if (time < mStartPoint.boundTimepoint) {
-            let timeInTail = mStartPoint.boundTimepoint - time;
-            let maxTimeInTail = mStartPoint.boundTimepoint - mRangeMin;
-            let x;
-            if (timeInTail < maxTimeInTail / 2) {
-                x = 2 * timeInTail / maxTimeInTail;
-            } else {
-                x = 20 * (2 * timeInTail / maxTimeInTail - 1)
-            }
-
-            let originLen = tailLength * (-1 / (x + 1) + 1);
+            let percent = getTailPercentForTime(time);
+            let originLen = tailLength * percent;
             let origin = PathMath.getPointAtDistanceAlongNormal(originLen, mTail1Direction, mStartPoint);
             return { origin, normal: mTail1Normal }
         } else if (time > mEndPoint.boundTimepoint) {
-            let timeInTail = time - mEndPoint.boundTimepoint;
-            let maxTimeInTail = mRangeMax - mEndPoint.boundTimepoint;
-            let x;
-            if (timeInTail < maxTimeInTail / 2) {
-                x = 2 * timeInTail / maxTimeInTail;
-            } else {
-                x = 20 * (2 * timeInTail / maxTimeInTail - 1)
-            }
-            let originLen = tailLength * (-1 / (x + 1) + 1);
+            let percent = getTailPercentForTime(time);
+            let originLen = tailLength * percent;
             let origin = PathMath.getPointAtDistanceAlongNormal(originLen, mTail2Direction, mEndPoint);
 
             return { origin, normal: mTail2Normal }
