@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             newTimelineModel.timelineData.endPoint.labelOffset = end.labelOffset;
             dataUpdated(newTimelineModel);
         })
+        
+        // make sure the drawing canvas is under everything else
+        lineDrawer.sink()
 
         bindTouchTargetEvents(touchTarget, newTimelineModel);
 
