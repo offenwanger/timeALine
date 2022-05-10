@@ -98,7 +98,6 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
             if (!d.opacity) d.opacity = 0;
             mainData.push(d);
         }
-        console.log(mainData.length)
 
         let tail2Points = mData.filter(d => d.time > ticker.getTimeRange()[1]);
         n = Math.ceil(tail2Points.length / tailPointCount);
@@ -114,7 +113,6 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
             if (!d.opacity) d.opacity = 0;
             mainData.push(d);
         }
-        console.log(mainData.length)
 
         let points = mGroup.selectAll('.data_point_' + id).data(mainData);
         points.exit().remove();
