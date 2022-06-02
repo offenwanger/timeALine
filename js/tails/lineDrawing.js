@@ -26,7 +26,8 @@ function TimeLineDrawer(svg) {
         .attr('stroke', 'steelblue')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
-        .attr('stroke-width', 1.5);
+        .attr('stroke-width', 1.5)
+        .attr('filter', "url(#pencil)");
 
     let drawingLineTarget = lineDrawingGroup.append('path')
         .attr('fill', 'none')

@@ -8,6 +8,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('width', width)
         .attr('height', height);
 
+    let defs = svg.append("defs");
+    let filter = defs.append("filter")
+        .attr("id", "pencil");
+    filter.append("feTurbulence")
+        .attr("baseFrequency", "0.5");
+    filter.append("feDisplacementMap")
+        .attr("in", "SourceGraphic")
+        .attr("scale", "7");
+
+    filter = defs.append("filter")
+        .attr("id", "crayon");
+    filter.append("feDisplacementMap")
+        .attr("in", "SourceGraphic")
+        .attr("scale", "2");
+
     let lineResolution = 20;
 
     let timelineModels = [];
@@ -41,7 +56,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             newTimelineModel.timelineData.endPoint.labelOffset = end.labelOffset;
             dataUpdated(newTimelineModel);
         })
-        
+
         // make sure the drawing canvas is under everything else
         lineDrawer.sink()
 

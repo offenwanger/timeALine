@@ -122,6 +122,7 @@ function TimeLineDataSet(svg, id, data, path, ticker) {
             .attr('r', 3.0)
             .attr('fill', 'red')
             .attr('stroke', 'black')
+            .attr('filter', "url(#crayon)")
             .lower();
 
         mGroup.selectAll('.data_point_' + id)
