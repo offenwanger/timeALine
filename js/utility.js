@@ -36,6 +36,14 @@ let PathMath = function () {
         return { x: normalVector.x * distance + origin.x, y: normalVector.y * distance + origin.y };
     }
 
+    function vectorToRotation(vector) {
+        vector = normalize(vector);
+        var angle = Math.atan2(vector.y, vector.x);   //radians
+        // you need to devide by PI, and MULTIPLY by 180:
+        var degrees = 180 * angle / Math.PI;  //degrees
+        return (360 + Math.round(degrees)) % 360 - 90; //round number, avoid decimal fragments
+    }
+
     return {
         vectorFromAToB,
         distanceFromAToB,
@@ -43,5 +51,24 @@ let PathMath = function () {
         vectorLength,
         normalize,
         getPointAtDistanceAlongVector,
+        vectorToRotation,
+    }
+}();
+
+let PathGenerator = function () {
+    let mLineGenerator = d3.line()
+        .x((p) => p.x)
+        .y((p) => p.y)
+        .curve(d3.curveCatmullRom.alpha(0.5));
+
+    function getPath(points) {
+        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute('d', mLineGenerator(points));
+        return path;
+    }
+
+    return {
+        getPathD: (points) => mLineGenerator(points),
+        getPath,
     }
 }();

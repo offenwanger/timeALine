@@ -19,7 +19,6 @@ let DataStructs = function () {
         this.linePercent = 0;
         this.isStart = false;
         this.isEnd = false;
-        this.offset = { x: 0, y: 0 };
     }
 
     function LinePath() {

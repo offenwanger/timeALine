@@ -4,10 +4,6 @@ function BrushController(svg) {
     let mDrawFinishedCallback = () => { };
     let mDraggedPoints = [];
     let mLineResolution = 50;
-    let mLineGenerator = d3.line()
-        .x((p) => p.x)
-        .y((p) => p.y)
-        .curve(d3.curveCatmullRom.alpha(0.5));
 
     let lineDrawingGroup = svg.append('g')
         .style("visibility", 'hidden');
@@ -34,7 +30,7 @@ function BrushController(svg) {
     function onDragged(e) {
         if (mActive) {
             mDraggedPoints.push({ x: e.x, y: e.y });
-            drawingLine.attr('d', mLineGenerator(mDraggedPoints));
+            drawingLine.attr('d', PathGenerator.getPathD(mDraggedPoints));
         }
     }
 
@@ -45,7 +41,7 @@ function BrushController(svg) {
             mDrawFinishedCallback(result);
 
             mDraggedPoints = [];
-            drawingLine.attr('d', mLineGenerator([]));
+            drawingLine.attr('d', PathGenerator.getPathD([]));
         }
     }
 
@@ -72,7 +68,7 @@ function BrushController(svg) {
     }
 
     this.redistributePoints = function (points, resolution) {
-        let line = drawingLine.clone().attr('d', mLineGenerator(points));
+        let line = drawingLine.clone().attr('d', PathGenerator.getPathD(points));
         let result = getPointsFromLine(line, resolution);
         line.remove();
         return result;

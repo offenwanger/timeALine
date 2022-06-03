@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mode = MODE_DEFAULT;
 
     let svg = d3.select('#svg_container').append('svg')
-        .attr('width', window.innerWidth - 10)
+        .attr('width', window.innerWidth)
         .attr('height', window.innerHeight - 50);
 
     let modelController = new ModelController();

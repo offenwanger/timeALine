@@ -1,8 +1,4 @@
 function LineViewController(svg) {
-    let mLineGenerator = d3.line()
-        .x((p) => p.x)
-        .y((p) => p.y)
-        .curve(d3.curveCatmullRom.alpha(0.5));
 
     let lineGroup = svg.append('g');
 
@@ -15,10 +11,10 @@ function LineViewController(svg) {
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-            .attr('d', (points) => mLineGenerator(points));
+            .attr('d', (points) => PathGenerator.getPathD(points));
         paths.exit().remove();
 
-        let points = svg.selectAll(".pointMarkerCircle").data(linePaths.map(path => path.points).flat())
+        let points = lineGroup.selectAll(".pointMarkerCircle").data(linePaths.map(path => path.points).flat())
         points.enter()
             .append("circle")
             .attr("cx", function (d) { return d.x })
