@@ -17,6 +17,16 @@ function LineViewController(svg) {
             .attr('stroke-width', 1.5)
             .attr('d', (points) => mLineGenerator(points));
         paths.exit().remove();
+
+        let points = svg.selectAll(".pointMarkerCircle").data(linePaths.map(path => path.points).flat())
+        points.enter()
+            .append("circle")
+            .attr("cx", function (d) { return d.x })
+            .attr("cy", function (d) { return d.y })
+            .attr("r", "1px")
+            .attr("fill", "black")
+            .style("opacity", 0.5);
+        points.exit().remove();
     }
 
     this.drawTimeLines = drawTimeLines;
