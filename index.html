@@ -2,17 +2,41 @@
 <html>
 
 <head>
+    <link href="css/main.css" rel="stylesheet">
+
+    <script src="lib/papaparse.min.js" charset="utf-8"></script>
+    <script src="lib/jquery-3.4.1.min.js" charset="utf-8"></script>
+    <script src="lib/d3.v7.min.js" charset="utf-8"></script>
+    <script src="lib/d3-annotation.min.js" charset="utf-8"></script>
+
+    <script src="js/data_structures.js" charset="utf-8"></script>
+    <script src="js/file_handling.js" charset="utf-8"></script>
+    <script src="js/model_controller.js" charset="utf-8"></script>
+    <script src="js/line_manipulation_tools_controller.js" charset="utf-8"></script>
+    <script src="js/line_view_controller.js" charset="utf-8"></script>
+    <script src="js/main.js" charset="utf-8"></script>
 </head>
 
 <body>
-    <p><a href="bezierLine.html">Bezier Line</a>: This prototype demonstrates what data does on a bezier line</p>
-    <p><a href="lineDrawing.html">Line Drawing</a>: This prototype demonstrates freeform line drawing</p>
-    <p><a href="annotation.html">Annontation</a>: double click things to annotate them</p>
-    <p><a href="integrated.html">Paint Tool</a>: A tool for painting lines</p>
-    <p><a href="timeWarp.html">Line Drawing with Control points</a>: Line drawing and control points (double click to
-        add control points). Also has seperate time line</p>
-    <p><a href="timeticks.html">Time Ticks</a>: Experimenting with ticks on the line to control time</p>
-    <p><a href="tails.html">Range Tails</a>: Adding tails to the range to control the fully visible data (in progress)</p>
+    <input id="brush-button" class="tool-button" type="image" src="img/brush_button.png" height="30px"/>
+    <input id="eraser-button" class="tool-button" type="image" src="img/eraser_button.png" height="30px"/>
+    <input id="drag-button" class="tool-button" type="image" src="img/drag_button.png" height="30px"/>
+    <input id="iron-button" class="tool-button" type="image" src="img/iron_button.png" height="30px"/>
+    <input id="scissors-button" class="tool-button" type="image" src="img/scissors_button.png" height="30px"/>
+    <input id="comment-button" class="tool-button" type="image" src="img/add_comment_button.png" height="30px"/>
+    <input id="datasheet-button" class="tool-button" type="image" src="img/add_datasheet.png" height="30px"/>
+    <div id="svg_container"></div>
+
+
+    <div id="mode-indicator-div">
+        <img id="brush-mode-indicator" class="mode-indicator" src="img/brush_button.png" height="30px"/>
+        <img id="eraser-mode-indicator" class="mode-indicator" src="img/eraser_button.png" height="30px"/>
+        <img id="drag-mode-indicator" class="mode-indicator" src="img/drag_button.png" height="30px"/>
+        <img id="iron-mode-indicator" class="mode-indicator" src="img/iron_button.png" height="30px"/>
+        <img id="scissors-mode-indicator" class="mode-indicator" src="img/scissors_button.png" height="30px"/>
+        <img id="comment-mode-indicator" class="mode-indicator" src="img/add_comment_button.png" height="30px"/>
+        <img id="datasheet-mode-indicator" class="mode-indicator" src="img/add_datasheet.png" height="30px"/>
+    </div>
 </body>
 
 </html>

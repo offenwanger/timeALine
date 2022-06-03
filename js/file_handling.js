@@ -1,5 +1,5 @@
 let FileHandler = function () {
-    async function getDataFile() {
+    async function getCSVDataFile() {
         let fileHandle = await window.showOpenFilePicker();
         let file = await fileHandle[0].getFile();
         let contents = await file.text();
@@ -7,6 +7,6 @@ let FileHandler = function () {
     }
 
     return {
-        getDataFile,
+        getCSVDataFile,
     }
 }();

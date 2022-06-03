@@ -1,5 +1,6 @@
-function TimeLineDrawer(svg) {
-    let mCanDraw = false;
+
+function BrushController(svg) {
+    let mActive = false;
     let mDrawFinishedCallback = () => { };
     let mDraggedPoints = [];
     let mLineResolution = 50;
@@ -8,7 +9,8 @@ function TimeLineDrawer(svg) {
         .y((p) => p.y)
         .curve(d3.curveCatmullRom.alpha(0.5));
 
-    let lineDrawingGroup = svg.append('g');
+    let lineDrawingGroup = svg.append('g')
+        .style("visibility", 'hidden');
 
     lineDrawingGroup.append('rect')
         .attr('x', 0)
@@ -16,6 +18,7 @@ function TimeLineDrawer(svg) {
         .attr('width', svg.attr('width'))
         .attr('height', svg.attr('height'))
         .attr('fill', 'white')
+        .attr('opacity', '0.2')
         .call(d3.drag()
             .on('start', function (e) { /* nothing at the moment */ })
             .on('drag', onDragged)
@@ -27,43 +30,25 @@ function TimeLineDrawer(svg) {
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5)
-        .attr('filter', "url(#pencil)");
-
-    let drawingLineTarget = lineDrawingGroup.append('path')
-        .attr('fill', 'none')
-        .attr('stroke', 'white')
-        .attr('stroke-width', 50)
-        .attr('opacity', '0');
 
     function onDragged(e) {
-        if (mCanDraw) {
+        if (mActive) {
             mDraggedPoints.push({ x: e.x, y: e.y });
             drawingLine.attr('d', mLineGenerator(mDraggedPoints));
-            drawingLineTarget.attr('d', mLineGenerator(mDraggedPoints));
         }
     }
 
     function onDragEnd() {
-        if (mCanDraw) {
+        if (mActive) {
             let result = getPointsFromLine(drawingLine, mLineResolution);
-            drawingLine.attr('d', mLineGenerator(result));
-            drawingLineTarget.attr('d', mLineGenerator(result));
-
-            mDrawFinishedCallback(result, drawingLine.clone(), drawingLineTarget.clone());
+            
+            mDrawFinishedCallback(result);
 
             mDraggedPoints = [];
             drawingLine.attr('d', mLineGenerator([]));
-            drawingLineTarget.attr('d', mLineGenerator([]));
-
         }
     }
 
-    function remapPointsWithResolution(points, resolution) {
-        let line = drawingLine.clone().attr('d', mLineGenerator(points));
-        let result = getPointsFromLine(line, resolution);
-        line.remove();
-        return result;
-    }
 
     function getPointsFromLine(line, resolution) {
         let result = [];
@@ -74,11 +59,32 @@ function TimeLineDrawer(svg) {
         return result.map(p => { return { x: p.x, y: p.y }; });
     }
 
-    // accessors
-    this.setCanDraw = function (canDraw) { mCanDraw = canDraw };
-    this.setOnDrawFinished = function (callback) { mDrawFinishedCallback = callback; };
-    this.setLineResolution = function (resolution) { mLineResolution = resolution; };
-    this.remapPointsWithResolution = remapPointsWithResolution;
-    this.lineGenerator = mLineGenerator;
-    this.sink = function () { lineDrawingGroup.lower(); };
+    this.setActive = function(active) {
+        if(active && !mActive) {
+            mActive = true;
+            lineDrawingGroup.style('visibility', "");
+            
+            // TODO add extension nodes.
+        } else if(!active && mActive) {
+            mActive = false;
+            lineDrawingGroup.style('visibility', "hidden");
+        }
+    }
+
+    this.redistributePoints = function(points, resolution) {
+        let line = drawingLine.clone().attr('d', mLineGenerator(points));
+        let result = getPointsFromLine(line, resolution);
+        line.remove();
+        return result;
+    }
+
+    this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
+}
+
+function EraserController(svg) {
+
+}
+
+function DragController(svg){
+
 }

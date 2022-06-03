@@ -1,0 +1,8 @@
+body {
+    position: relative;
+}
+
+#mode-indicator-div {
+    display: none;
+    position: absolute;
+}
