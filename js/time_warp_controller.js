@@ -1,9 +1,13 @@
-function TimeWarpController(svg) {
+function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     const TAIL_LENGTH = 50;
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
-    const TICK_TARGET_SIZE = 3;
+    const TICK_TARGET_SIZE = 10;
     const MIN_TICK_SPACING = 30;
+
+    let mExernalCallGetUpdatedWarpSet = getUpdatedWarpSet;
+    let mExernalCallGetTimeForLinePercent = getTimeForLinePercent;
+    let mWarpControlsModifiedCallback = () => { };
 
     let mTailGroup = svg.append('g');
     let mControlTickGroup = svg.append('g');
@@ -41,7 +45,7 @@ function TimeWarpController(svg) {
                 size = (getTimeRatio(warpPoint, warpPoints[index - 1], totalTime) + getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)) / 2
             }
 
-            tickData.push({ position, size, degrees, color: 'steelblue' })
+            tickData.push({ position, size, degrees, warpPoint, color: 'steelblue' })
 
             if (!warpPoint.isEnd) {
                 let warpPointAfter = warpPoints[index + 1];
@@ -57,7 +61,10 @@ function TimeWarpController(svg) {
                             let positionBefore = path.getPointAtLength(dist - 1);
                             let degrees = PathMath.vectorToRotation(PathMath.vectorFromAToB(positionBefore, position)) - 90;
                             let size = getTimeRatio(warpPoint, warpPointAfter, totalTime);
-                            return { position, size, degrees, color: 'black' };
+                            let tickWarpPoint = new DataStructs.WarpPoint();
+                            tickWarpPoint.linePercent = dist / totalLength;
+                            tickWarpPoint.timePoint = mExernalCallGetTimeForLinePercent(id, tickWarpPoint.linePercent);
+                            return { position, size, degrees, warpPoint: tickWarpPoint, color: 'black' };
                         })
                     tickData.push(...ticks);
                 }
@@ -78,19 +85,18 @@ function TimeWarpController(svg) {
 
         let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + id).data(tickData);
         targets.exit().remove();
-        targets.enter().append('line')
+        let newTargets = targets.enter().append('line')
             .classed('.warpTickTarget_' + id, true)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", TICK_TARGET_SIZE * TICK_WIDTH)
+            .style("stroke-width", TICK_TARGET_SIZE + TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
-            .attr("y1", (d) => d.position.y + TICK_TARGET_SIZE * TICK_LENGTH / 2)
+            .attr("y1", (d) => d.position.y + TICK_TARGET_SIZE + TICK_LENGTH / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - TICK_TARGET_SIZE * TICK_LENGTH / 2);
-
-
+            .attr("y2", (d) => d.position.y - TICK_TARGET_SIZE + TICK_LENGTH / 2);
+        setHandlers(id, newTargets);
     }
 
     function getTimeRatio(warpPointBefore, warpPointAfter, totalTime) {
@@ -134,6 +140,37 @@ function TimeWarpController(svg) {
             .attr('y2', tail2End.y);
     }
 
+    function setHandlers(timelineId, targets) {
+        targets.call(d3.drag()
+            .on('start', (event, d) => {
+
+            })
+            .on('drag', (event, d) => {
+
+                // log start state
+                // check current state
+
+            })
+            .on('end', (event, d) => {
+                //mWarpControlsModifiedCallback(timelineId, mExernalCallGetUpdatedWarpSet) 
+            }))
+            .on("mouseover", (event, d) => {
+                let div = $("#tooltip-div").css({
+                    left: d.position.x + 10,
+                    top: d.position.y + 10
+                });
+                div.show();
+                let str;
+                if (d.warpPoint.timePoint > 1) str = new Date(d.warpPoint.timePoint).toDateString()
+                else str = (d.warpPoint.timePoint * 100).toFixed(0) + "%";
+                div.html(str);
+            })
+            .on("mouseout", function () {
+                $("#tooltip-div").hide();
+            });
+    }
+
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
+    this.setWarpControlsModifiedCallback = (callback) => mWarpControlsModifiedCallback = callback;
 }
 

@@ -17,7 +17,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let modelController = new ModelController();
 
     let lineViewController = new LineViewController(svg);
-    let timeWarpController = new TimeWarpController(svg);
+
+    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
+    timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
+        console.log(timelineId, newControlSet);
+    })
 
     let brushController = new BrushController(svg);
     brushController.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
