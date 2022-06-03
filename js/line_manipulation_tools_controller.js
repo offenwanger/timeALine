@@ -30,7 +30,7 @@ function BrushController(svg) {
     function onDragged(e) {
         if (mActive) {
             mDraggedPoints.push({ x: e.x, y: e.y });
-            drawingLine.attr('d', PathGenerator.getPathD(mDraggedPoints));
+            drawingLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
     }
 
@@ -41,7 +41,7 @@ function BrushController(svg) {
             mDrawFinishedCallback(result);
 
             mDraggedPoints = [];
-            drawingLine.attr('d', PathGenerator.getPathD([]));
+            drawingLine.attr('d', PathMath.getPathD([]));
         }
     }
 
@@ -68,7 +68,7 @@ function BrushController(svg) {
     }
 
     this.redistributePoints = function (points, resolution) {
-        let line = drawingLine.clone().attr('d', PathGenerator.getPathD(points));
+        let line = drawingLine.clone().attr('d', PathMath.getPathD(points));
         let result = getPointsFromLine(line, resolution);
         line.remove();
         return result;

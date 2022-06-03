@@ -1,4 +1,4 @@
-let PathMath = function () {
+let MathUtil = function () {
     function vectorFromAToB(a, b) {
         return subtractAFromB(a, b);
     }
@@ -55,7 +55,7 @@ let PathMath = function () {
     }
 }();
 
-let PathGenerator = function () {
+let PathMath = function () {
     let mLineGenerator = d3.line()
         .x((p) => p.x)
         .y((p) => p.y)

@@ -11,7 +11,7 @@ function LineViewController(svg) {
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-            .attr('d', (points) => PathGenerator.getPathD(points));
+            .attr('d', (points) => PathMath.getPathD(points));
         paths.exit().remove();
 
         let points = lineGroup.selectAll(".pointMarkerCircle").data(linePaths.map(path => path.points).flat())

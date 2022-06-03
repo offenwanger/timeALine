@@ -22,7 +22,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     }
 
     function drawTicks(id, warpPoints, points) {
-        let path = PathGenerator.getPath(points);
+        let path = PathMath.getPath(points);
         let totalLength = path.getTotalLength();
         let totalTime = warpPoints[warpPoints.length - 1].timePoint - warpPoints[0].timePoint;
         let tickData = []
@@ -32,16 +32,16 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
             let size;
             if (warpPoint.isStart) {
                 position = points[0]
-                degrees = PathMath.vectorToRotation(PathMath.vectorFromAToB(points[0], points[1])) - 90;
+                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(points[0], points[1])) - 90;
                 size = getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)
             } else if (warpPoint.isEnd) {
                 position = points[points.length - 1]
-                degrees = PathMath.vectorToRotation(PathMath.vectorFromAToB(points[points.length - 1], points[points.length - 2])) + 90;
+                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(points[points.length - 1], points[points.length - 2])) + 90;
                 size = getTimeRatio(warpPoint, warpPoints[index - 1], totalTime)
             } else {
                 position = path.getPointAtLength(totalLength * warpPoint.linePercent);
                 let positionBefore = path.getPointAtLength(totalLength * warpPoint.linePercent - 1);
-                degrees = PathMath.vectorToRotation(PathMath.vectorFromAToB(positionBefore, position)) - 90;
+                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
                 size = (getTimeRatio(warpPoint, warpPoints[index - 1], totalTime) + getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)) / 2
             }
 
@@ -59,7 +59,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                         .map(dist => {
                             let position = path.getPointAtLength(dist);
                             let positionBefore = path.getPointAtLength(dist - 1);
-                            let degrees = PathMath.vectorToRotation(PathMath.vectorFromAToB(positionBefore, position)) - 90;
+                            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
                             let size = getTimeRatio(warpPoint, warpPointAfter, totalTime);
                             let tickWarpPoint = new DataStructs.WarpPoint();
                             tickWarpPoint.linePercent = dist / totalLength;
@@ -124,16 +124,16 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 .style("stroke-dasharray", ("5, 5"));
 
         let startPoint = points[0]
-        let direction1 = PathMath.vectorFromAToB(points[1], startPoint);
-        let tail1End = PathMath.getPointAtDistanceAlongVector(TAIL_LENGTH, direction1, startPoint);
+        let direction1 = MathUtil.vectorFromAToB(points[1], startPoint);
+        let tail1End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction1, startPoint);
         tail1.attr('x1', startPoint.x)
             .attr('y1', startPoint.y)
             .attr('x2', tail1End.x)
             .attr('y2', tail1End.y);
 
         let endPoint = points[points.length - 1]
-        let direction2 = PathMath.vectorFromAToB(points[points.length - 2], endPoint);
-        let tail2End = PathMath.getPointAtDistanceAlongVector(TAIL_LENGTH, direction2, endPoint);
+        let direction2 = MathUtil.vectorFromAToB(points[points.length - 2], endPoint);
+        let tail2End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction2, endPoint);
         tail2.attr('x1', endPoint.x)
             .attr('y1', endPoint.y)
             .attr('x2', tail2End.x)
@@ -146,6 +146,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
 
             })
             .on('drag', (event, d) => {
+                let dragPoint = { x: event.x, y: event.y };
 
                 // log start state
                 // check current state
