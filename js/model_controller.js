@@ -31,6 +31,17 @@ function ModelController() {
 
         let timeline = new DataStructs.Timeline();
         timeline.linePath.points = points;
+        
+        let startPoint = new DataStructs.WarpPoint();
+        startPoint.linePercent = 0;
+        startPoint.timePoint = 0;
+        startPoint.isStart = true;
+        let endPoint = new DataStructs.WarpPoint();
+        endPoint.linePercent = 1;
+        endPoint.timePoint = 1;
+        endPoint.isEnd = true;
+        timeline.warpPoints.push(startPoint, endPoint)
+
         mTimelines.push(timeline);
 
         return timeline;
