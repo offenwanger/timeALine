@@ -41,7 +41,7 @@ function BrushController(svg) {
     function onDragEnd() {
         if (mActive) {
             let result = getPointsFromLine(drawingLine, mLineResolution);
-            
+
             mDrawFinishedCallback(result);
 
             mDraggedPoints = [];
@@ -59,19 +59,19 @@ function BrushController(svg) {
         return result.map(p => { return { x: p.x, y: p.y }; });
     }
 
-    this.setActive = function(active) {
-        if(active && !mActive) {
+    this.setActive = function (active) {
+        if (active && !mActive) {
             mActive = true;
             lineDrawingGroup.style('visibility', "");
-            
+
             // TODO add extension nodes.
-        } else if(!active && mActive) {
+        } else if (!active && mActive) {
             mActive = false;
             lineDrawingGroup.style('visibility', "hidden");
         }
     }
 
-    this.redistributePoints = function(points, resolution) {
+    this.redistributePoints = function (points, resolution) {
         let line = drawingLine.clone().attr('d', mLineGenerator(points));
         let result = getPointsFromLine(line, resolution);
         line.remove();
@@ -85,6 +85,6 @@ function EraserController(svg) {
 
 }
 
-function DragController(svg){
+function DragController(svg) {
 
 }

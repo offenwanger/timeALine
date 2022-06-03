@@ -32,6 +32,8 @@ function ModelController() {
         let timeline = new DataStructs.Timeline();
         timeline.linePath.points = points;
         mTimelines.push(timeline);
+
+        return timeline;
     }
 
     function extendTimeline(points, timelineId, extendStart) {

@@ -11,27 +11,27 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mode = MODE_DEFAULT;
 
     let svg = d3.select('#svg_container').append('svg')
-        .attr('width',  window.innerWidth - 10)
+        .attr('width', window.innerWidth - 10)
         .attr('height', window.innerHeight - 50);
 
     let modelController = new ModelController();
 
     let lineViewController = new LineViewController(svg);
+    let timeWarpController = new TimeWarpController(svg);
 
     let brushController = new BrushController(svg);
     brushController.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
-        if(connectionId1 == null) {
-            modelController.newTimeline(newPoints);
-            lineViewController.drawTimeLines(modelController.getTimelineLinePaths())
+        if (connectionId1 == null) {
+            let newTimeline = modelController.newTimeline(newPoints);
+            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+            timeWarpController.addOrUpdateTimeControls([newTimeline]);
         } else if (connectionId2 == null) {
             modelController.extendTimeline(newPoints, connectionId1, extendStart);
         } else {
-            let startId = extendStart? connectionId2 : connectionId1;
-            let endId = extendStart? connectionId1 : connectionId2;
+            let startId = extendStart ? connectionId2 : connectionId1;
+            let endId = extendStart ? connectionId1 : connectionId2;
             modelController.mergeTimeline(newPoints, startId, endId);
         }
-        
-
     });
 
 

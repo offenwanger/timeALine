@@ -3,10 +3,10 @@ function LineViewController(svg) {
         .x((p) => p.x)
         .y((p) => p.y)
         .curve(d3.curveCatmullRom.alpha(0.5));
-    
+
     let lineGroup = svg.append('g');
-    
-    function drawTimeLines(linePaths) {        
+
+    function drawTimeLines(linePaths) {
         let paths = lineGroup.selectAll('.timelinePath').data(linePaths.map(path => path.points));
         paths.enter().append('path')
             .classed('timelinePath', true)
