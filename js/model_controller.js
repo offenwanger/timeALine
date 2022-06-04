@@ -32,47 +32,62 @@ function ModelController() {
         let timeline = new DataStructs.Timeline();
         timeline.linePath.points = points;
 
-        let startPoint = new DataStructs.WarpPoint();
-        startPoint.linePercent = 0;
-        startPoint.timePoint = 0;
-        startPoint.isStart = true;
-        let endPoint = new DataStructs.WarpPoint();
-        endPoint.linePercent = 1;
-        endPoint.timePoint = 1;
-        endPoint.isEnd = true;
-        timeline.warpPoints.push(startPoint, endPoint)
+        timeline.warpPoints.push(
+            new DataStructs.WarpPoint(0, 0, true, false),
+            new DataStructs.WarpPoint(1, 1, false, true));
 
         mTimelines.push(timeline);
 
         return timeline;
     }
 
+    function extendTimeline(points, timelineId, extendStart) {
+
+    }
+
+    function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
+
+    }
+
+    function updateWarpControls(timelineId, newControlSet) {
+        getTimelineById(timelineId).warpPoints = newControlSet;
+    }
+
     function getUpdatedWarpSet(timelineId, modifiedWarpPoint) {
-        let warpPoints = getTimelineById(timelineId).warpPoints;
+        let timeline = getTimelineById(timelineId);
+
+        if (!timeline) { console.error("Invalid timeline id!", timelineId); return [] };
+
+        let warpPoints = timeline.warpPoints;
+
+        // validate the warp point;
+        if (modifiedWarpPoint.linePercent < 0) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
+        if (modifiedWarpPoint.linePercent > 1) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
+        if (modifiedWarpPoint.linePercent == 0 && !modifiedWarpPoint.isStart) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
+        if (modifiedWarpPoint.linePercent == 1 && !modifiedWarpPoint.isEnd) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
+
         let newWarpPoints = [];
         if (modifiedWarpPoint.isStart) {
             newWarpPoints.push(modifiedWarpPoint);
             warpPoints.forEach(point => {
                 if (!point.isStart && point.timePoint > modifiedWarpPoint.timePoint) {
-                    warpPoints.push(point);
+                    newWarpPoints.push(point);
                 }
             })
-            if (!warpPoints[warpPoints.length - 1].isEnd) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
         } else if (modifiedWarpPoint.isEnd) {
             warpPoints.forEach(point => {
                 if (!point.isEnd && point.timePoint < modifiedWarpPoint.timePoint) {
-                    warpPoints.push(point);
+                    newWarpPoints.push(point);
                 }
             })
             newWarpPoints.push(modifiedWarpPoint);
-
-            if (!warpPoints[0].isStart) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
         } else {
             let addedPoint = false;
             warpPoints.forEach(point => {
                 if (point.id != modifiedWarpPoint.id) {
                     if (!addedPoint && point.linePercent > modifiedWarpPoint.linePercent) {
                         newWarpPoints.push(modifiedWarpPoint);
+                        addedPoint = true;
                     }
 
                     if (point.timePoint < modifiedWarpPoint.timePoint && point.linePercent < modifiedWarpPoint.linePercent) {
@@ -86,13 +101,16 @@ function ModelController() {
             if (!warpPoints[0].isStart || !warpPoints[warpPoints.length - 1].isEnd) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
         }
 
+        if (!warpPoints[0].isStart) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
+        if (!warpPoints[warpPoints.length - 1].isEnd) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
+
         return newWarpPoints;
     }
 
     function getTimeForLinePercent(timelineId, percent) {
         let timeline = getTimelineById(timelineId);
         if (percent < 0) {
-            let minTime = Math.min(...timeline.datasets.map(dataset => dataset.data.map(item => item.time)).flat().map(time => time.timestamp));
+            let minTime = Math.min(...timeline.dataSets.map(dataset => dataset.data.map(item => item.time)).flat().map(time => time.timestamp));
             let startTime = timeline.warpPoints[0].timePoint;
             if (minTime > startTime) {
                 minTime = startTime - (timeline.warpPoints[1].timePoint - startTime)
@@ -102,8 +120,8 @@ function ModelController() {
             return startTime - (Math.abs(percent) * tailTimeSpan)
 
         } else if (percent > 1) {
-            let maxTime = Math.max(...timeline.datasets.map(dataset => dataset.data.map(item => item.time)).flat().map(time => time.timestamp));
-            let endTime = timeline.warpPoints[timeline.warpPoints.length - 1];
+            let maxTime = Math.max(...timeline.dataSets.map(dataset => dataset.data.map(item => item.time)).flat().map(time => time.timestamp));
+            let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timePoint;
             if (maxTime < endTime) {
                 maxTime = endTime + (endTime - timeline.warpPoints[timeline.warpPoints.length - 2].timePoint)
             }
@@ -123,14 +141,6 @@ function ModelController() {
         }
     }
 
-    function extendTimeline(points, timelineId, extendStart) {
-
-    }
-
-    function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
-
-    }
-
     function getTimelineById(id) {
         return mTimelines.find(t => t.id == id);
     }
@@ -139,6 +149,8 @@ function ModelController() {
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
     this.mergeTimeline = mergeTimeline;
+    this.updateWarpControls = updateWarpControls;
+    this.getTimelineById = getTimelineById;
 
     this.getUpdatedWarpSet = getUpdatedWarpSet;
     this.getTimeForLinePercent = getTimeForLinePercent;
