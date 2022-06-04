@@ -118,8 +118,6 @@ function ModelController() {
                 new DataStructs.WarpPoint(newWarpPoints[newWarpPoints.length - 1].timeBinding.clone(), 1, false, true), timeToEnd));
         }
 
-        console.log(newWarpPoints)
-
         return newWarpPoints;
     }
 
