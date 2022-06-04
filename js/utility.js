@@ -109,7 +109,7 @@ let PathMath = function () {
 
         for (let scanLength = 0; scanLength <= pathLength; scanLength += precision) {
             let scan = path.getPointAtLength(scanLength);
-            let scanDistance =  MathUtil.distanceFromAToB(scan, point);
+            let scanDistance = MathUtil.distanceFromAToB(scan, point);
             if (scanDistance < bestDistance) {
                 bestPoint = scan;
                 bestLength = scanLength;
@@ -148,5 +148,90 @@ let PathMath = function () {
         getPathD: (points) => mLineGenerator(points),
         getPath,
         getClosestPointOnPath,
+    }
+}();
+
+let TimeWarpUtil = function () {
+    const PLACE_HOLDER = TimeBindingTypes.PLACE_HOLDER;
+    const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
+
+    function timeOfAGreaterThanB(a, b) {
+        return TimeBindingUtil.AGreaterThanB(a.timeBinding, b.timeBinding);
+    }
+
+    function timeBetweenAandB(a, b) {
+        return TimeBindingUtil.timeBetweenAandB(a.timeBinding, b.timeBinding);
+    }
+
+    function incrementBy(warpPoint, time) {
+        if (warpPoint.timeBinding.type == PLACE_HOLDER) {
+            warpPoint.timeBinding.placeHolder += time;
+        } else if (warpPoint.timeBinding.type == TIMESTRAMP) {
+            warpPoint.timeBinding.timestamp += time;
+        }
+        return warpPoint;
+    }
+
+    return {
+        timeOfAGreaterThanB,
+        timeBetweenAandB,
+        incrementBy,
+    }
+}();
+
+let TimeBindingUtil = function () {
+    const PLACE_HOLDER = TimeBindingTypes.PLACE_HOLDER;
+    const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
+
+    function AGreaterThanB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+
+            return a.placeHolder > b.placeHolder;
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+
+            return a.timestamp > b.timestamp;
+        }
+    }
+
+    function ALessThanB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+
+            return a.placeHolder < b.placeHolder;
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+
+            return a.timestamp < b.timestamp;
+        }
+    }
+
+    function timeBetweenAandB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return Math.abs(a.placeHolder - b.placeHolder);
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return Math.abs(a.timestamp - b.timestamp);
+        }
+    }
+
+    function incrementBy(time, value) {
+        if (time.type == PLACE_HOLDER) {
+            time.placeHolder += value;
+        } else if (time.type == TIMESTRAMP) {
+            time.timestamp += value;
+        }
+        return time;
+    }
+
+    return {
+        AGreaterThanB,
+        ALessThanB,
+        timeBetweenAandB,
+        incrementBy,
     }
 }();

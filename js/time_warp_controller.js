@@ -25,7 +25,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     function drawTicks(id, warpPoints, points) {
         let path = PathMath.getPath(points);
         let totalLength = path.getTotalLength();
-        let totalTime = warpPoints[warpPoints.length - 1].timeBinding.getSingleTime() - warpPoints[0].timeBinding.getSingleTime();
+        let totalTime = TimeWarpUtil.timeBetweenAandB(warpPoints[warpPoints.length - 1], warpPoints[0]);
         let tickData = []
 
         // Add warp point data
@@ -134,8 +134,8 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     }
 
     function getTimeRatio(warpPointBefore, warpPointAfter, totalTime) {
-        return ((warpPointAfter.timeBinding.getSingleTime() - warpPointBefore.timeBinding.getSingleTime()) / totalTime) /
-            (warpPointAfter.linePercent - warpPointBefore.linePercent);
+        return (TimeWarpUtil.timeBetweenAandB(warpPointAfter, warpPointBefore) / totalTime) /
+            Math.abs(warpPointAfter.linePercent - warpPointBefore.linePercent);
     }
 
     function drawTails(id, points) {
@@ -228,8 +228,8 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 });
                 div.show();
                 let str;
-                if (d.warpPoint.timeBinding.type == DataStructs.TimeBindingTypes.TIMESTRAMP) str = new Date(d.warpPoint.timeBinding.getSingleTime()).toDateString()
-                else if (d.warpPoint.timeBinding.type == DataStructs.TimeBindingTypes.PLACE_HOLDER) str = (d.warpPoint.timeBinding.getSingleTime() * 100).toFixed(0) + "%";
+                if (d.warpPoint.timeBinding.type == TimeBindingTypes.TIMESTRAMP) str = new Date(d.warpPoint.timeBinding.timestamp).toDateString()
+                else if (d.warpPoint.timeBinding.type == TimeBindingTypes.PLACE_HOLDER) str = (d.warpPoint.timeBinding.placeHolder * 100).toFixed(0) + "%";
                 else { console.error("Error, invalid type: " + d.warpPoint.timeBinding.type); str = "Error" }
                 div.html(str);
             })

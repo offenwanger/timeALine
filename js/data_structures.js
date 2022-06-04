@@ -64,24 +64,12 @@ let DataStructs = function () {
         this.dataItems = [];
     }
 
-    let DataTypes = {
-        TEXT: 'text',
-        NUM: 'num',
-        TIME_BINDING: 'timebinding'
-    }
-
     function DataItem(type, index, val, offset = null) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
         this.index = index;
         this.offset = offset
-    }
-
-
-    let TimeBindingTypes = {
-        PLACE_HOLDER: 'place_holder',
-        TIMESTRAMP: 'timestamp',
     }
 
     function TimeBinding(type = TimeBindingTypes.PLACE_HOLDER, value = 0) {
@@ -96,13 +84,6 @@ let DataStructs = function () {
                 break;
             case TimeBindingTypes.TIMESTRAMP:
                 this.timeStamp = value;
-        }
-
-        this.getSingleTime = function () {
-            switch (this.type) {
-                case TimeBindingTypes.PLACE_HOLDER: return this.placeHolder;
-                case TimeBindingTypes.TIMESTRAMP: return this.timeStamp;
-            }
         }
 
         this.setTime = function (value) {
@@ -133,8 +114,6 @@ let DataStructs = function () {
         DataRow,
         DataItem,
         TimeBinding,
-        DataTypes,
-        TimeBindingTypes,
     }
 }();
 
