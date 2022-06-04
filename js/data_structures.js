@@ -13,12 +13,16 @@ let DataStructs = function () {
         this.annotationDataset = new DataSet();
     }
 
-    function WarpPoint() {
-        this.id = getUniqueId();
-        this.timePoint = 0;
-        this.linePercent = 0;
-        this.isStart = false;
-        this.isEnd = false;
+    function WarpPoint(timePoint = 0, linePercent = 0, isStart = false, isEnd = false, id = null) {
+        this.id = id ? id : getUniqueId();
+        this.timePoint = timePoint;
+        this.linePercent = linePercent;
+        this.isStart = isStart;
+        this.isEnd = isEnd;
+
+        this.clone = function () {
+            return new WarpPoint(this.timePoint, this.linePercent, this.isStart, this.isEnd, this.id);
+        }
     }
 
     function LinePath() {
