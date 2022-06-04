@@ -182,20 +182,32 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 let linePercent = mousePositionToLinePercent(dragPoint, points)
 
                 if (linePercent <= 0) {
+                    if (d.warpPoint.isEnd) {
+                        return; //do nothing;
+                    }
                     let warpPoint = d.warpPoint.clone()
                     warpPoint.linePercent = 0;
                     warpPoint.isStart = true;
                     let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     drawTicks(timelineId, warpPoints, points);
                 } else if (linePercent >= 1) {
+                    if (d.warpPoint.isStart) {
+                        return; //do nothing;
+                    }
                     let warpPoint = d.warpPoint.clone()
                     warpPoint.linePercent = 1;
                     warpPoint.isEnd = true;
                     let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     drawTicks(timelineId, warpPoints, points);
                 } else {
-                    d.warpPoint.linePercent = linePercent;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, d.warpPoint);
+                    let warpPoint = d.warpPoint;
+                    if (d.warpPoint.isStart || d.warpPoint.isEnd) {
+                        warpPoint = d.warpPoint.clone();
+                        warpPoint.isStart = false;
+                        warpPoint.isEnd = false;
+                    }
+                    warpPoint.linePercent = linePercent;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     drawTicks(timelineId, warpPoints, points);
                 }
             })
@@ -204,20 +216,36 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 let linePercent = mousePositionToLinePercent(dragPoint, points)
 
                 if (linePercent < 0) {
+                    if (d.warpPoint.isEnd) {
+                        // request a redraw
+                        mWarpControlsModifiedCallback();
+                        return; //do nothing;
+                    }
                     let warpPoint = d.warpPoint.clone()
                     warpPoint.linePercent = 0;
                     warpPoint.isStart = true;
                     let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     mWarpControlsModifiedCallback(timelineId, warpPoints);
                 } else if (linePercent > 1) {
+                    if (d.warpPoint.isStart) {
+                        // request a redraw
+                        mWarpControlsModifiedCallback();
+                        return; //do nothing;
+                    }
                     let warpPoint = d.warpPoint.clone()
                     warpPoint.linePercent = 1;
                     warpPoint.isEnd = true;
                     let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     mWarpControlsModifiedCallback(timelineId, warpPoints);
                 } else {
-                    d.warpPoint.linePercent = linePercent;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, d.warpPoint);
+                    let warpPoint = d.warpPoint;
+                    if (d.warpPoint.isStart || d.warpPoint.isEnd) {
+                        warpPoint = d.warpPoint.clone();
+                        warpPoint.isStart = false;
+                        warpPoint.isEnd = false;
+                    }
+                    warpPoint.linePercent = linePercent;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
                     mWarpControlsModifiedCallback(timelineId, warpPoints);
                 }
             }))

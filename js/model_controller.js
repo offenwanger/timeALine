@@ -98,6 +98,7 @@ function ModelController() {
                 }
             })
 
+            if (!addedPoint) newWarpPoints.push(modifiedWarpPoint);
             if (!warpPoints[0].isStart || !warpPoints[warpPoints.length - 1].isEnd) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
         }
 
@@ -116,6 +117,8 @@ function ModelController() {
             newWarpPoints.push(TimeWarpUtil.incrementBy(
                 new DataStructs.WarpPoint(newWarpPoints[newWarpPoints.length - 1].timeBinding.clone(), 1, false, true), timeToEnd));
         }
+
+        console.log(newWarpPoints)
 
         return newWarpPoints;
     }
