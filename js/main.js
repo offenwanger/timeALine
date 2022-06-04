@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
     timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
-        console.log(timelineId, newControlSet);
+        modelController.updateWarpControls(timelineId, newControlSet);
+        timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
     })
 
     let brushController = new BrushController(svg);

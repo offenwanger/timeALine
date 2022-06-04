@@ -17,7 +17,8 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     function addOrUpdateTimeControls(timelines) {
         timelines.forEach(timeline => {
             drawTails(timeline.id, timeline.linePath.points);
-            drawTicks(timeline.id, timeline.warpPoints, timeline.linePath.points);
+            drawTicks(timeline.id, timeline.warpPoints.map(point => point.clone()), timeline.linePath.points);
+            setTickHandlers(timeline.id, timeline.linePath.points);
         });
     }
 
@@ -26,6 +27,8 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
         let totalLength = path.getTotalLength();
         let totalTime = warpPoints[warpPoints.length - 1].timePoint - warpPoints[0].timePoint;
         let tickData = []
+
+        // Add warp point data
         warpPoints.forEach((warpPoint, index) => {
             let position;
             let degrees;
@@ -45,8 +48,9 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 size = (getTimeRatio(warpPoint, warpPoints[index - 1], totalTime) + getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)) / 2
             }
 
-            tickData.push({ position, size, degrees, warpPoint, color: 'steelblue' })
+            tickData.push({ position, size: constrainValue(size), degrees, warpPoint, color: 'steelblue' })
 
+            // Add tick data
             if (!warpPoint.isEnd) {
                 let warpPointAfter = warpPoints[index + 1];
                 let segmentLength = (warpPointAfter.linePercent - warpPoint.linePercent) * totalLength;
@@ -64,17 +68,48 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                             let tickWarpPoint = new DataStructs.WarpPoint();
                             tickWarpPoint.linePercent = dist / totalLength;
                             tickWarpPoint.timePoint = mExernalCallGetTimeForLinePercent(id, tickWarpPoint.linePercent);
-                            return { position, size, degrees, warpPoint: tickWarpPoint, color: 'black' };
+                            return { position, size: constrainValue(size), degrees, warpPoint: tickWarpPoint, color: 'black' };
                         })
                     tickData.push(...ticks);
                 }
             }
         });
 
+        let tailTickData = [{
+            tailPos: TAIL_LENGTH,
+            tailDirection: MathUtil.vectorFromAToB(points[1], points[0]),
+            tailStart: points[0],
+            length: -1 * TAIL_LENGTH / totalLength
+        }, {
+            tailPos: TAIL_LENGTH / 2,
+            tailDirection: MathUtil.vectorFromAToB(points[1], points[0]),
+            tailStart: points[0],
+            length: -1 * (TAIL_LENGTH / 2) / totalLength
+        }, {
+            tailPos: TAIL_LENGTH,
+            tailDirection: MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]),
+            tailStart: points[points.length - 1],
+            length: (TAIL_LENGTH + totalLength) / totalLength
+        }, {
+            tailPos: TAIL_LENGTH / 2,
+            tailDirection: MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]),
+            tailStart: points[points.length - 1],
+            length: (TAIL_LENGTH / 2 + totalLength) / totalLength
+        }];
+        tailTickData.forEach(ttd => {
+            tickData.push({
+                position: MathUtil.getPointAtDistanceAlongVector(ttd.tailPos, ttd.tailDirection, ttd.tailStart),
+                size: 1,
+                degrees: MathUtil.vectorToRotation(ttd.tailDirection) + 90,
+                warpPoint: new DataStructs.WarpPoint(getTimeForLinePercent(id, ttd.length), ttd.length),
+                color: 'grey'
+            })
+        })
+
         let ticks = mControlTickGroup.selectAll('.warpTick_' + id).data(tickData);
         ticks.exit().remove();
-        ticks.enter().append('line')
-            .classed('.warpTick_' + id, true)
+        ticks.enter().append('line').classed('warpTick_' + id, true);
+        mControlTickGroup.selectAll('.warpTick_' + id)
             .style("stroke", (d) => d.color)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", (d) => d.size * TICK_WIDTH)
@@ -85,18 +120,19 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
 
         let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + id).data(tickData);
         targets.exit().remove();
-        let newTargets = targets.enter().append('line')
-            .classed('.warpTickTarget_' + id, true)
+        targets.enter().append('line')
+            .classed('warpTickTarget_' + id, true)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
+
+        mControlTickTargetGroup.selectAll('.warpTickTarget_' + id)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", TICK_TARGET_SIZE + TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
             .attr("y1", (d) => d.position.y + TICK_TARGET_SIZE + TICK_LENGTH / 2)
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - TICK_TARGET_SIZE + TICK_LENGTH / 2);
-        setHandlers(id, newTargets);
     }
 
     function getTimeRatio(warpPointBefore, warpPointAfter, totalTime) {
@@ -110,8 +146,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
             : mTailGroup.append('line')
                 .attr('id', 'timelineTail1_' + id)
                 .attr('stroke-width', 1.5)
-                .attr('stroke', 'black')
-                .style('opacity', 0.5)
+                .attr('stroke', 'grey')
                 .style("stroke-dasharray", ("5, 5"));
 
         let tail2 = mTailGroup.select('#timelineTail2_' + id).node()
@@ -119,8 +154,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
             : mTailGroup.append('line')
                 .attr('id', 'timelineTail1_' + id)
                 .attr('stroke-width', 1.5)
-                .attr('stroke', 'black')
-                .style('opacity', 0.5)
+                .attr('stroke', 'grey')
                 .style("stroke-dasharray", ("5, 5"));
 
         let startPoint = points[0]
@@ -140,20 +174,54 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
             .attr('y2', tail2End.y);
     }
 
-    function setHandlers(timelineId, targets) {
+    function setTickHandlers(timelineId, points) {
+        let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + timelineId);
+        targets.on('mousedown.drag', null);
         targets.call(d3.drag()
-            .on('start', (event, d) => {
-
-            })
+            .on('start', (event, d) => { /** nothing for now */ })
             .on('drag', (event, d) => {
                 let dragPoint = { x: event.x, y: event.y };
+                let linePercent = mousePositionToLinePercent(dragPoint, points)
 
-                // log start state
-                // check current state
-
+                if (linePercent <= 0) {
+                    let warpPoint = d.warpPoint.clone()
+                    warpPoint.linePercent = 0;
+                    warpPoint.isStart = true;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
+                    drawTicks(timelineId, warpPoints, points);
+                } else if (linePercent >= 1) {
+                    let warpPoint = d.warpPoint.clone()
+                    warpPoint.linePercent = 1;
+                    warpPoint.isEnd = true;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
+                    drawTicks(timelineId, warpPoints, points);
+                } else {
+                    d.warpPoint.linePercent = linePercent;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, d.warpPoint);
+                    drawTicks(timelineId, warpPoints, points);
+                }
             })
             .on('end', (event, d) => {
-                //mWarpControlsModifiedCallback(timelineId, mExernalCallGetUpdatedWarpSet) 
+                let dragPoint = { x: event.x, y: event.y };
+                let linePercent = mousePositionToLinePercent(dragPoint, points)
+
+                if (linePercent < 0) {
+                    let warpPoint = d.warpPoint.clone()
+                    warpPoint.linePercent = 0;
+                    warpPoint.isStart = true;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
+                    mWarpControlsModifiedCallback(timelineId, warpPoints);
+                } else if (linePercent > 1) {
+                    let warpPoint = d.warpPoint.clone()
+                    warpPoint.linePercent = 1;
+                    warpPoint.isEnd = true;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
+                    mWarpControlsModifiedCallback(timelineId, warpPoints);
+                } else {
+                    d.warpPoint.linePercent = linePercent;
+                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, d.warpPoint);
+                    mWarpControlsModifiedCallback(timelineId, warpPoints);
+                }
             }))
             .on("mouseover", (event, d) => {
                 let div = $("#tooltip-div").css({
@@ -162,13 +230,42 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 });
                 div.show();
                 let str;
-                if (d.warpPoint.timePoint > 1) str = new Date(d.warpPoint.timePoint).toDateString()
+                if (d.warpPoint.timePoint > 10) str = new Date(d.warpPoint.timePoint).toDateString()
                 else str = (d.warpPoint.timePoint * 100).toFixed(0) + "%";
                 div.html(str);
             })
             .on("mouseout", function () {
                 $("#tooltip-div").hide();
             });
+    }
+
+    function constrainValue(x) {
+        // constrains the value between 1 and 3
+        return 3 / (Math.exp(1 - x) + 1);
+    }
+
+    function mousePositionToLinePercent(mousePoint, points) {
+        let pointOnPath = PathMath.getClosestPointOnPath(mousePoint, points);
+
+        let percent = pointOnPath.percent;
+        let distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnPath)
+
+        let pointOnTail1 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(points[1], points[0]), points[0]);
+        if (!pointOnTail1.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail1) < distToPath) {
+            percent = (-1 * MathUtil.distanceFromAToB(pointOnTail1, points[0])) / PathMath.getPath(points).getTotalLength();
+
+            distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnTail1);
+        }
+
+        let last = points.length - 1;
+        let pointOnTail2 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(points[last - 1], points[last]), points[last]);
+        if (!pointOnTail2.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail2) < distToPath) {
+            let totalLength = PathMath.getPath(points).getTotalLength();
+
+            percent = (MathUtil.distanceFromAToB(pointOnTail2, points[last]) + totalLength) / totalLength;
+        }
+
+        return percent
     }
 
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
