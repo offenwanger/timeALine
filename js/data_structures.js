@@ -13,15 +13,15 @@ let DataStructs = function () {
         this.annotationDataset = new DataSet();
     }
 
-    function WarpPoint(timePoint = 0, linePercent = 0, isStart = false, isEnd = false, id = null) {
+    function WarpPoint(timeBinding = null, linePercent = 0, isStart = false, isEnd = false, id = null) {
         this.id = id ? id : getUniqueId();
-        this.timePoint = timePoint;
+        this.timeBinding = timeBinding ? timeBinding : new TimeBinding(TimeBindingTypes.PLACE_HOLDER, 0);
         this.linePercent = linePercent;
         this.isStart = isStart;
         this.isEnd = isEnd;
 
         this.clone = function () {
-            return new WarpPoint(this.timePoint, this.linePercent, this.isStart, this.isEnd, this.id);
+            return new WarpPoint(this.timeBinding.clone(), this.linePercent, this.isStart, this.isEnd, this.id);
         }
     }
 
@@ -79,11 +79,48 @@ let DataStructs = function () {
     }
 
 
-    function TimeBinding() {
-        this.id = getUniqueId();
-        this.timeStamp = 0;
+    let TimeBindingTypes = {
+        PLACE_HOLDER: 'place_holder',
+        TIMESTRAMP: 'timestamp',
+    }
 
-        // TODO: expand this to handle fuzzy time
+    function TimeBinding(type = TimeBindingTypes.PLACE_HOLDER, value = 0) {
+        this.id = getUniqueId();
+        this.type = type;
+        this.placeHolder = null;
+        this.timeStamp = null;
+
+        switch (type) {
+            case TimeBindingTypes.PLACE_HOLDER:
+                this.placeHolder = value;
+                break;
+            case TimeBindingTypes.TIMESTRAMP:
+                this.timeStamp = value;
+        }
+
+        this.getSingleTime = function () {
+            switch (this.type) {
+                case TimeBindingTypes.PLACE_HOLDER: return this.placeHolder;
+                case TimeBindingTypes.TIMESTRAMP: return this.timeStamp;
+            }
+        }
+
+        this.setTime = function (value) {
+            switch (this.type) {
+                case TimeBindingTypes.PLACE_HOLDER:
+                    this.placeHolder = value;
+                    break;
+                case TimeBindingTypes.TIMESTRAMP:
+                    this.timeStamp = value;
+            }
+        }
+
+        this.clone = function () {
+            let tb = new TimeBinding(this.type)
+            tb.placeHolder = this.placeHolder;
+            tb.timeStamp = this.timeStamp;
+            return tb;
+        }
     }
 
     return {
@@ -97,6 +134,7 @@ let DataStructs = function () {
         DataItem,
         TimeBinding,
         DataTypes,
+        TimeBindingTypes,
     }
 }();
 

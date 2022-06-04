@@ -25,7 +25,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     function drawTicks(id, warpPoints, points) {
         let path = PathMath.getPath(points);
         let totalLength = path.getTotalLength();
-        let totalTime = warpPoints[warpPoints.length - 1].timePoint - warpPoints[0].timePoint;
+        let totalTime = warpPoints[warpPoints.length - 1].timeBinding.getSingleTime() - warpPoints[0].timeBinding.getSingleTime();
         let tickData = []
 
         // Add warp point data
@@ -65,9 +65,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                             let positionBefore = path.getPointAtLength(dist - 1);
                             let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
                             let size = getTimeRatio(warpPoint, warpPointAfter, totalTime);
-                            let tickWarpPoint = new DataStructs.WarpPoint();
-                            tickWarpPoint.linePercent = dist / totalLength;
-                            tickWarpPoint.timePoint = mExernalCallGetTimeForLinePercent(id, tickWarpPoint.linePercent);
+                            let tickWarpPoint = new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, dist / totalLength), dist / totalLength);
                             return { position, size: constrainValue(size), degrees, warpPoint: tickWarpPoint, color: 'black' };
                         })
                     tickData.push(...ticks);
@@ -101,7 +99,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 position: MathUtil.getPointAtDistanceAlongVector(ttd.tailPos, ttd.tailDirection, ttd.tailStart),
                 size: 1,
                 degrees: MathUtil.vectorToRotation(ttd.tailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(getTimeForLinePercent(id, ttd.length), ttd.length),
+                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, ttd.length), ttd.length),
                 color: 'grey'
             })
         })
@@ -136,7 +134,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     }
 
     function getTimeRatio(warpPointBefore, warpPointAfter, totalTime) {
-        return ((warpPointAfter.timePoint - warpPointBefore.timePoint) / totalTime) /
+        return ((warpPointAfter.timeBinding.getSingleTime() - warpPointBefore.timeBinding.getSingleTime()) / totalTime) /
             (warpPointAfter.linePercent - warpPointBefore.linePercent);
     }
 
@@ -230,8 +228,9 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 });
                 div.show();
                 let str;
-                if (d.warpPoint.timePoint > 10) str = new Date(d.warpPoint.timePoint).toDateString()
-                else str = (d.warpPoint.timePoint * 100).toFixed(0) + "%";
+                if (d.warpPoint.timeBinding.type == DataStructs.TimeBindingTypes.TIMESTRAMP) str = new Date(d.warpPoint.timeBinding.getSingleTime()).toDateString()
+                else if (d.warpPoint.timeBinding.type == DataStructs.TimeBindingTypes.PLACE_HOLDER) str = (d.warpPoint.timeBinding.getSingleTime() * 100).toFixed(0) + "%";
+                else { console.error("Error, invalid type: " + d.warpPoint.timeBinding.type); str = "Error" }
                 div.html(str);
             })
             .on("mouseout", function () {
