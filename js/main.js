@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_DEFAULT = 'default';
-    const MODE_BRUSH = "brush";
+    const MODE_LINE_DRAWING = "drawing";
     const MODE_ERASER = "eraser";
     const MODE_DRAG = "drag";
     const MODE_IRON = "iron";
@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
     })
 
-    let brushController = new BrushController(svg);
-    brushController.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
+    let lineDrawing = new LineDrawing(svg);
+    lineDrawing.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
         if (connectionId1 == null) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
@@ -44,14 +44,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let dragController = new DragController(svg);
 
 
-    $("#brush-button").on("click", () => {
-        if (mode == MODE_BRUSH) {
+    $("#line-drawing-button").on("click", () => {
+        if (mode == MODE_LINE_DRAWING) {
             clearMode()
         } else {
             clearMode()
-            brushController.setActive(true);
-            mode = MODE_BRUSH;
-            showIndicator('#brush-button', '#brush-mode-indicator');
+            lineDrawing.setActive(true);
+            mode = MODE_LINE_DRAWING;
+            showIndicator('#line-drawing-button', '#line-drawing-mode-indicator');
         }
     })
 
@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mode = MODE_DRAG;
             showIndicator('#drag-button', '#drag-mode-indicator');
 
-            brushController.setActive(true);
+            lineDrawing.setActive(true);
         }
     })
 
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function clearMode() {
-        brushController.setActive(false);
+        lineDrawing.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();

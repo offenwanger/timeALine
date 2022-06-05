@@ -1,5 +1,5 @@
 
-function BrushController(svg) {
+function LineDrawing(svg) {
     let mActive = false;
     let mDrawFinishedCallback = () => { };
     let mDraggedPoints = [];
