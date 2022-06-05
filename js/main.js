@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
     })
 
-    let lineDrawing = new LineDrawing(svg);
-    lineDrawing.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
+    let lineDrawingController = new LineDrawingController(svg);
+    lineDrawingController.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
         if (connectionId1 == null) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
         } else {
             clearMode()
-            lineDrawing.setActive(true);
+            lineDrawingController.setActive(true);
             mode = MODE_LINE_DRAWING;
             showIndicator('#line-drawing-button', '#line-drawing-mode-indicator');
         }
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mode = MODE_ERASER;
+            eraserController.setActive(true);
             showIndicator('#eraser-button', '#eraser-mode-indicator');
         }
     })
@@ -72,8 +73,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mode = MODE_DRAG;
             showIndicator('#drag-button', '#drag-mode-indicator');
-
-            lineDrawing.setActive(true);
         }
     })
 
@@ -121,7 +120,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function clearMode() {
-        lineDrawing.setActive(false);
+        lineDrawingController.setActive(false);
+        eraserController.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();

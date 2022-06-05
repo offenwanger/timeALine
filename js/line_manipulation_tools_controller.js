@@ -1,11 +1,12 @@
 
-function LineDrawing(svg) {
+function LineDrawingController(svg) {
     let mActive = false;
     let mDrawFinishedCallback = () => { };
     let mDraggedPoints = [];
     let mLineResolution = 50;
 
     let lineDrawingGroup = svg.append('g')
+        .attr("id", 'line-drawing-g')
         .style("visibility", 'hidden');
 
     lineDrawingGroup.append('rect')
@@ -78,9 +79,86 @@ function LineDrawing(svg) {
 }
 
 function EraserController(svg) {
+    let mBrushController = new BrushController(svg);
 
+    this.setActive = (active) => {
+        mActive = active;
+        mBrushController.setActive(active)
+    };
 }
 
 function DragController(svg) {
 
+}
+
+function BrushController(svg) {
+    const BRUSH_SIZE_MIN = 2;
+    const BRUSH_SIZE_MAX = 100;
+
+    let mActive = false;
+    let mBrushSize = 10;
+
+    let mDrawStartCallback = () => { };
+    let mDrawCallback = () => { };
+    let mDrawEndCallback = () => { };
+
+    let mBrushGroup = svg.append('g')
+        .attr("id", 'brush-g')
+        .style("visibility", 'hidden');
+
+    mBrushGroup.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('height', svg.attr('height'))
+        .attr('width', svg.attr('width'))
+        .attr('fill', 'white')
+        .attr('opacity', '0')
+        .call(d3.drag()
+            .on('start', function (e) {
+                if (mActive) {
+                    mDrawStartCallback({ x: e.x, y: e.y }, mBrushSize);
+                }
+            })
+            .on('drag', function (e) {
+                if (mActive) {
+                    mDrawCallback({ x: e.x, y: e.y }, mBrushSize)
+                }
+            })
+            .on('end', function (e) {
+                if (mActive) {
+                    mDrawEndCallback({ x: e.x, y: e.y }, mBrushSize)
+                }
+            }))
+        .on("mousemove", function (e) {
+            mBrush.attr("cx", d3.pointer(e)[0]);
+            mBrush.attr("cy", d3.pointer(e)[1]);
+        })
+        .on("wheel", function (e) {
+            mBrushSize = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushSize + e.wheelDelta / 50));
+            mBrush.attr("r", mBrushSize);
+        });
+
+    let mBrush = mBrushGroup.append('circle')
+        .attr('cx', 0)
+        .attr('cy', 0)
+        .attr('r', mBrushSize)
+        .attr('stroke', "black")
+        .attr('stroke-wdith', 2)
+        .attr('fill', 'none');
+
+    function setActive(active) {
+        if (active && !mActive) {
+            mActive = true;
+            mBrushGroup.style('visibility', "");
+
+        } else if (!active && mActive) {
+            mActive = false;
+            mBrushGroup.style('visibility', "hidden");
+        }
+    }
+
+    this.setActive = setActive;
+    this.setDrawStartCallback = (callback) => mDrawStartCallback = callback;
+    this.setDrawCallback = (callback) => mDrawCallback = callback;
+    this.setDrawEndCallback = (callback) => mDrawEndCallback = callback;
 }
