@@ -50,7 +50,41 @@ function ModelController() {
     }
 
     function deletePoints(mask) {
-        console.log("delete!")
+        let currentTimelines = [];
+        let removedTimelines = [];
+        mTimelines.forEach(timeline => {
+            let segments = [{ covered: mask.isCovered(timeline.linePath.points[0]), points: [timeline.linePath.points[0]] }]
+
+            // TODO: Subdivide the line segment to get a more exact erase in the affected areas
+            for (let i = 1; i < timeline.linePath.points.length; i++) {
+                let point = timeline.linePath.points[i];
+                if (mask.isCovered(point) == segments[segments.length - 1].covered) {
+                    segments[segments.length - 1].points.push(point);
+                } else {
+                    let previousPoint = timeline.linePath.points[i - 1]
+                    segments.push({ covered: mask.isCovered(point), points: [previousPoint, point] })
+                }
+            }
+
+            if(segments.length > 1) {
+                removedTimelines.push(timeline);
+
+                //TODO divide and create new lines
+                    // this.linePath = new LinePath();
+                    // this.warpPoints = [];
+                    // this.dataSets = [];
+                    // this.annotationDataset = new DataSet();
+            } else if(segments.length == 1){
+                if(segments[0].covered) {
+                    removedTimelines.push(timeline);
+                } else {
+                    currentTimelines.push(timeline);
+                }
+            } else console.error("Unhandled edge case!!", timeline);
+        });
+
+        mTimelines = currentTimelines;
+        return removedTimelines.map(timeline => timeline.id);
     }
 
     function updateWarpControls(timelineId, newControlSet) {
