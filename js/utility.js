@@ -235,3 +235,13 @@ let TimeBindingUtil = function () {
         incrementBy,
     }
 }();
+
+function CanvasMask(canvas) {
+    this.canvas = canvas;
+    let mContext = canvas.getContext("2d");
+    this.isCovered = function(x, y) {
+        let pixelData = mContext.getImageData(x, y, 1, 1).data;
+        console.log(pixelData)
+        return false;
+    }
+}

@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
 
     let eraserController = new EraserController(svg);
+    eraserController.setEraseCallback(mask => {
+        modelController.deletePoints(mask);
+        lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
+    })
+
     let dragController = new DragController(svg);
 
 

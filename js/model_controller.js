@@ -49,6 +49,10 @@ function ModelController() {
 
     }
 
+    function deletePoints(mask) {
+        console.log("delete!")
+    }
+
     function updateWarpControls(timelineId, newControlSet) {
         getTimelineById(timelineId).warpPoints = newControlSet;
     }
@@ -171,8 +175,12 @@ function ModelController() {
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
     this.mergeTimeline = mergeTimeline;
+
+    this.deletePoints = deletePoints;
+
     this.updateWarpControls = updateWarpControls;
     this.getTimelineById = getTimelineById;
+    this.getAllTimelines = () => [...mTimelines];
 
     this.getUpdatedWarpSet = getUpdatedWarpSet;
     this.getTimeForLinePercent = getTimeForLinePercent;
