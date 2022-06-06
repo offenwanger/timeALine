@@ -129,12 +129,12 @@ function EraserController(svg) {
             let context = canvas.getContext('2d');
             context.drawImage(image, 0, 0, width, height);
 
+            mDraggedPoints = [];
+            mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
+
             mEraseCallback(new CanvasMask(canvas));
         };
         image.src = blobURL;
-
-        mDraggedPoints = [];
-        mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
     })
 
     this.setActive = (active) => {
