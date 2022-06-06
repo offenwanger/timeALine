@@ -65,17 +65,87 @@ function ModelController() {
                     segments.push({ covered: mask.isCovered(point), points: [previousPoint, point] })
                 }
             }
+            
+            // remove the first segment if it was only one point long. 
+            if (segments.length > 1 && segments[0].points.length == 1) segments.shift();
 
-            if(segments.length > 1) {
+            if (segments.length > 1) {
                 removedTimelines.push(timeline);
 
-                //TODO divide and create new lines
-                    // this.linePath = new LinePath();
-                    // this.warpPoints = [];
-                    // this.dataSets = [];
+                let totalLength = PathMath.getPathLength(timeline.linePath.points);
+
+                let warpIndex = 0;
+                for (let i = 0; i < segments.length; i++) {
+                    let segment = segments[i];
+
+                    segment.length = PathMath.getPathLength(segments[i].points);
+
+                    (i == 0) ?
+                        segment.startPercent = 0 :
+                        segment.startPercent = segments[i - 1].endPercent;
+
+                    segment.endPercent = (segment.length / totalLength) + segment.startPercent;
+
+                    segment.warpPoints = [];
+
+                    for (warpIndex; warpIndex < timeline.warpPoints.length; warpIndex++) {
+                        if (timeline.warpPoints[warpIndex].linePercent <= segment.endPercent) {
+                            let warpPoint = timeline.warpPoints[warpIndex].clone();
+                            warpPoint.linePercent -= segment.startPercent
+                            warpPoint.linePercent /= segment.endPercent - segment.startPercent;
+                            segment.warpPoints.push(warpPoint);
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (segment.warpPoints.length == 0 || !segment.warpPoints[0].isStart) {
+                        if (segment.warpPoints.length > 0 && segment.warpPoints[0].linePercent < 0.001 && !segment.warpPoints[0].isEnd) {
+                            segment.warpPoints[0].linePercent = 0;
+                            segment.warpPoints[0].isStart = true;
+                        } else {
+                            let startPoint = new DataStructs.WarpPoint()
+                            startPoint.linePercent = 0;
+                            startPoint.timeBinding = getTimeForTimelineLinePercent(timeline, segment.startPercent);
+                            startPoint.isStart = true;
+                            segment.warpPoints.unshift(startPoint);
+                        }
+                    }
+
+                    let lastWarpPoint = segment.warpPoints.length - 1;
+                    if (lastWarpPoint == 0 || !segment.warpPoints[lastWarpPoint].isEnd) {
+                        if (lastWarpPoint > 0 && segment.warpPoints[lastWarpPoint].linePercent > 0.990) {
+                            segment.warpPoints[lastWarpPoint].linePercent = 1;
+                            segment.warpPoints[lastWarpPoint].isEnd = true;
+                        } else if (i == segments.length - 1) {
+                            // If we're the last segment we should have the last warp point. 
+                            // We might not have claimed it already because the total lengths of
+                            // all the segments will likely not quite add up to 1  
+                            segment.warpPoints.push(timeline.warpPoints[timeline.warpPoints.length - 1]);
+                        } else {
+                            let endPoint = new DataStructs.WarpPoint()
+                            endPoint.linePercent = 1;
+                            endPoint.timeBinding = getTimeForTimelineLinePercent(timeline, segment.endPercent);
+                            endPoint.isEnd = true;
+                            segment.warpPoints.push(endPoint);
+                        }
+                    }
+
+                    // TODO: same for annotations
                     // this.annotationDataset = new DataSet();
-            } else if(segments.length == 1){
-                if(segments[0].covered) {
+
+                    //TODO divide datasets (though I think it's really more copy than divide...)
+                    // this.dataSets = [];
+
+                    if(!segment.covered) {
+                        let newTimeline = new DataStructs.Timeline;
+                        newTimeline.linePath.points = segment.points;
+                        newTimeline.warpPoints = segment.warpPoints;
+                        currentTimelines.push(newTimeline)
+                    }
+                }
+            } else if (segments.length == 1) {
+                if (segments[0].covered) {
                     removedTimelines.push(timeline);
                 } else {
                     currentTimelines.push(timeline);
@@ -160,7 +230,10 @@ function ModelController() {
     }
 
     function getTimeForLinePercent(timelineId, percent) {
-        let timeline = getTimelineById(timelineId);
+        return getTimeForTimelineLinePercent(getTimelineById(timelineId), percent);
+    }
+
+    function getTimeForTimelineLinePercent(timeline, percent) {
         if (percent < 0) {
             let startTime = timeline.warpPoints[0].timeBinding;
             let minTime = timeline.dataSets
