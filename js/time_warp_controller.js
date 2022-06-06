@@ -22,6 +22,15 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
         });
     }
 
+    function removeTimeControls(timelineIds) {
+        timelineIds.forEach(id => {
+            mControlTickGroup.selectAll('.warpTick_' + id).remove();
+            mControlTickTargetGroup.selectAll('.warpTickTarget_' + id).remove();
+            mTailGroup.select('#timelineTail1_' + id).remove();
+            mTailGroup.select('#timelineTail2_' + id).remove();
+        })
+    }
+
     function drawTicks(id, warpPoints, points) {
         let path = PathMath.getPath(points);
         let totalLength = path.getTotalLength();
@@ -150,7 +159,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
         let tail2 = mTailGroup.select('#timelineTail2_' + id).node()
             ? mTailGroup.select('#timelineTail2_' + id)
             : mTailGroup.append('line')
-                .attr('id', 'timelineTail1_' + id)
+                .attr('id', 'timelineTail2_' + id)
                 .attr('stroke-width', 1.5)
                 .attr('stroke', 'grey')
                 .style("stroke-dasharray", ("5, 5"));
@@ -296,6 +305,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     }
 
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
+    this.removeTimeControls = removeTimeControls;
     this.setWarpControlsModifiedCallback = (callback) => mWarpControlsModifiedCallback = callback;
 }
 
