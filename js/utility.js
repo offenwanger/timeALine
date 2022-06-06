@@ -98,6 +98,12 @@ let PathMath = function () {
         return path;
     }
 
+    function getPathLength(points) {
+        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute('d', mLineGenerator(points));
+        return path.getTotalLength();
+    }
+
     function getClosestPointOnPath(point, points) {
         let path = getPath(points);
         let pathLength = path.getTotalLength();
@@ -147,6 +153,7 @@ let PathMath = function () {
     return {
         getPathD: (points) => mLineGenerator(points),
         getPath,
+        getPathLength,
         getClosestPointOnPath,
     }
 }();
