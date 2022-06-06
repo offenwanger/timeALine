@@ -11,18 +11,20 @@ function LineViewController(svg) {
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-            .attr('d', (points) => PathMath.getPathD(points));
         paths.exit().remove();
+        lineGroup.selectAll('.timelinePath').attr('d', (points) => PathMath.getPathD(points));
 
         let points = lineGroup.selectAll(".pointMarkerCircle").data(linePaths.map(path => path.points).flat())
         points.enter()
             .append("circle")
-            .attr("cx", function (d) { return d.x })
-            .attr("cy", function (d) { return d.y })
+            .classed("pointMarkerCircle", true)
             .attr("r", "1px")
             .attr("fill", "black")
             .style("opacity", 0.5);
         points.exit().remove();
+        lineGroup.selectAll(".pointMarkerCircle")
+            .attr("cx", function (d) { return d.x })
+            .attr("cy", function (d) { return d.y })
     }
 
     this.drawTimeLines = drawTimeLines;
