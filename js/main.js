@@ -25,16 +25,29 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let lineDrawingController = new LineDrawingController(svg);
-    lineDrawingController.setDrawFinishedCallback((newPoints, startId = null, endId = null) => {
-        if (startId == null && endId == null) {
+    lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
+        if (startPointLineId == null && endPointLineId == null) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
             timeWarpController.addOrUpdateTimeControls([newTimeline]);
-        } else if (startId != null && endId != null) {
-            modelController.mergeTimeline(newPoints, startId, endId);
+        } else if (startPointLineId != null && endPointLineId != null) {
+            // the line which has it's end point connecting to the other line goes first
+            let startLineId = endPointLineId;
+            let endLineId = startPointLineId;
+            let removedIds = modelController.mergeTimeline(newPoints, startLineId, endLineId);
+
+            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+
+            timeWarpController.removeTimeControls(removedIds);
+            timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
         } else {
-            modelController.extendTimeline(newPoints, startId ? startId : endId, startId != null)
+            modelController.extendTimeline(newPoints, startPointLineId ? startPointLineId : endPointLineId, startPointLineId != null);
+
+            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+            timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
         }
     });
 

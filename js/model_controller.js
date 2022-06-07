@@ -44,11 +44,11 @@ function ModelController() {
     function extendTimeline(points, timelineId, extendStart) {
         let timeline = getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.linePath.points);
-        
+
         // knock off the first point cuz it's probably pretty close. 
         //TODO: Handle this properly.
         extendStart ? points.pop() : points.unshift();
-        
+
         let newPoints = extendStart ? points.concat(timeline.linePath.points) : timeline.linePath.points.concat(points);
         let newLength = PathMath.getPathLength(newPoints);
 
@@ -64,7 +64,7 @@ function ModelController() {
             startPoint.isStart = false;
             timeline.warpPoints = getUpdatedWarpSet(timeline.id, startPoint);
         } else {
-            let conversionRatio =  originalLength / newLength;
+            let conversionRatio = originalLength / newLength;
             timeline.warpPoints.forEach(point => {
                 point.linePercent *= conversionRatio;
             })
@@ -75,7 +75,82 @@ function ModelController() {
     }
 
     function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
-        console.log("merge me!", points, timelineIdStart, timelineIdEnd)
+        let startTimeline = getTimelineById(timelineIdStart);
+        let endTimeline = getTimelineById(timelineIdEnd);
+
+        if (startTimeline.warpPoints[0].timeBinding.type != endTimeline.warpPoints[0].timeBinding.type) {
+            console.error("incompatible timeline, display user error message!");
+            return [];
+        }
+
+        let originalStartLength = PathMath.getPathLength(startTimeline.linePath.points);
+        let originalEndLength = PathMath.getPathLength(endTimeline.linePath.points);
+
+        // knock off the end points cuz they're probably pretty close.
+        points.pop();
+        points.unshift();
+
+        let newPoints = startTimeline.linePath.points.concat(points, endTimeline.linePath.points);
+        let newLength = PathMath.getPathLength(newPoints);
+
+        let startStartWarp = startTimeline.warpPoints[0]
+        let startEndWarp = startTimeline.warpPoints[startTimeline.warpPoints.length - 1]
+        let endStartWarp = endTimeline.warpPoints[0]
+        let endEndWarp = endTimeline.warpPoints[endTimeline.warpPoints.length - 1]
+
+        let newTimeline = new DataStructs.Timeline();
+        newTimeline.linePath.points = newPoints;
+
+        mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
+        mTimelines.push(newTimeline);
+
+        // Update warp point line percents
+        let conversionRatio = originalStartLength / newLength;
+        startTimeline.warpPoints.forEach(point => {
+            point.linePercent *= conversionRatio;
+        });
+        startTimeline.warpPoints[startTimeline.warpPoints.length - 1].isEnd = false;
+
+        let diff = newLength - originalEndLength;
+        endTimeline.warpPoints.forEach(point => {
+            let originalLengthAlongLine = point.linePercent * originalEndLength;
+            point.linePercent = (originalLengthAlongLine + diff) / newLength;
+        })
+        endTimeline.warpPoints[0].isStart = false;
+
+        newTimeline.warpPoints = startTimeline.warpPoints.concat(endTimeline.warpPoints);
+
+        // Handle timeoverlap
+        if (TimeWarpUtil.timeOfAGreaterThanB(startEndWarp, endStartWarp)) {
+
+            let startPoint = new DataStructs.WarpPoint;
+            startPoint.isStart = true;
+            startPoint.linePercent = 0;
+            startPoint.timeBinding = TimeWarpUtil.timeOfAGreaterThanB(startStartWarp, endStartWarp) ? endStartWarp.timeBinding : startStartWarp.timeBinding;
+
+            let endPoint = new DataStructs.WarpPoint;
+            endPoint.isEnd = true;
+            endPoint.linePercent = 1;
+            endPoint.timeBinding = TimeWarpUtil.timeOfAGreaterThanB(startEndWarp, endEndWarp) ? startEndWarp.timeBinding : endEndWarp.timeBinding;
+
+            let allPoints = newTimeline.warpPoints;
+            newTimeline.warpPoints = [startPoint, endPoint];
+            allPoints.forEach(point => {
+                if (point.linePercent > 0 &&
+                    point.linePercent < 1 &&
+                    TimeWarpUtil.timeOfAGreaterThanB(endPoint, point) &&
+                    TimeWarpUtil.timeOfAGreaterThanB(point, startPoint)) {
+                    // if it's somewhere in the middle, just throw it in...
+                    newTimeline.warpPoints = getUpdatedWarpSet(newTimeline.id, point);
+                }
+            })
+        }
+
+        console.log(newTimeline)
+
+        // TODO: Merge data (I think this is just concat the sets)
+        // TODO: Merge annotation (ditto)
+        return [timelineIdStart, timelineIdEnd];
     }
 
     function deletePoints(mask) {

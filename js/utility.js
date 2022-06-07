@@ -170,6 +170,10 @@ let TimeWarpUtil = function () {
         return TimeBindingUtil.timeBetweenAandB(a.timeBinding, b.timeBinding);
     }
 
+    function averageAandB(a, b) {
+        return new DataStructs.WarpPoint(TimeBindingUtil.averageAandB(a.timeBinding, b.timeBinding), (a.linePercent + b.linePercent) / 2)
+    }
+
     function incrementBy(warpPoint, time) {
         if (warpPoint.timeBinding.type == PLACE_HOLDER) {
             warpPoint.timeBinding.placeHolder += time;
@@ -182,6 +186,7 @@ let TimeWarpUtil = function () {
     return {
         timeOfAGreaterThanB,
         timeBetweenAandB,
+        averageAandB,
         incrementBy,
     }
 }();
@@ -226,6 +231,18 @@ let TimeBindingUtil = function () {
         }
     }
 
+    function averageAandB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return (a.placeHolder + b.placeHolder) / 2;
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return Math.floor((a.timestamp + b.timestamp) / 2);
+        }
+    }
+
     function incrementBy(time, value) {
         if (time.type == PLACE_HOLDER) {
             time.placeHolder += value;
@@ -239,6 +256,7 @@ let TimeBindingUtil = function () {
         AGreaterThanB,
         ALessThanB,
         timeBetweenAandB,
+        averageAandB,
         incrementBy,
     }
 }();
@@ -246,8 +264,8 @@ let TimeBindingUtil = function () {
 function CanvasMask(canvas) {
     this.canvas = canvas;
     let mContext = canvas.getContext("2d");
-    
-    this.isCovered = function(coords) {
+
+    this.isCovered = function (coords) {
         return mContext.getImageData(coords.x, coords.y, 1, 1).data[3] > 0;
     }
 }

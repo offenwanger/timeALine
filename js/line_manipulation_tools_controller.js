@@ -131,21 +131,22 @@ function LineDrawingController(svg) {
                 mDrawingLine.attr('d', PathMath.getPathD(mDraggedPoints));
             }
 
-            let startLineId = mDragStartParams.startPoint ? mDragStartParams.startPoint : null;
-            let endLineId = mDragStartParams.endPoint ? mDragStartParams.endPoint : null;
+            let startPointLineId = mDragStartParams.startPoint ? mDragStartParams.startPoint : null;
+            let endPointLineId = mDragStartParams.endPoint ? mDragStartParams.endPoint : null;
+
 
             if (dragEndPoint) {
                 if (endOnEndPoint) {
-                    endLineId = dragEndPoint.id;
+                    endPointLineId = dragEndPoint.id;
                 } else {
-                    startLineId = dragEndPoint.id;
+                    startPointLineId = dragEndPoint.id;
                 }
             }
 
 
             let result = getPointsFromLine(mDrawingLine, mLineResolution);
 
-            mDrawFinishedCallback(result, startLineId, endLineId);
+            mDrawFinishedCallback(result, startPointLineId, endPointLineId);
 
             // reset
             mDraggedPoints = [];
