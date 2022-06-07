@@ -275,7 +275,6 @@ function ModelController() {
                             let timeBinding = row.getCell(timeline.annotationDataset.timeCol).val;
                             let startTime = segment.warpPoints[0].timeBinding;
                             let endTime = segment.warpPoints[segment.warpPoints.length - 1].timeBinding;
-                            console.log(timeBinding, startTime, endTime)
 
                             if (TimeBindingUtil.AGreaterThanB(timeBinding, startTime) &&
                                 TimeBindingUtil.AGreaterThanB(endTime, timeBinding)) {
@@ -295,7 +294,6 @@ function ModelController() {
                         newTimeline.annotationDataset.dataRows = segment.annotationIds;
 
                         currentTimelines.push(newTimeline)
-                        console.log(newTimeline)
                     }
                 }
             } else if (segments.length == 1) {
