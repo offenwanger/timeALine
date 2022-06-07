@@ -118,6 +118,7 @@ function ModelController() {
         let endEndWarp = endTimeline.warpPoints[endTimeline.warpPoints.length - 1]
 
         let newTimeline = createTimeline(newPoints);
+        newTimeline.annotationDataset = mergeDataset(startTimeline.annotationDataset, endTimeline.annotationDataset);
 
         mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
         mTimelines.push(newTimeline);
@@ -165,8 +166,23 @@ function ModelController() {
         }
 
         // TODO: Merge data (I think this is just concat the sets)
-        // TODO: Merge annotation (ditto)
         return [timelineIdStart, timelineIdEnd];
+    }
+
+    function mergeDataset(dataset1, dataset2) {
+        // TODO: Think this through, do the tables and columns need to be the same?
+        if (dataset1.table != dataset2.table) throw Error("Incompatible sets, different tables");
+        if (dataset1.timeCol != dataset2.timeCol) throw Error("Incompatible sets, different time columns");
+        if (dataset1.valCol != dataset2.valCol) throw Error("Incompatible sets, different time columns");
+
+        let mergedDataset = new DataStructs.DataSet();
+        mergedDataset.table = dataset1.table;
+        mergedDataset.timeCol = dataset1.timeCol;
+        mergedDataset.valCol = dataset1.valCol;
+        mergedDataset.dataRows = [... new Set(dataset1.dataRows.concat(dataset2.dataRows))];
+        // TODO: Handle YAxis...
+
+        return mergedDataset;
     }
 
     function deletePoints(mask) {
@@ -251,8 +267,22 @@ function ModelController() {
                         }
                     }
 
-                    // TODO: same for annotations
-                    // this.annotationDataset = new DataSet();
+                    if (!segment.covered) {
+                        segment.annotationIds = [];
+                        // Collect all the relevant annotations
+                        timeline.annotationDataset.dataRows.forEach(rowId => {
+                            let row = mAnnotationsTable.getRow(rowId);
+                            let timeBinding = row.getCell(timeline.annotationDataset.timeCol).val;
+                            let startTime = segment.warpPoints[0].timeBinding;
+                            let endTime = segment.warpPoints[segment.warpPoints.length - 1].timeBinding;
+                            console.log(timeBinding, startTime, endTime)
+
+                            if (TimeBindingUtil.AGreaterThanB(timeBinding, startTime) &&
+                                TimeBindingUtil.AGreaterThanB(endTime, timeBinding)) {
+                                segment.annotationIds.push(row.id);
+                            }
+                        })
+                    }
 
                     //TODO divide datasets (though I think it's really more copy than divide...)
                     // this.dataSets = [];
@@ -260,7 +290,12 @@ function ModelController() {
                     if (!segment.covered) {
                         let newTimeline = createTimeline(segment.points);
                         newTimeline.warpPoints = segment.warpPoints;
+
+                        newTimeline.annotationDataset = timeline.annotationDataset.clone();
+                        newTimeline.annotationDataset.dataRows = segment.annotationIds;
+
                         currentTimelines.push(newTimeline)
+                        console.log(newTimeline)
                     }
                 }
             } else if (segments.length == 1) {

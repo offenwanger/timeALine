@@ -38,6 +38,15 @@ let DataStructs = function () {
         this.valCol = null;
         this.dataRows = [];
         this.YAxis = null;
+        this.clone = function () {
+            let newDataSet = new DataSet();
+            newDataSet.table = this.table;
+            newDataSet.timeCol = this.timeCol;
+            newDataSet.valCol = this.valCol;
+            newDataSet.dataRows = [...this.dataRows]
+            newDataSet.YAxis = this.YAxis ? this.YAxis.clone() : null;
+            return newDataSet;
+        }
     }
 
     function YAxis() {
@@ -47,6 +56,14 @@ let DataStructs = function () {
         this.val2 = 1;
         this.dist2 = 1;
         this.linePercent = 0;
+        this.clone = function () {
+            let newAxis = new YAxis();
+            newAxis.val1 = this.val1;
+            newAxis.dist1 = this.dist1;
+            newAxis.val2 = this.val2;
+            newAxis.dist2 = this.dist2;
+            newAxis.linePercent = this.linePercent;
+        }
     }
 
 
