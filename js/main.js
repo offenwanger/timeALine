@@ -25,17 +25,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let lineDrawingController = new LineDrawingController(svg);
-    lineDrawingController.setDrawFinishedCallback((newPoints, connectionId1 = null, extendStart = null, connectionId2 = null) => {
-        if (connectionId1 == null) {
+    lineDrawingController.setDrawFinishedCallback((newPoints, startId = null, endId = null) => {
+        if (startId == null && endId == null) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
             timeWarpController.addOrUpdateTimeControls([newTimeline]);
-        } else if (connectionId2 == null) {
-            modelController.extendTimeline(newPoints, connectionId1, extendStart);
-        } else {
-            let startId = extendStart ? connectionId2 : connectionId1;
-            let endId = extendStart ? connectionId1 : connectionId2;
+        } else if (startId != null && endId != null) {
             modelController.mergeTimeline(newPoints, startId, endId);
+        } else {
+            modelController.extendTimeline(newPoints, startId ? startId : endId, startId != null)
         }
     });
 
@@ -45,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let removedIds = modelController.deletePoints(mask);
 
         lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
+        lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
 
         timeWarpController.removeTimeControls(removedIds);
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());

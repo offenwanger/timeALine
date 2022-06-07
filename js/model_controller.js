@@ -42,11 +42,11 @@ function ModelController() {
     }
 
     function extendTimeline(points, timelineId, extendStart) {
-
+        console.log("extend me!", points, timelineId, extendStart)
     }
 
     function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
-
+        console.log("merge me!", points, timelineIdStart, timelineIdEnd)
     }
 
     function deletePoints(mask) {
@@ -65,7 +65,7 @@ function ModelController() {
                     segments.push({ covered: mask.isCovered(point), points: [previousPoint, point] })
                 }
             }
-            
+
             // remove the first segment if it was only one point long. 
             if (segments.length > 1 && segments[0].points.length == 1) segments.shift();
 
@@ -137,7 +137,7 @@ function ModelController() {
                     //TODO divide datasets (though I think it's really more copy than divide...)
                     // this.dataSets = [];
 
-                    if(!segment.covered) {
+                    if (!segment.covered) {
                         let newTimeline = new DataStructs.Timeline;
                         newTimeline.linePath.points = segment.points;
                         newTimeline.warpPoints = segment.warpPoints;
