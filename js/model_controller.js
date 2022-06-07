@@ -42,7 +42,36 @@ function ModelController() {
     }
 
     function extendTimeline(points, timelineId, extendStart) {
-        console.log("extend me!", points, timelineId, extendStart)
+        let timeline = getTimelineById(timelineId);
+        let originalLength = PathMath.getPathLength(timeline.linePath.points);
+        
+        // knock off the first point cuz it's probably pretty close. 
+        //TODO: Handle this properly.
+        extendStart ? points.pop() : points.unshift();
+        
+        let newPoints = extendStart ? points.concat(timeline.linePath.points) : timeline.linePath.points.concat(points);
+        let newLength = PathMath.getPathLength(newPoints);
+
+        timeline.linePath.points = newPoints;
+        if (extendStart) {
+            let diff = newLength - originalLength;
+            timeline.warpPoints.forEach(point => {
+                let originalLengthAlongLine = point.linePercent * originalLength;
+                point.linePercent = (originalLengthAlongLine + diff) / newLength;
+            })
+
+            let startPoint = timeline.warpPoints[0].clone();
+            startPoint.isStart = false;
+            timeline.warpPoints = getUpdatedWarpSet(timeline.id, startPoint);
+        } else {
+            let conversionRatio =  originalLength / newLength;
+            timeline.warpPoints.forEach(point => {
+                point.linePercent *= conversionRatio;
+            })
+            let endPoint = timeline.warpPoints[timeline.warpPoints.length - 1].clone();
+            endPoint.isEnd = false;
+            timeline.warpPoints = getUpdatedWarpSet(timeline.id, endPoint);
+        }
     }
 
     function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
