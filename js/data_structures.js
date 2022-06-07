@@ -30,16 +30,15 @@ let DataStructs = function () {
         this.points = [];
     }
 
+    // subset of a data table
     function DataSet() {
         this.id = getUniqueId();
         this.table = null;
         this.timeCol = null;
         this.valCol = null;
+        this.dataRows = [];
         this.YAxis = null;
-        // Array of {time = DataItem<Timebinding>, item = DataItem}
-        this.data = [];
     }
-
 
     function YAxis() {
         this.id = getUniqueId();
@@ -51,24 +50,33 @@ let DataStructs = function () {
     }
 
 
-    function DataTable() {
+    function DataTable(columns = []) {
         this.id = getUniqueId();
         this.dataRows = [];
-        this.colTypes = [];
+        this.dataColumns = columns;
         this.pos = { x: 0, y: 0 };
+
+        this.getRow = (rowId) => this.dataRows.find(row => row.id == rowId);
     }
 
+    function DataColumn(name, type) {
+        this.id = getUniqueId();
+        this.name = name;
+        this.type = type;
+    }
 
     function DataRow() {
         this.id = getUniqueId();
         this.dataItems = [];
+        this.index = -1;
+        this.getCell = (columnId) => this.dataItems.find(cell => cell.columnId == columnId);
     }
 
-    function DataItem(type, index, val, offset = null) {
+    function DataItem(type, val, columnId = null, offset = null) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
-        this.index = index;
+        this.columnId = columnId;
         this.offset = offset
     }
 
@@ -96,6 +104,15 @@ let DataStructs = function () {
             }
         }
 
+        this.toString = function () {
+            switch (this.type) {
+                case TimeBindingTypes.PLACE_HOLDER:
+                    return (this.placeHolder * 100).toFixed(0) + "%"
+                case TimeBindingTypes.TIMESTRAMP:
+                    return new Date(this.timeStamp).toDateString();
+            }
+        }
+
         this.clone = function () {
             let tb = new TimeBinding(this.type)
             tb.placeHolder = this.placeHolder;
@@ -111,6 +128,7 @@ let DataStructs = function () {
         DataSet,
         YAxis,
         DataTable,
+        DataColumn,
         DataRow,
         DataItem,
         TimeBinding,

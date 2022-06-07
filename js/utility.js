@@ -150,10 +150,17 @@ let PathMath = function () {
         return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / path.getTotalLength(), length: bestLength };
     }
 
+    function getPositionForPercent(points, percent) {
+        let path = getPath(points);
+        let length = path.getTotalLength() * percent;
+        return path.getPointAtLength(length);
+    }
+
     return {
         getPathD: (points) => mLineGenerator(points),
         getPath,
         getPathLength,
+        getPositionForPercent,
         getClosestPointOnPath,
     }
 }();
@@ -268,4 +275,16 @@ function CanvasMask(canvas) {
     this.isCovered = function (coords) {
         return mContext.getImageData(coords.x, coords.y, 1, 1).data[3] > 0;
     }
+}
+
+function createAnnotation(text, timeBinding) {
+    let dataRow = new DataStructs.DataRow();
+
+    let timeBindingItem = new DataStructs.DataItem(DataTypes.TIME_BINDING, timeBinding)
+    dataRow.dataItems.push(timeBindingItem);
+
+    let textItem = new DataStructs.DataItem(DataTypes.TEXT, text, null, { x: 10, y: 10 })
+    dataRow.dataItems.push(textItem);
+
+    return dataRow;
 }

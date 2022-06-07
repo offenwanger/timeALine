@@ -18,10 +18,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let lineViewController = new LineViewController(svg);
 
+    let annotationController = new AnnotationController(svg, modelController.getTimeForLinePercent);
+    annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
+        console.log("Finish me! update text!", annotationId, text);
+    });
+    annotationController.setAnnotationCreatedCallback((annotation, timelineId) => {
+        modelController.addNewAnnotation(annotation, timelineId);
+        annotationController.drawAnnotations(modelController.getAnnotations());
+    });
+    annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
+        console.log("Finish me! update offset!", annotationId, newOffset)
+    });
+
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
     timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
         if (timelineId) modelController.updateWarpControls(timelineId, newControlSet);
         timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
+        annotationController.drawAnnotations(modelController.getAnnotations());
     })
 
     let lineDrawingController = new LineDrawingController(svg);
@@ -30,6 +43,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+
+            // No need to update annotations, there won't be any for the new line. Just update the comment add target. 
+            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+
             timeWarpController.addOrUpdateTimeControls([newTimeline]);
         } else if (startPointLineId != null && endPointLineId != null) {
             // the line which has it's end point connecting to the other line goes first
@@ -40,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
 
+            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+            annotationController.drawAnnotations(modelController.getAnnotations());
+
             timeWarpController.removeTimeControls(removedIds);
             timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
         } else {
@@ -47,6 +67,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+
+            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+            annotationController.drawAnnotations(modelController.getAnnotations());
+
             timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
         }
     });
@@ -58,6 +82,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
         lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+
+        annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+        annotationController.drawAnnotations(modelController.getAnnotations());
 
         timeWarpController.removeTimeControls(removedIds);
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
@@ -122,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
         } else {
             clearMode()
+            annotationController.setActive(true);
             mode = MODE_COMMENT;
             showIndicator('#comment-button', '#comment-mode-indicator');
         }
@@ -144,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function clearMode() {
         lineDrawingController.setActive(false);
         eraserController.setActive(false);
+        annotationController.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();

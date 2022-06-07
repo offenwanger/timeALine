@@ -23,3 +23,19 @@ body {
     pointer-events: none;
     display: none;
 }
+
+#input-box {
+    position: absolute;
+    top: -100;
+    left: -100;
+    background: transparent;
+    border: none;
+    outline: none;
+    cursor: default;
+    color: transparent;
+    caret-color: black;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    overflow: hidden;
+    resize: none;
+}
