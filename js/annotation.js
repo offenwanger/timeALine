@@ -77,7 +77,7 @@ function AnnotationController(svg, getTimeForLinePercent) {
                     .on('input', null)
                     .on('input', function (e) {
                         annotation.note.label = inputbox.property("value");
-                        mAnnotationTextUpdatedCallback(inputbox.property("value"))
+                        mAnnotationTextUpdatedCallback(annotation.dataItem.id, inputbox.property("value"))
                         inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
                         makeAnnotations.annotations(timelineAnnotations);
                         mAnnotationDisplayGroup.call(makeAnnotations);

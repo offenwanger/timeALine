@@ -1,3 +1,5 @@
+const TAIL_LENGTH = 50;
+
 const DataTypes = {
     TEXT: 'text',
     NUM: 'num',

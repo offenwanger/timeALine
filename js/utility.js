@@ -151,9 +151,21 @@ let PathMath = function () {
     }
 
     function getPositionForPercent(points, percent) {
-        let path = getPath(points);
-        let length = path.getTotalLength() * percent;
-        return path.getPointAtLength(length);
+        if (points.length < 2) throw new Error("invalid point array! Too short!", points);
+
+        if (percent < 0) {
+            let direction = MathUtil.vectorFromAToB(points[1], points[0]);
+            let length = Math.abs(percent) * TAIL_LENGTH;
+            return MathUtil.getPointAtDistanceAlongVector(length, direction, points[0]);
+        } else if (percent > 1) {
+            let direction = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]);
+            let length = (percent - 1) * TAIL_LENGTH;
+            return MathUtil.getPointAtDistanceAlongVector(length, direction, points[points.length - 1]);
+        } else {
+            let path = getPath(points);
+            let length = path.getTotalLength() * percent;
+            return path.getPointAtLength(length);
+        }
     }
 
     return {

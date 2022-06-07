@@ -20,14 +20,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let annotationController = new AnnotationController(svg, modelController.getTimeForLinePercent);
     annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
-        console.log("Finish me! update text!", annotationId, text);
+        modelController.updateAnnotationText(annotationId, text);
     });
     annotationController.setAnnotationCreatedCallback((annotation, timelineId) => {
         modelController.addNewAnnotation(annotation, timelineId);
         annotationController.drawAnnotations(modelController.getAnnotations());
     });
     annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
-        console.log("Finish me! update offset!", annotationId, newOffset)
+        modelController.updateAnnotationTextOffset(annotationId, newOffset);
     });
 
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);

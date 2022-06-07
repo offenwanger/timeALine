@@ -1,9 +1,9 @@
 function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
-    const TAIL_LENGTH = 50;
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
     const TICK_TARGET_SIZE = 10;
     const MIN_TICK_SPACING = 30;
+    const TAIL_TICK_COUNT = 2;
 
     let mExernalCallGetUpdatedWarpSet = getUpdatedWarpSet;
     let mExernalCallGetTimeForLinePercent = getTimeForLinePercent;
@@ -82,36 +82,25 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
             }
         });
 
-        let tailTickData = [{
-            tailPos: TAIL_LENGTH,
-            tailDirection: MathUtil.vectorFromAToB(points[1], points[0]),
-            tailStart: points[0],
-            length: -1 * TAIL_LENGTH / totalLength
-        }, {
-            tailPos: TAIL_LENGTH / 2,
-            tailDirection: MathUtil.vectorFromAToB(points[1], points[0]),
-            tailStart: points[0],
-            length: -1 * (TAIL_LENGTH / 2) / totalLength
-        }, {
-            tailPos: TAIL_LENGTH,
-            tailDirection: MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]),
-            tailStart: points[points.length - 1],
-            length: (TAIL_LENGTH + totalLength) / totalLength
-        }, {
-            tailPos: TAIL_LENGTH / 2,
-            tailDirection: MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]),
-            tailStart: points[points.length - 1],
-            length: (TAIL_LENGTH / 2 + totalLength) / totalLength
-        }];
-        tailTickData.forEach(ttd => {
+        let startTailDirection = MathUtil.vectorFromAToB(points[1], points[0]);
+        let endTailDirection = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1])
+        for (let i = 0; i < TAIL_TICK_COUNT; i++) {
+            let percentInTail = 1 - i / TAIL_TICK_COUNT;
             tickData.push({
-                position: MathUtil.getPointAtDistanceAlongVector(ttd.tailPos, ttd.tailDirection, ttd.tailStart),
+                position: PathMath.getPositionForPercent(points, -percentInTail),
                 size: 1,
-                degrees: MathUtil.vectorToRotation(ttd.tailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, ttd.length), ttd.length),
+                degrees: MathUtil.vectorToRotation(startTailDirection) + 90,
+                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, -percentInTail), -percentInTail),
                 color: 'grey'
             })
-        })
+            tickData.push({
+                position: PathMath.getPositionForPercent(points, 1 + percentInTail),
+                size: 1,
+                degrees: MathUtil.vectorToRotation(endTailDirection) + 90,
+                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, 1 + percentInTail), 1 + percentInTail),
+                color: 'grey'
+            })
+        }
 
         let ticks = mControlTickGroup.selectAll('.warpTick_' + id).data(tickData);
         ticks.exit().remove();
