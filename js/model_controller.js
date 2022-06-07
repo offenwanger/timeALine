@@ -146,8 +146,6 @@ function ModelController() {
             })
         }
 
-        console.log(newTimeline)
-
         // TODO: Merge data (I think this is just concat the sets)
         // TODO: Merge annotation (ditto)
         return [timelineIdStart, timelineIdEnd];
