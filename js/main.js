@@ -18,6 +18,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let lineViewController = new LineViewController(svg);
 
+    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
+    timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
+        if (timelineId) modelController.updateWarpControls(timelineId, newControlSet);
+        timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
+        annotationController.drawAnnotations(modelController.getAnnotations());
+    })
+
     let annotationController = new AnnotationController(svg, modelController.getTimeForLinePercent);
     annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
         modelController.updateAnnotationText(annotationId, text);
@@ -29,13 +36,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
         modelController.updateAnnotationTextOffset(annotationId, newOffset);
     });
-
-    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
-    timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
-        if (timelineId) modelController.updateWarpControls(timelineId, newControlSet);
-        timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
-        annotationController.drawAnnotations(modelController.getAnnotations());
-    })
 
     let lineDrawingController = new LineDrawingController(svg);
     lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
