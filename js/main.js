@@ -43,8 +43,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let newTimeline = modelController.newTimeline(newPoints);
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+            dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
 
-            // No need to update annotations, there won't be any for the new line. Just update the comment add target. 
+            // No need to update annotations, there won't be any for the new line. Just update the add-target. 
             annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
 
             timeWarpController.addOrUpdateTimeControls([newTimeline]);
@@ -53,25 +54,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let startLineId = endPointLineId;
             let endLineId = startPointLineId;
             let removedIds = modelController.mergeTimeline(newPoints, startLineId, endLineId);
-
-            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
-            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-
-            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-            annotationController.drawAnnotations(modelController.getAnnotations());
-
             timeWarpController.removeTimeControls(removedIds);
-            timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
+
+            updateAllControls();
         } else {
             modelController.extendTimeline(newPoints, startPointLineId ? startPointLineId : endPointLineId, startPointLineId != null);
 
-            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
-            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-
-            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-            annotationController.drawAnnotations(modelController.getAnnotations());
-
-            timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
+            updateAllControls();
         }
     });
 
@@ -79,18 +68,27 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let eraserController = new EraserController(svg);
     eraserController.setEraseCallback(mask => {
         let removedIds = modelController.deletePoints(mask);
+        timeWarpController.removeTimeControls(removedIds);
 
+        updateAllControls();
+    })
+
+    let dragController = new DragController(svg);
+    dragController.setLineModifiedCallback(lines => {
+        modelController.pointsUpdated(lines);
+        updateAllControls();
+    });
+
+    function updateAllControls() {
         lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
         lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
+        dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
 
         annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
         annotationController.drawAnnotations(modelController.getAnnotations());
 
-        timeWarpController.removeTimeControls(removedIds);
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
-    })
-
-    let dragController = new DragController(svg);
+    }
 
 
     $("#line-drawing-button").on("click", () => {
@@ -121,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mode = MODE_DRAG;
+            dragController.setActive(true);
             showIndicator('#drag-button', '#drag-mode-indicator');
         }
     })
@@ -173,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         lineDrawingController.setActive(false);
         eraserController.setActive(false);
         annotationController.setActive(false);
+        dragController.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();

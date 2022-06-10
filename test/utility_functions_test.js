@@ -1,14 +1,42 @@
 let chai = require('chai');
-var rewire = require('rewire');
+let rewire = require('rewire');
 let assert = chai.assert;
 let expect = chai.expect;
 
-let PathMath = rewire('../js/utilityFunctions.js').__get__('PathMath');
+describe('Test PathMath', function () {
+    let PathMath;
 
+    beforeEach(function (done) {
+        global.d3 = {
+            line: () => {
+                return {
+                    x: function () { return this },
+                    y: function () { return this },
+                    curve: function () { return function (val) { return val } },
+                }
+            },
+            curveCatmullRom: { alpha: () => { } }
+        };
+        // pulling from the constants import part
+        global.document = fakeDocument;
 
-describe('Test Math', function () {
-    describe('points and PercentDistMapping tests', function () {
-        it('should create correct simple mapping', function () {
+        let utility = rewire('../js/utility.js');
+        PathMath = utility.__get__('PathMath');
+
+        done();
+    });
+
+    afterEach(function (done) {
+        PathMath = null;
+        // No cleanup needed yet
+        done();
+
+        global.document = null;
+        global.d3 = null;
+    });
+
+    describe('path length test', function () {
+        it('should call without error', function () {
             let points = [
                 { x: 10, y: 10 },
                 { x: 10, y: 15 },
@@ -18,24 +46,10 @@ describe('Test Math', function () {
                 { x: 20, y: 20 }
             ]
 
-            let expectedResult = [
-                { percent: 10 / 20, dist: 10 },
-                { percent: 10 / 20, dist: 15 },
-                { percent: 15 / 20, dist: 15 },
-                { percent: 20 / 20, dist: 15 },
-                { percent: 15 / 20, dist: 20 },
-                { percent: 20 / 20, dist: 20 },
-            ]
-
-            let result = PathMath.pointsToPercentDistMapping(points, { x: 0, y: 0 }, { x: 20, y: 0 });
-
-            for (let i = 0; i < points.length; i++) {
-                expect(expectedResult[i].percent).to.be.closeTo(result[i].percent, .0001);
-                expect(expectedResult[i].dist).to.be.closeTo(result[i].dist, .0001);
-            }
+            PathMath.getPathLength(points);
         })
 
-        it('should invert without changing the points', function () {
+        it('should get simple lengths', function () {
             let points = [
                 { x: 10, y: 10 },
                 { x: 10, y: 15 },
@@ -45,17 +59,11 @@ describe('Test Math', function () {
                 { x: 20, y: 20 }
             ]
 
-            let result = PathMath.percentDistMappingToPoints(
-                PathMath.pointsToPercentDistMapping(points, { x: 0, y: 0 }, { x: 20, y: 0 }),
-                { x: 0, y: 0 }, { x: 20, y: 0 });
 
-            for (let i = 0; i < points.length; i++) {
-                expect(points[i].x).to.be.closeTo(result[i].x, .0001);
-                expect(points[i].y).to.be.closeTo(result[i].y, .0001);
-            }
+            expect(PathMath.getPathLength(points)).to.be.closeTo(27, .1);
         })
 
-        it('should rotate points 90 degrees', function () {
+        it('should get cloest point on end of line', function () {
             let points = [
                 { x: 10, y: 10 },
                 { x: 10, y: 15 },
@@ -65,24 +73,26 @@ describe('Test Math', function () {
                 { x: 20, y: 20 }
             ]
 
-            let expectedPoints = [
-                { x: -10, y: 10 },
-                { x: -15, y: 10 },
-                { x: -15, y: 15 },
-                { x: -15, y: 20 },
-                { x: -20, y: 15 },
-                { x: -20, y: 20 }
-            ]
+            let point = PathMath.getClosestPointOnPath({ x: 0, y: 0 }, points);
+
+            expect(point.x).to.be.closeTo(10, .0001);
+            expect(point.y).to.be.closeTo(10, .0001);
+
+            point = PathMath.getClosestPointOnPath({ x: 30, y: 30 }, points);
+
+            expect(point.x).to.be.closeTo(20, .0001);
+            expect(point.y).to.be.closeTo(20, .0001);
+
+            point = PathMath.getClosestPointOnPath({ x: 11, y: 12.5 }, points);
+
+            expect(point.x).to.be.closeTo(10, .0001);
+            expect(point.y).to.be.closeTo(12.5, .0001);
 
 
-            let result = PathMath.percentDistMappingToPoints(
-                PathMath.pointsToPercentDistMapping(points, { x: 0, y: 0 }, { x: 20, y: 0 }),
-                { x: 0, y: 0 }, { x: 0, y: 20 });
+            point = PathMath.getClosestPointOnPath({ x: 15, y: 15 }, points);
 
-            for (let i = 0; i < points.length; i++) {
-                expect(expectedPoints[i].x).to.be.closeTo(result[i].x, .0001);
-                expect(expectedPoints[i].y).to.be.closeTo(result[i].y, .0001);
-            }
+            expect(point.x).to.be.closeTo(15, .0001);
+            expect(point.y).to.be.closeTo(15, .0001);
         })
     })
 });

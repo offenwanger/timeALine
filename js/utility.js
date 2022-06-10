@@ -10,11 +10,22 @@ let MathUtil = function () {
         return Math.sqrt(x * x + y * y);
     }
 
+    function addAToB(a, b) {
+        return {
+            x: b.x + a.x,
+            y: b.y + a.y
+        }
+    }
+
     function subtractAFromB(a, b) {
         return {
             x: b.x - a.x,
             y: b.y - a.y
         }
+    }
+
+    function pointsEqual(a, b) {
+        return a.x == b.x && a.y == b.y;
     }
 
     function vectorLength(v) {
@@ -77,7 +88,9 @@ let MathUtil = function () {
     return {
         vectorFromAToB,
         distanceFromAToB,
+        addAToB,
         subtractAFromB,
+        pointsEqual,
         vectorLength,
         normalize,
         getPointAtDistanceAlongVector,
@@ -113,19 +126,20 @@ let PathMath = function () {
         let bestLength;
         let bestDistance = Infinity;
 
-        for (let scanLength = 0; scanLength <= pathLength; scanLength += precision) {
-            let scan = path.getPointAtLength(scanLength);
+        for (let scanLength = 0; scanLength <= pathLength + precision; scanLength += precision) {
+            let scan = path.getPointAtLength(Math.min(scanLength, pathLength));
             let scanDistance = MathUtil.distanceFromAToB(scan, point);
             if (scanDistance < bestDistance) {
                 bestPoint = scan;
-                bestLength = scanLength;
+                bestLength = Math.min(scanLength, pathLength);
                 bestDistance = scanDistance;
             }
         }
 
         // binary search for precise estimate
-        precision /= 2;
         while (precision > 0.5) {
+            precision /= 2;
+
             let beforeLength = bestLength - precision;
             let beforePoint = path.getPointAtLength(beforeLength);
             let beforeDistance = MathUtil.distanceFromAToB(beforePoint, point);
@@ -142,8 +156,6 @@ let PathMath = function () {
                 bestPoint = afterPoint;
                 bestLength = afterLength;
                 bestDistance = afterDistance;
-            } else {
-                precision /= 2;
             }
         }
 
@@ -168,12 +180,21 @@ let PathMath = function () {
         }
     }
 
+    function getPointsWithin(x, coords, points) {
+        let returnable = [];
+        for (let i = 0; i < points.length; i++) {
+            if (MathUtil.distanceFromAToB(points[i], coords) < x) returnable.push(i);
+        }
+        return returnable;
+    }
+
     return {
         getPathD: (points) => mLineGenerator(points),
         getPath,
         getPathLength,
         getPositionForPercent,
         getClosestPointOnPath,
+        getPointsWithin,
     }
 }();
 

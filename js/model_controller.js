@@ -309,6 +309,54 @@ function ModelController() {
         return removedTimelines.map(timeline => timeline.id);
     }
 
+    function pointsUpdated(lines) {
+        lines.forEach(line => {
+            let timeline = getTimelineById(line.id);
+
+            let newSegments = line.newSegments;
+            let oldSegments = line.oldSegments;
+
+            timeline.linePath.points = mergeSegmentPoints(newSegments);
+
+            // update the warp points
+            let newLength = PathMath.getPathLength(mergeSegmentPoints(newSegments));
+            let oldLength = PathMath.getPathLength(mergeSegmentPoints(oldSegments));
+            let cumulativeNewLength = 0;
+            let cumulativeOldLength = 0;
+            for (let i = 0; i < oldSegments.length; i++) {
+                let newSegmentLength = PathMath.getPathLength(newSegments[i]);
+                let oldSegmentLength = PathMath.getPathLength(oldSegments[i]);
+
+                let newStartPercent = cumulativeNewLength / newLength;
+                let oldStartPercent = cumulativeOldLength / oldLength;
+
+                cumulativeNewLength += newSegmentLength;
+                cumulativeOldLength += oldSegmentLength;
+
+                let newEndPercent = cumulativeNewLength / newLength;
+                let oldEndPercent = cumulativeOldLength / oldLength;
+
+                let newInterval = newEndPercent - newStartPercent;
+                let oldInterval = oldEndPercent - oldStartPercent;
+
+                timeline.warpPoints
+                    .filter(warpPoint =>
+                        warpPoint.linePercent >= oldStartPercent &&
+                        warpPoint.linePercent <= oldEndPercent)
+                    .forEach(warpPoint => {
+                        warpPoint.linePercent = (((warpPoint.linePercent - oldStartPercent) / oldInterval) * newInterval) + newStartPercent;
+                    })
+            }
+        })
+    }
+
+    function mergeSegmentPoints(segments) {
+        return segments[0].concat(...segments
+            .slice(1, segments.length)
+            // slice off the first point as it's a duplicate
+            .map(points => points.slice(1, points.length)));
+    }
+
     function updateWarpControls(timelineId, newControlSet) {
         getTimelineById(timelineId).warpPoints = newControlSet;
     }
@@ -552,6 +600,7 @@ function ModelController() {
     this.mergeTimeline = mergeTimeline;
 
     this.deletePoints = deletePoints;
+    this.pointsUpdated = pointsUpdated;
 
     this.updateWarpControls = updateWarpControls;
     this.getTimelineById = getTimelineById;
