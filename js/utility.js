@@ -188,6 +188,13 @@ let PathMath = function () {
         return returnable;
     }
 
+    function mergePointSegments(segments) {
+        return segments[0].concat(...segments
+            .slice(1, segments.length)
+            // slice off the first point as it's a duplicate in a properly formatted segment array.
+            .map(points => points.slice(1, points.length)));
+    }
+
     return {
         getPathD: (points) => mLineGenerator(points),
         getPath,
@@ -195,6 +202,7 @@ let PathMath = function () {
         getPositionForPercent,
         getClosestPointOnPath,
         getPointsWithin,
+        mergePointSegments,
     }
 }();
 

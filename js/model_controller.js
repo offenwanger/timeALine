@@ -316,11 +316,11 @@ function ModelController() {
             let newSegments = line.newSegments;
             let oldSegments = line.oldSegments;
 
-            timeline.linePath.points = mergeSegmentPoints(newSegments);
+            timeline.linePath.points = PathMath.mergePointSegments(newSegments);
 
             // update the warp points
-            let newLength = PathMath.getPathLength(mergeSegmentPoints(newSegments));
-            let oldLength = PathMath.getPathLength(mergeSegmentPoints(oldSegments));
+            let newLength = PathMath.getPathLength(PathMath.mergePointSegments(newSegments));
+            let oldLength = PathMath.getPathLength(PathMath.mergePointSegments(oldSegments));
             let cumulativeNewLength = 0;
             let cumulativeOldLength = 0;
             for (let i = 0; i < oldSegments.length; i++) {
@@ -348,13 +348,6 @@ function ModelController() {
                     })
             }
         })
-    }
-
-    function mergeSegmentPoints(segments) {
-        return segments[0].concat(...segments
-            .slice(1, segments.length)
-            // slice off the first point as it's a duplicate
-            .map(points => points.slice(1, points.length)));
     }
 
     function updateWarpControls(timelineId, newControlSet) {

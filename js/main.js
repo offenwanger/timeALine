@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
             lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
             dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
+            ironController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
 
             // No need to update annotations, there won't be any for the new line. Just update the add-target. 
             annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
@@ -79,10 +80,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         updateAllControls();
     });
 
+    let ironController = new IronController(svg);
+    ironController.setLineModifiedCallback(lines => {
+        modelController.pointsUpdated(lines);
+        updateAllControls();
+    });
+
     function updateAllControls() {
         lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
         lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
         dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
+        ironController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
 
         annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
         annotationController.drawAnnotations(modelController.getAnnotations());
@@ -130,6 +138,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mode = MODE_IRON;
+            ironController.setActive(true);
             showIndicator('#iron-button', '#iron-mode-indicator');
         }
     })
@@ -173,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         eraserController.setActive(false);
         annotationController.setActive(false);
         dragController.setActive(false);
+        ironController.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();

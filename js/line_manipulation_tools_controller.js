@@ -505,7 +505,7 @@ function DragController(svg) {
         let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
         let pointsSets = mMovingLines.map(line => moveSegments(line.newSegments, diff));
 
-        drawLines(pointsSets.map(points => mergeSegmentPoints(points)));
+        drawLines(pointsSets.map(points => PathMath.mergePointSegments(points)));
     }
 
     function moveSegments(segments, amount) {
@@ -532,13 +532,6 @@ function DragController(svg) {
                 });
             } else return segment.points;
         })
-    }
-
-    function mergeSegmentPoints(segmentPointsArr) {
-        return segmentPointsArr[0].concat(...segmentPointsArr
-            .slice(1, segmentPointsArr.length)
-            // slice off the first point as it's a duplicate
-            .map(segmentPoints => segmentPoints.slice(1, segmentPoints.length)));
     }
 
     function onDragEnd(coords) {
@@ -591,7 +584,167 @@ function DragController(svg) {
 }
 
 function IronController(svg) {
+    const IRON_STRENGTH = 0.2;
+    const MIN_RESOLUTION = 2;
 
+    let mActive = false;
+    let mLines = [];
+    let mLineModifiedCallback = () => { };
+
+    let mIronGroup = svg.append('g')
+        .attr("id", 'iron-g')
+        .style("visibility", 'hidden');
+
+    let mCover = mIronGroup.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', svg.attr('width'))
+        .attr('height', svg.attr('height'))
+        .attr('fill', 'white')
+        .attr('opacity', '0.8')
+        .style("visibility", 'hidden');
+
+    let mLinesGroup = mIronGroup.append('g');
+
+    let mMovingLines = []
+    let mBrushController = new BrushController(svg);
+    mBrushController.setDragStartCallback((coords, radius) => {
+        mLines.forEach(line => {
+            let segments = segmentLine(coords, radius, line.points);
+            if (segments.length > 1 || segments[0].covered) {
+                mMovingLines.push({ id: line.id, oldSegments: segments, newSegments: copySegments(segments) });
+            }
+        })
+
+        mBrushController.freeze(true);
+        mCover.style("visibility", '');
+
+        iron();
+    });
+    mBrushController.setDragCallback(iron);
+    mBrushController.setDragEndCallback(() => {
+        let result = mMovingLines.map(line => {
+            return {
+                id: line.id,
+                oldSegments: line.oldSegments.map(segment => segment.points),
+                newSegments: line.newSegments.map(segment => segment.points)
+            }
+        });
+        mLineModifiedCallback(result);
+
+        // reset
+        mMovingLines = []
+        drawLines([]);
+        mCover.style("visibility", 'hidden');
+        mBrushController.freeze(false);
+    });
+
+    function iron() {
+        mMovingLines.forEach(line => {
+            line.newSegments.forEach(segment => {
+                if (segment.covered) {
+                    let line = MathUtil.vectorFromAToB(segment.points[0], segment.points[segment.points.length - 1]);
+                    let movedPoints = [];
+                    segment.points.forEach(point => {
+                        // first and last points will also be projected, but they are already on line, so that's fine.
+                        let projectPoint = MathUtil.projectPointOntoVector(point, line, segment.points[0]);
+                        let length = MathUtil.distanceFromAToB(projectPoint, point);
+                        if (length > 0) {
+                            let vector = MathUtil.vectorFromAToB(projectPoint, point);
+                            let newPoint = MathUtil.getPointAtDistanceAlongVector(Math.max(length - IRON_STRENGTH, 0), vector, projectPoint);
+                            movedPoints.push(newPoint);
+                        } else {
+                            movedPoints.push(point);
+                        }
+                    });
+
+                    let newPoints = [movedPoints[0]];
+                    for (let i = 1; i < movedPoints.length - 1; i++) {
+                        let point = movedPoints[i];
+                        if (MathUtil.distanceFromAToB(movedPoints[i - 1], point) > MIN_RESOLUTION) {
+                            let line = MathUtil.vectorFromAToB(movedPoints[i - 1], movedPoints[i + 1]);
+                            let projectPoint = MathUtil.projectPointOntoVector(point, line, movedPoints[i - 1]);
+                            let length = MathUtil.distanceFromAToB(projectPoint, point);
+                            if (length > 0) newPoints.push(point);
+                        }
+                    }
+                    if (newPoints.length > 1 && MathUtil.distanceFromAToB(newPoints[newPoints.length - 1], movedPoints[movedPoints.length - 1]) < MIN_RESOLUTION) {
+                        newPoints.pop();
+                    }
+                    newPoints.push(movedPoints[movedPoints.length - 1]);
+
+                    segment.points = newPoints;
+                }
+            })
+        })
+
+        drawLines(mMovingLines.map(line => PathMath.mergePointSegments(line.newSegments.map(segment => segment.points))));
+    }
+
+    function segmentLine(coords, radius, points) {
+        // this line is under the drag circle. 
+        let segments = [{ covered: MathUtil.distanceFromAToB(points[0], coords) < radius, points: [points[0]] }]
+        for (let i = 1; i < points.length; i++) {
+            let point = points[i];
+            let isCovered = MathUtil.distanceFromAToB(point, coords) < radius;
+            if (isCovered == segments[segments.length - 1].covered) {
+                segments[segments.length - 1].points.push(point);
+            } else {
+                if (isCovered) {
+                    // if a line section is partly covered, we want it in the covered segment
+                    let previousPoint = points[i - 1]
+                    segments.push({ covered: isCovered, points: [previousPoint, point] })
+                } else {
+                    // if a line section is partly covered, we want it in the previous covered segment
+                    segments[segments.length - 1].points.push(point);
+                    segments.push({ covered: isCovered, points: [point] })
+                }
+            }
+        }
+        segments = segments.filter(segment => segment.points.length > 1);
+
+        return segments;
+    }
+
+    function copySegments(segments) {
+        return [...segments.map(segment => {
+            return {
+                covered: segment.covered,
+                points: segment.points.map(p => {
+                    return { x: p.x, y: p.y };
+                })
+            };
+        })]
+    }
+
+    function drawLines(points) {
+        let paths = mLinesGroup.selectAll('.timelinePath').data(points);
+        paths.enter().append('path')
+            .classed('timelinePath', true)
+            .attr('fill', 'none')
+            .attr('stroke', 'steelblue')
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+        paths.exit().remove();
+        mLinesGroup.selectAll('.timelinePath').attr('d', (points) => PathMath.getPathD(points));
+    }
+
+    this.setActive = (active) => {
+        if (active && !mActive) {
+            mActive = true;
+            mIronGroup.style('visibility', "");
+        } else if (!active && mActive) {
+            mActive = false;
+            mIronGroup.style('visibility', "hidden");
+        }
+
+        mActive = active;
+        mBrushController.setActive(active)
+    };
+
+    this.linesUpdated = (lines) => mLines = lines;
+    this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
 }
 
 function BrushController(svg) {
@@ -599,6 +752,7 @@ function BrushController(svg) {
     const BRUSH_SIZE_MAX = 100;
 
     let mActive = false;
+    let mFreeze = false;
     let mBrushSize = 10;
 
     let mDragStartCallback = () => { };
@@ -623,7 +777,7 @@ function BrushController(svg) {
                 }
             })
             .on('drag', function (e) {
-                updateCircle({ x: e.x, y: e.y });
+                if (!mFreeze) updateCircle({ x: e.x, y: e.y });
                 if (mActive) {
                     mDragCallback({ x: e.x, y: e.y }, mBrushSize)
                 }
@@ -633,7 +787,9 @@ function BrushController(svg) {
                     mDragEndCallback({ x: e.x, y: e.y }, mBrushSize)
                 }
             }))
-        .on("mousemove", (e) => updateCircle({ x: d3.pointer(e)[0], y: d3.pointer(e)[1] }))
+        .on("mousemove", (e) => {
+            if (!mFreeze) updateCircle({ x: d3.pointer(e)[0], y: d3.pointer(e)[1] });
+        })
         .on("wheel", function (e) {
             mBrushSize = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushSize + e.wheelDelta / 50));
             mBrush.attr("r", mBrushSize);
@@ -663,6 +819,7 @@ function BrushController(svg) {
         }
     }
 
+    this.freeze = (freeze) => mFreeze = freeze;
     this.setActive = setActive;
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
