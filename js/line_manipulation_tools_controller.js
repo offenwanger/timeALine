@@ -606,9 +606,16 @@ function IronController(svg) {
 
     let mLinesGroup = mIronGroup.append('g');
 
-    let mMovingLines = []
+    let mMovingLines = [];
+    let mStartPosition = null;
     let mBrushController = new BrushController(svg);
-    mBrushController.setDragStartCallback((coords, radius) => {
+    mBrushController.setDragStartCallback(dragStart);
+    mBrushController.setDragCallback(drag);
+    mBrushController.setDragEndCallback(dragEnd);
+
+
+    function dragStart(coords, radius) {
+        mStartPosition = coords;
         mLines.forEach(line => {
             let segments = segmentLine(coords, radius, line.points);
             if (segments.length > 1 || segments[0].covered) {
@@ -619,66 +626,78 @@ function IronController(svg) {
         mBrushController.freeze(true);
         mCover.style("visibility", '');
 
-        iron();
-    });
-    mBrushController.setDragCallback(iron);
-    mBrushController.setDragEndCallback(() => {
+        drag(coords, radius);
+    }
+
+    function drag(coords, radius) {
+        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
+        let drawingLines = [];
+        mMovingLines.forEach(line => {
+            drawingLines.push(PathMath.mergePointSegments(ironSegments(line.newSegments, ironStrength)));
+        })
+
+        drawLines(drawingLines);
+    }
+
+    function dragEnd(coords, radius) {
+        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
         let result = mMovingLines.map(line => {
             return {
                 id: line.id,
                 oldSegments: line.oldSegments.map(segment => segment.points),
-                newSegments: line.newSegments.map(segment => segment.points)
+                newSegments: ironSegments(line.newSegments, ironStrength)
             }
         });
         mLineModifiedCallback(result);
 
         // reset
         mMovingLines = []
+        mStartPosition = null;
         drawLines([]);
         mCover.style("visibility", 'hidden');
         mBrushController.freeze(false);
-    });
+    }
 
-    function iron() {
-        mMovingLines.forEach(line => {
-            line.newSegments.forEach(segment => {
-                if (segment.covered) {
-                    let line = MathUtil.vectorFromAToB(segment.points[0], segment.points[segment.points.length - 1]);
-                    let movedPoints = [];
-                    segment.points.forEach(point => {
-                        // first and last points will also be projected, but they are already on line, so that's fine.
-                        let projectPoint = MathUtil.projectPointOntoVector(point, line, segment.points[0]);
+    function ironSegments(segments, ironStrength) {
+        let returnArray = [];
+        segments.forEach(segment => {
+            if (!segment.covered) {
+                returnArray.push(segment.points);
+            } else {
+                let line = MathUtil.vectorFromAToB(segment.points[0], segment.points[segment.points.length - 1]);
+                let movedPoints = [];
+                segment.points.forEach(point => {
+                    // first and last points will also be projected, but they are already on line, so that's fine.
+                    let projectPoint = MathUtil.projectPointOntoVector(point, line, segment.points[0]);
+                    let length = MathUtil.distanceFromAToB(projectPoint, point);
+                    if (length > 0) {
+                        let vector = MathUtil.vectorFromAToB(projectPoint, point);
+                        let newPoint = MathUtil.getPointAtDistanceAlongVector(Math.max(length - ironStrength, 0), vector, projectPoint);
+                        movedPoints.push(newPoint);
+                    } else {
+                        movedPoints.push(point);
+                    }
+                });
+
+                let newPoints = [movedPoints[0]];
+                for (let i = 1; i < movedPoints.length - 1; i++) {
+                    let point = movedPoints[i];
+                    if (MathUtil.distanceFromAToB(movedPoints[i - 1], point) > MIN_RESOLUTION) {
+                        let line = MathUtil.vectorFromAToB(movedPoints[i - 1], movedPoints[i + 1]);
+                        let projectPoint = MathUtil.projectPointOntoVector(point, line, movedPoints[i - 1]);
                         let length = MathUtil.distanceFromAToB(projectPoint, point);
-                        if (length > 0) {
-                            let vector = MathUtil.vectorFromAToB(projectPoint, point);
-                            let newPoint = MathUtil.getPointAtDistanceAlongVector(Math.max(length - IRON_STRENGTH, 0), vector, projectPoint);
-                            movedPoints.push(newPoint);
-                        } else {
-                            movedPoints.push(point);
-                        }
-                    });
-
-                    let newPoints = [movedPoints[0]];
-                    for (let i = 1; i < movedPoints.length - 1; i++) {
-                        let point = movedPoints[i];
-                        if (MathUtil.distanceFromAToB(movedPoints[i - 1], point) > MIN_RESOLUTION) {
-                            let line = MathUtil.vectorFromAToB(movedPoints[i - 1], movedPoints[i + 1]);
-                            let projectPoint = MathUtil.projectPointOntoVector(point, line, movedPoints[i - 1]);
-                            let length = MathUtil.distanceFromAToB(projectPoint, point);
-                            if (length > 0) newPoints.push(point);
-                        }
+                        if (length > 0) newPoints.push(point);
                     }
-                    if (newPoints.length > 1 && MathUtil.distanceFromAToB(newPoints[newPoints.length - 1], movedPoints[movedPoints.length - 1]) < MIN_RESOLUTION) {
-                        newPoints.pop();
-                    }
-                    newPoints.push(movedPoints[movedPoints.length - 1]);
-
-                    segment.points = newPoints;
                 }
-            })
-        })
+                if (newPoints.length > 1 && MathUtil.distanceFromAToB(newPoints[newPoints.length - 1], movedPoints[movedPoints.length - 1]) < MIN_RESOLUTION) {
+                    newPoints.pop();
+                }
+                newPoints.push(movedPoints[movedPoints.length - 1]);
 
-        drawLines(mMovingLines.map(line => PathMath.mergePointSegments(line.newSegments.map(segment => segment.points))));
+                returnArray.push(newPoints);
+            }
+        });
+        return returnArray;
     }
 
     function segmentLine(coords, radius, points) {
