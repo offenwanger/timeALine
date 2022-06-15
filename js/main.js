@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_IRON = "iron";
     const MODE_SCISSORS = "scissors";
     const MODE_COMMENT = "comment";
-    const MODE_DATASHEET = "datasheet";
+    const MODE_COLOR = "color";
+    const MODE_EYEDROPPER = "eyedropper";
 
     let mode = MODE_DEFAULT;
 
@@ -86,6 +87,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         updateAllControls();
     });
 
+    let dataTableController = new DataTableController();
+
     function updateAllControls() {
         lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
         lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
@@ -163,7 +166,80 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
-    $("#datasheet-button").on("click", () => {
+
+    $("#datasheet-toggle-button").on("click", () => {
+        if (dataTableController.isOpen()) {
+            dataTableController.closeTableView();
+        } else {
+            dataTableController.openTableView();
+        }
+
+        return;
+    })
+
+
+    $('#color-picker-wrapper').farbtastic((color) => {
+        setColor(color);
+    });
+    $(document).on("click", function (event) {
+        if ($(event.target).closest('#color-picker-div').length === 0 &&
+            $(event.target).closest("#color-picker-button").length === 0) {
+            // if we didn't click on the div or the open button
+            $('#color-picker-div').hide();
+        }
+    });
+    $("#color-picker-input").on('input', (e) => {
+        setColor($("#color-picker-input").val());
+    })
+    // set color to a random color
+    setColor("#" + Math.floor(Math.random() * 16777215).toString(16))
+
+
+    $("#color-picker-button").on("click", (e) => {
+        if ($("#color-picker-div").is(":visible")) {
+            $('#color-picker-div').hide();
+        } else {
+            $('#color-picker-div').css('top', e.pageY);
+            $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
+            $('#color-picker-div').show();
+        }
+
+        return;
+    })
+
+
+    $("#color-button").on("click", () => {
+        if (mode == MODE_COLOR) {
+            clearMode()
+        } else {
+            clearMode()
+            mode = MODE_COLOR;
+            showIndicator('#color-button', '#color-mode-indicator');
+        }
+    })
+
+    $("#eyedropper-button").on("click", () => {
+        if (mode == MODE_EYEDROPPER) {
+            clearMode()
+        } else {
+            clearMode()
+            mode = MODE_EYEDROPPER;
+            showIndicator('#eyedropper-button', '#eyedropper-mode-indicator');
+        }
+    })
+
+
+    $("#add-datasheet-button").on("click", () => {
+        let newTable = new DataStructs.DataTable([
+            new DataStructs.DataColumn("Col1", DataTypes.UNSPECIFIED),
+            new DataStructs.DataColumn("Col2", DataTypes.UNSPECIFIED),
+            new DataStructs.DataColumn("Col3", DataTypes.UNSPECIFIED),
+        ]);
+        newTable.dataRows = [["", "", ""], ["", "", ""], ["", "", ""]]
+        dataTableController.addTable(newTable);
+    })
+
+    $("#load-datasheet-button").on("click", () => {
         FileHandler.getCSVDataFile().then(result => {
             // TODO figure out if there's a header row
             modelController.newDataset(result.data);
@@ -190,6 +266,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mode = MODE_DEFAULT;
     }
 
+    function setColor(color) {
+        $('#color-picker-input').val(color);
+        $('#color-picker-input').css('background-color', color);
+        $('#color-picker-button').css('background-color', color);
+        $.farbtastic('#color-picker-wrapper').setColor(color);
+    }
 
     $(document).on('mousemove', function (e) {
         $('#mode-indicator-div').css({
