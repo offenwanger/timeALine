@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([
-            new DataStructs.DataColumn("Col1", DataTypes.UNSPECIFIED),
+            new DataStructs.DataColumn("Time", DataTypes.UNSPECIFIED),
             new DataStructs.DataColumn("Col2", DataTypes.UNSPECIFIED),
             new DataStructs.DataColumn("Col3", DataTypes.UNSPECIFIED),
         ]);

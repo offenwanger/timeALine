@@ -21,6 +21,13 @@ function DataTableController() {
             rowHeaders: true,
             colHeaders: colHeader,
             columnSorting: true,
+            fixedColumnsStart: 1,
+            beforeColumnMove: function (columnsMoving, target) {
+                if (columnsMoving[0] < 1 || target < 1) {
+                    return false;
+                }
+                return true;
+            },
             height: 'auto',
             manualColumnMove: true,
             manualRowMove: true,
