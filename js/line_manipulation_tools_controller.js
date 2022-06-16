@@ -629,8 +629,8 @@ function IronController(svg) {
         drag(coords, radius);
     }
 
-    function drag(coords, radius) {
-        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
+    function drag(coords) {
+        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
         let drawingLines = [];
         mMovingLines.forEach(line => {
             drawingLines.push(PathMath.mergePointSegments(ironSegments(line.newSegments, ironStrength)));
