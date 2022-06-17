@@ -526,7 +526,15 @@ function ModelController() {
         });
     }
 
-    function addNewAnnotation(annotation, id) {
+    function addNewAnnotation(text, timeBinding, id) {
+        let annotation = new DataStructs.DataRow();
+
+        let timeBindingItem = new DataStructs.DataItem(DataTypes.TIME_BINDING, timeBinding)
+        annotation.dataItems.push(timeBindingItem);
+
+        let textItem = new DataStructs.DataItem(DataTypes.TEXT, text, null, { x: 10, y: 10 })
+        annotation.dataItems.push(textItem);
+
         // set the columns and the index
         annotation.index = mAnnotationsTable.dataRows.length;
         annotation.dataItems.find(item => item.type == DataTypes.TIME_BINDING).columnId = mAnnotationsTable.dataColumns[0].id;
@@ -607,5 +615,5 @@ function ModelController() {
     this.updateAnnotationText = updateAnnotationText;
     this.updateAnnotationTextOffset = updateAnnotationTextOffset;
 
-    this.getTimelineLinePaths = function () { return mTimelines.map(timeline => timeline.linePath); };
+    this.getTimelinePaths = function () { return mTimelines.map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }) };
 }

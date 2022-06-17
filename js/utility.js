@@ -317,15 +317,3 @@ function CanvasMask(canvas) {
         return mContext.getImageData(coords.x, coords.y, 1, 1).data[3] > 0;
     }
 }
-
-function createAnnotation(text, timeBinding) {
-    let dataRow = new DataStructs.DataRow();
-
-    let timeBindingItem = new DataStructs.DataItem(DataTypes.TIME_BINDING, timeBinding)
-    dataRow.dataItems.push(timeBindingItem);
-
-    let textItem = new DataStructs.DataItem(DataTypes.TEXT, text, null, { x: 10, y: 10 })
-    dataRow.dataItems.push(textItem);
-
-    return dataRow;
-}

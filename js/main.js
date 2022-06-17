@@ -20,7 +20,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let lineViewController = new LineViewController(svg);
     lineViewController.setLineClickCallback((id, linePoint) => {
-        console.log(id, linePoint)
+        if (mode == MODE_COMMENT) {
+            let timeBinding = modelController.getTimeForLinePercent(id, linePoint.percent);
+
+            modelController.addNewAnnotation(timeBinding.toString(), timeBinding, id);
+            annotationController.drawAnnotations(modelController.getAnnotations());
+        } else if (mode == MODE_LINK) {
+            console.log(id, linePoint)
+        }
     })
 
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
@@ -30,13 +37,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         annotationController.drawAnnotations(modelController.getAnnotations());
     })
 
-    let annotationController = new AnnotationController(svg, modelController.getTimeForLinePercent);
+    let annotationController = new AnnotationController(svg);
     annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
         modelController.updateAnnotationText(annotationId, text);
-    });
-    annotationController.setAnnotationCreatedCallback((annotation, timelineId) => {
-        modelController.addNewAnnotation(annotation, timelineId);
-        annotationController.drawAnnotations(modelController.getAnnotations());
     });
     annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
         modelController.updateAnnotationTextOffset(annotationId, newOffset);
@@ -45,29 +48,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let lineDrawingController = new LineDrawingController(svg);
     lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
         if (startPointLineId == null && endPointLineId == null) {
-            let newTimeline = modelController.newTimeline(newPoints);
-            lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
-            lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-            dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
-            ironController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
-
-            // No need to update annotations, there won't be any for the new line. Just update the add-target. 
-            annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-
-            timeWarpController.addOrUpdateTimeControls([newTimeline]);
+            modelController.newTimeline(newPoints);
         } else if (startPointLineId != null && endPointLineId != null) {
             // the line which has it's end point connecting to the other line goes first
             let startLineId = endPointLineId;
             let endLineId = startPointLineId;
             let removedIds = modelController.mergeTimeline(newPoints, startLineId, endLineId);
             timeWarpController.removeTimeControls(removedIds);
-
-            updateAllControls();
         } else {
             modelController.extendTimeline(newPoints, startPointLineId ? startPointLineId : endPointLineId, startPointLineId != null);
-
-            updateAllControls();
         }
+
+        updateAllControls();
     });
 
 
@@ -92,14 +84,25 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let dataTableController = new DataTableController();
+    dataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
+        let left = $('.drawer-content-wrapper')[0].getBoundingClientRect().left;
+
+        if (data) {
+            $('#link-button-div').css('top', (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10);
+            $('#link-button-div').css('left', left - $('#link-button-div').width() / 2 - 10);
+            $('#link-button-div').show();
+        } else {
+            $('#link-button-div').hide();
+            if (mode == MODE_LINK) clearMode();
+        }
+    });
 
     function updateAllControls() {
-        lineViewController.drawTimeLines(modelController.getTimelineLinePaths());
-        lineDrawingController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
-        dragController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
-        ironController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }))
+        lineViewController.linesUpdated(modelController.getTimelinePaths());
+        lineDrawingController.linesUpdated(modelController.getTimelinePaths());
+        dragController.linesUpdated(modelController.getTimelinePaths());
+        ironController.linesUpdated(modelController.getTimelinePaths());
 
-        annotationController.linesUpdated(modelController.getAllTimelines().map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }));
         annotationController.drawAnnotations(modelController.getAnnotations());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
@@ -164,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
         } else {
             clearMode()
-            annotationController.setActive(true);
+            lineViewController.setActive(true);
             mode = MODE_COMMENT;
             showIndicator('#comment-button', '#comment-mode-indicator');
         }
@@ -260,18 +263,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             showIndicator('#link-button', '#link-mode-indicator');
         }
     })
-    dataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
-        let left = $('.drawer-content-wrapper')[0].getBoundingClientRect().left;
-
-        if (data) {
-            $('#link-button-div').css('top', (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10);
-            $('#link-button-div').css('left', left - $('#link-button-div').width() / 2 - 10);
-            $('#link-button-div').show();
-        } else {
-            $('#link-button-div').hide();
-            if (mode == MODE_LINK) clearMode();
-        }
-    });
 
 
     function showIndicator(imgButtonId, modeIndicatorId) {
@@ -285,7 +276,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         lineViewController.setActive(false);
         lineDrawingController.setActive(false);
         eraserController.setActive(false);
-        annotationController.setActive(false);
         dragController.setActive(false);
         ironController.setActive(false);
         $('.tool-button').css('opacity', '');

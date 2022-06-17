@@ -7,7 +7,7 @@ function LineViewController(svg) {
     let mTargetGroup = svg.append('g')
         .attr("id", 'line-view-target-g');
 
-    function drawTimeLines(linePaths) {
+    function linesUpdated(linePaths) {
         let paths = mLineGroup.selectAll('.timelinePath').data(linePaths.map(path => path.points));
         paths.enter().append('path')
             .classed('timelinePath', true)
@@ -60,7 +60,7 @@ function LineViewController(svg) {
         mActive = active;
     };
 
-    this.drawTimeLines = drawTimeLines;
+    this.linesUpdated = linesUpdated;
     this.setActive = setActive;
     this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
 }

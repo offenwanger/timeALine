@@ -1,16 +1,9 @@
-function AnnotationController(svg, getTimeForLinePercent) {
-    let mActive = false;
+function AnnotationController(svg) {
     let mAnnotationTextUpdatedCallback = () => { };
     let mAnnotationMovedCallback = () => { };
-    let mAnnotationCreatedCallback = () => { };
-    let mExernalCallGetTimeForLinePercent = getTimeForLinePercent;
 
     let mAnnotationDisplayGroup = svg.append('g')
         .attr("id", 'annotation-display-g');
-
-    let mAnnotationInputGroup = svg.append('g')
-        .attr("id", 'annotation-input-g')
-        .style("visibility", 'hidden');
 
     function drawAnnotations(annotationsData) {
         // convert annotations to annotation data
@@ -95,44 +88,7 @@ function AnnotationController(svg, getTimeForLinePercent) {
             });
     }
 
-    function linesUpdated(timelineIdAndLinePoints) {
-        let paths = mAnnotationInputGroup.selectAll('.annotationTouchTarget').data(timelineIdAndLinePoints);
-        paths.enter().append('path')
-            .classed('annotationTouchTarget', true)
-            .attr('id', (d) => "annotationTouchTarget_" + d.id)
-            .attr('fill', 'none')
-            .attr('stroke', 'white')
-            .attr('stroke-width', 50)
-            .attr('opacity', '0')
-            .on("click", timelineCLicked)
-        paths.exit().remove();
-        mAnnotationInputGroup.selectAll('.annotationTouchTarget').attr('d', (d) => PathMath.getPathD(d.points));
-    }
-
-    function timelineCLicked(e, d) {
-        let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-        let linePercent = PathMath.getClosestPointOnPath(mouseCoords, d.points).percent;
-        let timeBinding = mExernalCallGetTimeForLinePercent(d.id, linePercent);
-        let annotationRow = createAnnotation(timeBinding.toString(), timeBinding);
-        mAnnotationCreatedCallback(annotationRow, d.id);
-    }
-
-    function setActive(active) {
-        if (active && !mActive) {
-            mActive = true;
-            mAnnotationInputGroup.style('visibility', "");
-
-            // TODO add extension nodes.
-        } else if (!active && mActive) {
-            mActive = false;
-            mAnnotationInputGroup.style('visibility', "hidden");
-        }
-    }
-
-    this.setActive = setActive;
     this.drawAnnotations = drawAnnotations;
-    this.linesUpdated = linesUpdated;
     this.setAnnotationTextUpdatedCallback = (callback) => mAnnotationTextUpdatedCallback = callback
-    this.setAnnotationMovedCallback = (callback) => mAnnotationMovedCallback = callback;;
-    this.setAnnotationCreatedCallback = (callback) => mAnnotationCreatedCallback = callback;
+    this.setAnnotationMovedCallback = (callback) => mAnnotationMovedCallback = callback;
 }
