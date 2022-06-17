@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let modelController = new ModelController();
 
     let lineViewController = new LineViewController(svg);
+    lineViewController.setLineClickCallback((id, linePoint) => {
+        console.log(id, linePoint)
+    })
 
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
     timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
@@ -253,6 +256,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mode = MODE_LINK;
+            lineViewController.setActive(true);
             showIndicator('#link-button', '#link-mode-indicator');
         }
     })
@@ -278,6 +282,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function clearMode() {
+        lineViewController.setActive(false);
         lineDrawingController.setActive(false);
         eraserController.setActive(false);
         annotationController.setActive(false);
