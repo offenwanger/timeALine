@@ -12,23 +12,36 @@ function ModelController() {
     mUnattachedAnnotationDataset.valCol = mAnnotationsTable.dataColumns[1].id;
 
     function newDataset(array2d) {
+        // TODO validate array
+
         let table = new DataStructs.DataTable();
+
+        let firstColIsTime = false;
+        let count = 0
+        array2d.forEach((row) => {
+            let item = row[0];
+            if (!isNaN(Date.parse(item))) count++;
+        });
+        if (count > array2d.length / 2) firstColIsTime = true;
+
+        array2d[0].forEach((cell, index) => {
+            let startIndex = 0
+            if (index == 0) {
+                table.dataColumns.push(new DataStructs.DataColumn("Time", index));
+                if (!firstColIsTime) {
+                    startIndex = 1;
+                    table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
+                }
+            } else {
+                table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
+            }
+        })
+
         array2d.forEach((row, index) => {
             let dataRow = new DataStructs.DataRow();
-            row.forEach(item => {
-                if (!item) {
-                    dataRow.dataItems.push(null);
-                } else {
-                    let item;
-                    if (!isNaN(Date.parse(item))) {
-                        item = new DataStructs.DataItem(DataTypes.TIME_BINDING, index, Date.parse(item));
-                    } else if (!isNaN(parseFloat(item))) {
-                        item = new DataStructs.DataItem(DataTypes.NUM, index, parseFloat(item));
-                    } else {
-                        item = new DataStructs.DataItem(DataTypes.TEXT, index, item);
-                    }
-                    dataRow.dataItems.push(item);
-                }
+            dataRow.index = index;
+            row.forEach((cell, index) => {
+                dataRow.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, cell, table.dataColumns[index]));
             });
             table.dataRows.push(dataRow)
         });
@@ -521,7 +534,7 @@ function ModelController() {
 
         let rows = table.dataRows.filter(row => rowIds.includes(row.id));
         return rows.map(row => {
-            let item = row.dataItems.find(item => item.columnId == columnId);
+            let item = row.dataCells.find(item => item.columnId == columnId);
             return item ? item.val : null;
         });
     }
@@ -529,16 +542,16 @@ function ModelController() {
     function addNewAnnotation(text, timeBinding, id) {
         let annotation = new DataStructs.DataRow();
 
-        let timeBindingItem = new DataStructs.DataItem(DataTypes.TIME_BINDING, timeBinding)
-        annotation.dataItems.push(timeBindingItem);
+        let timeBindingItem = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding)
+        annotation.dataCells.push(timeBindingItem);
 
-        let textItem = new DataStructs.DataItem(DataTypes.TEXT, text, null, { x: 10, y: 10 })
-        annotation.dataItems.push(textItem);
+        let textItem = new DataStructs.DataCell(DataTypes.TEXT, text, null, { x: 10, y: 10 })
+        annotation.dataCells.push(textItem);
 
         // set the columns and the index
         annotation.index = mAnnotationsTable.dataRows.length;
-        annotation.dataItems.find(item => item.type == DataTypes.TIME_BINDING).columnId = mAnnotationsTable.dataColumns[0].id;
-        annotation.dataItems.find(item => item.type == DataTypes.TEXT).columnId = mAnnotationsTable.dataColumns[1].id;
+        annotation.dataCells.find(item => item.type == DataTypes.TIME_BINDING).columnId = mAnnotationsTable.dataColumns[0].id;
+        annotation.dataCells.find(item => item.type == DataTypes.TEXT).columnId = mAnnotationsTable.dataColumns[1].id;
         // add to the table
         mAnnotationsTable.dataRows.push(annotation);
         if (id) {
@@ -579,7 +592,7 @@ function ModelController() {
         let annotation = mAnnotationsTable.getRow(annotationId);
         // TODO make this more robust, i.e. keep track of which column is the text column
         // for now, just find the first text column
-        let textCell = annotation.dataItems.find(item => item.type == DataTypes.TEXT);
+        let textCell = annotation.dataCells.find(item => item.type == DataTypes.TEXT);
         textCell.val = text;
     }
 
@@ -587,7 +600,7 @@ function ModelController() {
         let annotation = mAnnotationsTable.getRow(annotationId);
         // TODO make this more robust, i.e. keep track of which column is the text column
         // for now, just find the first text column
-        let textCell = annotation.dataItems.find(item => item.type == DataTypes.TEXT);
+        let textCell = annotation.dataCells.find(item => item.type == DataTypes.TEXT);
         textCell.offset = offset;
     }
 

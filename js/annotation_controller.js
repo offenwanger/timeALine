@@ -10,22 +10,22 @@ function AnnotationController(svg) {
         let annotationId = 0;
         let timelineAnnotations = []
 
-        annotationsData.forEach(dataItem => {
+        annotationsData.forEach(dataCell => {
             let annotationData = {
                 note: {
-                    label: dataItem.text,
+                    label: dataCell.text,
                     wrap: 200,
                     padding: 10
                 },
-                x: dataItem.position.x,
-                y: dataItem.position.y,
+                x: dataCell.position.x,
+                y: dataCell.position.y,
                 // hack to get around the broken drag events from the new d3 version
                 className: "id-" + annotationId,
 
-                dy: dataItem.offset.y,
-                dx: dataItem.offset.x,
+                dy: dataCell.offset.y,
+                dx: dataCell.offset.x,
 
-                dataItem
+                dataCell
             }
 
             annotationId++
@@ -55,7 +55,7 @@ function AnnotationController(svg) {
                 .on('end', function (e) {
                     let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
                     let annotationData = timelineAnnotations.find(annotation => annotation.className == id);
-                    mAnnotationMovedCallback(annotationData.dataItem.id, { x: annotationData.dx, y: annotationData.dy });
+                    mAnnotationMovedCallback(annotationData.dataCell.id, { x: annotationData.dx, y: annotationData.dy });
                 }))
             .on('dblclick', function () {
                 let position = d3.select(this).select("tspan").node().getBoundingClientRect();
@@ -70,7 +70,7 @@ function AnnotationController(svg) {
                     .on('input', null)
                     .on('input', function (e) {
                         annotation.note.label = inputbox.property("value");
-                        mAnnotationTextUpdatedCallback(annotation.dataItem.id, inputbox.property("value"))
+                        mAnnotationTextUpdatedCallback(annotation.dataCell.id, inputbox.property("value"))
                         inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
                         makeAnnotations.annotations(timelineAnnotations);
                         mAnnotationDisplayGroup.call(makeAnnotations);

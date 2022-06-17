@@ -76,20 +76,20 @@ let DataStructs = function () {
         this.getRow = (rowId) => this.dataRows.find(row => row.id == rowId);
     }
 
-    function DataColumn(name, type) {
+    function DataColumn(name, index) {
         this.id = getUniqueId();
         this.name = name;
-        this.type = type;
+        this.index = index;
     }
 
     function DataRow() {
         this.id = getUniqueId();
-        this.dataItems = [];
+        this.dataCells = [];
         this.index = -1;
-        this.getCell = (columnId) => this.dataItems.find(cell => cell.columnId == columnId);
+        this.getCell = (columnId) => this.dataCells.find(cell => cell.columnId == columnId);
     }
 
-    function DataItem(type, val, columnId = null, offset = null) {
+    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
@@ -147,7 +147,7 @@ let DataStructs = function () {
         DataTable,
         DataColumn,
         DataRow,
-        DataItem,
+        DataCell,
         TimeBinding,
     }
 }();
