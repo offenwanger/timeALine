@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_COMMENT = "comment";
     const MODE_COLOR = "color";
     const MODE_EYEDROPPER = "eyedropper";
+    const MODE_LINK = "link";
 
     let mode = MODE_DEFAULT;
 
@@ -245,6 +246,29 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelController.newDataset(result.data);
         });
     })
+
+    $("#link-button").on('click', () => {
+        if (mode == MODE_LINK) {
+            clearMode()
+        } else {
+            clearMode()
+            mode = MODE_LINK;
+            showIndicator('#link-button', '#link-mode-indicator');
+        }
+    })
+    dataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
+        let left = $('.drawer-content-wrapper')[0].getBoundingClientRect().left;
+
+        if (data) {
+            $('#link-button-div').css('top', (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10);
+            $('#link-button-div').css('left', left - $('#link-button-div').width() / 2 - 10);
+            $('#link-button-div').show();
+        } else {
+            $('#link-button-div').hide();
+            if (mode == MODE_LINK) clearMode();
+        }
+    });
+
 
     function showIndicator(imgButtonId, modeIndicatorId) {
         $(imgButtonId).css('opacity', '0.3');

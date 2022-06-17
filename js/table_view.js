@@ -1,6 +1,7 @@
 function DataTableController() {
     let mDrawerController = new DrawerController("#data-drawer");
     let mCellUpdatedCallback;
+    let mSelectionCallback;
 
     function setTables(tables) {
         clearTables();
@@ -16,7 +17,7 @@ function DataTableController() {
         let newDiv = $("<p>");
         $("#table-list").append(newDiv);
 
-        new Handsontable(newDiv.get(0), {
+        let hot = new Handsontable(newDiv.get(0), {
             data: data,
             rowHeaders: true,
             colHeaders: colHeader,
@@ -38,8 +39,40 @@ function DataTableController() {
                         console.log(row, prop, oldValue, newValue);
                     });
             },
+            afterSelection: afterSelection,
+            outsideClickDeselects: outsideClickDeselects,
+            afterDeselect: afterDeselect,
             licenseKey: 'non-commercial-and-evaluation' // for non-commercial use only
         });
+
+        function afterSelection() {
+            let selected = hot.getSelected() || [];
+            let data = [];
+            for (let i = 0; i < selected.length; i += 1) {
+                data.push(hot.getData(...selected[i]));
+            }
+            // top row can be -1, so make sure it is at least 0.
+            let topRow = Math.max(0, Math.min(...selected.map(s => Math.min(s[0], s[2]))))
+            let bottomRow = Math.max(...selected.map(s => Math.max(s[0], s[2])))
+
+            let selectionTop = hot.getCell(topRow, 0).getBoundingClientRect().top;
+            let selectionBottom = hot.getCell(bottomRow, 0).getBoundingClientRect().bottom;
+
+            mSelectionCallback(data, selectionTop, selectionBottom)
+        }
+
+        function outsideClickDeselects(target) {
+            let inDrawerContent = $(target).closest("#table-list");
+            if (inDrawerContent.length > 0 && $(target).attr("id") != "link-button") {
+                return true;
+            }
+
+            return false;
+        }
+
+        function afterDeselect(e) {
+            mSelectionCallback(null, 0, 0)
+        }
     }
 
     function clearTables() {
@@ -49,6 +82,7 @@ function DataTableController() {
     this.addTable = addTable;
     this.setTables = setTables;
     this.setCellUpdatedCallback = (callback) => mCellUpdatedCallback = callback;
+    this.setOnSelectionCallback = (callback) => mSelectionCallback = callback;
     this.openTableView = () => mDrawerController.openDrawer();
     this.closeTableView = () => mDrawerController.closeDrawer();
     this.isOpen = () => mDrawerController.isOpen();
