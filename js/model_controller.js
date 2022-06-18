@@ -1,7 +1,7 @@
 function ModelController() {
     let mAnnotationsTable = new DataStructs.DataTable([
-        new DataStructs.DataColumn("time", DataTypes.TIME_BINDING),
-        new DataStructs.DataColumn("text", DataTypes.TEXT)
+        new DataStructs.DataColumn("time", 0),
+        new DataStructs.DataColumn("text", 1)
     ]);
     let mTimelines = [];
     let mDataTables = [];
@@ -619,6 +619,8 @@ function ModelController() {
     this.updateWarpControls = updateWarpControls;
     this.getTimelineById = getTimelineById;
     this.getAllTimelines = () => [...mTimelines];
+
+    this.getAllTables = () => [mAnnotationsTable, ...mDataTables];
 
     this.getUpdatedWarpSet = getUpdatedWarpSet;
     this.getTimeForLinePercent = getTimeForLinePercent;

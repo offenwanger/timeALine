@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             modelController.addNewAnnotation(timeBinding.toString(), timeBinding, id);
             annotationController.drawAnnotations(modelController.getAnnotations());
+            dataTableController.updateTableData(modelController.getAllTables());
         } else if (mode == MODE_LINK) {
             console.log(id, linePoint)
         }
@@ -106,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         annotationController.drawAnnotations(modelController.getAnnotations());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
+        dataTableController.updateTableData(modelController.getAllTables());
     }
 
 
@@ -238,11 +240,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([
-            new DataStructs.DataColumn("Time", DataTypes.UNSPECIFIED),
-            new DataStructs.DataColumn("Col2", DataTypes.UNSPECIFIED),
-            new DataStructs.DataColumn("Col3", DataTypes.UNSPECIFIED),
+            new DataStructs.DataColumn("Time", 0),
+            new DataStructs.DataColumn("Col2", 1),
+            new DataStructs.DataColumn("Col3", 2)
         ]);
-        newTable.dataRows = [["", "", ""], ["", "", ""], ["", "", ""]]
+        for (let i = 0; i < 3; i++) {
+            let dataRow = new DataStructs.DataRow()
+            dataRow.index = i;
+            for (let j = 0; j < newTable.dataColumns.length; j++) {
+                dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newTable.dataColumns[j].id));
+            }
+            newTable.dataRows.push(dataRow)
+        }
         dataTableController.addTable(newTable);
     })
 

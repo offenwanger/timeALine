@@ -3,15 +3,20 @@ function DataTableController() {
     let mCellUpdatedCallback;
     let mSelectionCallback;
 
-    function setTables(tables) {
-        clearTables();
+    let hotTables = {};
+
+    function updateTableData(tables) {
         tables.forEach(table => {
-            addTable(table);
+            if (table.id in hotTables) {
+                hotTables[table.id].loadData(table.getDataset());
+            } else {
+                hotTables[table.id] = addTable(table);
+            }
         })
     }
 
     function addTable(table) {
-        let data = table.dataRows;
+        let data = table.getDataset();
         let colHeader = table.dataColumns.map(col => col.name)
 
         let newDiv = $("<p>");
@@ -47,6 +52,12 @@ function DataTableController() {
 
         function afterSelection() {
             let selected = hot.getSelected() || [];
+            if (selected.length == 1 &&
+                selected[0][0] == -1 &&
+                selected[0][1] == -1 &&
+                selected[0][2] == -1 &&
+                selected[0][3] == -1) return;
+
             let data = [];
             for (let i = 0; i < selected.length; i += 1) {
                 data.push(hot.getData(...selected[i]));
@@ -73,6 +84,8 @@ function DataTableController() {
         function afterDeselect(e) {
             mSelectionCallback(null, 0, 0)
         }
+
+        return hot;
     }
 
     function clearTables() {
@@ -80,7 +93,7 @@ function DataTableController() {
     }
 
     this.addTable = addTable;
-    this.setTables = setTables;
+    this.updateTableData = updateTableData;
     this.setCellUpdatedCallback = (callback) => mCellUpdatedCallback = callback;
     this.setOnSelectionCallback = (callback) => mSelectionCallback = callback;
     this.openTableView = () => mDrawerController.openDrawer();
