@@ -3,6 +3,8 @@ function DataTableController() {
     let mTableUpdatedCallback;
     let mSelectionCallback;
 
+    let mLastSort = -1;
+
     let hotTables = {};
 
     function updateTableData(tables) {
@@ -17,6 +19,7 @@ function DataTableController() {
 
     function addTable(table) {
         let data = table.getDataset();
+        table.dataColumns.sort((a, b) => a.index - b.index)
         let colHeader = table.dataColumns.map(col => col.name)
 
         let newDiv = $("<p>");
@@ -41,10 +44,11 @@ function DataTableController() {
             afterCreateCol,
             afterRemoveCol,
             afterColumnMove,
-            afterColumnSort,
+            beforeColumnSort,
             // Controls interaction
             afterSelection,
             afterDeselect,
+            beforeCreateCol,
             beforeRemoveCol,
             beforeColumnMove,
             outsideClickDeselects,
@@ -52,15 +56,17 @@ function DataTableController() {
         });
 
         function beforeChange(changes) {
-            console.log("Finish me! beforeChange");
-            console.log(changes);
+            console.log(changes, "Finish me! beforeChange");
             // check the type for the changes cell, if it's a complex type, format the change appropriately
             // [[row, prop, oldVal, newVal], ...]
             // changes[0][3] = 10;
         }
 
         function afterChange(changes) {
+            // Note: this function calls every time we load data. 
             console.log("Finish me! afterChange");
+            // probably need to update highlighting here
+
             // sent table updated call
             // don't need to update the table here because no cells moved, so it will be up to date
             if (changes)
@@ -83,55 +89,193 @@ function DataTableController() {
             }
 
             mTableUpdatedCallback(table)
-            console.log(table.getDataset())
+            // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => hot.loadData(simplifyDataset(table.getDataset())), 0);
         }
 
-        function afterRemoveRow(index, amount, physicalRows) {
-            // remove rows from table, decrement indexes after these
-            // sent table updated call
-            // set table data based on new table
-            console.log("Finish me! afterRemoveRow");
+        function afterRemoveRow(index, amount) {
+            table.dataRows = table.dataRows.filter(row => row.index < index || row.index >= index + amount);
+
+            table.dataRows.forEach(row => {
+                if (row.index > index) row.index -= amount;
+            });
+
+            mTableUpdatedCallback(table, true)
+            // For some reason handsontable objects to being updated in this function, so just make it async.
+            setTimeout(() => hot.loadData(simplifyDataset(table.getDataset())), 0);
         }
 
-        function afterRowMove(movedRows, finalIndex, dropIndex, movePossible, orderChanged) {
-            // not sure if I need to check the actual current order here...
-            // set indexes
-            // sent table updated call
-            // update table data
-            console.log("Finish me! afterRowMove");
+        function afterRowMove(movedRows, finalIndex) {
+            // moved rows appears to always be a sequential set.
+            // TODO verify this assumption. 
+            let startIndex = Math.min(...movedRows);
+            let endIndex = Math.max(...movedRows);
+            let numberOfRows = endIndex - startIndex + 1;
+            table.dataRows.forEach(row => {
+                if (row.index >= startIndex && row.index <= endIndex) {
+                    row.index = row.index - startIndex + finalIndex;
+                } else if (row.index < startIndex && row.index >= finalIndex) {
+                    row.index += numberOfRows;
+                } else if (row.index < finalIndex + numberOfRows && row.index > endIndex) {
+                    row.index -= numberOfRows;
+                }
+            })
+
+            mTableUpdatedCallback(table, true)
+            // For some reason handsontable objects to being updated in this function, so just make it async.
+            setTimeout(() => hot.loadData(simplifyDataset(table.getDataset())), 0);
         }
 
-        function afterCreateCol(index, amount) {
-            // add new column to table, set indexes, increament column indicies after these
-            // add new cells to each row for new column
-            // sent table updated call
-            // set table data based on new table
-            console.log("Finish me! afterCreateCol");
+        function afterCreateCol(startIndex, numberOfCols) {
+            table.dataColumns.forEach(col => {
+                if (col.index >= startIndex) col.index += numberOfCols;
+            })
+
+            for (let i = 0; i < numberOfCols; i++) {
+                let newCol = new DataStructs.DataColumn("", startIndex + i);
+                table.dataRows.forEach(row => row.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newCol.id)));
+                table.dataColumns.push(newCol);
+            }
+
+            mTableUpdatedCallback(table)
+            // For some reason handsontable objects to being updated in this function, so just make it async.
+            setTimeout(() => {
+                hot.loadData(simplifyDataset(table.getDataset()));
+                table.dataColumns.sort((a, b) => a.index - b.index)
+                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+            }, 0);
         }
 
-        function afterRemoveCol(index, amount, physicalColumns) {
-            // remove columns from table, decrement column indicies after these
-            // remove cells that belonged to the column
-            // send table updated call
-            // set table data based on new table
-            console.log("Finish me! afterRemoveCol");
+        function afterRemoveCol(index, amount) {
+            let removedColumns = table.dataColumns.filter(col => col.index >= index || col.index < index + amount).map(col => col.id);
+            table.dataColumns = table.dataColumns.filter(col => col.index < index || col.index >= index + amount);
+
+            table.dataColumns.forEach(col => {
+                if (col.index > index) col.index -= amount;
+            })
+
+            table.dataRows.forEach(row => {
+                row.dataCells = row.dataCells.filter(cell => !removedColumns.includes(cell.columnId));
+            });
+
+            mTableUpdatedCallback(table, true)
+            // For some reason handsontable objects to being updated in this function, so just make it async.
+            setTimeout(() => {
+                hot.loadData(simplifyDataset(table.getDataset()));
+                table.dataColumns.sort((a, b) => a.index - b.index)
+                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+            }, 0);
         }
 
-        function afterColumnMove(movedColumns, finalIndex, dropIndex, movePossible, orderChanged) {
-            // set indexes
-            // sent table updated call
-            // update table data
-            console.log("Finish me! afterColumnMove");
+        function afterColumnMove(movedColumns, finalIndex) {
+            // moved cols appears to always be a sequential set.
+            // TODO verify this assumption. 
+            let startIndex = Math.min(...movedColumns);
+            let endIndex = Math.max(...movedColumns);
+            let numberOfCols = endIndex - startIndex + 1;
+            table.dataColumns.forEach(col => {
+                if (col.index >= startIndex && col.index <= endIndex) {
+                    col.index = col.index - startIndex + finalIndex;
+                } else if (col.index < startIndex && col.index >= finalIndex) {
+                    col.index += numberOfCols;
+                } else if (col.index < finalIndex + numberOfCols && col.index > endIndex) {
+                    col.index -= numberOfCols;
+                }
+            })
+
+            mTableUpdatedCallback(table)
+            // For some reason handsontable objects to being updated in this function, so just make it async.
+            setTimeout(() => {
+                hot.loadData(simplifyDataset(table.getDataset()));
+                table.dataColumns.sort((a, b) => a.index - b.index)
+                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+            }, 0);
         }
 
-        function afterColumnSort(currentSortConfig, destinationSortConfigs) {
-            // set indexes
-            // sent table updated call
-            // pretty sure I don't want to update table data yet, so that when we unsort it will go back to how it was
-            console.log("Finish me! afterColumnSort");
+        function beforeColumnSort(currentSortConfig, destinationSortConfigs) {
+            let columnIndex = destinationSortConfigs[0].column
+            let column = table.dataColumns[columnIndex];
+            let order = 1;
+
+            if (mLastSort == columnIndex) {
+                order = -1;
+                mLastSort = -1;
+            } else mLastSort = columnIndex;
+
+            table.dataRows.sort((rowA, rowB) => {
+                let returnable = 0;
+                let cellA = rowA.getCell(column.id);
+                let cellB = rowB.getCell(column.id);
+                if (cellA.type == DataTypes.UNSPECIFIED || cellA.type == DataTypes.TIME_BINDING) {
+                    cellA = infer(cellA.val);
+                }
+                if (cellB.type == DataTypes.UNSPECIFIED || cellB.type == DataTypes.TIME_BINDING) {
+                    cellB = infer(cellB.val);
+                }
+                let typeA = cellA.type;
+                let typeB = cellB.type;
+
+                if (typeA != typeB) {
+                    if (typeA == TimeBindingTypes.TIMESTRAMP) {
+                        // a goes before b
+                        returnable = -1;
+                    } else if (typeB == TimeBindingTypes.TIMESTRAMP) {
+                        // a goes after b
+                        returnable = 1;
+                    } else if (typeA == DataTypes.NUM) {
+                        // a goes before b
+                        returnable = -1;
+                    } else if (typeB == DataTypes.NUM) {
+                        // a goes after b
+                        returnable = 1;
+                    } else {
+                        console.error("Unhandled case!")
+                        return 0
+                    }
+                } else {
+                    if (typeA == TimeBindingTypes.TIMESTRAMP || typeA == DataTypes.NUM) {
+                        returnable = cellA.val - cellB.val;
+                    } else if (typeA == DataTypes.TEXT) {
+                        returnable = cellA.val == cellB.val ? 0 : cellA.val < cellB.val ? -1 : 1;
+                    } else {
+                        console.error("Unhandled case!")
+                        return 0
+                    }
+                }
+
+                return returnable * order;
+            });
+
+            table.dataRows.forEach((row, index) => {
+                row.index = index;
+            });
+
+            mTableUpdatedCallback(table, true)
+            setTimeout(() => { hot.loadData(simplifyDataset(table.getDataset())); }, 0);
+
+            return false;
         }
 
+
+        function infer(cellVal) {
+            if (typeof (x) === 'number') {
+                return { val: cellVal, type: DataTypes.NUM }
+            } else if (isNumeric("" + cellVal)) {
+                return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
+            } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
+                return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
+            } else if (cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.PLACE_HOLDER) {
+                return { val: cellVal.placeHolder, type: DataTypes.NUM }
+            } else if (!isNaN(Date.parse(cellVal))) {
+                return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
+            } else {
+                return { val: cellVal, type: DataTypes.TEXT }
+            }
+        }
+
+        function isNumeric(val) {
+            return /^-?\d+$/.test(val);
+        }
 
         function afterSelection() {
             let selected = hot.getSelected() || [];
@@ -158,6 +302,13 @@ function DataTableController() {
 
         function afterDeselect(e) {
             mSelectionCallback(null, 0, 0)
+        }
+
+        function beforeCreateCol(index) {
+            if (index == 0) {
+                return false;
+            }
+            return true;
         }
 
         function beforeRemoveCol(index) {
