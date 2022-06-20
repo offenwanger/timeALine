@@ -11,7 +11,7 @@ function ModelController() {
     mUnattachedAnnotationDataset.timeCol = mAnnotationsTable.dataColumns[0].id;
     mUnattachedAnnotationDataset.valCol = mAnnotationsTable.dataColumns[1].id;
 
-    function newDataset(array2d) {
+    function newTable(array2d) {
         // TODO validate array
 
         let table = new DataStructs.DataTable();
@@ -608,7 +608,11 @@ function ModelController() {
         return mTimelines.find(t => t.id == id);
     }
 
-    this.newDataset = newDataset;
+    function tableUpdated(table) {
+        let index = mDataTables.findIndex(t => t.id == table.id);
+        mDataTables[index] = table;
+    }
+
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
     this.mergeTimeline = mergeTimeline;
@@ -620,7 +624,9 @@ function ModelController() {
     this.getTimelineById = getTimelineById;
     this.getAllTimelines = () => [...mTimelines];
 
+    this.newTable = newTable;
     this.getAllTables = () => [mAnnotationsTable, ...mDataTables];
+    this.tableUpdated = tableUpdated;
 
     this.getUpdatedWarpSet = getUpdatedWarpSet;
     this.getTimeForLinePercent = getTimeForLinePercent;

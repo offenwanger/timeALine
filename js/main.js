@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let annotationController = new AnnotationController(svg);
     annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
         modelController.updateAnnotationText(annotationId, text);
+        // TODO only update the one table that was changed
+        dataTableController.updateTableData(modelController.getAllTables());
     });
     annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
         modelController.updateAnnotationTextOffset(annotationId, newOffset);
@@ -97,6 +99,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (mode == MODE_LINK) clearMode();
         }
     });
+    dataTableController.setTableUpdatedCallback((table, redraw) => {
+        modelController.tableUpdated(table);
+        if (redraw) {
+            updateAllControls();
+        }
+    });
 
     function updateAllControls() {
         lineViewController.linesUpdated(modelController.getTimelinePaths());
@@ -107,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         annotationController.drawAnnotations(modelController.getAnnotations());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
-        dataTableController.updateTableData(modelController.getAllTables());
     }
 
 
@@ -258,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $("#load-datasheet-button").on("click", () => {
         FileHandler.getCSVDataFile().then(result => {
             // TODO figure out if there's a header row
-            modelController.newDataset(result.data);
+            modelController.newTable(result.data);
         });
     })
 
