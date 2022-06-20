@@ -559,17 +559,19 @@ function ModelController() {
         mTimelines.forEach(timeline => {
             timeline.annotationDataset.dataRows.forEach(rowId => {
                 let row = mAnnotationsTable.getRow(rowId);
-                let textCell = row.getCell(timeline.annotationDataset.valCol);
-                let timeCell = row.getCell(timeline.annotationDataset.timeCol);
-                let percent = getTimelineLinePercentForTime(timeline, timeCell.val);
-                let position = PathMath.getPositionForPercent(timeline.linePath.points, percent);
+                if (row) {
+                    let textCell = row.getCell(timeline.annotationDataset.valCol);
+                    let timeCell = row.getCell(timeline.annotationDataset.timeCol);
+                    let percent = getTimelineLinePercentForTime(timeline, timeCell.val);
+                    let position = PathMath.getPositionForPercent(timeline.linePath.points, percent);
 
-                annotationData.push({
-                    position,
-                    text: textCell.val,
-                    offset: textCell.offset,
-                    id: row.id
-                })
+                    annotationData.push({
+                        position,
+                        text: textCell.val,
+                        offset: textCell.offset,
+                        id: row.id
+                    })
+                } else console.error("Row not in table!");
             })
         })
 
@@ -599,7 +601,15 @@ function ModelController() {
 
     function tableUpdated(table) {
         let index = mDataTables.findIndex(t => t.id == table.id);
-        mDataTables[index] = table;
+        if (index == -1) {
+            if (mAnnotationsTable.id == table.id) {
+                mAnnotationsTable = table;
+            } else {
+                console.error("Invalid table id! ", table.id);
+            }
+        } else {
+            mDataTables[index] = table;
+        }
     }
 
     this.newTimeline = newTimeline;
