@@ -259,6 +259,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
             newTable.dataRows.push(dataRow)
         }
+
+        modelController.addTable(newTable);
         dataTableController.addTable(newTable);
     })
 

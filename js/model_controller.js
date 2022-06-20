@@ -6,42 +6,6 @@ function ModelController() {
     let mTimelines = [];
     let mDataTables = [];
 
-    function newTable(array2d) {
-        // TODO validate array
-
-        let table = new DataStructs.DataTable();
-
-        let firstColIsTime = false;
-        let count = 0
-        array2d.forEach((row) => {
-            let item = row[0];
-            if (!isNaN(Date.parse(item))) count++;
-        });
-        if (count > array2d.length / 2) firstColIsTime = true;
-
-        array2d[0].forEach((cell, index) => {
-            let startIndex = 0
-            if (index == 0) {
-                table.dataColumns.push(new DataStructs.DataColumn("Time", index));
-                if (!firstColIsTime) {
-                    startIndex = 1;
-                    table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
-                }
-            } else {
-                table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
-            }
-        })
-
-        array2d.forEach((row, index) => {
-            let dataRow = new DataStructs.DataRow();
-            dataRow.index = index;
-            row.forEach((cell, index) => {
-                dataRow.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, cell, table.dataColumns[index]));
-            });
-            table.dataRows.push(dataRow)
-        });
-    }
-
     function newTimeline(points) {
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
@@ -599,6 +563,48 @@ function ModelController() {
         return mTimelines.find(t => t.id == id);
     }
 
+
+    function addTable(table) {
+        // TODO validate table.
+        mDataTables.push(table);
+    }
+
+    function addTableFromCSV(array2d) {
+        // TODO validate array
+
+        let table = new DataStructs.DataTable();
+
+        let firstColIsTime = false;
+        let count = 0
+        array2d.forEach((row) => {
+            let item = row[0];
+            if (!isNaN(Date.parse(item))) count++;
+        });
+        if (count > array2d.length / 2) firstColIsTime = true;
+
+        array2d[0].forEach((cell, index) => {
+            let startIndex = 0
+            if (index == 0) {
+                table.dataColumns.push(new DataStructs.DataColumn("Time", index));
+                if (!firstColIsTime) {
+                    startIndex = 1;
+                    table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
+                }
+            } else {
+                table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
+            }
+        })
+
+        array2d.forEach((row, index) => {
+            let dataRow = new DataStructs.DataRow();
+            dataRow.index = index;
+            row.forEach((cell, index) => {
+                dataRow.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, cell, table.dataColumns[index]));
+            });
+            table.dataRows.push(dataRow)
+        });
+    }
+
     function tableUpdated(table) {
         let index = mDataTables.findIndex(t => t.id == table.id);
         if (index == -1) {
@@ -623,7 +629,8 @@ function ModelController() {
     this.getTimelineById = getTimelineById;
     this.getAllTimelines = () => [...mTimelines];
 
-    this.newTable = newTable;
+    this.addTable = addTable;
+    this.addTableFromCSV = tableFromCSV;
     this.getAllTables = () => [mAnnotationsTable, ...mDataTables];
     this.tableUpdated = tableUpdated;
 
