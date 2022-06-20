@@ -36,7 +36,6 @@ function DataTableController() {
             manualRowMove: true,
             contextMenu: true,
             // Updates Data
-            beforeChange,
             afterChange,
             afterCreateRow,
             afterRemoveRow,
@@ -55,25 +54,26 @@ function DataTableController() {
             licenseKey: 'non-commercial-and-evaluation' // for non-commercial use only
         });
 
-        function beforeChange(changes) {
-            console.log(changes, "Finish me! beforeChange");
-            // check the type for the changes cell, if it's a complex type, format the change appropriately
-            // [[row, prop, oldVal, newVal], ...]
-            // changes[0][3] = 10;
-        }
-
         function afterChange(changes) {
             // Note: this function calls every time we load data. 
-            console.log("Finish me! afterChange");
-            // probably need to update highlighting here
+
+            // TODO: probably need to update highlighting here
 
             // sent table updated call
             // don't need to update the table here because no cells moved, so it will be up to date
-            if (changes)
+            if (changes) {
                 changes.forEach(([row, prop, oldValue, newValue]) => {
-                    console.log(row, prop, oldValue, newValue);
+                    let columnId = table.dataColumns.find(col => col.index == prop).id;
+                    let cell = table.dataRows.find(r => r.index == row).getCell(columnId);
+                    // check the type, check if the new data is valid, if no, set cell to invalid
+                    cell.val = newValue;
+                    if (cell.type != DataTypes.UNSPECIFIED) {
+                        cell.valid = validateCellData(cell.type, cell.val);
+                    }
                 });
 
+                mTableUpdatedCallback(table, true)
+            }
         }
 
         function afterCreateRow(startIndex, numberOfRows) {
@@ -207,10 +207,10 @@ function DataTableController() {
                 let cellA = rowA.getCell(column.id);
                 let cellB = rowB.getCell(column.id);
                 if (cellA.type == DataTypes.UNSPECIFIED || cellA.type == DataTypes.TIME_BINDING) {
-                    cellA = infer(cellA.val);
+                    cellA = DataUtil.inferDataAndType(cellA.val);
                 }
                 if (cellB.type == DataTypes.UNSPECIFIED || cellB.type == DataTypes.TIME_BINDING) {
-                    cellB = infer(cellB.val);
+                    cellB = DataUtil.inferDataAndType(cellB.val);
                 }
                 let typeA = cellA.type;
                 let typeB = cellB.type;
@@ -254,27 +254,6 @@ function DataTableController() {
             setTimeout(() => { hot.loadData(simplifyDataset(table.getDataset())); }, 0);
 
             return false;
-        }
-
-
-        function infer(cellVal) {
-            if (typeof (x) === 'number') {
-                return { val: cellVal, type: DataTypes.NUM }
-            } else if (isNumeric("" + cellVal)) {
-                return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
-            } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
-                return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
-            } else if (cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.PLACE_HOLDER) {
-                return { val: cellVal.placeHolder, type: DataTypes.NUM }
-            } else if (!isNaN(Date.parse(cellVal))) {
-                return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
-            } else {
-                return { val: cellVal, type: DataTypes.TEXT }
-            }
-        }
-
-        function isNumeric(val) {
-            return /^-?\d+$/.test(val);
         }
 
         function afterSelection() {
@@ -346,6 +325,11 @@ function DataTableController() {
                 return cell;
             }
         }))
+    }
+
+    function validateCellData(type, value) {
+        // TODO: Actaully validate the data.
+        return false;
     }
 
     this.addTable = addTable;

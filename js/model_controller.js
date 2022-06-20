@@ -472,6 +472,24 @@ function ModelController() {
         let startTime = timeline.warpPoints[0].timeBinding;
         return timeline.dataSets.concat([timeline.annotationDataset])
             .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
+            .filter(val => {
+                if (val instanceof DataStructs.TimeBinding) return true;
+                else {
+                    let infer = DataUtil.inferDataAndType(val);
+                    return infer.type == TimeBindingTypes.TIMESTRAMP || infer.type == DataTypes.NUM;
+                }
+            })
+            .map(val => {
+                if (val instanceof DataStructs.TimeBinding) return val
+                else {
+                    let infer = DataUtil.inferDataAndType(val);
+                    if (infer.type == TimeBindingTypes.TIMESTRAMP) {
+                        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val)
+                    } else if (type == DataTypes.NUM) {
+                        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val)
+                    }
+                }
+            })
             .flat()
             .reduce((min, curr) => TimeBindingUtil.ALessThanB(min, curr) ? min : curr, startTime);
     }
@@ -480,6 +498,24 @@ function ModelController() {
         let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding; timeline.dataSets.concat([timeline.annotationDataset])
         return timeline.dataSets.concat([timeline.annotationDataset])
             .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
+            .filter(val => {
+                if (val instanceof DataStructs.TimeBinding) return true;
+                else {
+                    let infer = DataUtil.inferDataAndType(val);
+                    return infer.type == TimeBindingTypes.TIMESTRAMP || infer.type == DataTypes.NUM;
+                }
+            })
+            .map(val => {
+                if (val instanceof DataStructs.TimeBinding) return val
+                else {
+                    let infer = DataUtil.inferDataAndType(val);
+                    if (infer.type == TimeBindingTypes.TIMESTRAMP) {
+                        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val)
+                    } else if (type == DataTypes.NUM) {
+                        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val)
+                    }
+                }
+            })
             .flat()
             .reduce((max, curr) => TimeBindingUtil.AGreaterThanB(max, curr) ? max : curr, endTime);
     }
@@ -526,7 +562,17 @@ function ModelController() {
                 if (row) {
                     let textCell = row.getCell(timeline.annotationDataset.valCol);
                     let timeCell = row.getCell(timeline.annotationDataset.timeCol);
-                    let percent = getTimelineLinePercentForTime(timeline, timeCell.val);
+                    let percent = 0;
+                    if (timeCell.type == DataTypes.TIME_BINDING && timeCell.valid) {
+                        percent = getTimelineLinePercentForTime(timeline, timeCell.val);
+                    } else {
+                        let infer = DataUtil.inferDataAndType(timeCell.val);
+                        if (infer.type == TimeBindingTypes.TIMESTRAMP) {
+                            percent = getTimelineLinePercentForTime(timeline, new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val));
+                        } else if (infer.type == DataTypes.NUM) {
+                            percent = getTimelineLinePercentForTime(timeline, new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val));
+                        }
+                    }
                     let position = PathMath.getPositionForPercent(timeline.linePath.points, percent);
 
                     annotationData.push({

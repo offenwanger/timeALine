@@ -104,12 +104,13 @@ let DataStructs = function () {
         this.getCell = (columnId) => this.dataCells.find(cell => cell.columnId == columnId);
     }
 
-    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }) {
+    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }, valid = false) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
         this.columnId = columnId;
         this.offset = offset
+        this.valid = valid;
     }
 
     function TimeBinding(type = TimeBindingTypes.PLACE_HOLDER, value = 0) {

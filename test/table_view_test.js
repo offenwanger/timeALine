@@ -27,6 +27,7 @@ describe('Test TableViewer', function () {
     beforeEach(function () {
         let table_view_controller = rewire('../js/table_view_controller.js');
         let data_structures = rewire('../js/data_structures.js');
+        let utility = rewire('../js/utility.js');
 
         DataStructs = data_structures.__get__("DataStructs");
 
@@ -41,6 +42,7 @@ describe('Test TableViewer', function () {
             },
             Handsontable: function (div, init) { },
             DataStructs,
+            DataUtil: utility.__get__('DataUtil'),
         }
 
         getController = function () {

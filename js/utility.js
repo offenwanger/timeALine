@@ -245,11 +245,11 @@ let TimeBindingUtil = function () {
 
     function AGreaterThanB(a, b) {
         if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.placeHolder > b.placeHolder;
         } else if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.timestamp > b.timestamp;
         }
@@ -257,11 +257,11 @@ let TimeBindingUtil = function () {
 
     function ALessThanB(a, b) {
         if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.placeHolder < b.placeHolder;
         } else if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between ", + a.type + " and " + b.type);
+            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.timestamp < b.timestamp;
         }
@@ -306,6 +306,52 @@ let TimeBindingUtil = function () {
         timeBetweenAandB,
         averageAandB,
         incrementBy,
+    }
+}();
+
+let DataUtil = function () {
+    function inferDataAndType(cellVal) {
+        if (typeof (x) === 'number') {
+            return { val: cellVal, type: DataTypes.NUM }
+        } else if (isNumeric("" + cellVal)) {
+            return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
+        } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
+            return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
+        } else if (cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.PLACE_HOLDER) {
+            return { val: cellVal.placeHolder, type: DataTypes.NUM }
+        } else if (!isNaN(Date.parse(cellVal))) {
+            return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
+        } else {
+            return { val: cellVal, type: DataTypes.TEXT }
+        }
+    }
+
+    function isNumeric(val) {
+        return isFloat(val) || isInt(val);
+    }
+
+    function isFloat(val) {
+        var floatRegex = /^-?\d+(?:[.,]\d*?)?$/;
+        if (!floatRegex.test(val))
+            return false;
+
+        val = parseFloat(val);
+        if (isNaN(val))
+            return false;
+        return true;
+    }
+
+    function isInt(val) {
+        var intRegex = /^-?\d+$/;
+        if (!intRegex.test(val))
+            return false;
+
+        var intVal = parseInt(val, 10);
+        return parseFloat(val) == intVal && !isNaN(intVal);
+    }
+
+    return {
+        inferDataAndType
     }
 }();
 
