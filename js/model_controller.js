@@ -630,7 +630,7 @@ function ModelController() {
     this.getAllTimelines = () => [...mTimelines];
 
     this.addTable = addTable;
-    this.addTableFromCSV = tableFromCSV;
+    this.addTableFromCSV = addTableFromCSV;
     this.getAllTables = () => [mAnnotationsTable, ...mDataTables];
     this.tableUpdated = tableUpdated;
 
