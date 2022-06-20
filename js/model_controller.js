@@ -6,11 +6,6 @@ function ModelController() {
     let mTimelines = [];
     let mDataTables = [];
 
-    let mUnattachedAnnotationDataset = new DataStructs.DataSet();
-    mUnattachedAnnotationDataset.table = mAnnotationsTable.id;
-    mUnattachedAnnotationDataset.timeCol = mAnnotationsTable.dataColumns[0].id;
-    mUnattachedAnnotationDataset.valCol = mAnnotationsTable.dataColumns[1].id;
-
     function newTable(array2d) {
         // TODO validate array
 
@@ -554,19 +549,13 @@ function ModelController() {
         annotation.dataCells.find(item => item.type == DataTypes.TEXT).columnId = mAnnotationsTable.dataColumns[1].id;
         // add to the table
         mAnnotationsTable.dataRows.push(annotation);
-        if (id) {
-            let timeline = getTimelineById(id);
-            timeline.annotationDataset.dataRows.push(annotation.id);
-        } else {
-            mUnattachedAnnotationDataset.dataRows.push(annotation.id);
-        }
+
+        let timeline = getTimelineById(id);
+        timeline.annotationDataset.dataRows.push(annotation.id);
     }
 
     function getAnnotations() {
         let annotationData = []
-        mUnattachedAnnotationDataset.dataRows.forEach(dataRow => {
-            console.log("finish me!");
-        });
         mTimelines.forEach(timeline => {
             timeline.annotationDataset.dataRows.forEach(rowId => {
                 let row = mAnnotationsTable.getRow(rowId);
