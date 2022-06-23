@@ -101,7 +101,7 @@ let MathUtil = function () {
 
 let PathMath = function () {
     let mLineGenerator;
-    function getLine(points) {
+    function getPathD(points) {
         if (!mLineGenerator) {
             mLineGenerator = d3.line()
                 .x((p) => p.x)
@@ -114,13 +114,13 @@ let PathMath = function () {
 
     function getPath(points) {
         let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getLine(points));
+        path.setAttribute('d', getPathD(points));
         return path;
     }
 
     function getPathLength(points) {
         let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getLine(points));
+        path.setAttribute('d', getPathD(points));
         return path.getTotalLength();
     }
 
@@ -203,7 +203,7 @@ let PathMath = function () {
     }
 
     return {
-        getPathD: (points) => mLineGenerator(points),
+        getPathD,
         getPath,
         getPathLength,
         getPositionForPercent,
