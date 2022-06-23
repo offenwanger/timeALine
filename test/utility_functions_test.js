@@ -7,20 +7,23 @@ describe('Test PathMath', function () {
     let PathMath;
 
     beforeEach(function (done) {
-        global.d3 = {
-            line: () => {
-                return {
-                    x: function () { return this },
-                    y: function () { return this },
-                    curve: function () { return function (val) { return val } },
-                }
-            },
-            curveCatmullRom: { alpha: () => { } }
-        };
-        // pulling from the constants import part
-        global.document = fakeDocument;
+        let enviromentVariables = {
+            document: TestUtils.fakeDocument,
+            d3: {
+                line: () => {
+                    return {
+                        x: function () { return this },
+                        y: function () { return this },
+                        curve: function () { return function (val) { return val } },
+                    }
+                },
+                curveCatmullRom: { alpha: () => { } }
+            }
+        }
 
         let utility = rewire('../js/utility.js');
+        utility.__set__(enviromentVariables);
+
         PathMath = utility.__get__('PathMath');
 
         done();

@@ -63,15 +63,13 @@ describe('Test LayoutController', function () {
             drag: () => Object.assign({}, mockDrag),
         };
 
-        // THese must be set like this in order to rewire utility
-        // very annoying
-        global.d3 = mockD3;
-        global.document = fakeDocument;
         let utility = rewire('../js/utility.js');
 
         enviromentVariables = {
             PathMath: utility.__get__('PathMath'),
             MathUtil: utility.__get__('MathUtil'),
+            d3: mockD3,
+            document: TestUtils.fakeDocument,
         }
 
         getDragController = function () {
@@ -80,11 +78,6 @@ describe('Test LayoutController', function () {
             return new DragController(mockSvg);
         }
 
-        done();
-    });
-
-    afterEach(function (done) {
-        // No cleanup needed yet
         done();
     });
 

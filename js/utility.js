@@ -100,20 +100,27 @@ let MathUtil = function () {
 }();
 
 let PathMath = function () {
-    let mLineGenerator = d3.line()
-        .x((p) => p.x)
-        .y((p) => p.y)
-        .curve(d3.curveCatmullRom.alpha(0.5));
+    let mLineGenerator;
+    function getLine(points) {
+        if (!mLineGenerator) {
+            mLineGenerator = d3.line()
+                .x((p) => p.x)
+                .y((p) => p.y)
+                .curve(d3.curveCatmullRom.alpha(0.5));
+        }
+
+        return mLineGenerator(points);
+    }
 
     function getPath(points) {
         let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', mLineGenerator(points));
+        path.setAttribute('d', getLine(points));
         return path;
     }
 
     function getPathLength(points) {
         let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', mLineGenerator(points));
+        path.setAttribute('d', getLine(points));
         return path.getTotalLength();
     }
 
@@ -350,8 +357,13 @@ let DataUtil = function () {
         return parseFloat(val) == intVal && !isNaN(intVal);
     }
 
+    function getUniqueList(list, key = null) {
+        return [...new Map(list.map(binding => [key ? binding[key] : binding, binding])).values()]
+    }
+
     return {
-        inferDataAndType
+        inferDataAndType,
+        getUniqueList,
     }
 }();
 
