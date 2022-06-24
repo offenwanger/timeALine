@@ -32,14 +32,7 @@ describe('Test TableViewer', function () {
         DataStructs = data_structures.__get__("DataStructs");
 
         enviromentVariables = {
-            $: () => {
-                return {
-                    find: function () { return this },
-                    on: function () { return this },
-                    append: function () { return this },
-                    get: function () { return this },
-                }
-            },
+            $: TestUtils.makeMockJquery(),
             Handsontable: function (div, init) { },
             DataStructs,
             DataUtil: utility.__get__('DataUtil'),
@@ -53,8 +46,11 @@ describe('Test TableViewer', function () {
     });
 
     afterEach(function () {
-        enviromentVariables = null;
-        DataStructs = null;
+        Object.keys(enviromentVariables).forEach((key) => {
+            delete global[key];
+        })
+        delete enviromentVariables;
+        delete DataStructs;
     });
 
     describe('intialization test', function () {
