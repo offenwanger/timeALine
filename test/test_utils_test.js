@@ -62,6 +62,8 @@ before(function () {
             }
         },
 
+        mockHandsOnTable: function (div, init) { },
+
         mockElement: {
             attrs: {},
             styles: {},
