@@ -14,7 +14,6 @@ let DataStructs = function () {
 
         // DEPRECATED: TODO: to remove
         this.warpPoints = [];
-        this.annotationDataset = new DataSet();
     }
 
     function WarpPoint(timeBinding = null, linePercent = 0, isStart = false, isEnd = false, id = null) {
@@ -104,20 +103,6 @@ let DataStructs = function () {
 
         this.getRow = (rowId) => this.dataRows.find(row => row.id == rowId);
         this.getColumn = (colId) => this.dataColumns.find(col => col.id == colId)
-        this.getDataset = () => {
-            let table = Array(this.dataRows.length).fill(0).map(i => Array(this.dataColumns.length));
-
-            this.dataRows.forEach(row => row.dataCells.forEach(cell => {
-                let column = this.getColumn(cell.columnId);
-                if (!column) {
-                    console.error("Column missing!")
-                } else {
-                    table[row.index][column.index] = cell.val;
-                }
-            }))
-
-            return table;
-        }
     }
 
     function DataColumn(name, index) {

@@ -369,6 +369,8 @@ let DataUtil = function () {
     return {
         inferDataAndType,
         getUniqueList,
+        isDate,
+        isNumeric,
     }
 }();
 

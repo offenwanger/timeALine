@@ -19,38 +19,34 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let modelController = new ModelController();
 
     let lineViewController = new LineViewController(svg);
-    lineViewController.setLineClickCallback((id, linePoint) => {
+    lineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mode == MODE_COMMENT) {
-            let timeBinding = modelController.getTimeForLinePercent(id, linePoint.percent);
+            let timeBinding = modelController.mapLinePercentToTimeBinding(timelineId, linePoint.percent);
 
-            modelController.addNewAnnotation(timeBinding.toString(), timeBinding, id);
-            annotationController.drawAnnotations(modelController.getAnnotations());
+            modelController.addBoundTextRow(timeBinding.toString(), timeBinding, timelineId);
+            dataController.drawData(modelController.getBoundData());
             dataTableController.updateTableData(modelController.getAllTables());
         } else if (mode == MODE_LINK) {
-            modelController.bindCells(id, dataTableController.getSelectedCells());
-            dataPointController.drawDataPoints(modelController.getBoundData());
-            annotationController.drawAnnotations(modelController.getAnnotations());
+            modelController.bindCells(timelineId, dataTableController.getSelectedCells());
+            dataController.drawData(modelController.getBoundData());
         }
     })
 
-    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.getTimeForLinePercent);
+    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.mapLinePercentToTimeBinding);
     timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
         if (timelineId) modelController.updateWarpControls(timelineId, newControlSet);
         timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
-        annotationController.drawAnnotations(modelController.getAnnotations());
+        dataController.drawData(modelController.getBoundData());
     })
 
-    let annotationController = new AnnotationController(svg);
-    annotationController.setAnnotationTextUpdatedCallback((annotationId, text) => {
-        modelController.updateAnnotationText(annotationId, text);
-        // TODO only update the one table that was changed
+    let dataController = new DataViewController(svg);
+    dataController.setTextUpdatedCallback((cellId, text) => {
+        modelController.updateText(cellId, text);
         dataTableController.updateTableData(modelController.getAllTables());
     });
-    annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
-        modelController.updateAnnotationTextOffset(annotationId, newOffset);
+    dataController.setTextMovedCallback((cellId, newOffset) => {
+        modelController.updateTextOffset(cellId, newOffset);
     });
-
-    let dataPointController = new DataPointController(svg);
 
     let lineDrawingController = new LineDrawingController(svg);
     lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
@@ -116,8 +112,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         dragController.linesUpdated(modelController.getTimelinePaths());
         ironController.linesUpdated(modelController.getTimelinePaths());
 
-        dataPointController.drawDataPoints(modelController.getBoundData());
-        annotationController.drawAnnotations(modelController.getAnnotations());
+        dataController.drawData(modelController.getBoundData());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
     }

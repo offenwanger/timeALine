@@ -1,4 +1,4 @@
-function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
+function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding) {
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
     const TICK_TARGET_SIZE = 10;
@@ -6,7 +6,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
     const TAIL_TICK_COUNT = 2;
 
     let mExernalCallGetUpdatedWarpSet = getUpdatedWarpSet;
-    let mExernalCallGetTimeForLinePercent = getTimeForLinePercent;
+    let mExernalCallMapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
     let mWarpControlsModifiedCallback = () => { };
 
     let mTailGroup = svg.append('g');
@@ -74,7 +74,7 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                             let positionBefore = path.getPointAtLength(dist - 1);
                             let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
                             let size = getTimeRatio(warpPoint, warpPointAfter, totalTime);
-                            let tickWarpPoint = new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, dist / totalLength), dist / totalLength);
+                            let tickWarpPoint = new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, dist / totalLength), dist / totalLength);
                             return { position, size: constrainValue(size), degrees, warpPoint: tickWarpPoint, color: 'black' };
                         })
                     tickData.push(...ticks);
@@ -90,14 +90,14 @@ function TimeWarpController(svg, getUpdatedWarpSet, getTimeForLinePercent) {
                 position: PathMath.getPositionForPercent(points, -percentInTail),
                 size: 1,
                 degrees: MathUtil.vectorToRotation(startTailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, -percentInTail), -percentInTail),
+                warpPoint: new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, -percentInTail), -percentInTail),
                 color: 'grey'
             })
             tickData.push({
                 position: PathMath.getPositionForPercent(points, 1 + percentInTail),
                 size: 1,
                 degrees: MathUtil.vectorToRotation(endTailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(mExernalCallGetTimeForLinePercent(id, 1 + percentInTail), 1 + percentInTail),
+                warpPoint: new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, 1 + percentInTail), 1 + percentInTail),
                 color: 'grey'
             })
         }

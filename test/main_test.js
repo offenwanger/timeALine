@@ -26,7 +26,6 @@ describe('Test Main - Integration Test', function () {
         let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
         let time_warp_controller = rewire('../js/time_warp_controller.js');
-        let annotation_controller = rewire('../js/annotation_controller.js');
         let data_controller = rewire('../js/data_controller.js');
 
         let utility = rewire('../js/utility.js');
@@ -34,7 +33,7 @@ describe('Test Main - Integration Test', function () {
         enviromentVariables = {
             d3: Object.assign({}, TestUtils.mockD3),
             $: TestUtils.makeMockJquery(),
-            Handsontable: Object.assign({}, TestUtils.mockHandsOnTable),
+            Handsontable: TestUtils.makeMockHandsOnTable,
             window: { innerWidth: 1000, innerHeight: 800 },
             ModelController: function () {
                 model_controller.__get__("ModelController").call(this);
@@ -43,8 +42,8 @@ describe('Test Main - Integration Test', function () {
             DataStructs: data_structures.__get__("DataStructs"),
             LineViewController: line_view_controller.__get__("LineViewController"),
             TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
-            AnnotationController: annotation_controller.__get__("AnnotationController"),
-            DataPointController: data_controller.__get__("DataPointController"),
+            DataViewController: data_controller.__get__("DataViewController"),
+            AnnotationController: data_controller.__get__("AnnotationController"),
             LineDrawingController: line_manipulation_tools_controller.__get__("LineDrawingController"),
             EraserController: line_manipulation_tools_controller.__get__("EraserController"),
             DragController: line_manipulation_tools_controller.__get__("DragController"),
@@ -259,7 +258,7 @@ describe('Test Main - Integration Test', function () {
             assert.notEqual(onLineDragEnd, null);
 
             onAddDatasheetClicked();
-            assert.equal(modelController.getAllTables().length, 2);
+            assert.equal(modelController.getAllTables().length, 1);
             assert.notEqual(onCellChanged, null);
 
             onCellChanged([
@@ -296,6 +295,233 @@ describe('Test Main - Integration Test', function () {
             assert.equal(modelController.getBoundData().find(item => item.axis).axis.val1, 10);
             assert.equal(modelController.getBoundData().find(item => item.axis).axis.val2, 20);
 
+        });
+    });
+
+    describe('comment test', function () {
+        it('should add a comment to a line', function () {
+            let onCommentClicked = null;
+            let onDrawLineClicked = null;
+            let onLineTargetClicked = null;
+            let onLineDragStart = null;
+            let onLineDrag = null;
+            let onLineDragEnd = null;
+
+            let lineDrawingG = Object.assign({}, TestUtils.mockElement);
+            lineDrawingG.append = function (type) {
+                if (type == 'path') {
+                    let p = Object.assign({}, TestUtils.mockElement);
+                    p.node = () => {
+                        let node = Object.assign({}, TestUtils.fakeSVGPath)
+                        node.d = this.attrs.d;
+                        return node;
+                    };
+                    return p;
+                } else return this;
+            }
+            lineDrawingG.call = function (drag) {
+                if (onLineDragStart) return;
+                onLineDragStart = drag.start;
+                onLineDrag = drag.drag;
+                onLineDragEnd = drag.end;
+                return this;
+            };
+
+            let timelineTarget = Object.assign({}, TestUtils.mockElement);
+            timelineTarget.on = function (e, func) {
+                if (e == "click") {
+                    onLineTargetClicked = func;
+                }
+            }
+
+            let mockElement = Object.assign({}, TestUtils.mockElement);
+            mockElement.attr = function (attr, val) {
+                if (attr == "id" && val == "line-drawing-g") {
+                    return lineDrawingG;
+                } else return this;
+            }
+            mockElement.classed = function (classed) {
+                if (classed == "timelineTarget") {
+                    return timelineTarget;
+                } else return this;
+            }
+
+            let mockSVG = Object.assign({}, TestUtils.mockSvg);
+            mockSVG.append = () => Object.assign({}, mockElement);
+            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+
+            let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
+            mockJqueryElement.on = function (e, func) {
+                if (this.id == "#line-drawing-button") {
+                    onDrawLineClicked = func
+                }
+
+                if (this.id == "#comment-button") {
+                    onCommentClicked = func
+                }
+            }
+            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+
+            setVariables();
+            mainInit();
+
+            assert.notEqual(onDrawLineClicked, null);
+            assert.notEqual(onCommentClicked, null);
+            assert.notEqual(onLineDragStart, null);
+            assert.notEqual(onLineDrag, null);
+            assert.notEqual(onLineDragEnd, null);
+
+            onDrawLineClicked();
+
+            onLineDragStart()
+            onLineDrag({ x: 100, y: 100 });
+            onLineDrag({ x: 110, y: 100 });
+            onLineDrag({ x: 120, y: 100 });
+            onLineDrag({ x: 150, y: 102 });
+            onLineDrag({ x: 90, y: 102 });
+            onLineDrag({ x: 40, y: 103 });
+            onLineDrag({ x: 10, y: 105 });
+            onLineDragEnd({ x: 10, y: 105 });
+
+            assert.equal(modelController.getAllTimelines().length, 1);
+            assert.notEqual(onLineTargetClicked, null);
+
+            onCommentClicked();
+            onLineTargetClicked({ x: 150, y: 102 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
+
+            assert.equal(modelController.getBoundData().length, 1);
+        });
+
+        it('should move a comment', function () {
+            let onCommentClicked = null;
+            let onDrawLineClicked = null;
+            let onLineTargetClicked = null;
+            let onLineDragStart = null;
+            let onLineDrag = null;
+            let onLineDragEnd = null;
+            let onCommentDrag = null;
+            let onCommentDragEnd = null;
+            let annotationData;
+
+            let lineDrawingG = Object.assign({}, TestUtils.mockElement);
+            lineDrawingG.append = function (type) {
+                if (type == 'path') {
+                    let p = Object.assign({}, TestUtils.mockElement);
+                    p.node = () => {
+                        let node = Object.assign({}, TestUtils.fakeSVGPath)
+                        node.d = this.attrs.d;
+                        return node;
+                    };
+                    return p;
+                } else return this;
+            }
+            lineDrawingG.call = function (drag) {
+                if (onLineDragStart) return;
+                onLineDragStart = drag.start;
+                onLineDrag = drag.drag;
+                onLineDragEnd = drag.end;
+                return this;
+            };
+
+            let timelineTarget = Object.assign({}, TestUtils.mockElement);
+            timelineTarget.on = function (e, func) {
+                if (e == "click") {
+                    onLineTargetClicked = func;
+                }
+            }
+
+            let mockElement = Object.assign({}, TestUtils.mockElement);
+            mockElement.attr = function (attr, val) {
+                if (attr == "id" && val == "line-drawing-g") {
+                    return lineDrawingG;
+                } else return this;
+            }
+            mockElement.classed = function (classed) {
+                if (classed == "timelineTarget") {
+                    return timelineTarget;
+                } else return this;
+            }
+
+            let mockAnnotation = Object.assign({}, TestUtils.mockAnnotation);
+            mockAnnotation.annotations = function (data) {
+                annotationData = data;
+                return this;
+            }
+            enviromentVariables.d3.annotation = () => mockAnnotation;
+
+            let mockAnnotationsSelection = Object.assign({}, TestUtils.mockElement);
+            mockAnnotationsSelection.call = function (drag) {
+                onCommentDrag = drag.drag;
+                onCommentDragEnd = drag.end;
+                return this;
+            }
+            mockAnnotationsSelection.attr = function (name, val = null) {
+                if (name == 'class') return annotationData[0].className;
+
+                if (val != null) {
+                    this.attrs[name] = val;
+                    return this;
+                } else return this.attrs[name];
+            },
+                enviromentVariables.d3.selectAll = () => Object.assign({}, mockAnnotationsSelection);
+
+            let mockSVG = Object.assign({}, TestUtils.mockSvg);
+            mockSVG.append = () => Object.assign({}, mockElement);
+            enviromentVariables.d3.select = (selection) => {
+                if (selection == '#svg_container') return Object.assign({}, mockSVG);
+                else return mockAnnotationsSelection;
+            };
+
+            let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
+            mockJqueryElement.on = function (e, func) {
+                if (this.id == "#line-drawing-button") {
+                    onDrawLineClicked = func
+                }
+
+                if (this.id == "#comment-button") {
+                    onCommentClicked = func
+                }
+            }
+            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+
+            setVariables();
+            mainInit();
+
+            assert.notEqual(onDrawLineClicked, null);
+            assert.notEqual(onCommentClicked, null);
+            assert.notEqual(onLineDragStart, null);
+            assert.notEqual(onLineDrag, null);
+            assert.notEqual(onLineDragEnd, null);
+
+            onDrawLineClicked();
+
+            onLineDragStart()
+            onLineDrag({ x: 100, y: 100 });
+            onLineDrag({ x: 110, y: 100 });
+            onLineDrag({ x: 120, y: 100 });
+            onLineDrag({ x: 150, y: 102 });
+            onLineDrag({ x: 90, y: 102 });
+            onLineDrag({ x: 40, y: 103 });
+            onLineDrag({ x: 10, y: 105 });
+            onLineDragEnd({ x: 10, y: 105 });
+
+            assert.equal(modelController.getAllTimelines().length, 1);
+            assert.notEqual(onLineTargetClicked, null);
+
+            onCommentClicked();
+            onLineTargetClicked({ x: 150, y: 102 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
+
+            assert.equal(modelController.getBoundData().length, 1);
+
+            assert.notEqual(onCommentDrag, null);
+            assert.notEqual(onCommentDragEnd, null);
+
+            onCommentDrag({ dx: 10, dy: 10 });
+            onCommentDragEnd({ dx: 0, dy: 0 });
+
+            assert.equal(modelController.getBoundData().length, 1);
+
+            expect(modelController.getBoundData()[0].offset).to.eql({ x: 20, y: 20 });
         });
     })
 });

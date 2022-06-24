@@ -1,8 +1,4 @@
 function ModelController() {
-    let mAnnotationsTable = new DataStructs.DataTable([
-        new DataStructs.DataColumn("time", 0),
-        new DataStructs.DataColumn("text", 1)
-    ]);
     let mTimelines = [];
     let mDataTables = [];
 
@@ -23,11 +19,6 @@ function ModelController() {
     function createTimeline(points) {
         let timeline = new DataStructs.Timeline();
         timeline.linePath.points = points;
-
-        // attach the annotation dataset
-        timeline.annotationDataset.table = mAnnotationsTable.id;
-        timeline.annotationDataset.timeCol = mAnnotationsTable.dataColumns[0].id;
-        timeline.annotationDataset.valCol = mAnnotationsTable.dataColumns[1].id;
 
         return timeline;
     }
@@ -90,12 +81,13 @@ function ModelController() {
         let endEndWarp = endTimeline.warpPoints[endTimeline.warpPoints.length - 1]
 
         let newTimeline = createTimeline(newPoints);
-        newTimeline.annotationDataset = mergeDataset(startTimeline.annotationDataset, endTimeline.annotationDataset);
+        newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
 
         mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
         mTimelines.push(newTimeline);
 
         // Update warp point line percents
+        // TODO: Merge warp points...
         let conversionRatio = originalStartLength / newLength;
         startTimeline.warpPoints.forEach(point => {
             point.linePercent *= conversionRatio;
@@ -139,22 +131,6 @@ function ModelController() {
 
         // TODO: Merge data (I think this is just concat the sets)
         return [timelineIdStart, timelineIdEnd];
-    }
-
-    function mergeDataset(dataset1, dataset2) {
-        // TODO: Think this through, do the tables and columns need to be the same?
-        if (dataset1.table != dataset2.table) throw Error("Incompatible sets, different tables");
-        if (dataset1.timeCol != dataset2.timeCol) throw Error("Incompatible sets, different time columns");
-        if (dataset1.valCol != dataset2.valCol) throw Error("Incompatible sets, different time columns");
-
-        let mergedDataset = new DataStructs.DataSet();
-        mergedDataset.table = dataset1.table;
-        mergedDataset.timeCol = dataset1.timeCol;
-        mergedDataset.valCol = dataset1.valCol;
-        mergedDataset.dataRows = [... new Set(dataset1.dataRows.concat(dataset2.dataRows))];
-        // TODO: Handle YAxis...
-
-        return mergedDataset;
     }
 
     function deletePoints(mask) {
@@ -240,30 +216,12 @@ function ModelController() {
                     }
 
                     if (!segment.covered) {
-                        segment.annotationIds = [];
-                        // Collect all the relevant annotations
-                        timeline.annotationDataset.dataRows.forEach(rowId => {
-                            let row = mAnnotationsTable.getRow(rowId);
-                            let timeBinding = row.getCell(timeline.annotationDataset.timeCol).val;
-                            let startTime = segment.warpPoints[0].timeBinding;
-                            let endTime = segment.warpPoints[segment.warpPoints.length - 1].timeBinding;
-
-                            if (TimeBindingUtil.AGreaterThanB(timeBinding, startTime) &&
-                                TimeBindingUtil.AGreaterThanB(endTime, timeBinding)) {
-                                segment.annotationIds.push(row.id);
-                            }
-                        })
-                    }
-
-                    //TODO divide datasets (though I think it's really more copy than divide...)
-                    // this.dataSets = [];
-
-                    if (!segment.covered) {
+                        // TODO: Fix this
                         let newTimeline = createTimeline(segment.points);
                         newTimeline.warpPoints = segment.warpPoints;
 
-                        newTimeline.annotationDataset = timeline.annotationDataset.clone();
-                        newTimeline.annotationDataset.dataRows = segment.annotationIds;
+                        // TODO only keep bindings sitting in this segment?
+                        newTimeline.cellBindings = [...timeline.cellBindings];
 
                         currentTimelines.push(newTimeline)
                     }
@@ -320,10 +278,6 @@ function ModelController() {
                     })
             }
         })
-    }
-
-    function updateWarpControls(timelineId, newControlSet) {
-        getTimelineById(timelineId).warpPoints = newControlSet;
     }
 
     function getUpdatedWarpSet(timelineId, modifiedWarpPoint) {
@@ -394,215 +348,43 @@ function ModelController() {
         return newWarpPoints;
     }
 
-    function getTimeForLinePercent(timelineId, percent) {
-        return getTimeForTimelineLinePercent(getTimelineById(timelineId), percent);
-    }
-
-    function getTimeForTimelineLinePercent(timeline, percent) {
-        if (percent < 0) {
-            let startTime = timeline.warpPoints[0].timeBinding;
-            let minTime = getMinTime(timeline);
-
-            let tailTimeSpan = TimeBindingUtil.timeBetweenAandB(startTime, minTime);
-            if (startTime == minTime) {
-                tailTimeSpan = TimeBindingUtil.timeBetweenAandB(startTime, timeline.warpPoints[1].timeBinding);
-            }
-
-            return TimeBindingUtil.incrementBy(startTime.clone(), percent * tailTimeSpan)
-
-        } else if (percent > 1) {
-            let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding;
-            let maxTime = getMaxTime(timeline);
-
-            let tailTimeSpan = TimeBindingUtil.timeBetweenAandB(endTime, maxTime);
-            if (endTime == maxTime) {
-                tailTimeSpan = TimeBindingUtil.timeBetweenAandB(endTime, timeline.warpPoints[timeline.warpPoints.length - 2].timeBinding);
-            }
-
-            return TimeBindingUtil.incrementBy(endTime.clone(), (percent - 1) * tailTimeSpan)
-        } else {
-            let warpPoints = timeline.warpPoints;
-            for (let index = 0; index < warpPoints.length - 1; index++) {
-                if (percent <= warpPoints[index + 1].linePercent) {
-                    // percent is between this point and this next
-                    let percentBetweenPoints = (percent - warpPoints[index].linePercent) / (warpPoints[index + 1].linePercent - warpPoints[index].linePercent);
-                    let timeBetweenPoints = TimeWarpUtil.timeBetweenAandB(warpPoints[index], warpPoints[index + 1]);
-                    return TimeBindingUtil.incrementBy(warpPoints[index].timeBinding.clone(), percentBetweenPoints * timeBetweenPoints)
-                }
-            }
+    function addBoundTextRow(text, timeBinding, timelineId) {
+        if (mDataTables.length == 0) {
+            let newTable = new DataStructs.DataTable([
+                new DataStructs.DataColumn("Time", 0),
+                new DataStructs.DataColumn("", 1),
+            ]);
+            mDataTables.push(newTable);
         }
+
+        let newRow = new DataStructs.DataRow();
+        newRow.index = mDataTables[0].dataRows.length;
+        mDataTables[0].dataRows.push(newRow);
+
+        let timeColId = mDataTables[0].dataColumns.find(col => col.index == 0).id;
+        let timeCell = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding, timeColId)
+        newRow.dataCells.push(timeCell);
+
+        let nextColId = mDataTables[0].dataColumns.find(col => col.index == 1).id;
+        let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId, { x: 10, y: 10 })
+        newRow.dataCells.push(textCell);
+
+        let newBinding = new DataStructs.CellBinding(mDataTables[0].id, newRow.id, nextColId, textCell.id);
+        getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
-    function getTimelineLinePercentForTime(timeline, time) {
-        if (TimeBindingUtil.AGreaterThanB(timeline.warpPoints[0].timeBinding, time)) {
-            // time is in the tail
-            let startTime = timeline.warpPoints[0].timeBinding;
-            let minTime = getMinTime(timeline);
-
-            let tailTimeSpan = TimeBindingUtil.timeBetweenAandB(startTime, minTime);
-            if (startTime == minTime) {
-                tailTimeSpan = TimeBindingUtil.timeBetweenAandB(startTime, timeline.warpPoints[1].timeBinding);
-            }
-
-            return 0 - TimeBindingUtil.timeBetweenAandB(timeline.warpPoints[0].timeBinding, time) / tailTimeSpan;
-        } else if (TimeBindingUtil.AGreaterThanB(time, timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding)) {
-            // time is in the tail
-            let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding; timeline.dataSets.concat([timeline.annotationDataset])
-            let maxTime = getMaxTime(timeline);
-
-            let tailTimeSpan = TimeBindingUtil.timeBetweenAandB(endTime, maxTime);
-            if (endTime == maxTime) {
-                tailTimeSpan = TimeBindingUtil.timeBetweenAandB(endTime, timeline.warpPoints[timeline.warpPoints.length - 2].timeBinding);
-            }
-
-            return 1 + (TimeBindingUtil.timeBetweenAandB(timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding, time) / tailTimeSpan);
-        } else {
-            let warpPoints = timeline.warpPoints;
-            for (let index = 0; index < warpPoints.length - 1; index++) {
-                if (TimeBindingUtil.AGreaterThanB(warpPoints[index + 1].timeBinding, time)) {
-                    // time is between this point and this next
-                    let percentBetweenPoints = TimeBindingUtil.timeBetweenAandB(time, warpPoints[index].timeBinding) / TimeWarpUtil.timeBetweenAandB(warpPoints[index + 1], warpPoints[index]);
-                    return percentBetweenPoints * (warpPoints[index + 1].linePercent - warpPoints[index].linePercent) + warpPoints[index].linePercent;
-                }
-            }
-        }
+    function updateText(cellId, text) {
+        let cell = getCellById(cellId);
+        cell.val = text;
     }
 
-    function getMinTime(timeline) {
-        let startTime = timeline.warpPoints[0].timeBinding;
-        return [timeline.annotationDataset]
-            .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
-            .filter(val => {
-                if (val instanceof DataStructs.TimeBinding) return true;
-                else {
-                    let infer = DataUtil.inferDataAndType(val);
-                    return infer.type == TimeBindingTypes.TIMESTRAMP || infer.type == DataTypes.NUM;
-                }
-            })
-            .map(val => {
-                if (val instanceof DataStructs.TimeBinding) return val
-                else {
-                    let infer = DataUtil.inferDataAndType(val);
-                    if (infer.type == TimeBindingTypes.TIMESTRAMP) {
-                        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val)
-                    } else if (type == DataTypes.NUM) {
-                        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val)
-                    }
-                }
-            })
-            .flat()
-            .reduce((min, curr) => TimeBindingUtil.ALessThanB(min, curr) ? min : curr, startTime);
+    function updateTextOffset(cellId, offset) {
+        let cell = getCellById(cellId);
+        cell.offset = offset;
     }
 
-    function getMaxTime(timeline) {
-        let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding;
-        return [timeline.annotationDataset]
-            .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
-            .filter(val => {
-                if (val instanceof DataStructs.TimeBinding) return true;
-                else {
-                    let infer = DataUtil.inferDataAndType(val);
-                    return infer.type == TimeBindingTypes.TIMESTRAMP || infer.type == DataTypes.NUM;
-                }
-            })
-            .map(val => {
-                if (val instanceof DataStructs.TimeBinding) return val
-                else {
-                    let infer = DataUtil.inferDataAndType(val);
-                    if (infer.type == TimeBindingTypes.TIMESTRAMP) {
-                        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val)
-                    } else if (type == DataTypes.NUM) {
-                        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val)
-                    }
-                }
-            })
-            .flat()
-            .reduce((max, curr) => TimeBindingUtil.AGreaterThanB(max, curr) ? max : curr, endTime);
-    }
-
-    function getDataValues(tableId, columnId, rowIds) {
-        if (rowIds.length == 0) return [];
-
-        let table = tableId == mAnnotationsTable.id ? mAnnotationsTable : mDataTables.find(table => table.id == tableId);
-
-        if (!table) throw Error("invalid table Id! " + tableId);
-
-        let rows = table.dataRows.filter(row => rowIds.includes(row.id));
-        return rows.map(row => {
-            let item = row.dataCells.find(item => item.columnId == columnId);
-            return item ? item.val : null;
-        });
-    }
-
-    function addNewAnnotation(text, timeBinding, id) {
-        let annotation = new DataStructs.DataRow();
-
-        let timeBindingItem = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding)
-        annotation.dataCells.push(timeBindingItem);
-
-        let textItem = new DataStructs.DataCell(DataTypes.TEXT, text, null, { x: 10, y: 10 })
-        annotation.dataCells.push(textItem);
-
-        // set the columns and the index
-        annotation.index = mAnnotationsTable.dataRows.length;
-        annotation.dataCells.find(item => item.type == DataTypes.TIME_BINDING).columnId = mAnnotationsTable.dataColumns[0].id;
-        annotation.dataCells.find(item => item.type == DataTypes.TEXT).columnId = mAnnotationsTable.dataColumns[1].id;
-        // add to the table
-        mAnnotationsTable.dataRows.push(annotation);
-
-        let timeline = getTimelineById(id);
-        timeline.annotationDataset.dataRows.push(annotation.id);
-    }
-
-    function getAnnotations() {
-        let annotationData = []
-        mTimelines.forEach(timeline => {
-            timeline.annotationDataset.dataRows.forEach(rowId => {
-                let row = mAnnotationsTable.getRow(rowId);
-                if (row) {
-                    let textCell = row.getCell(timeline.annotationDataset.valCol);
-                    let timeCell = row.getCell(timeline.annotationDataset.timeCol);
-                    let percent = 0;
-                    if (timeCell.type == DataTypes.TIME_BINDING && timeCell.valid) {
-                        percent = getTimelineLinePercentForTime(timeline, timeCell.val);
-                    } else {
-                        let infer = DataUtil.inferDataAndType(timeCell.val);
-                        if (infer.type == TimeBindingTypes.TIMESTRAMP) {
-                            percent = getTimelineLinePercentForTime(timeline, new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, infer.val));
-                        } else if (infer.type == DataTypes.NUM) {
-                            percent = getTimelineLinePercentForTime(timeline, new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, infer.val));
-                        }
-                    }
-                    let position = PathMath.getPositionForPercent(timeline.linePath.points, percent);
-
-                    annotationData.push({
-                        position,
-                        text: textCell.val,
-                        offset: textCell.offset,
-                        id: row.id
-                    })
-                } else console.error("Row not in table!");
-            })
-        })
-
-        return annotationData;
-    }
-
-
-    function updateAnnotationText(annotationId, text) {
-        let annotation = mAnnotationsTable.getRow(annotationId);
-        // TODO make this more robust, i.e. keep track of which column is the text column
-        // for now, just find the first text column
-        let textCell = annotation.dataCells.find(item => item.type == DataTypes.TEXT);
-        textCell.val = text;
-    }
-
-    function updateAnnotationTextOffset(annotationId, offset) {
-        let annotation = mAnnotationsTable.getRow(annotationId);
-        // TODO make this more robust, i.e. keep track of which column is the text column
-        // for now, just find the first text column
-        let textCell = annotation.dataCells.find(item => item.type == DataTypes.TEXT);
-        textCell.offset = offset;
+    function getCellById(cellId) {
+        return mDataTables.map(t => t.dataRows.map(r => r.dataCells)).flat(3).find(cell => cell.id == cellId);
     }
 
     function getTimelineById(id) {
@@ -656,15 +438,7 @@ function ModelController() {
 
     function tableUpdated(table) {
         let index = mDataTables.findIndex(t => t.id == table.id);
-        if (index == -1) {
-            if (mAnnotationsTable.id == table.id) {
-                mAnnotationsTable = table;
-            } else {
-                console.error("Invalid table id! ", table.id);
-            }
-        } else {
-            mDataTables[index] = table;
-        }
+        mDataTables[index] = table;
     }
 
     function bindCells(lineId, cellBindings) {
@@ -706,10 +480,7 @@ function ModelController() {
 
     function getBoundData() {
         let data = []
-        let datasets = [];
         mTimelines.forEach(timeline => {
-            let numWarpBindings = getWarpBindings(timeline.id, DataTypes.NUM);
-            let timeWarpBindings = getWarpBindings(timeline.id, DataTypes.NUM);
 
             timeline.cellBindings.forEach(binding => {
                 let tableId = binding.tableId;
@@ -730,23 +501,22 @@ function ModelController() {
                 if (warpBinding) {
                     linePercent = warpBinding.linePercent;
                 } else {
-
                     if (!timeCell.isValid) {
                         linePercent = 0;
                     } else {
                         let timeType = timeCell.getType();
                         if (timeType == DataTypes.TIME_BINDING) {
-                            mapTimeToLinePercent(timeWarpBindings, timeCell.getValue());
+                            linePercent = mapTimeBindingToLinePercent(timeline.id, timeCell.getValue());
                         } else if (timeType == DataTypes.NUM) {
-                            mapNumToLinePercent(numWarpBindings, timeCell.getValue());
+                            linePercent = mapTimeBindingToLinePercent(timeline.id, new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, timeCell.getValue()));
                         } else {
                             linePercent = 0;
                         }
-
                     }
                 }
 
                 data.push({
+                    id: cell.id,
                     type: cell.getType(),
                     line: timeline.linePath.points,
                     linePercent,
@@ -759,16 +529,6 @@ function ModelController() {
         })
 
         return data;
-    }
-
-    function mapTimeToLinePercent() {
-        console.log("Finish me!");
-        return 0.5;
-    }
-
-    function mapNumToLinePercent() {
-        console.log("Finish me!");
-        return 0.5;
     }
 
     function getWarpBindings(timelineId, type) {
@@ -786,22 +546,16 @@ function ModelController() {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
-    function sortCellBindings(cellBindings) {
-        return Object.values(cellBindings.reduce(function (arr, binding) {
-            if (!arr[binding.columnId]) { arr[binding.columnId] = []; }
-            arr[binding.columnId].push(binding);
-            return arr;
-        }, {}));
+    function mapTimeBindingToLinePercent(timelineId, timeBinding) {
+        let numWarpBindings = getWarpBindings(timelineId, DataTypes.NUM);
+        let timeWarpBindings = getWarpBindings(timelineId, DataTypes.TIME_BINDING);
+        console.log("Finish me!");
+        return 0.5;
     }
 
-    function getDataRows(tableId, rowIds) {
-        if (rowIds.length == 0) return [];
-
-        let table = tableId == mAnnotationsTable.id ? mAnnotationsTable : mDataTables.find(table => table.id == tableId);
-
-        if (!table) throw Error("invalid table Id! " + tableId);
-
-        return table.dataRows.filter(row => rowIds.includes(row.id));
+    function mapLinePercentToTimeBinding(timelineId, percent) {
+        console.log("Finish me!");
+        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, 0.5);
     }
 
     this.newTimeline = newTimeline;
@@ -811,25 +565,23 @@ function ModelController() {
     this.deletePoints = deletePoints;
     this.pointsUpdated = pointsUpdated;
 
-    this.updateWarpControls = updateWarpControls;
     this.getTimelineById = getTimelineById;
     this.getAllTimelines = () => [...mTimelines];
 
     this.addTable = addTable;
     this.addTableFromCSV = addTableFromCSV;
-    this.getAllTables = () => [mAnnotationsTable, ...mDataTables];
+    this.getAllTables = () => [...mDataTables];
     this.tableUpdated = tableUpdated;
-
-    this.getUpdatedWarpSet = getUpdatedWarpSet;
-    this.getTimeForLinePercent = getTimeForLinePercent;
-
-    this.addNewAnnotation = addNewAnnotation;
-    this.getAnnotations = getAnnotations;
-    this.updateAnnotationText = updateAnnotationText;
-    this.updateAnnotationTextOffset = updateAnnotationTextOffset;
 
     this.getTimelinePaths = function () { return mTimelines.map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }) };
 
+    this.addBoundTextRow = addBoundTextRow;
     this.bindCells = bindCells;
     this.getBoundData = getBoundData;
+
+    this.mapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
+
+    this.updateText = updateText;
+    this.updateTextOffset = updateTextOffset;
+
 }
