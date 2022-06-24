@@ -470,7 +470,7 @@ function ModelController() {
 
     function getMinTime(timeline) {
         let startTime = timeline.warpPoints[0].timeBinding;
-        return timeline.dataSets.concat([timeline.annotationDataset])
+        return [timeline.annotationDataset]
             .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
             .filter(val => {
                 if (val instanceof DataStructs.TimeBinding) return true;
@@ -495,8 +495,8 @@ function ModelController() {
     }
 
     function getMaxTime(timeline) {
-        let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding; timeline.dataSets.concat([timeline.annotationDataset])
-        return timeline.dataSets.concat([timeline.annotationDataset])
+        let endTime = timeline.warpPoints[timeline.warpPoints.length - 1].timeBinding;
+        return [timeline.annotationDataset]
             .map(dataset => getDataValues(dataset.table, dataset.timeCol, dataset.dataRows))
             .filter(val => {
                 if (val instanceof DataStructs.TimeBinding) return true;
@@ -609,6 +609,9 @@ function ModelController() {
         return mTimelines.find(t => t.id == id);
     }
 
+    function getTableById(id) {
+        return mDataTables.find(t => t.id == id);
+    }
 
     function addTable(table) {
         // TODO validate table.
@@ -664,6 +667,143 @@ function ModelController() {
         }
     }
 
+    function bindCells(lineId, cellBindings) {
+        let timeline = getTimelineById(lineId);
+        let filteredBindings = cellBindings.filter(binding => getTimeColumn(binding.tableId).id != binding.columnId);
+        timeline.cellBindings.push(...filteredBindings);
+        // clear out duplicates
+        timeline.cellBindings = DataUtil.getUniqueList(timeline.cellBindings, "cellId");
+
+        let oldAxes = timeline.axisBindings;
+        timeline.axisBindings = []
+
+        let columnsIds = DataUtil.getUniqueList(timeline.cellBindings.map(c => c.columnId));
+        columnsIds.forEach(columnId => {
+            let tableId = timeline.cellBindings.find(binding => binding.columnId == columnId).tableId;
+            let table = getTableById(tableId);
+            let rowIds = timeline.cellBindings.filter(binding => binding.columnId == columnId).map(b => b.rowId);
+            let rows = rowIds.map(rowId => table.getRow(rowId));
+            let cells = rows.map(row => row.getCell(columnId));
+            let numCells = cells.filter(cell => cell.getType() == DataTypes.NUM && cell.isValid())
+            // TODO: Handle invalid cells
+            if (numCells.length > 0) {
+                let min = Math.min(...numCells.map(i => i.getValue()));
+                let max = Math.max(...numCells.map(i => i.getValue()));
+                let axis = oldAxes.find(a => a.columnId == columnId);
+
+                if (!axis) {
+                    axis = new DataStructs.AxisBinding(columnId);
+                    axis.dist1 = 1;
+                    axis.dist2 = 10;
+                }
+
+                axis.val1 = min;
+                axis.val2 = max;
+                timeline.axisBindings.push(axis)
+            }
+        });
+    }
+
+    function getBoundData() {
+        let data = []
+        let datasets = [];
+        mTimelines.forEach(timeline => {
+            let numWarpBindings = getWarpBindings(timeline.id, DataTypes.NUM);
+            let timeWarpBindings = getWarpBindings(timeline.id, DataTypes.NUM);
+
+            timeline.cellBindings.forEach(binding => {
+                let tableId = binding.tableId;
+                let table = getTableById(tableId);
+                let columnId = binding.columnId;
+                let timeColId = table.dataColumns.find(col => col.index == 0).id;
+                let row = table.getRow(binding.rowId);
+                let cell = row.getCell(binding.columnId);
+                let timeCell = row.getCell(timeColId);
+
+                if (!cell.isValid()) {
+                    console.error("Handle this!");
+                    return;
+                }
+
+                let linePercent;
+                let warpBinding = timeline.warpBindings.find(wb => wb.rowId == binding.rowId);
+                if (warpBinding) {
+                    linePercent = warpBinding.linePercent;
+                } else {
+
+                    if (!timeCell.isValid) {
+                        linePercent = 0;
+                    } else {
+                        let timeType = timeCell.getType();
+                        if (timeType == DataTypes.TIME_BINDING) {
+                            mapTimeToLinePercent(timeWarpBindings, timeCell.getValue());
+                        } else if (timeType == DataTypes.NUM) {
+                            mapNumToLinePercent(numWarpBindings, timeCell.getValue());
+                        } else {
+                            linePercent = 0;
+                        }
+
+                    }
+                }
+
+                data.push({
+                    type: cell.getType(),
+                    line: timeline.linePath.points,
+                    linePercent,
+                    val: cell.getValue(),
+                    offset: cell.offset,
+                    axis: timeline.axisBindings.find(a => a.columnId == columnId)
+                });
+
+            })
+        })
+
+        return data;
+    }
+
+    function mapTimeToLinePercent() {
+        console.log("Finish me!");
+        return 0.5;
+    }
+
+    function mapNumToLinePercent() {
+        console.log("Finish me!");
+        return 0.5;
+    }
+
+    function getWarpBindings(timelineId, type) {
+        return getTimelineById(timelineId).warpBindings
+            .filter(b => b.isValid)
+            .map(b => getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id))
+            .filter(cell => cell.getType() == type);
+    }
+
+    function getTableRow(tableId, rowId) {
+        return getTableById(tableId).getRow(rowId);
+    }
+
+    function getTimeColumn(tableId) {
+        return getTableById(tableId).dataColumns.find(col => col.index == 0);
+    }
+
+    function sortCellBindings(cellBindings) {
+        return Object.values(cellBindings.reduce(function (arr, binding) {
+            if (!arr[binding.columnId]) { arr[binding.columnId] = []; }
+            arr[binding.columnId].push(binding);
+            return arr;
+        }, {}));
+    }
+
+    function getDataRows(tableId, rowIds) {
+        if (rowIds.length == 0) return [];
+
+        let table = tableId == mAnnotationsTable.id ? mAnnotationsTable : mDataTables.find(table => table.id == tableId);
+
+        if (!table) throw Error("invalid table Id! " + tableId);
+
+        return table.dataRows.filter(row => rowIds.includes(row.id));
+    }
+
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
     this.mergeTimeline = mergeTimeline;
@@ -689,4 +829,7 @@ function ModelController() {
     this.updateAnnotationTextOffset = updateAnnotationTextOffset;
 
     this.getTimelinePaths = function () { return mTimelines.map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }) };
+
+    this.bindCells = bindCells;
+    this.getBoundData = getBoundData;
 }

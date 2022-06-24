@@ -7,9 +7,13 @@ let DataStructs = function () {
 
     function Timeline() {
         this.id = getUniqueId();
-        this.warpPoints = [];
         this.linePath = new LinePath();
-        this.dataSets = [];
+        this.cellBindings = [];
+        this.warpBindings = [];
+        this.axisBindings = [];
+
+        // DEPRECATED: TODO: to remove
+        this.warpPoints = [];
         this.annotationDataset = new DataSet();
     }
 
@@ -28,6 +32,31 @@ let DataStructs = function () {
     function LinePath() {
         this.id = getUniqueId();
         this.points = [];
+    }
+
+    function CellBinding(tableId, rowId, columnId, cellId) {
+        this.tableId = tableId;
+        this.rowId = rowId;
+        this.columnId = columnId;
+        this.cellId = cellId;
+    }
+
+    function WarpBinding(tableId, rowId, linePercent, isValid = true) {
+        this.tableId = tableId;
+        this.rowId = rowId;
+        this.linePercent = linePercent;
+        this.isValid = isValid;
+    }
+
+    // These are only for number sets now, but if we get 
+    // another type (i.e. duration) might need a 'type' specifier. 
+    function AxisBinding(columnId) {
+        this.columnId = columnId;
+        this.val1 = 0;
+        this.dist1 = 0;
+        this.val2 = 1;
+        this.dist2 = 1;
+        this.lineBinding = 1;
     }
 
     // subset of a data table
@@ -110,7 +139,40 @@ let DataStructs = function () {
         this.val = val;
         this.columnId = columnId;
         this.offset = offset
-        this.valid = valid;
+
+        this.isValid = function () {
+            switch (this.type) {
+                case DataTypes.TEXT:
+                    return true;
+                case DataTypes.NUM:
+                    if (DataUtil.isNumeric(this.val)) return true;
+                    else return false;
+                case DataTypes.TIME_BINDING:
+                    return DataUtil.isDate(this.val);
+                case DataTypes.UNSPECIFIED:
+                    return true;
+            }
+        }
+
+        this.getValue = function () {
+            // if this isn't valid, return a string to display.
+            if (!this.isValid()) return this.val.toString();
+
+            switch (this.type) {
+                case DataTypes.TEXT:
+                    return this.val.toString();
+                case DataTypes.NUM:
+                    return parseFloat("" + this.val);
+                case DataTypes.TIME_BINDING:
+                    return this.val instanceof TimeBinding ? this.val : new TimeBinding(TimeBindingTypes.TIMESTRAMP, Date.parse(val));
+                case DataTypes.UNSPECIFIED:
+                    return DataUtil.inferDataAndType(this.val).val;
+            }
+        }
+
+        this.getType = function () {
+            return this.type == DataTypes.UNSPECIFIED ? DataUtil.inferDataAndType(this.val).type : this.type;
+        }
     }
 
     function TimeBinding(type = TimeBindingTypes.PLACE_HOLDER, value = 0) {
@@ -158,13 +220,17 @@ let DataStructs = function () {
         Timeline,
         WarpPoint,
         LinePath,
-        DataSet,
-        YAxis,
+        CellBinding,
+        WarpBinding,
+        AxisBinding,
         DataTable,
         DataColumn,
         DataRow,
         DataCell,
         TimeBinding,
+        // Deprecated
+        DataSet,
+        YAxis,
     }
 }();
 

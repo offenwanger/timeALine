@@ -326,11 +326,16 @@ let DataUtil = function () {
             return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
         } else if (cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.PLACE_HOLDER) {
             return { val: cellVal.placeHolder, type: DataTypes.NUM }
-        } else if (!isNaN(Date.parse(cellVal))) {
-            return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
+        } else if (isDate(cellVal)) {
+            if (cellVal instanceof DataStructs.TimeBinding) return cellVal;
+            else return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
         } else {
             return { val: cellVal, type: DataTypes.TEXT }
         }
+    }
+
+    function isDate(val) {
+        return val instanceof DataStructs.TimeBinding || !isNaN(Date.parse(val));
     }
 
     function isNumeric(val) {

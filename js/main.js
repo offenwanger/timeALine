@@ -27,7 +27,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             annotationController.drawAnnotations(modelController.getAnnotations());
             dataTableController.updateTableData(modelController.getAllTables());
         } else if (mode == MODE_LINK) {
-            console.log(id, linePoint)
+            modelController.bindCells(id, dataTableController.getSelectedCells());
+            dataPointController.drawDataPoints(modelController.getBoundData());
+            annotationController.drawAnnotations(modelController.getAnnotations());
         }
     })
 
@@ -47,6 +49,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     annotationController.setAnnotationMovedCallback((annotationId, newOffset) => {
         modelController.updateAnnotationTextOffset(annotationId, newOffset);
     });
+
+    let dataPointController = new DataPointController(svg);
 
     let lineDrawingController = new LineDrawingController(svg);
     lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
@@ -112,6 +116,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         dragController.linesUpdated(modelController.getTimelinePaths());
         ironController.linesUpdated(modelController.getTimelinePaths());
 
+        dataPointController.drawDataPoints(modelController.getBoundData());
         annotationController.drawAnnotations(modelController.getAnnotations());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());

@@ -12,7 +12,7 @@ function DataTableController() {
             if (table.id in hotTables) {
                 hotTables[table.id].loadData(simplifyDataset(table.getDataset()));
             } else {
-                hotTables[table.id] = addTable(table);
+                addTable(table);
             }
         })
     }
@@ -53,6 +53,38 @@ function DataTableController() {
             outsideClickDeselects,
             licenseKey: 'non-commercial-and-evaluation' // for non-commercial use only
         });
+
+        hot.getSelectionData = function () {
+            let data = [];
+            let selected = hot.getSelected() || [];
+            if (selected.length == 1 &&
+                selected[0][0] == -1 &&
+                selected[0][1] == -1 &&
+                selected[0][2] == -1 &&
+                selected[0][3] == -1) return;
+
+            selected.forEach(select => {
+                // selection can be 0 if the row/col header is selected.
+                let startCol = Math.max(0, select[0]);
+                let endCol = Math.max(0, select[2]);
+                let startRow = Math.max(0, select[1]);
+                let endRow = Math.max(0, select[3]);
+
+                for (let col = startCol; col <= endCol; col++) {
+                    for (let row = startRow; row <= endRow; row++) {
+                        let tableId = table.id;
+                        // TODO: verify datarow is actually found;
+                        let dataRow = table.dataRows.find(r => r.index == row);
+                        let rowId = dataRow.id;
+                        let columnId = table.dataColumns.find(c => c.index == col).id;
+                        let cellId = dataRow.getCell(columnId).id;
+                        data.push(new DataStructs.CellBinding(tableId, rowId, columnId, cellId));
+                    }
+                }
+            })
+
+            return data;
+        }
 
         function afterChange(changes) {
             // Note: this function calls every time we load data. 
@@ -313,7 +345,15 @@ function DataTableController() {
             return false;
         }
 
-        return hot;
+        hotTables[table.id] = hot;
+    }
+
+    function getSelectedCells() {
+        let data = [];
+        Object.values(hotTables).forEach(hot => {
+            data.push(...hot.getSelectionData());
+        });
+        return data;
     }
 
     // this functions takes complex data types and simplifies them for table display
@@ -335,6 +375,7 @@ function DataTableController() {
     this.addTable = addTable;
     this.updateTableData = updateTableData;
     this.setTableUpdatedCallback = (callback) => mTableUpdatedCallback = callback;
+    this.getSelectedCells = getSelectedCells;
     this.setOnSelectionCallback = (callback) => mSelectionCallback = callback;
     this.openTableView = () => mDrawerController.openDrawer();
     this.closeTableView = () => mDrawerController.closeDrawer();

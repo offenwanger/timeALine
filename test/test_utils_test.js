@@ -62,7 +62,11 @@ before(function () {
             }
         },
 
-        mockHandsOnTable: function (div, init) { },
+        mockHandsOnTable: function (div, init) {
+            return {
+                getSelected: function () { return null }
+            }
+        },
 
         mockElement: {
             attrs: {},
