@@ -7,12 +7,12 @@ before(function () {
 
     TestUtils = {
         fakeSVGPath: {
-            setAttribute: (attrName, attr) => {
+            setAttribute: function (attrName, attr) {
                 if (attrName == "d") {
                     this.d = attr;
                 }
             },
-            getTotalLength: () => {
+            getTotalLength: function () {
                 let d = this.d;
                 // aproximate the d value
                 let len = 0;
@@ -25,7 +25,7 @@ before(function () {
                 }
                 return len;
             },
-            getPointAtLength: (length) => {
+            getPointAtLength: function (length) {
                 let d = this.d;
                 if (length < 0) return d[0];
 
@@ -81,12 +81,14 @@ before(function () {
             classed: function () { return this; },
             call: function () { return this; },
             on: function () { return this; },
-            append: function () { return Object.assign({}, TestUtils.mockElement) },
-            selectAll: function () { return Object.assign({}, TestUtils.mockElement) },
+            append: function () { return Object.assign({}, this) },
+            select: function () { return this; },
+            selectAll: function () { return this; },
             remove: () => { },
             data: function (data) { innerData = data; return this; },
-            exit: function () { return Object.assign({}, TestUtils.mockElement) },
-            enter: function () { return Object.assign({}, TestUtils.mockElement) },
+            exit: function () { return this; },
+            enter: function () { return this; },
+            node: function () { },
         },
 
         mockSvg: {
@@ -99,16 +101,10 @@ before(function () {
         },
 
         mockD3: {
-            line: () => Object.assign({}, mockLine),
-            line: () => {
-                return {
-                    x: function () { return this },
-                    y: function () { return this },
-                    curve: function () { return function (val) { return val } },
-                }
-            },
+            line: () => Object.assign({}, TestUtils.mockLine),
             curveCatmullRom: { alpha: () => { } },
             select: () => Object.assign({}, TestUtils.mockSvg),
+            selectAll: () => Object.assign({}, TestUtils.mockElement),
             annotation: () => Object.assign({}, TestUtils.mockAnnotation),
             drag: () => Object.assign({}, TestUtils.mockDrag),
         },
@@ -134,7 +130,8 @@ before(function () {
         },
 
         mockAnnotation: {
-
+            accessors: function () { return this },
+            annotations: function () { return this },
         },
 
         makeMockJquery: (mockJqueryElement = null) => {

@@ -95,59 +95,60 @@ function LineDrawingController(svg) {
     }
 
     function onDragEnd(e) {
-        if (mActive) {
-            let mousePoint = { x: e.x, y: e.y };
-            let dragEndPoint = null;
-            if (!mDragStartParams.startPoint) {
-                let minCircle = mStartPoints.reduce((min, curr) => {
-                    if (MathUtil.distanceFromAToB(curr.point, mousePoint) < min.dist && (!mDragStartParams.endPoint || curr.id != mDragStartParams.endPoint)) {
-                        return { id: curr.id, dist: MathUtil.distanceFromAToB(curr, mousePoint) };
-                    } else return min;
-                }, { dist: EXTENSION_POINT_RADIUS })
+        if (mDraggedPoints.length > 1) {
+            if (mActive) {
+                let mousePoint = { x: e.x, y: e.y };
+                let dragEndPoint = null;
+                if (!mDragStartParams.startPoint) {
+                    let minCircle = mStartPoints.reduce((min, curr) => {
+                        if (MathUtil.distanceFromAToB(curr.point, mousePoint) < min.dist && (!mDragStartParams.endPoint || curr.id != mDragStartParams.endPoint)) {
+                            return { id: curr.id, dist: MathUtil.distanceFromAToB(curr, mousePoint) };
+                        } else return min;
+                    }, { dist: EXTENSION_POINT_RADIUS })
 
-                if (minCircle.id) {
-                    dragEndPoint = minCircle;
+                    if (minCircle.id) {
+                        dragEndPoint = minCircle;
+                    }
                 }
-            }
 
-            let endOnEndPoint = false;
-            if (!mDragStartParams.endPoint) {
-                let minCircle = mEndPoints.reduce((min, curr) => {
-                    if (MathUtil.distanceFromAToB(curr.point, mousePoint) < min.dist && (!mDragStartParams.startPoint || curr.id != mDragStartParams.startPoint)) {
-                        return { id: curr.id, dist: MathUtil.distanceFromAToB(curr, mousePoint) };
-                    } else return min;
-                }, { dist: dragEndPoint ? dragEndPoint.dist : EXTENSION_POINT_RADIUS })
+                let endOnEndPoint = false;
+                if (!mDragStartParams.endPoint) {
+                    let minCircle = mEndPoints.reduce((min, curr) => {
+                        if (MathUtil.distanceFromAToB(curr.point, mousePoint) < min.dist && (!mDragStartParams.startPoint || curr.id != mDragStartParams.startPoint)) {
+                            return { id: curr.id, dist: MathUtil.distanceFromAToB(curr, mousePoint) };
+                        } else return min;
+                    }, { dist: dragEndPoint ? dragEndPoint.dist : EXTENSION_POINT_RADIUS })
 
-                if (minCircle.id) {
-                    endOnEndPoint = true;
-                    dragEndPoint = minCircle;
+                    if (minCircle.id) {
+                        endOnEndPoint = true;
+                        dragEndPoint = minCircle;
+                    }
                 }
-            }
 
-            if (endOnEndPoint || mDragStartParams.startPoint) {
-                // if we ended on an end point or started on a start point, reverse the array so the first 
-                // points will be close to the end point, and the last points will be close to the start point
-                mDraggedPoints = mDraggedPoints.reverse();
-                mDrawingLine.attr('d', PathMath.getPathD(mDraggedPoints));
-            }
-
-            let startPointLineId = mDragStartParams.startPoint ? mDragStartParams.startPoint : null;
-            let endPointLineId = mDragStartParams.endPoint ? mDragStartParams.endPoint : null;
-
-
-            if (dragEndPoint) {
-                if (endOnEndPoint) {
-                    endPointLineId = dragEndPoint.id;
-                } else {
-                    startPointLineId = dragEndPoint.id;
+                if (endOnEndPoint || mDragStartParams.startPoint) {
+                    // if we ended on an end point or started on a start point, reverse the array so the first 
+                    // points will be close to the end point, and the last points will be close to the start point
+                    mDraggedPoints = mDraggedPoints.reverse();
+                    mDrawingLine.attr('d', PathMath.getPathD(mDraggedPoints));
                 }
+
+                let startPointLineId = mDragStartParams.startPoint ? mDragStartParams.startPoint : null;
+                let endPointLineId = mDragStartParams.endPoint ? mDragStartParams.endPoint : null;
+
+
+                if (dragEndPoint) {
+                    if (endOnEndPoint) {
+                        endPointLineId = dragEndPoint.id;
+                    } else {
+                        startPointLineId = dragEndPoint.id;
+                    }
+                }
+
+
+                let result = getPointsFromLine(mDrawingLine, mLineResolution);
+
+                mDrawFinishedCallback(result, startPointLineId, endPointLineId);
             }
-
-
-            let result = getPointsFromLine(mDrawingLine, mLineResolution);
-
-            mDrawFinishedCallback(result, startPointLineId, endPointLineId);
-
             // reset
             mDraggedPoints = [];
             mDrawingLine.attr('d', PathMath.getPathD([]));
