@@ -10,7 +10,6 @@ describe('Test LayoutController', function () {
     let getDragController;
     let enviromentVariables;
     let line_manipulation_tools_controller;
-    let mockDrag;
 
     beforeEach(function (done) {
         line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
@@ -50,7 +49,7 @@ describe('Test LayoutController', function () {
     describe('drag test', function () {
         it('should start drag without error', function () {
             let dragStart;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
@@ -80,7 +79,7 @@ describe('Test LayoutController', function () {
     describe('drag test', function () {
         it('should drag start of line without error', function () {
             let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
@@ -126,7 +125,7 @@ describe('Test LayoutController', function () {
         describe('drag test', function () {
             it('should drag end of line without error', function () {
                 let dragStart, drag, dragEnd;
-                let mockDrag = Object.assign(TestUtils.mockDrag);
+                let mockDrag = Object.assign({}, TestUtils.mockDrag);
                 enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
                 mockDrag.on = function (event, func) {
                     switch (event) {
@@ -172,7 +171,7 @@ describe('Test LayoutController', function () {
 
         it('should drag points in middle of line', function () {
             let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
@@ -227,7 +226,7 @@ describe('Test LayoutController', function () {
 
         it('should create appropriate new points for line with no points', function () {
             let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
@@ -285,7 +284,7 @@ describe('Test LayoutController', function () {
 
         it('should create appropriate new points for line with points', function () {
             let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
@@ -344,7 +343,7 @@ describe('Test LayoutController', function () {
 
         it('should drag line between points', function () {
             let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign(TestUtils.mockDrag);
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
             enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
             mockDrag.on = function (event, func) {
                 switch (event) {
