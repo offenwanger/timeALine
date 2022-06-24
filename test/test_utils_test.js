@@ -62,7 +62,7 @@ before(function () {
             }
         },
 
-        mockHandsOnTable: function (div, init) {
+        makeMockHandsOnTable: function (div, init) {
             return {
                 getSelected: function () { return null }
             }

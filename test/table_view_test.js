@@ -33,7 +33,7 @@ describe('Test TableViewer', function () {
 
         enviromentVariables = {
             $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.mockHandsOnTable,
+            Handsontable: TestUtils.makeMockHandsOnTable,
             DataStructs,
             DataUtil: utility.__get__('DataUtil'),
         }
