@@ -5,9 +5,10 @@ let expect = chai.expect;
 
 describe('Test PathMath', function () {
     let PathMath;
+    let enviromentVariables;
 
     beforeEach(function (done) {
-        let enviromentVariables = {
+        enviromentVariables = {
             document: TestUtils.fakeDocument,
             d3: {
                 line: () => {
@@ -30,12 +31,12 @@ describe('Test PathMath', function () {
     });
 
     afterEach(function (done) {
-        PathMath = null;
-        // No cleanup needed yet
+        Object.keys(enviromentVariables).forEach((key) => {
+            delete global[key];
+        })
+        delete enviromentVariables;
+        delete PathMath;
         done();
-
-        global.document = null;
-        global.d3 = null;
     });
 
     describe('path length test', function () {
