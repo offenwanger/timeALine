@@ -257,9 +257,9 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
                 });
                 div.show();
                 let str;
-                if (d.warpPoint.timeBinding.type == TimeBindingTypes.TIMESTRAMP) str = new Date(d.warpPoint.timeBinding.timestamp).toDateString()
-                else if (d.warpPoint.timeBinding.type == TimeBindingTypes.PLACE_HOLDER) str = (d.warpPoint.timeBinding.placeHolder * 100).toFixed(0) + "%";
-                else { console.error("Error, invalid type: " + d.warpPoint.timeBinding.type); str = "Error" }
+
+                str = "Impliment me!"
+
                 div.html(str);
             })
             .on("mouseout", function () {

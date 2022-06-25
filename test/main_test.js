@@ -51,7 +51,6 @@ describe('Test Main - Integration Test', function () {
             DataTableController: table_view_controller.__get__("DataTableController"),
             PathMath: utility.__get__("PathMath"),
             MathUtil: utility.__get__("MathUtil"),
-            TimeWarpUtil: utility.__get__("TimeWarpUtil"),
             DataUtil: utility.__get__("DataUtil"),
             TimeBindingUtil: utility.__get__("TimeBindingUtil"),
         }

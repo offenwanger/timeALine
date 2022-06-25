@@ -22,7 +22,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let lineViewController = new LineViewController(svg);
     lineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mode == MODE_COMMENT) {
-            let timeBinding = modelController.mapLinePercentToTimeBinding(timelineId, linePoint.percent);
+            let type = DataTypes.NUM;
+            if (modelController.hasTimeMapping(timelineId)) type = DataTypes.TIME_BINDING;
+            let timeBinding = modelController.mapLinePercentToTimeBinding(timelineId, type, linePoint.percent);
 
             modelController.addBoundTextRow(timeBinding.toString(), timeBinding, timelineId);
             dataController.drawData(modelController.getBoundData());

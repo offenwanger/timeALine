@@ -213,39 +213,6 @@ let PathMath = function () {
     }
 }();
 
-let TimeWarpUtil = function () {
-    const PLACE_HOLDER = TimeBindingTypes.PLACE_HOLDER;
-    const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
-
-    function timeOfAGreaterThanB(a, b) {
-        return TimeBindingUtil.AGreaterThanB(a.timeBinding, b.timeBinding);
-    }
-
-    function timeBetweenAandB(a, b) {
-        return TimeBindingUtil.timeBetweenAandB(a.timeBinding, b.timeBinding);
-    }
-
-    function averageAandB(a, b) {
-        return new DataStructs.WarpPoint(TimeBindingUtil.averageAandB(a.timeBinding, b.timeBinding), (a.linePercent + b.linePercent) / 2)
-    }
-
-    function incrementBy(warpPoint, time) {
-        if (warpPoint.timeBinding.type == PLACE_HOLDER) {
-            warpPoint.timeBinding.placeHolder += time;
-        } else if (warpPoint.timeBinding.type == TIMESTRAMP) {
-            warpPoint.timeBinding.timestamp += time;
-        }
-        return warpPoint;
-    }
-
-    return {
-        timeOfAGreaterThanB,
-        timeBetweenAandB,
-        averageAandB,
-        incrementBy,
-    }
-}();
-
 let TimeBindingUtil = function () {
     const PLACE_HOLDER = TimeBindingTypes.PLACE_HOLDER;
     const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
@@ -274,6 +241,18 @@ let TimeBindingUtil = function () {
         }
     }
 
+    function AEqualsB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
+
+            return a.placeHolder == b.placeHolder;
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
+
+            return a.timestamp == b.timestamp;
+        }
+    }
+
     function timeBetweenAandB(a, b) {
         if (a.type == PLACE_HOLDER) {
             if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
@@ -283,6 +262,32 @@ let TimeBindingUtil = function () {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
             return Math.abs(a.timestamp - b.timestamp);
+        }
+    }
+
+    function subtractAFromB(a, b) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return b.placeHolder - a.placeHolder;
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+
+            return b.timestamp - a.timestamp;
+        }
+    }
+
+    function percentBetweenAandB(a, b, val) {
+        if (a.type == PLACE_HOLDER) {
+            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+            if (val.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
+
+            return (val - a.placeHolder) / (b.placeHolder - a.placeHolder);
+        } else if (a.type == TIMESTRAMP) {
+            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
+            if (val.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
+
+            return (val - a.timestamp) / (b.timestamp - a.timestamp);
         }
     }
 
@@ -310,7 +315,10 @@ let TimeBindingUtil = function () {
     return {
         AGreaterThanB,
         ALessThanB,
+        AEqualsB,
         timeBetweenAandB,
+        subtractAFromB,
+        percentBetweenAandB,
         averageAandB,
         incrementBy,
     }

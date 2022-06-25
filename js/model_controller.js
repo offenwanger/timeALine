@@ -32,33 +32,21 @@ function ModelController() {
         timeline.linePath.points = newPoints;
         if (extendStart) {
             let diff = newLength - originalLength;
-            timeline.warpPoints.forEach(point => {
-                let originalLengthAlongLine = point.linePercent * originalLength;
-                point.linePercent = (originalLengthAlongLine + diff) / newLength;
+            timeline.warpBindings.forEach(binding => {
+                let originalLengthAlongLine = binding.linePercent * originalLength;
+                binding.linePercent = (originalLengthAlongLine + diff) / newLength;
             })
-
-            let startPoint = timeline.warpPoints[0].clone();
-            startPoint.isStart = false;
-            timeline.warpPoints = getUpdatedWarpSet(timeline.id, startPoint);
         } else {
             let conversionRatio = originalLength / newLength;
-            timeline.warpPoints.forEach(point => {
-                point.linePercent *= conversionRatio;
+            timeline.warpBindings.forEach(binding => {
+                binding.linePercent *= conversionRatio;
             })
-            let endPoint = timeline.warpPoints[timeline.warpPoints.length - 1].clone();
-            endPoint.isEnd = false;
-            timeline.warpPoints = getUpdatedWarpSet(timeline.id, endPoint);
         }
     }
 
     function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
         let startTimeline = getTimelineById(timelineIdStart);
         let endTimeline = getTimelineById(timelineIdEnd);
-
-        if (startTimeline.warpPoints[0].timeBinding.type != endTimeline.warpPoints[0].timeBinding.type) {
-            console.error("incompatible timeline, display user error message!");
-            return [];
-        }
 
         let originalStartLength = PathMath.getPathLength(startTimeline.linePath.points);
         let originalEndLength = PathMath.getPathLength(endTimeline.linePath.points);
@@ -70,61 +58,60 @@ function ModelController() {
         let newPoints = startTimeline.linePath.points.concat(points, endTimeline.linePath.points);
         let newLength = PathMath.getPathLength(newPoints);
 
-        let startStartWarp = startTimeline.warpPoints[0]
-        let startEndWarp = startTimeline.warpPoints[startTimeline.warpPoints.length - 1]
-        let endStartWarp = endTimeline.warpPoints[0]
-        let endEndWarp = endTimeline.warpPoints[endTimeline.warpPoints.length - 1]
-
         let newTimeline = createTimeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
 
         mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
         mTimelines.push(newTimeline);
 
-        // Update warp point line percents
-        // TODO: Merge warp points...
+        // Update warp binding line percents
         let conversionRatio = originalStartLength / newLength;
-        startTimeline.warpPoints.forEach(point => {
-            point.linePercent *= conversionRatio;
+        startTimeline.warpBindings.forEach(binding => {
+            binding.linePercent *= conversionRatio;
         });
-        startTimeline.warpPoints[startTimeline.warpPoints.length - 1].isEnd = false;
 
         let diff = newLength - originalEndLength;
-        endTimeline.warpPoints.forEach(point => {
-            let originalLengthAlongLine = point.linePercent * originalEndLength;
-            point.linePercent = (originalLengthAlongLine + diff) / newLength;
+        endTimeline.warpBindings.forEach(binding => {
+            let originalLengthAlongLine = binding.linePercent * originalEndLength;
+            binding.linePercent = (originalLengthAlongLine + diff) / newLength;
+        });
+
+        newTimeline.warpBindings = startTimeline.warpBindings.concat(endTimeline.warpBindings);
+        newTimeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; })
+        let bindingCheck = newTimeline.warpBindings.map(b => {
+            let timeCell = getTableById(b.tableId).getRow(b.rowId).getCell(getTimeColumn(b.tableId).id);
+            return {
+                rowId: b.rowId,
+                val: timeCell.getValue(),
+                type: timeCell.getType(),
+                linePercent: b.linePercent
+            }
+        });
+        // only num and time can be invalid
+        let lastBinding;
+        let invalidWarpBindings = [];
+        // the list is sorted, so val must be in acending order or the binding isn't valid
+        bindingCheck.filter(b => b.type == DataTypes.NUM).forEach((binding) => {
+            if (lastBinding && lastBinding.val >= binding.val) {
+                invalidWarpBindings.push(binding.rowId);
+            } else {
+                lastBinding = binding;
+            }
         })
-        endTimeline.warpPoints[0].isStart = false;
+        lastBinding = null;
+        bindingCheck.filter(b => b.type == DataTypes.TIME_BINDING).forEach((binding) => {
+            if (lastBinding && TimeBindingUtil.AGreaterThanB(lastBinding.val, binding.val)) {
+                invalidWarpBindings.push(binding.rowId);
+            } else {
+                lastBinding = binding;
+            }
+        })
+        newTimeline.warpBindings.forEach(binding => {
+            if (invalidWarpBindings.includes(binding.rowId)) {
+                binding.isValid = false;
+            }
+        })
 
-        newTimeline.warpPoints = startTimeline.warpPoints.concat(endTimeline.warpPoints);
-
-        // Handle timeoverlap
-        if (TimeWarpUtil.timeOfAGreaterThanB(startEndWarp, endStartWarp)) {
-
-            let startPoint = new DataStructs.WarpPoint;
-            startPoint.isStart = true;
-            startPoint.linePercent = 0;
-            startPoint.timeBinding = TimeWarpUtil.timeOfAGreaterThanB(startStartWarp, endStartWarp) ? endStartWarp.timeBinding : startStartWarp.timeBinding;
-
-            let endPoint = new DataStructs.WarpPoint;
-            endPoint.isEnd = true;
-            endPoint.linePercent = 1;
-            endPoint.timeBinding = TimeWarpUtil.timeOfAGreaterThanB(startEndWarp, endEndWarp) ? startEndWarp.timeBinding : endEndWarp.timeBinding;
-
-            let allPoints = newTimeline.warpPoints;
-            newTimeline.warpPoints = [startPoint, endPoint];
-            allPoints.forEach(point => {
-                if (point.linePercent > 0 &&
-                    point.linePercent < 1 &&
-                    TimeWarpUtil.timeOfAGreaterThanB(endPoint, point) &&
-                    TimeWarpUtil.timeOfAGreaterThanB(point, startPoint)) {
-                    // if it's somewhere in the middle, just throw it in...
-                    newTimeline.warpPoints = getUpdatedWarpSet(newTimeline.id, point);
-                }
-            })
-        }
-
-        // TODO: Merge data (I think this is just concat the sets)
         return [timelineIdStart, timelineIdEnd];
     }
 
@@ -132,6 +119,8 @@ function ModelController() {
         let currentTimelines = [];
         let removedTimelines = [];
         mTimelines.forEach(timeline => {
+            timeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; })
+
             let segments = [{ covered: mask.isCovered(timeline.linePath.points[0]), points: [timeline.linePath.points[0]] }]
 
             // TODO: Subdivide the line segment to get a more exact erase in the affected areas
@@ -165,57 +154,47 @@ function ModelController() {
 
                     segment.endPercent = (segment.length / totalLength) + segment.startPercent;
 
-                    segment.warpPoints = [];
+                    segment.warpBindings = [];
 
-                    for (warpIndex; warpIndex < timeline.warpPoints.length; warpIndex++) {
-                        if (timeline.warpPoints[warpIndex].linePercent <= segment.endPercent) {
-                            let warpPoint = timeline.warpPoints[warpIndex].clone();
-                            warpPoint.linePercent -= segment.startPercent
-                            warpPoint.linePercent /= segment.endPercent - segment.startPercent;
-                            segment.warpPoints.push(warpPoint);
+                    for (warpIndex; warpIndex < timeline.warpBindings.length; warpIndex++) {
+                        // if the line percent is on this segment (or if this is the last segment just put on everything that's left)
+                        if (timeline.warpBindings[warpIndex].linePercent <= segment.endPercent || i == segments.length - 1) {
+                            let binding = timeline.warpBindings[warpIndex].clone();
+                            binding.linePercent -= segment.startPercent
+                            binding.linePercent /= segment.endPercent - segment.startPercent;
+                            segment.warpBindings.push(binding);
                         } else {
                             break;
                         }
                     }
 
-                    if (segment.warpPoints.length == 0 || !segment.warpPoints[0].isStart) {
-                        if (segment.warpPoints.length > 0 && segment.warpPoints[0].linePercent < 0.001 && !segment.warpPoints[0].isEnd) {
-                            segment.warpPoints[0].linePercent = 0;
-                            segment.warpPoints[0].isStart = true;
-                        } else {
-                            let startPoint = new DataStructs.WarpPoint()
-                            startPoint.linePercent = 0;
-                            startPoint.timeBinding = getTimeForTimelineLinePercent(timeline, segment.startPercent);
-                            startPoint.isStart = true;
-                            segment.warpPoints.unshift(startPoint);
-                        }
-                    }
-
-                    let lastWarpPoint = segment.warpPoints.length - 1;
-                    if (lastWarpPoint == 0 || !segment.warpPoints[lastWarpPoint].isEnd) {
-                        if (lastWarpPoint > 0 && segment.warpPoints[lastWarpPoint].linePercent > 0.990) {
-                            segment.warpPoints[lastWarpPoint].linePercent = 1;
-                            segment.warpPoints[lastWarpPoint].isEnd = true;
-                        } else if (i == segments.length - 1) {
-                            // If we're the last segment we should have the last warp point. 
-                            // We might not have claimed it already because the total lengths of
-                            // all the segments will likely not quite add up to 1  
-                            segment.warpPoints.push(timeline.warpPoints[timeline.warpPoints.length - 1]);
-                        } else {
-                            let endPoint = new DataStructs.WarpPoint()
-                            endPoint.linePercent = 1;
-                            endPoint.timeBinding = getTimeForTimelineLinePercent(timeline, segment.endPercent);
-                            endPoint.isEnd = true;
-                            segment.warpPoints.push(endPoint);
-                        }
-                    }
-
                     if (!segment.covered) {
-                        // TODO: Fix this
                         let newTimeline = createTimeline(segment.points);
-                        newTimeline.warpPoints = segment.warpPoints;
+                        newTimeline.warpBindings = segment.warpBindings;
 
-                        // TODO only keep bindings sitting in this segment?
+                        if (i > 0) {
+                            if (hasTimeMapping(timeline.id)) {
+                                let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                                let binding = createAndAddBindingRow(0, time)
+                                newTimeline.warpBindings.push(binding);
+                            }
+
+                            let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, segment.startPercent);
+                            let binding = createAndAddBindingRow(0, time)
+                            newTimeline.warpBindings.push(binding);
+                        }
+                        if (i < segments.length - 1) {
+                            if (hasTimeMapping(timeline.id)) {
+                                let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                                let binding = createAndAddBindingRow(1, time)
+                                newTimeline.warpBindings.push(binding);
+                            }
+
+                            let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, segment.endPercent);
+                            let binding = createAndAddBindingRow(1, time)
+                            newTimeline.warpBindings.push(binding);
+                        }
+
                         newTimeline.cellBindings = [...timeline.cellBindings];
 
                         currentTimelines.push(newTimeline)
@@ -264,83 +243,15 @@ function ModelController() {
                 let newInterval = newEndPercent - newStartPercent;
                 let oldInterval = oldEndPercent - oldStartPercent;
 
-                timeline.warpPoints
-                    .filter(warpPoint =>
-                        warpPoint.linePercent >= oldStartPercent &&
-                        warpPoint.linePercent <= oldEndPercent)
-                    .forEach(warpPoint => {
-                        warpPoint.linePercent = (((warpPoint.linePercent - oldStartPercent) / oldInterval) * newInterval) + newStartPercent;
+                timeline.warpBindings
+                    .filter(binding =>
+                        binding.linePercent >= oldStartPercent &&
+                        binding.linePercent <= oldEndPercent)
+                    .forEach(binding => {
+                        binding.linePercent = (((binding.linePercent - oldStartPercent) / oldInterval) * newInterval) + newStartPercent;
                     })
             }
         })
-    }
-
-    function getUpdatedWarpSet(timelineId, modifiedWarpPoint) {
-        let timeline = getTimelineById(timelineId);
-
-        if (!timeline) { console.error("Invalid timeline id!", timelineId); return [] };
-
-        let warpPoints = timeline.warpPoints;
-
-        // validate the warp point;
-        if (modifiedWarpPoint.linePercent < 0) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
-        if (modifiedWarpPoint.linePercent > 1) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
-        if (modifiedWarpPoint.linePercent == 0 && !modifiedWarpPoint.isStart) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
-        if (modifiedWarpPoint.linePercent == 1 && !modifiedWarpPoint.isEnd) { console.error("Invalid warp point!", modifiedWarpPoint); return warpPoints };
-
-        let newWarpPoints = [];
-        if (modifiedWarpPoint.isStart) {
-            newWarpPoints.push(modifiedWarpPoint);
-            warpPoints.forEach(point => {
-                if (!point.isStart && TimeWarpUtil.timeOfAGreaterThanB(point, modifiedWarpPoint)) {
-                    newWarpPoints.push(point);
-                }
-            })
-        } else if (modifiedWarpPoint.isEnd) {
-            warpPoints.forEach(point => {
-                if (!point.isEnd && TimeWarpUtil.timeOfAGreaterThanB(modifiedWarpPoint, point)) {
-                    newWarpPoints.push(point);
-                }
-            })
-            newWarpPoints.push(modifiedWarpPoint);
-        } else {
-            let addedPoint = false;
-            warpPoints.forEach(point => {
-                if (point.id != modifiedWarpPoint.id) {
-                    if (!addedPoint && point.linePercent > modifiedWarpPoint.linePercent) {
-                        newWarpPoints.push(modifiedWarpPoint);
-                        addedPoint = true;
-                    }
-
-                    if (TimeWarpUtil.timeOfAGreaterThanB(modifiedWarpPoint, point) && modifiedWarpPoint.linePercent > point.linePercent) {
-                        newWarpPoints.push(point);
-                    } else if (TimeWarpUtil.timeOfAGreaterThanB(point, modifiedWarpPoint) && point.linePercent > modifiedWarpPoint.linePercent) {
-                        newWarpPoints.push(point);
-                    }
-                }
-            })
-
-            if (!addedPoint) newWarpPoints.push(modifiedWarpPoint);
-            if (!warpPoints[0].isStart || !warpPoints[warpPoints.length - 1].isEnd) { console.error("Unhandled edge case!!", warpPoints, modifiedWarpPoint); return warpPoints; }
-        }
-
-        if (!newWarpPoints[0].isStart) {
-            let totalTime = TimeWarpUtil.timeBetweenAandB(newWarpPoints[newWarpPoints.length - 1], newWarpPoints[0]);
-            let linePercent = newWarpPoints[0].linePercent;
-            let timeToEnd = (linePercent * totalTime) / (1 - linePercent)
-            newWarpPoints.unshift(TimeWarpUtil.incrementBy(
-                new DataStructs.WarpPoint(newWarpPoints[0].timeBinding.clone(), 0, true, false), -timeToEnd));
-        }
-
-        if (!newWarpPoints[newWarpPoints.length - 1].isEnd) {
-            let totalTime = TimeWarpUtil.timeBetweenAandB(newWarpPoints[newWarpPoints.length - 1], newWarpPoints[0]);
-            let linePercent = newWarpPoints[newWarpPoints.length - 1].linePercent;
-            let timeToEnd = (1 - linePercent) * totalTime / linePercent;
-            newWarpPoints.push(TimeWarpUtil.incrementBy(
-                new DataStructs.WarpPoint(newWarpPoints[newWarpPoints.length - 1].timeBinding.clone(), 1, false, true), timeToEnd));
-        }
-
-        return newWarpPoints;
     }
 
     function addBoundTextRow(text, timeBinding, timelineId) {
@@ -364,8 +275,40 @@ function ModelController() {
         let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId, { x: 10, y: 10 })
         newRow.dataCells.push(textCell);
 
+        for (let i = 2; i < mDataTables[0].dataColumns.length; i++) {
+            let colId = mDataTables[0].dataColumns.find(col => col.index == i).id;
+            let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
+            newRow.dataCells.push(cell);
+        }
+
         let newBinding = new DataStructs.CellBinding(mDataTables[0].id, newRow.id, nextColId, textCell.id);
         getTimelineById(timelineId).cellBindings.push(newBinding);
+    }
+
+    function createAndAddBindingRow(linePercent, timeBinding) {
+        if (mDataTables.length == 0) {
+            let newTable = new DataStructs.DataTable([
+                new DataStructs.DataColumn("Time", 0),
+                new DataStructs.DataColumn("", 1),
+            ]);
+            mDataTables.push(newTable);
+        }
+
+        let newRow = new DataStructs.DataRow();
+        newRow.index = mDataTables[0].dataRows.length;
+        mDataTables[0].dataRows.push(newRow);
+
+        let timeColId = mDataTables[0].dataColumns.find(col => col.index == 0).id;
+        let timeCell = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding, timeColId)
+        newRow.dataCells.push(timeCell);
+
+        for (let i = i; i < mDataTables[0].dataColumns.length; i++) {
+            let colId = mDataTables[0].dataColumns.find(col => col.index == i).id;
+            let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
+            newRow.dataCells.push(cell);
+        }
+
+        return new DataStructs.WarpBinding(mDataTables[0].id, newRow.id, linePercent, true);
     }
 
     function updateText(cellId, text) {
@@ -476,15 +419,8 @@ function ModelController() {
     function getBoundData() {
         let data = []
         mTimelines.forEach(timeline => {
-
             timeline.cellBindings.forEach(binding => {
-                let tableId = binding.tableId;
-                let table = getTableById(tableId);
-                let columnId = binding.columnId;
-                let timeColId = table.dataColumns.find(col => col.index == 0).id;
-                let row = table.getRow(binding.rowId);
-                let cell = row.getCell(binding.columnId);
-                let timeCell = row.getCell(timeColId);
+                let { cell, timeCell } = getCellFromBinding(binding);
 
                 if (!cell.isValid()) {
                     console.error("Handle this!");
@@ -500,10 +436,12 @@ function ModelController() {
                         linePercent = 0;
                     } else {
                         let timeType = timeCell.getType();
+                        // TODO: Clean this
                         if (timeType == DataTypes.TIME_BINDING) {
-                            linePercent = mapTimeBindingToLinePercent(timeline.id, timeCell.getValue());
+                            if (hasTimeMapping(timeline.id)) linePercent = mapTimeBindingToLinePercent(timeline.id, timeType, timeCell.getValue());
+                            else linePercent = 0;
                         } else if (timeType == DataTypes.NUM) {
-                            linePercent = mapTimeBindingToLinePercent(timeline.id, new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, timeCell.getValue()));
+                            linePercent = mapTimeBindingToLinePercent(timeline.id, timeType, timeCell.getValue());
                         } else {
                             linePercent = 0;
                         }
@@ -513,17 +451,30 @@ function ModelController() {
                 data.push({
                     id: cell.id,
                     type: cell.getType(),
-                    line: timeline.linePath.points,
-                    linePercent,
                     val: cell.getValue(),
                     offset: cell.offset,
-                    axis: timeline.axisBindings.find(a => a.columnId == columnId)
+                    line: timeline.linePath.points,
+                    linePercent,
+                    axis: timeline.axisBindings.find(a => a.columnId == binding.columnId)
                 });
 
             })
         })
 
         return data;
+    }
+
+    function getCellFromBinding(binding) {
+        let table = getTableById(binding.tableId);
+        let timeColId = table.dataColumns.find(col => col.index == 0).id;
+        let row = table.getRow(binding.rowId);
+        let cell = row.getCell(binding.columnId);
+        let timeCell = row.getCell(timeColId);
+
+        return {
+            timeCell,
+            cell,
+        }
     }
 
     function updateWarpBinding(timelineId, warpBinding) {
@@ -551,13 +502,6 @@ function ModelController() {
         });
     }
 
-    function getWarpBindings(timelineId, type) {
-        return getTimelineById(timelineId).warpBindings
-            .filter(b => b.isValid)
-            .map(b => getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id))
-            .filter(cell => cell.getType() == type);
-    }
-
     function getTableRow(tableId, rowId) {
         return getTableById(tableId).getRow(rowId);
     }
@@ -566,16 +510,227 @@ function ModelController() {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
-    function mapTimeBindingToLinePercent(timelineId, timeBinding) {
-        let numWarpBindings = getWarpBindings(timelineId, DataTypes.NUM);
-        let timeWarpBindings = getWarpBindings(timelineId, DataTypes.TIME_BINDING);
-        console.log("Finish me!");
-        return 0.5;
+    function mapTimeBindingToLinePercent(timelineId, type, val) {
+        let { max, min, warpBindingsData, greaterThan, percentBetween } = getMaxMinWarpBindingsCompare(timelineId, type);
+
+        if (warpBindingsData.length == 0) {
+            return percentBetween(min, max, val)
+        } else {
+            if (warpBindingsData[0].linePercent > 0) {
+                warpBindingsData.push({ val: min, linePercent: 0 });
+            }
+            if (warpBindingsData[0].linePercent < 1) {
+                warpBindingsData.push({ val: max, linePercent: 1 });
+            }
+
+            for (let i = 1; i < warpBindingsData.length; i++) {
+                if (greaterThan(val, warpBindingsData[i - 1].val) && greaterThan(warpBindingsData[i].val, val)) {
+                    return percentBetween(warpBindingsData[i - 1].val, warpBindingsData[i].val) + warpBindingsData[i - 1].linePercent;
+                }
+            }
+
+            console.error("Unhandle edge case!", max, min, val);
+            return 0;
+        }
     }
 
-    function mapLinePercentToTimeBinding(timelineId, percent) {
-        console.log("Finish me!");
-        return new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, 0.5);
+    function mapLinePercentToTimeBinding(timelineId, type, linePercent) {
+        let { max, min, warpBindingsData, greaterThan, subtract, incrementBy } = getMaxMinWarpBindingsCompare(timelineId, type);
+
+        if (warpBindingsData.length == 0) {
+            return incrementBy(min, subtract(max, min) * linePercent);
+        } else {
+            if (warpBindingsData[0].linePercent > 0) {
+                warpBindingsData.push({ val: min, linePercent: 0 });
+            }
+            if (warpBindingsData[0].linePercent < 1) {
+                warpBindingsData.push({ val: max, linePercent: 1 });
+            }
+
+            for (let i = 1; i < warpBindingsData.length; i++) {
+                if (greaterThan(linePercent, warpBindingsData[i - 1].linePercent) && greaterThan(warpBindingsData[i].linePercent, linePercent)) {
+                    return incrementBy(warpBindingsData[i - 1].val, subtract(warpBindingsData[i].val, warpBindingsData[i - 1].val) * linePercent);
+                }
+            }
+
+            console.error("Unhandle edge case!", max, min, val);
+            return 0;
+        }
+    }
+
+    function getMaxMinWarpBindingsCompare(timelineId, type) {
+        let greaterThan;
+        let subtract;
+        let equals;
+        let incrementBy;
+        let percentBetween;
+        if (type == DataTypes.TIME_BINDING) {
+            greaterThan = TimeBindingUtil.AGreaterThanB;
+            subtract = TimeBindingUtil.subtractAFromB;
+            equals = TimeBindingUtil.AEqualsB;
+            incrementBy = TimeBindingUtil.incrementBy;
+            percentBetween = TimeBindingUtil.percentBetweenAandB;
+        } else if (type == DataTypes.NUM) {
+            greaterThan = (a, b) => a > b;
+            subtract = (a, b) => b - a;
+            equals = (a, b) => a == b;
+            incrementBy = (a, b) => a + b;
+            percentBetween = (a, b, v) => (v - a) / (b - a);
+        } else { console.error("cannot map type " + type); return 0; }
+
+        let warpBindingsData = getTimelineById(timelineId).warpBindings
+            .filter(b => b.isValid)
+            .map(b => {
+                let cell = getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id)
+                return { linePercent: b.linePercent, val: cell.getValue(), type: cell.getType() }
+            })
+            .filter(result => result.type == type);
+        warpBindingsData.sort((a, b) => greaterThan(a.val, b.val) ? 1 : -1);
+
+        let max = getMaxValue(timelineId, type);
+        let min = getMinValue(timelineId, type);
+        if (warpBindingsData.length > 0 && (equals(min, warpBindingsData[0].val) || greaterThan(min, warpBindingsData[0].val))) {
+            // min isn't actually min
+            min = null;
+        }
+
+        let lastIndex = warpBindingsData.length - 1;
+        if (warpBindingsData.length > 0 && (equals(max, warpBindingsData[lastIndex].val) || greaterThan(warpBindingsData[lastIndex].val, max))) {
+            // max isn't actually max
+            max = null;
+        }
+
+        if (max == min) {
+            // there was less than two values
+            if (max == null) {
+                // there were no values
+                if (warpBindingsData.length > 1) {
+                    // but at least two warp bindings
+                    let minTimeDiff = subtract(warpBindingsData[1].val, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (warpBindingsData[1].linePercent - warpBindingsData[0].linePercent)
+                    min = incrementBy(warpBindingsData[0].val, -minTimeDiff);
+
+                    let last = warpBindingsData.length - 1;
+                    let maxTimeDiff = subtract(warpBindingsData[last].val, warpBindingsData[last - 1].val) * (1 - warpBindingsData[last].linePercent) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
+                    max = incrementBy(warpBindingsData[0].val, maxTimeDiff);
+                } else {
+                    if (type == DataTypes.TIME_BINDING) {
+                        console.error("Not enough data to caluclate a time!"); return null;
+                    } else if (type == DataTypes.NUM) {
+                        if (warpBindingsData.length > 0) {
+                            // one warp binding, no values
+                            if (warpBindingsData.val < 1) max = 1;
+                            if (warpBindingsData.val > 0) min = 0;
+                            if (!max) {
+                                max = warpBindingsData.val / warpBindingsData.linePercent;
+                            } else if (!min) {
+                                min = (max - warpBindingsData.val) / (1 - warpBindingsData.linePercent);
+                            }
+                        } else {
+                            // Nothing at all.
+                            max = 1;
+                            min = 0;
+                        }
+                    }
+                }
+            } else if (warpBindingsData.length > 0) {
+                // there was only one value but at least one warp bindings
+                let val = max;
+                let last = warpBindingsData.length - 1;
+                if (val < warpBindingsData[0].val) {
+                    min = val;
+                    let prevVal = warpBindingsData.length == 1 ? min : warpBindingsData[last - 1].val;
+                    let prevLine = warpBindingsData.length == 1 ? 0 : warpBindingsData[last - 1].linePercent;
+
+                    let maxTimeDiff = subtract(warpBindingsData[last].val, prevVal) * (1 - prevLine) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
+                    max = incrementBy(warpBindingsData[0].val, maxTimeDiff);
+
+
+                } else if (val > warpBindingsData[last].val) {
+                    max = val;
+                    let nextVal = warpBindingsData.length == 1 ? max : warpBindingsData[1].val;
+                    let nextLine = warpBindingsData.length == 1 ? 1 : warpBindingsData[1].linePercent;
+
+                    let minTimeDiff = subtract(nextVal, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (nextLine.linePercent - warpBindingsData[0].linePercent)
+                    min = incrementBy(warpBindingsData[0].val, -minTimeDiff);
+                }
+            } else {
+                // There is one value but no warp bindings
+                if (type == DataTypes.TIME_BINDING) {
+                    console.error("Not enough data to caluclate a time!"); return null;
+                } else if (type == DataTypes.NUM) {
+                    let val = max;
+                    if (val > 0) {
+                        min = 0;
+                        max = val;
+                    }
+                }
+            }
+        }
+
+        return { max, min, warpBindingsData, greaterThan, percentBetween, subtract, incrementBy };
+    }
+
+    function getMaxValue(timelineId, type) {
+        let values = getTimelineById(timelineId).cellBindings
+            .map(b => getCellFromBinding(b).cell)
+            .filter(cell => cell.getType() == type)
+            .map(cell => cell.getValue());
+        if (values.length == 0) {
+            return null;
+        } else if (values.length == 1) {
+            return values[0]
+        } else if (type == DataTypes.NUM) {
+            return Math.max(...values);
+        } else if (type == DataTypes.TIME_BINDING) {
+            values.reduce((max, val) => TimeBindingUtil.AGreaterThanB(val, max) ? val : max);
+        } else { console.error("cannot get max of " + type) };
+    }
+
+    function getMinValue(timelineId, type) {
+        let values = getTimelineById(timelineId).cellBindings
+            .map(b => getCellFromBinding(b).cell)
+            .filter(cell => cell.getType() == type)
+            .map(cell => cell.getValue());
+        if (values.length == 0) {
+            return null;
+        } else if (values.length == 1) {
+            return values[0]
+        } else if (type == DataTypes.NUM) {
+            return Math.min(...values);
+        } else if (type == DataTypes.TIME_BINDING) {
+            values.reduce((min, val) => TimeBindingUtil.AGreaterThanB(val, min) ? min : val);
+        } else { console.error("cannot get max of " + type) };
+    }
+
+    function hasTimeMapping(timelineId) {
+        let warpBindingsData = getTimelineById(timelineId).warpBindings
+            .filter(b => b.isValid)
+            .map(b => {
+                let cell = getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id)
+                return { linePercent: b.linePercent, val: cell.getValue(), type: cell.getType() }
+            })
+            .filter(result => result.type == type);
+        // if we have two warp bindings, there's enough data
+        if (warpBindingsData.length > 2) return true;
+
+
+        let max = getMaxValue(timelineId, DataTypes.TIME_BINDING);
+        let min = getMinValue(timelineId, DataTypes.TIME_BINDING);
+
+        // if we have no values, we do not have enough data.
+        if (max == null) return false;
+
+        // if we have two values, there's enough data
+        if (!TimeBindingUtil.AEqualsB(max, min)) return true;
+
+        // if we have only have one value, there is not enough data
+        if (warpBindingsData.length == 0) return false;
+
+        // if we have one warp and one data piece that are different, there is enough data
+        if (!TimeBindingUtil.AEqualsB(warpBindingsData[0].val, min)) return true;
+
+        // otherwise there isn't.
+        return false;
     }
 
     this.newTimeline = newTimeline;
@@ -603,6 +758,7 @@ function ModelController() {
     this.getWarpBindingsData = getWarpBindingsData;
 
     this.mapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
+    this.hasTimeMapping = hasTimeMapping;
 
     this.updateText = updateText;
     this.updateTextOffset = updateTextOffset;

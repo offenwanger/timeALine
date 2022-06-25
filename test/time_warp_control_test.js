@@ -22,7 +22,6 @@ describe('Test TimeWarpController', function () {
             d3: Object.assign({}, TestUtils.mockD3),
             PathMath: utility.__get__('PathMath'),
             MathUtil: utility.__get__('MathUtil'),
-            TimeWarpUtil: utility.__get__('TimeWarpUtil'),
             document: TestUtils.fakeDocument,
             svg: Object.assign({}, TestUtils.mockSvg),
             DataStructs,
