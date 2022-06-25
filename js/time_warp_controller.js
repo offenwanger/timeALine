@@ -5,20 +5,26 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
     const MIN_TICK_SPACING = 30;
     const TAIL_TICK_COUNT = 2;
 
+    let mActive = false;
+
     let mExernalCallGetUpdatedWarpSet = getUpdatedWarpSet;
     let mExernalCallMapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
-    let mWarpControlsModifiedCallback = () => { };
+    let mUpdateWarpBindingCallback = () => { };
 
-    let mTailGroup = svg.append('g');
-    let mControlTickGroup = svg.append('g');
+    let mTailGroup = svg.append('g')
+        .attr("id", 'tick-tail-g');
+    let mControlTickGroup = svg.append('g')
+        .attr("id", 'tick-g');
 
-    let mControlTickTargetGroup = svg.append('g');
+    let mControlTickTargetGroup = svg.append('g')
+        .attr("id", 'tick-target-g')
+        .style('visibility', "hidden")
 
-    function addOrUpdateTimeControls(timelines) {
-        timelines.forEach(timeline => {
-            drawTails(timeline.id, timeline.linePath.points);
-            drawTicks(timeline.id, timeline.warpPoints.map(point => point.clone()), timeline.linePath.points);
-            setTickHandlers(timeline.id, timeline.linePath.points);
+    function addOrUpdateTimeControls(lineAndBindings) {
+        lineAndBindings.forEach(timelineData => {
+            drawTails(timelineData.id, timelineData.linePoints);
+            drawTicks(timelineData.id, timelineData.linePoints, timelineData.bindings);
+            setTickHandlers(timelineData.id, timelineData.linePoints, timelineData.bindings);
         });
     }
 
@@ -31,81 +37,63 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
         })
     }
 
-    function drawTicks(id, warpPoints, points) {
-        let path = PathMath.getPath(points);
+    function drawTicks(timelineId, linePoints, bindings) {
+        let path = PathMath.getPath(linePoints);
         let totalLength = path.getTotalLength();
-        let totalTime = TimeWarpUtil.timeBetweenAandB(warpPoints[warpPoints.length - 1], warpPoints[0]);
-        let tickData = []
 
-        // Add warp point data
-        warpPoints.forEach((warpPoint, index) => {
-            let position;
+        let tickData = getTicksForSegment(path, totalLength, 0, bindings.length > 0 ? bindings[0].linePercent : 1);
+        let tickTargetData = [];
+
+        bindings.forEach((binding, index) => {
+            let position = path.getPointAtLength(totalLength * binding.linePercent);
+
             let degrees;
-            let size;
-            if (warpPoint.isStart) {
-                position = points[0]
-                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(points[0], points[1])) - 90;
-                size = getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)
-            } else if (warpPoint.isEnd) {
-                position = points[points.length - 1]
-                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(points[points.length - 1], points[points.length - 2])) + 90;
-                size = getTimeRatio(warpPoint, warpPoints[index - 1], totalTime)
-            } else {
-                position = path.getPointAtLength(totalLength * warpPoint.linePercent);
-                let positionBefore = path.getPointAtLength(totalLength * warpPoint.linePercent - 1);
+            if (binding.linePercent > 0) {
+                let positionBefore = path.getPointAtLength(totalLength * binding.linePercent - 1);
                 degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
-                size = (getTimeRatio(warpPoint, warpPoints[index - 1], totalTime) + getTimeRatio(warpPoint, warpPoints[index + 1], totalTime)) / 2
+            } else {
+                let positionAfter = path.getPointAtLength(totalLength * binding.linePercent + 1);
+                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(position, positionAfter)) - 90;
             }
 
-            tickData.push({ position, size: constrainValue(size), degrees, warpPoint, color: 'steelblue' })
+            let size = 1
 
-            // Add tick data
-            if (!warpPoint.isEnd) {
-                let warpPointAfter = warpPoints[index + 1];
-                let segmentLength = (warpPointAfter.linePercent - warpPoint.linePercent) * totalLength;
-                let tickCount = Math.floor((segmentLength - MIN_TICK_SPACING) / MIN_TICK_SPACING);
-                if (tickCount > 0) {
-                    let startLength = warpPoint.linePercent * totalLength;
-                    let tickDist = segmentLength / (tickCount + 1)
-                    let ticks = Array.from(Array(tickCount).keys())
-                        .map(val => ((val + 1) * tickDist) + startLength)
-                        .map(dist => {
-                            let position = path.getPointAtLength(dist);
-                            let positionBefore = path.getPointAtLength(dist - 1);
-                            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
-                            let size = getTimeRatio(warpPoint, warpPointAfter, totalTime);
-                            let tickWarpPoint = new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, dist / totalLength), dist / totalLength);
-                            return { position, size: constrainValue(size), degrees, warpPoint: tickWarpPoint, color: 'black' };
-                        })
-                    tickData.push(...ticks);
-                }
-            }
+            let boundTickData = {
+                position,
+                size: constrainValue(size),
+                degrees,
+                binding,
+                color: binding.color ? binding.color : DataTypesColor[binding.type],
+            };
+            tickData.push(boundTickData);
+            tickTargetData.push(boundTickData);
+
+            // get the regular ticks for the following segment
+            tickData.push(...getTicksForSegment(path, totalLength, binding.linePercent, index + 1 < bindings.length ? bindings[index + 1].linePercent : 1));
         });
 
-        let startTailDirection = MathUtil.vectorFromAToB(points[1], points[0]);
-        let endTailDirection = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1])
+        let startTailDirection = MathUtil.vectorFromAToB(linePoints[1], linePoints[0]);
+        let endTailDirection = MathUtil.vectorFromAToB(linePoints[linePoints.length - 2], linePoints[linePoints.length - 1])
         for (let i = 0; i < TAIL_TICK_COUNT; i++) {
             let percentInTail = 1 - i / TAIL_TICK_COUNT;
             tickData.push({
-                position: PathMath.getPositionForPercent(points, -percentInTail),
+                position: PathMath.getPositionForPercent(linePoints, -percentInTail),
                 size: 1,
                 degrees: MathUtil.vectorToRotation(startTailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, -percentInTail), -percentInTail),
-                color: 'grey'
+                color: 'grey',
             })
             tickData.push({
-                position: PathMath.getPositionForPercent(points, 1 + percentInTail),
+                position: PathMath.getPositionForPercent(linePoints, 1 + percentInTail),
                 size: 1,
                 degrees: MathUtil.vectorToRotation(endTailDirection) + 90,
-                warpPoint: new DataStructs.WarpPoint(mExernalCallMapLinePercentToTimeBinding(id, 1 + percentInTail), 1 + percentInTail),
-                color: 'grey'
+                color: 'grey',
             })
         }
 
-        let ticks = mControlTickGroup.selectAll('.warpTick_' + id).data(tickData);
+        let ticks = mControlTickGroup.selectAll('.warpTick_' + timelineId).data(tickData);
         ticks.exit().remove();
-        ticks.enter().append('line').classed('warpTick_' + id, true);
-        mControlTickGroup.selectAll('.warpTick_' + id)
+        ticks.enter().append('line').classed('warpTick_' + timelineId, true);
+        mControlTickGroup.selectAll('.warpTick_' + timelineId)
             .style("stroke", (d) => d.color)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", (d) => d.size * TICK_WIDTH)
@@ -114,15 +102,15 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - d.size * TICK_LENGTH / 2);
 
-        let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + id).data(tickData);
+        let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + timelineId).data(tickTargetData);
         targets.exit().remove();
         targets.enter().append('line')
-            .classed('warpTickTarget_' + id, true)
+            .classed('warpTickTarget_' + timelineId, true)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
 
-        mControlTickTargetGroup.selectAll('.warpTickTarget_' + id)
+        mControlTickTargetGroup.selectAll('.warpTickTarget_' + timelineId)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", TICK_TARGET_SIZE + TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
@@ -131,38 +119,88 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
             .attr("y2", (d) => d.position.y - TICK_TARGET_SIZE + TICK_LENGTH / 2);
     }
 
-    function getTimeRatio(warpPointBefore, warpPointAfter, totalTime) {
-        return (TimeWarpUtil.timeBetweenAandB(warpPointAfter, warpPointBefore) / totalTime) /
-            Math.abs(warpPointAfter.linePercent - warpPointBefore.linePercent);
+    function getTicksForSegment(path, pathLength, startPercent, endPercent) {
+        let tickData = [];
+
+        let segmentLength = (endPercent - startPercent) * pathLength;
+        let tickCount = Math.floor((segmentLength - MIN_TICK_SPACING) / MIN_TICK_SPACING);
+
+        if (segmentLength > MIN_TICK_SPACING && startPercent == 0) {
+            let position = path.getPointAtLength(0);
+            let positionAfter = path.getPointAtLength(1);
+            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(position, positionAfter)) - 90;
+            let size = 1;
+            tickData.push({
+                position,
+                size: constrainValue(size),
+                degrees,
+                color: 'black'
+            })
+        }
+
+        if (tickCount > 0) {
+            let startLength = startPercent * pathLength;
+            let tickDist = segmentLength / (tickCount + 1)
+            let ticks = Array.from(Array(tickCount).keys())
+                .map(val => ((val + 1) * tickDist) + startLength)
+                .map(dist => {
+                    let position = path.getPointAtLength(dist);
+                    let positionBefore = path.getPointAtLength(dist - 1);
+                    let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
+                    let size = 1;
+                    return {
+                        position,
+                        size: constrainValue(size),
+                        degrees,
+                        color: 'black'
+                    };
+                })
+            tickData.push(...ticks);
+        }
+
+        if (segmentLength > MIN_TICK_SPACING && endPercent == 1) {
+            let position = path.getPointAtLength(pathLength);
+            let positionBefore = path.getPointAtLength(pathLength - 1);
+            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
+            let size = 1;
+            tickData.push({
+                position,
+                size: constrainValue(size),
+                degrees,
+                color: 'black'
+            })
+        }
+
+        return tickData;
     }
 
-    function drawTails(id, points) {
-        let tail1 = mTailGroup.select('#timelineTail1_' + id).node()
-            ? mTailGroup.select('#timelineTail1_' + id)
+    function drawTails(timelineId, linePoints) {
+        let tail1 = mTailGroup.select('#timelineTail1_' + timelineId).node()
+            ? mTailGroup.select('#timelineTail1_' + timelineId)
             : mTailGroup.append('line')
-                .attr('id', 'timelineTail1_' + id)
+                .attr('id', 'timelineTail1_' + timelineId)
                 .attr('stroke-width', 1.5)
                 .attr('stroke', 'grey')
                 .style("stroke-dasharray", ("5, 5"));
 
-        let tail2 = mTailGroup.select('#timelineTail2_' + id).node()
-            ? mTailGroup.select('#timelineTail2_' + id)
+        let tail2 = mTailGroup.select('#timelineTail2_' + timelineId).node()
+            ? mTailGroup.select('#timelineTail2_' + timelineId)
             : mTailGroup.append('line')
-                .attr('id', 'timelineTail2_' + id)
+                .attr('id', 'timelineTail2_' + timelineId)
                 .attr('stroke-width', 1.5)
                 .attr('stroke', 'grey')
                 .style("stroke-dasharray", ("5, 5"));
 
-        let startPoint = points[0]
-        let direction1 = MathUtil.vectorFromAToB(points[1], startPoint);
+        let startPoint = linePoints[0];
+        let direction1 = MathUtil.vectorFromAToB(linePoints[1], startPoint);
         let tail1End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction1, startPoint);
         tail1.attr('x1', startPoint.x)
             .attr('y1', startPoint.y)
             .attr('x2', tail1End.x)
             .attr('y2', tail1End.y);
 
-        let endPoint = points[points.length - 1]
-        let direction2 = MathUtil.vectorFromAToB(points[points.length - 2], endPoint);
+        let endPoint = linePoints[linePoints.length - 1]
+        let direction2 = MathUtil.vectorFromAToB(linePoints[linePoints.length - 2], endPoint);
         let tail2End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction2, endPoint);
         tail2.attr('x1', endPoint.x)
             .attr('y1', endPoint.y)
@@ -170,81 +208,46 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
             .attr('y2', tail2End.y);
     }
 
-    function setTickHandlers(timelineId, points) {
+    function setTickHandlers(timelineId, linePoints, bindings) {
         let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + timelineId);
         targets.on('mousedown.drag', null);
         targets.call(d3.drag()
             .on('start', (event, d) => { /** nothing for now */ })
             .on('drag', (event, d) => {
-                let dragPoint = { x: event.x, y: event.y };
-                let linePercent = mousePositionToLinePercent(dragPoint, points)
+                if (mActive) {
+                    let dragPoint = { x: event.x, y: event.y };
+                    let currBinding = d.binding;
 
-                if (linePercent <= 0) {
-                    if (d.warpPoint.isEnd) {
-                        return; //do nothing;
+                    let newPercent = mousePositionToLinePercent(dragPoint, linePoints);
+                    let oldPercent = currBinding.linePercent;
+                    let tempBindings = bindings.filter(b => {
+                        // pop this out to, we'll add the updated one later.
+                        if (b.id == currBinding.id) return false;
+                        // wrong type, unaffected.
+                        if (b.type != currBinding.type) return true;
+                        // we cross this point when moving, ditch it
+                        if (b.linePercent <= newPercent && b.linePercent >= oldPercent) return false;
+                        if (b.linePercent <= oldPercent && b.linePercent >= newPercent) return false;
+                        // it's outside the drag range, keep it.
+                        return true;
+                    })
+
+                    if (newPercent >= 0 || newPercent <= 1) {
+                        let binding = Object.assign({}, currBinding);
+                        binding.linePercent = newPercent;
+                        tempBindings.push(binding);
                     }
-                    let warpPoint = d.warpPoint.clone()
-                    warpPoint.linePercent = 0;
-                    warpPoint.isStart = true;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    drawTicks(timelineId, warpPoints, points);
-                } else if (linePercent >= 1) {
-                    if (d.warpPoint.isStart) {
-                        return; //do nothing;
-                    }
-                    let warpPoint = d.warpPoint.clone()
-                    warpPoint.linePercent = 1;
-                    warpPoint.isEnd = true;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    drawTicks(timelineId, warpPoints, points);
-                } else {
-                    let warpPoint = d.warpPoint;
-                    if (d.warpPoint.isStart || d.warpPoint.isEnd) {
-                        warpPoint = d.warpPoint.clone();
-                        warpPoint.isStart = false;
-                        warpPoint.isEnd = false;
-                    }
-                    warpPoint.linePercent = linePercent;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    drawTicks(timelineId, warpPoints, points);
+
+                    drawTicks(timelineId, linePoints, tempBindings);
                 }
             })
             .on('end', (event, d) => {
-                let dragPoint = { x: event.x, y: event.y };
-                let linePercent = mousePositionToLinePercent(dragPoint, points)
-
-                if (linePercent < 0) {
-                    if (d.warpPoint.isEnd) {
-                        // request a redraw
-                        mWarpControlsModifiedCallback();
-                        return; //do nothing;
-                    }
-                    let warpPoint = d.warpPoint.clone()
-                    warpPoint.linePercent = 0;
-                    warpPoint.isStart = true;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    mWarpControlsModifiedCallback(timelineId, warpPoints);
-                } else if (linePercent > 1) {
-                    if (d.warpPoint.isStart) {
-                        // request a redraw
-                        mWarpControlsModifiedCallback();
-                        return; //do nothing;
-                    }
-                    let warpPoint = d.warpPoint.clone()
-                    warpPoint.linePercent = 1;
-                    warpPoint.isEnd = true;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    mWarpControlsModifiedCallback(timelineId, warpPoints);
-                } else {
-                    let warpPoint = d.warpPoint;
-                    if (d.warpPoint.isStart || d.warpPoint.isEnd) {
-                        warpPoint = d.warpPoint.clone();
-                        warpPoint.isStart = false;
-                        warpPoint.isEnd = false;
-                    }
-                    warpPoint.linePercent = linePercent;
-                    let warpPoints = mExernalCallGetUpdatedWarpSet(timelineId, warpPoint);
-                    mWarpControlsModifiedCallback(timelineId, warpPoints);
+                if (mActive) {
+                    let dragPoint = { x: event.x, y: event.y };
+                    let linePercent = mousePositionToLinePercent(dragPoint, linePoints)
+                    let binding = Object.assign({}, currBinding);
+                    binding.linePercent = linePercent;
+                    mUpdateWarpBindingCallback(binding);
                 }
             }))
             .on("mouseover", (event, d) => {
@@ -269,32 +272,43 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
         return 3 / (Math.exp(1 - x) + 1);
     }
 
-    function mousePositionToLinePercent(mousePoint, points) {
-        let pointOnPath = PathMath.getClosestPointOnPath(mousePoint, points);
+    function mousePositionToLinePercent(mousePoint, linePoints) {
+        let pointOnPath = PathMath.getClosestPointOnPath(mousePoint, linePoints);
 
         let percent = pointOnPath.percent;
         let distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnPath)
 
-        let pointOnTail1 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(points[1], points[0]), points[0]);
+        let pointOnTail1 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(linePoints[1], linePoints[0]), linePoints[0]);
         if (!pointOnTail1.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail1) < distToPath) {
-            percent = (-1 * MathUtil.distanceFromAToB(pointOnTail1, points[0])) / PathMath.getPath(points).getTotalLength();
+            percent = (-1 * MathUtil.distanceFromAToB(pointOnTail1, linePoints[0])) / PathMath.getPath(linePoints).getTotalLength();
 
             distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnTail1);
         }
 
-        let last = points.length - 1;
-        let pointOnTail2 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(points[last - 1], points[last]), points[last]);
+        let last = linePoints.length - 1;
+        let pointOnTail2 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(linePoints[last - 1], linePoints[last]), linePoints[last]);
         if (!pointOnTail2.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail2) < distToPath) {
-            let totalLength = PathMath.getPath(points).getTotalLength();
+            let totalLength = PathMath.getPath(linePoints).getTotalLength();
 
-            percent = (MathUtil.distanceFromAToB(pointOnTail2, points[last]) + totalLength) / totalLength;
+            percent = (MathUtil.distanceFromAToB(pointOnTail2, linePoints[last]) + totalLength) / totalLength;
         }
 
         return percent
     }
 
+
+    this.setActive = (active) => {
+        if (active && !mActive) {
+            mActive = true;
+            mControlTickTargetGroup.style('visibility', "");
+        } else if (!active && mActive) {
+            mActive = false;
+            mControlTickTargetGroup.style('visibility', "hidden");
+        }
+    };
+
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
     this.removeTimeControls = removeTimeControls;
-    this.setWarpControlsModifiedCallback = (callback) => mWarpControlsModifiedCallback = callback;
+    this.setUpdateWarpBindingCallback = (callback) => mUpdateWarpBindingCallback = callback;
 }
 

@@ -6,11 +6,6 @@ function ModelController() {
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
         let timeline = createTimeline(points);
-
-        timeline.warpPoints.push(
-            new DataStructs.WarpPoint(new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, 0), 0, true, false),
-            new DataStructs.WarpPoint(new DataStructs.TimeBinding(TimeBindingTypes.PLACE_HOLDER, 1), 1, false, true));
-
         mTimelines.push(timeline);
 
         return timeline;
@@ -531,6 +526,31 @@ function ModelController() {
         return data;
     }
 
+    function updateWarpBinding(timelineId, warpBinding) {
+        console.log("Finish me!")
+    }
+
+    function getWarpBindingsData() {
+        return mTimelines.map(timeline => {
+            let bindings = timeline.warpBindings.map(b => {
+                let timeCell = getTableById(b.tableId).getRow(b.rowId).getCell(getTimeColumn(b.tableId).id);
+                return {
+                    rowId: b.rowId,
+                    timeVal: timeCell.getValue(),
+                    type: timeCell.getType(),
+                    linePercent: b.linePercent,
+                    isValid: b.isValid,
+                }
+            });
+
+            return {
+                id: timeline.id,
+                bindings: bindings,
+                linePoints: timeline.linePath.points,
+            }
+        });
+    }
+
     function getWarpBindings(timelineId, type) {
         return getTimelineById(timelineId).warpBindings
             .filter(b => b.isValid)
@@ -578,6 +598,9 @@ function ModelController() {
     this.addBoundTextRow = addBoundTextRow;
     this.bindCells = bindCells;
     this.getBoundData = getBoundData;
+
+    this.updateWarpBinding = updateWarpBinding;
+    this.getWarpBindingsData = getWarpBindingsData;
 
     this.mapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
 

@@ -11,21 +11,6 @@ let DataStructs = function () {
         this.cellBindings = [];
         this.warpBindings = [];
         this.axisBindings = [];
-
-        // DEPRECATED: TODO: to remove
-        this.warpPoints = [];
-    }
-
-    function WarpPoint(timeBinding = null, linePercent = 0, isStart = false, isEnd = false, id = null) {
-        this.id = id ? id : getUniqueId();
-        this.timeBinding = timeBinding ? timeBinding : new TimeBinding(TimeBindingTypes.PLACE_HOLDER, 0);
-        this.linePercent = linePercent;
-        this.isStart = isStart;
-        this.isEnd = isEnd;
-
-        this.clone = function () {
-            return new WarpPoint(this.timeBinding.clone(), this.linePercent, this.isStart, this.isEnd, this.id);
-        }
     }
 
     function LinePath() {
@@ -45,6 +30,7 @@ let DataStructs = function () {
         this.rowId = rowId;
         this.linePercent = linePercent;
         this.isValid = isValid;
+        this.clone = function () { return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid); };
     }
 
     // These are only for number sets now, but if we get 
@@ -56,44 +42,15 @@ let DataStructs = function () {
         this.val2 = 1;
         this.dist2 = 1;
         this.lineBinding = 1;
-    }
-
-    // subset of a data table
-    function DataSet() {
-        this.id = getUniqueId();
-        this.table = null;
-        this.timeCol = null;
-        this.valCol = null;
-        this.dataRows = [];
-        this.YAxis = null;
         this.clone = function () {
-            let newDataSet = new DataSet();
-            newDataSet.table = this.table;
-            newDataSet.timeCol = this.timeCol;
-            newDataSet.valCol = this.valCol;
-            newDataSet.dataRows = [...this.dataRows]
-            newDataSet.YAxis = this.YAxis ? this.YAxis.clone() : null;
-            return newDataSet;
-        }
-    }
-
-    function YAxis() {
-        this.id = getUniqueId();
-        this.val1 = 0;
-        this.dist1 = 0;
-        this.val2 = 1;
-        this.dist2 = 1;
-        this.linePercent = 0;
-        this.clone = function () {
-            let newAxis = new YAxis();
+            let newAxis = new AxisBinding(this.columnId);
             newAxis.val1 = this.val1;
             newAxis.dist1 = this.dist1;
             newAxis.val2 = this.val2;
             newAxis.dist2 = this.dist2;
-            newAxis.linePercent = this.linePercent;
+            newAxis.lineBinding = this.lineBinding;
         }
     }
-
 
     function DataTable(columns = []) {
         this.id = getUniqueId();
@@ -203,7 +160,6 @@ let DataStructs = function () {
 
     return {
         Timeline,
-        WarpPoint,
         LinePath,
         CellBinding,
         WarpBinding,
@@ -213,9 +169,6 @@ let DataStructs = function () {
         DataRow,
         DataCell,
         TimeBinding,
-        // Deprecated
-        DataSet,
-        YAxis,
     }
 }();
 

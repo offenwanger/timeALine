@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_IRON = "iron";
     const MODE_SCISSORS = "scissors";
     const MODE_COMMENT = "comment";
+    const MODE_PIN = "pin";
     const MODE_COLOR = "color";
     const MODE_EYEDROPPER = "eyedropper";
     const MODE_LINK = "link";
@@ -29,13 +30,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mode == MODE_LINK) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
             dataController.drawData(modelController.getBoundData());
+        } else if (mode == MODE_PIN) {
+            console.log("Add pin here!", timelineId, linePoint)
         }
     })
 
     let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.mapLinePercentToTimeBinding);
-    timeWarpController.setWarpControlsModifiedCallback((timelineId, newControlSet) => {
-        if (timelineId) modelController.updateWarpControls(timelineId, newControlSet);
-        timeWarpController.addOrUpdateTimeControls([modelController.getTimelineById(timelineId)]);
+    timeWarpController.setUpdateWarpBindingCallback((timelineId, bindingData) => {
+        modelController.updateWarpBinding(timelineId, bindingData);
+        timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
         dataController.drawData(modelController.getBoundData());
     })
 
@@ -114,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         dataController.drawData(modelController.getBoundData());
 
-        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines());
+        timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
     }
 
 
@@ -171,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             showIndicator('#scissors-button', '#scissors-mode-indicator');
         }
     })
+
     $("#comment-button").on("click", () => {
         if (mode == MODE_COMMENT) {
             clearMode()
@@ -182,6 +186,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
+    $("#pin-button").on("click", () => {
+        if (mode == MODE_PIN) {
+            clearMode()
+        } else {
+            clearMode()
+            lineViewController.setActive(true);
+            timeWarpController.setActive(true);
+            mode = MODE_PIN;
+            showIndicator('#pin-button', '#pin-mode-indicator');
+        }
+    })
 
     $("#datasheet-toggle-button").on("click", () => {
         if (dataTableController.isOpen()) {
@@ -296,6 +311,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         eraserController.setActive(false);
         dragController.setActive(false);
         ironController.setActive(false);
+        timeWarpController.setActive(false);
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
