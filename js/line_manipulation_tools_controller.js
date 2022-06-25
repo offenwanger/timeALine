@@ -171,8 +171,6 @@ function LineDrawingController(svg) {
         if (active && !mActive) {
             mActive = true;
             mLineDrawingGroup.style('visibility', "");
-
-            // TODO add extension nodes.
         } else if (!active && mActive) {
             mActive = false;
             mLineDrawingGroup.style('visibility', "hidden");
