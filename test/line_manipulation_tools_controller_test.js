@@ -9,10 +9,9 @@ let should = chai.should();
 describe('Test LayoutController', function () {
     let getDragController;
     let enviromentVariables;
-    let line_manipulation_tools_controller;
 
     beforeEach(function (done) {
-        line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
+        let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
 
         let utility = rewire('../js/utility.js');
 
@@ -74,9 +73,7 @@ describe('Test LayoutController', function () {
             dragController.setActive(true);
             dragStart({ x: 10, y: 10 });
         })
-    });
 
-    describe('drag test', function () {
         it('should drag start of line without error', function () {
             let dragStart, drag, dragEnd;
             let mockDrag = Object.assign({}, TestUtils.mockDrag);
@@ -122,51 +119,49 @@ describe('Test LayoutController', function () {
             assert.equal(called, true);
         });
 
-        describe('drag test', function () {
-            it('should drag end of line without error', function () {
-                let dragStart, drag, dragEnd;
-                let mockDrag = Object.assign({}, TestUtils.mockDrag);
-                enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-                mockDrag.on = function (event, func) {
-                    switch (event) {
-                        case "start":
-                            dragStart = dragStart ? dragStart : func;
-                            break;
-                        case "drag":
-                            drag = drag ? drag : func;
-                            break;
-                        case "end":
-                            dragEnd = dragEnd ? dragEnd : func;
-                            break;
-                    }
-                    return this;
+        it('should drag end of line without error', function () {
+            let dragStart, drag, dragEnd;
+            let mockDrag = Object.assign({}, TestUtils.mockDrag);
+            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
+            mockDrag.on = function (event, func) {
+                switch (event) {
+                    case "start":
+                        dragStart = dragStart ? dragStart : func;
+                        break;
+                    case "drag":
+                        drag = drag ? drag : func;
+                        break;
+                    case "end":
+                        dragEnd = dragEnd ? dragEnd : func;
+                        break;
                 }
-                let dragController = getDragController();
-                dragController.linesUpdated([{
-                    id: "id1", points: [
-                        { x: -10, y: -10 },
-                        { x: -10, y: -15 },
-                        { x: -5, y: -20 }]
-                }, {
-                    id: "id2", points: [
-                        { x: 10, y: 10 },
-                        { x: 20, y: 20 },
-                        { x: 30, y: 30 }]
-                }])
-                dragController.setActive(true);
-                let called = false;
-                dragController.setLineModifiedCallback((result) => {
-                    assert.equal(result[0].newSegments[1][2].x, 5)
-                    assert.equal(result[0].newSegments[1][2].y, -2)
-                    called = true;
-                })
+                return this;
+            }
+            let dragController = getDragController();
+            dragController.linesUpdated([{
+                id: "id1", points: [
+                    { x: -10, y: -10 },
+                    { x: -10, y: -15 },
+                    { x: -5, y: -20 }]
+            }, {
+                id: "id2", points: [
+                    { x: 10, y: 10 },
+                    { x: 20, y: 20 },
+                    { x: 30, y: 30 }]
+            }])
+            dragController.setActive(true);
+            let called = false;
+            dragController.setLineModifiedCallback((result) => {
+                assert.equal(result[0].newSegments[1][2].x, 5)
+                assert.equal(result[0].newSegments[1][2].y, -2)
+                called = true;
+            })
 
-                dragStart({ x: -5, y: -28 });
-                drag({ x: 5, y: -8 });
-                dragEnd({ x: 5, y: -10 });
+            dragStart({ x: -5, y: -28 });
+            drag({ x: 5, y: -8 });
+            dragEnd({ x: 5, y: -10 });
 
-                assert.equal(called, true);
-            });
+            assert.equal(called, true);
         });
 
         it('should drag points in middle of line', function () {
