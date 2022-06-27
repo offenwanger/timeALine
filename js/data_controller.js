@@ -84,13 +84,16 @@ function DataPointController(svg) {
 
         axesData.forEach(axisData => {
             let axis = axisData.axis;
-            let pos1 = PathMath.getPositionForPercentAndDist(axisData.line, axis.linePercent, axis.dist1);
-            let pos2 = PathMath.getPositionForPercentAndDist(axisData.line, axis.linePercent, axis.dist2);
+            let basePose = PathMath.getPositionForPercent(axisData.line, axis.linePercent);
+            let normal = PathMath.getNormalForPercent(axisData.line, axis.linePercent);
 
-            axisLineData.push({ x1: pos1.x, y1: pos1.y, x2: pos2.x, y2: pos2.y });
+            let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, basePose);
+            let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, basePose);
 
-            axisControlData.push({ axisId: axis.id, ctrl: 1, x: pos1.x, y: pos1.y, val: axis.val1 });
-            axisControlData.push({ axisId: axis.id, ctrl: 2, x: pos2.x, y: pos2.y, val: axis.val2 });
+            axisLineData.push({ axisId: axis.id, x1: pos1.x, y1: pos1.y, x2: pos2.x, y2: pos2.y });
+
+            axisControlData.push({ axisId: axis.id, ctrl: 1, x: pos1.x, y: pos1.y, val: axis.val1, normal, basePose });
+            axisControlData.push({ axisId: axis.id, ctrl: 2, x: pos2.x, y: pos2.y, val: axis.val2, normal, basePose });
         })
 
         let lines = mAxisGroup.selectAll('.axis-line').data(axisLineData);
@@ -98,6 +101,7 @@ function DataPointController(svg) {
         lines.enter()
             .append('line')
             .classed("axis-line", true)
+            .attr('id', function (d) { return "axis-line_" + d.axisId })
             .attr('stroke-width', 1.5)
             .attr('stroke', 'black');
         mAxisGroup.selectAll('.axis-line')
@@ -129,31 +133,43 @@ function DataPointController(svg) {
             .call(d3.drag()
                 .on('drag', axisControlDragged)
                 .on('end', axisControlDragEnd));
+
         mAxisGroup.selectAll('.axis-control-circle')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y });
     }
 
     function axisControlDragged(event, d) {
-        console.log(d)
-        // needs to be in model coords
         let dragPoint = { x: event.x, y: event.y };
 
-        let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
-        let origin = mPath.node().getPointAtLength(0)
+        let normal = d.normal;
+        let origin = d.basePose;
 
-        let newPosition = PathMath.projectPointOntoNormal(dragPoint, normal, origin);
-        let dist = PathMath.distancebetween(origin, newPosition.point);
-        dist = newPosition.neg ? -1 * dist : dist;
+        let newPosition = MathUtil.projectPointOntoVector(dragPoint, normal, origin);
 
-        d3.select(this).attr("ctrl") == "low" ? mLowValDist = dist : mHighValDist = dist;
+        d3.select(this).attr("cx", newPosition.x);
+        d3.select(this).attr("cy", newPosition.y);
 
-        // redraw the line for this axis;
-        drawAxis();
+        let line = mAxisGroup.select("#axis-line_" + d.axisId);
+        if (d.ctrl == 1) {
+            line.attr('x1', newPosition.x)
+                .attr('y1', newPosition.y);
+        } else {
+            line.attr('x2', newPosition.x)
+                .attr('y2', newPosition.y);
+        }
     }
 
     function axisControlDragEnd(event, d) {
-        mAxisUpdatedCallback();
+        let dragPoint = { x: event.x, y: event.y };
+
+        let normal = d.normal;
+        let origin = d.basePose;
+
+        let newPosition = MathUtil.projectPointOntoVector(dragPoint, normal, origin);
+        let dist = MathUtil.distanceFromAToB(origin, newPosition);
+        dist = newPosition.neg ? -1 * dist : dist;
+        mAxisUpdatedCallback(d.axisId, d.ctrl, dist);
     }
 
     this.drawPoints = drawPoints;

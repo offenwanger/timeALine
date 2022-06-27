@@ -50,11 +50,11 @@ let MathUtil = function () {
     function projectPointOntoVector(point, vector, origin = { x: 0, y: 0 }) {
         // handle edge case of straight normal
         if (vector.y == 0) {
-            return { point: { x: point.x, y: origin.y }, neg: point.x > origin.x }
+            return { x: point.x, y: origin.y, neg: point.x > origin.x }
         }
 
         if (vector.x == 0) {
-            return { point: { x: origin.x, y: point.y }, neg: point.y < origin.y }
+            return { x: origin.x, y: point.y, neg: point.y < origin.y }
         }
 
         let normalVector = normalize(vector);
@@ -244,6 +244,7 @@ let PathMath = function () {
         getPath,
         getPathLength,
         getPositionForPercent,
+        getNormalForPercent,
         getPositionForPercentAndDist,
         getClosestPointOnPath,
         getPointsWithin,

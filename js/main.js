@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     dataController.setTextMovedCallback((cellId, newOffset) => {
         modelController.updateTextOffset(cellId, newOffset);
     });
+    dataController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
+        modelController.updateAxisDist(axisId, oneOrTwo, newDist);
+        dataController.drawData(modelController.getBoundData());
+    });
+
 
     let lineDrawingController = new LineDrawingController(svg);
     lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {

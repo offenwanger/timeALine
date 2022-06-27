@@ -115,6 +115,7 @@ before(function () {
             selectAll: () => Object.assign({}, TestUtils.mockElement),
             annotation: () => Object.assign({}, TestUtils.mockAnnotation),
             drag: () => Object.assign({}, TestUtils.mockDrag),
+            pointer: (coords) => [coords.x, coords.y],
         },
 
         mockJqueryElement: {

@@ -466,6 +466,21 @@ function ModelController() {
         return data;
     }
 
+    function updateAxisDist(axisId, oneOrTwo, dist) {
+        let axis = getAxisById(axisId);
+
+        if (!axis) throw Error("Invalid axis id: " + axisId);
+        if (oneOrTwo == 1) {
+            axis.dist1 = dist;
+        } else {
+            axis.dist2 = dist;
+        }
+    }
+
+    function getAxisById(axisId) {
+        return mTimelines.map(t => t.axisBindings).flat().find(b => b.id == axisId);
+    }
+
     function getCellFromBinding(binding) {
         let table = getTableById(binding.tableId);
         let timeColId = table.dataColumns.find(col => col.index == 0).id;
@@ -758,6 +773,8 @@ function ModelController() {
     this.addBoundTextRow = addBoundTextRow;
     this.bindCells = bindCells;
     this.getBoundData = getBoundData;
+
+    this.updateAxisDist = updateAxisDist;
 
     this.updateWarpBinding = updateWarpBinding;
     this.getWarpBindingsData = getWarpBindingsData;
