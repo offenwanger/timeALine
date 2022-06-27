@@ -40,7 +40,7 @@ function LineViewController(svg) {
             .attr('opacity', '0')
             .on("click", (e, d) => {
                 if (mActive) {
-                    let mouseCoords = { x: e.x, y: e.y };
+                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
                     mLineClickedCallback(d.id, PathMath.getClosestPointOnPath(mouseCoords, d.points))
                 }
             });
