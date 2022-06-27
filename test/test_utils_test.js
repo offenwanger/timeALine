@@ -145,5 +145,22 @@ before(function () {
             mockJQ.farbtastic = () => Object.assign({}, TestUtils.mockJqueryElement);
             return mockJQ;
         },
+
+        makeTestTable: function (height, width) {
+            let t = new DataStructs.DataTable([new DataStructs.DataColumn("Time", 0)]);
+            for (let i = 1; i < width; i++) {
+                t.dataColumns.push(new DataStructs.DataColumn("Col" + i, i))
+            }
+
+            for (let i = 0; i < height; i++) {
+                let dataRow = new DataStructs.DataRow()
+                dataRow.index = i;
+                for (let j = 0; j < t.dataColumns.length; j++) {
+                    dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, i + "_" + j, t.dataColumns[j].id));
+                }
+                t.dataRows.push(dataRow)
+            }
+            return t;
+        }
     }
 });
