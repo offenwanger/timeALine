@@ -405,8 +405,8 @@ function ModelController() {
 
                 if (!axis) {
                     axis = new DataStructs.AxisBinding(columnId);
-                    axis.dist1 = 1;
-                    axis.dist2 = 10;
+                    axis.dist1 = 30;
+                    axis.dist2 = 100;
                 }
 
                 axis.val1 = min;
@@ -589,8 +589,8 @@ function ModelController() {
             .filter(result => result.type == type);
         warpBindingsData.sort((a, b) => greaterThan(a.val, b.val) ? 1 : -1);
 
-        let max = getMaxValue(timelineId, type);
-        let min = getMinValue(timelineId, type);
+        let max = getMaxTimeMapping(timelineId, type);
+        let min = getMinTimeMapping(timelineId, type);
         if (warpBindingsData.length > 0 && (equals(min, warpBindingsData[0].val) || greaterThan(min, warpBindingsData[0].val))) {
             // min isn't actually min
             min = null;
@@ -664,6 +664,9 @@ function ModelController() {
                     if (val > 0) {
                         min = 0;
                         max = val;
+                    } else {
+                        min = val;
+                        max = 1;
                     }
                 }
             }
@@ -672,11 +675,11 @@ function ModelController() {
         return { max, min, warpBindingsData, greaterThan, percentBetween, subtractAFromB, incrementBy };
     }
 
-    function getMaxValue(timelineId, type) {
+    function getMaxTimeMapping(timelineId, type) {
         let values = getTimelineById(timelineId).cellBindings
-            .map(b => getCellFromBinding(b).cell)
-            .filter(cell => cell.getType() == type)
-            .map(cell => cell.getValue());
+            .map(b => getCellFromBinding(b).timeCell)
+            .filter(timeCell => timeCell.getType() == type)
+            .map(timeCell => timeCell.getValue());
         if (values.length == 0) {
             return null;
         } else if (values.length == 1) {
@@ -688,11 +691,11 @@ function ModelController() {
         } else { console.error("cannot get max of " + type) };
     }
 
-    function getMinValue(timelineId, type) {
+    function getMinTimeMapping(timelineId, type) {
         let values = getTimelineById(timelineId).cellBindings
-            .map(b => getCellFromBinding(b).cell)
-            .filter(cell => cell.getType() == type)
-            .map(cell => cell.getValue());
+            .map(b => getCellFromBinding(b).timeCell)
+            .filter(timeCell => timeCell.getType() == type)
+            .map(timeCell => timeCell.getValue());
         if (values.length == 0) {
             return null;
         } else if (values.length == 1) {
@@ -716,8 +719,8 @@ function ModelController() {
         if (warpBindingsData.length > 2) return true;
 
 
-        let max = getMaxValue(timelineId, DataTypes.TIME_BINDING);
-        let min = getMinValue(timelineId, DataTypes.TIME_BINDING);
+        let max = getMaxTimeMapping(timelineId, DataTypes.TIME_BINDING);
+        let min = getMinTimeMapping(timelineId, DataTypes.TIME_BINDING);
 
         // if we have no values, we do not have enough data.
         if (max == null) return false;

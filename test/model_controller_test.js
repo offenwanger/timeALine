@@ -58,7 +58,7 @@ describe('Test ModelController', function () {
             modelController.bindCells(timeline.id, [new ds.CellBinding(table.id, table.dataRows[0].id, table.dataColumns[1].id, table.dataRows[0].dataCells[1].id)])
 
             assert.equal(modelController.getBoundData().length, 1);
-            assert.equal(modelController.getBoundData()[0].linePercent, 0.5);
+            assert.equal(modelController.getBoundData()[0].linePercent, 1);
         });
     })
 });

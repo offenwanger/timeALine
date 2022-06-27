@@ -64,7 +64,8 @@ before(function () {
 
         makeMockHandsOnTable: function (div, init) {
             return {
-                getSelected: function () { return null }
+                getSelected: function () { return null },
+                loadData: function () { },
             }
         },
 
