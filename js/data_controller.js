@@ -50,11 +50,7 @@ function AnnotationController(svg) {
             annotationSet.push(annotationData);
         })
 
-        console.log("check this")
-        const makeAnnotations = d3.annotation() /*.accessors({
-            x: d => PathMath.getPointAtPercentOfPath(timeline, d.linePercent).x,
-            y: d => PathMath.getPointAtPercentOfPath(timeline, d.linePercent).y,
-        });*/
+        const makeAnnotations = d3.annotation();
         makeAnnotations.annotations(annotationSet);
         mAnnotationDisplayGroup.call(makeAnnotations);
 
