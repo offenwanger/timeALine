@@ -3,17 +3,193 @@ function DataViewController(svg) {
         .attr("id", 'data-point-display-g');
 
     let mAnnotationController = new AnnotationController(svg);
+    let mPointController = new DataPointController(svg);
 
     function drawData(boundData) {
-        let annotations = boundData.filter(b => b.type == DataTypes.TEXT);
-        let nums = boundData.filter(b => b.type == DataTypes.NUM);
-
-        mAnnotationController.drawAnnotations(annotations);
+        mAnnotationController.drawAnnotations(boundData.filter(b => b.type == DataTypes.TEXT));
+        mPointController.drawPoints(boundData.filter(b => b.type == DataTypes.NUM))
     }
 
     this.drawData = drawData;
     this.setTextUpdatedCallback = (callback) => mAnnotationController.setAnnotationTextUpdatedCallback(callback);
     this.setTextMovedCallback = (callback) => mAnnotationController.setAnnotationMovedCallback(callback);
+    this.setAxisUpdatedCallback = (callback) => mPointController.setAxisUpdatedCallback(callback);
+}
+
+function DataPointController(svg) {
+    const TAIL_POINT_COUNT = 20;
+
+    let mAxisUpdatedCallback = () => { };
+
+    let mDataPointGroup = svg.append('g')
+        .attr("id", 'data-point-display-g');
+    let mAxesGroup = svg.append('g')
+        .attr("id", 'data-axis-display-g');
+
+    function drawPoints(boundData) {
+        let drawingData = []
+        let tail1Data = []
+        let tail2Data = []
+
+        boundData.forEach(point => {
+            let { val1, val2, dist1, dist2 } = point.axis;
+            let dist = (dist2 - dist1) * (point.val - val1) / (val2 - val1) + dist1;
+            let pos = PathMath.getPositionForPercentAndDist(point.line, point.linePercent, dist);
+
+            let data = { id: point.id, x: pos.x, y: pos.y, opacity: 1, color: "red" };
+
+            if (point.linePercent < 0) {
+                tail1Data.push(data);
+            } else if (point.linePercent > 1) {
+                tail2Data.push(data);
+            } else {
+                drawingData.push(data)
+            }
+        });
+
+        function filterAndFade(arr, count) {
+            let n = Math.ceil(arr.length / count);
+            let shuffled = arr.sort(function () { return .5 - Math.random() });
+            let selected = arr.slice(0, n);
+            let fade = 1;
+            selected.forEach(pointData => {
+                fade -= 1 / n;
+                pointData.opacity = fade;
+            })
+            return selected;
+        }
+
+        drawingData.push(...filterAndFade(tail1Data, TAIL_POINT_COUNT));
+        drawingData.push(...filterAndFade(tail2Data, TAIL_POINT_COUNT));
+
+        let points = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
+        points.exit().remove();
+        points.enter()
+            .append('circle')
+            .classed('data-display-point', true)
+            .attr('r', 3.0)
+            .attr('stroke', 'black');
+
+        mDataPointGroup.selectAll('.data-display-point')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y })
+            .attr('fill', function (d) { return d.color })
+            .style('opacity', function (d) { return d.opacity })
+    }
+
+    function drawAxes(axes) {
+        axes.forEach(axis => {
+
+        })
+    }
+
+    this.drawPoints = drawPoints;
+    this.drawAxes = drawAxes;
+    this.setAxisUpdatedCallback = (callback) => mAxisUpdatedCallback = callback;
+
+
+    // let valRange = d3.extent(data.map(item => item.val));
+    // let mLowVal = valRange[0];
+    // let mHighVal = valRange[1]
+
+    // let mGroup = svg.append('g');
+
+    // let mPath = path;
+    // let mPathLength = path.node().getTotalLength();
+
+    // const tailPointCount = 20;
+
+    // let dataAxisCtrlLow = mGroup.append('circle')
+    //     .attr("ctrl", "low")
+    //     .attr('r', 3.5)
+    //     .attr('cursor', 'pointer')
+    //     .call(d3.drag()
+    //         .on('drag', dataAxisControlDragged)
+    //         .on('end', drawData));
+    // let dataAxisCtrlLowLabel = mGroup.append('text')
+    //     .attr('text-anchor', 'left')
+    //     .style('font-size', '16px');
+
+    // let dataAxisCtrlHigh = mGroup.append('circle')
+    //     .attr("ctrl", "high")
+    //     .attr('r', 3.5)
+    //     .attr('cursor', 'pointer')
+    //     .call(d3.drag()
+    //         .on('drag', dataAxisControlDragged)
+    //         .on('end', drawData));
+    // let dataAxisCtrlHighLabel = mGroup.append('text')
+    //     .attr('text-anchor', 'left')
+    //     .style('font-size', '16px');
+
+    // let dataAxisLine = mGroup.append('line')
+    //     .attr('stroke-width', 1.5)
+    //     .attr('stroke', 'black');
+
+    // dataAxisCtrlLowLabel.text(mLowVal).lower();
+    // dataAxisCtrlHighLabel.text(mHighVal).lower();
+
+    // drawAxis();
+    // drawData();
+
+    // function drawAxis() {
+    //     let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
+    //     let origin = mPath.node().getPointAtLength(0)
+
+    //     let ctrl1Pos = PathMath.getPointAtDistanceAlongNormal(mLowValDist, normal, origin)
+    //     dataAxisCtrlLow
+    //         .attr('cx', ctrl1Pos.x)
+    //         .attr('cy', ctrl1Pos.y);
+    //     dataAxisCtrlLowLabel
+    //         .attr('x', ctrl1Pos.x + 3)
+    //         .attr('y', ctrl1Pos.y);
+
+    //     let ctrl2Pos = PathMath.getPointAtDistanceAlongNormal(mHighValDist, normal, origin)
+    //     dataAxisCtrlHigh
+    //         .attr('cx', ctrl2Pos.x)
+    //         .attr('cy', ctrl2Pos.y);
+    //     dataAxisCtrlHighLabel
+    //         .attr('x', ctrl2Pos.x + 3)
+    //         .attr('y', ctrl2Pos.y);
+
+    //     dataAxisLine
+    //         .attr('x1', ctrl1Pos.x)
+    //         .attr('y1', ctrl1Pos.y)
+    //         .attr('x2', ctrl2Pos.x)
+    //         .attr('y2', ctrl2Pos.y);
+    // }
+
+    // function drawData() {
+
+    // }
+
+    // function dataAxisControlDragged(event) {
+    //     // needs to be in model coords
+    //     let dragPoint = { x: event.x, y: event.y };
+
+    //     let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
+    //     let origin = mPath.node().getPointAtLength(0)
+
+    //     let newPosition = PathMath.projectPointOntoNormal(dragPoint, normal, origin);
+    //     let dist = PathMath.distancebetween(origin, newPosition.point);
+    //     dist = newPosition.neg ? -1 * dist : dist;
+
+    //     d3.select(this).attr("ctrl") == "low" ? mLowValDist = dist : mHighValDist = dist;
+
+    //     drawAxis();
+    // }
+
+    // // accessors
+    // this.updatePath = function (path) {
+    //     mPath = path;
+    //     mPathLength = path.node().getTotalLength();
+
+    //     drawAxis();
+    //     drawData();
+    // };
+
+    // this.remove = function () {
+    //     mGroup.remove()
+    // };
 }
 
 function AnnotationController(svg) {

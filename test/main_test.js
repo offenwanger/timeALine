@@ -239,7 +239,7 @@ describe('Test Main - Integration Test', function () {
                 return {
                     getSelected: function () {
                         return [
-                            [0, 0, 2, 0],
+                            [0, 0, 0, 2],
                             [0, 0, 1, 1]
                         ]
                     }
@@ -364,11 +364,11 @@ describe('Test Main - Integration Test', function () {
             let wasCalled = false;
             let mockAnnotation = Object.assign({}, TestUtils.mockAnnotation);
             mockAnnotation.annotations = function (result) {
-                if (result.length == 1) {
+                if (result.length == 3) {
                     wasCalled = true;
                     // the annotation should be where we clicked
-                    expect(result[0].x).to.be.closeTo(150, 0.1);
-                    expect(result[0].y).to.be.closeTo(102, 0.1);
+                    expect(result.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
+                    expect(result.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
                 }
             }
             enviromentVariables.d3.annotation = () => mockAnnotation;
@@ -398,9 +398,11 @@ describe('Test Main - Integration Test', function () {
             assert.notEqual(onLineTargetClicked, null);
 
             onCommentClicked();
+            onLineTargetClicked({ x: 100, y: 100 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
+            onLineTargetClicked({ x: 10, y: 105 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
             onLineTargetClicked({ x: 150, y: 102 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
 
-            assert.equal(modelController.getBoundData().length, 1);
+            assert.equal(modelController.getBoundData().length, 3);
             assert.equal(wasCalled, true);
         });
 
@@ -534,6 +536,158 @@ describe('Test Main - Integration Test', function () {
             assert.equal(modelController.getBoundData().length, 1);
 
             expect(modelController.getBoundData()[0].offset).to.eql({ x: 20, y: 20 });
+        });
+    })
+
+
+    describe('data test', function () {
+        it('should draw data on the line', function () {
+            let onAddDatasheetClicked = null;
+            let onCellChanged = null;
+
+            let onDrawLineClicked = null;
+            let onLineDragStart = null;
+            let onLineDrag = null;
+            let onLineDragEnd = null;
+
+            let onLinkClicked = null;
+            let onLineTargetClicked = null;
+
+            let lineDrawingG = Object.assign({}, TestUtils.mockElement);
+            lineDrawingG.append = function (type) {
+                if (type == 'path') {
+                    let p = Object.assign({}, TestUtils.mockElement);
+                    p.node = () => {
+                        let node = Object.assign({}, TestUtils.fakeSVGPath)
+                        node.d = this.attrs.d;
+                        return node;
+                    };
+                    return p;
+                } else return this;
+            }
+            lineDrawingG.call = function (drag) {
+                if (onLineDragStart) return;
+                onLineDragStart = drag.start;
+                onLineDrag = drag.drag;
+                onLineDragEnd = drag.end;
+                return this;
+            };
+
+            let timelineTarget = Object.assign({}, TestUtils.mockElement);
+            timelineTarget.on = function (e, func) {
+                if (e == "click") {
+                    onLineTargetClicked = func;
+                }
+            }
+
+            let mockElement = Object.assign({}, TestUtils.mockElement);
+            mockElement.attr = function (attr, val) {
+                if (attr == "id" && val == "line-drawing-g") {
+                    return lineDrawingG;
+                } else return this;
+            }
+            mockElement.classed = function (classed) {
+                if (classed == "timelineTarget") {
+                    return timelineTarget;
+                } else return this;
+            }
+
+            let wasCalled = false;
+            let mockDataSelection = Object.assign({}, TestUtils.mockElement);
+            mockDataSelection.data = function (result) {
+                if (result.length > 0) {
+                    wasCalled = true;
+                    assert.equal(result.length, 2);
+                    // the x start and end
+                    expect(result.map(r => Math.floor(r.x))).to.eql([0, 100]);
+                    // the initial value of 10 plus 30 and plus 100
+                    expect(result.map(r => Math.floor(r.y))).to.eql([40, 110]);
+                }
+                return this;
+            }
+            mockElement.selectAll = function (selector) {
+                if (selector == ".data-display-point") return mockDataSelection;
+                else return this;
+            }
+
+            let mockSVG = Object.assign({}, TestUtils.mockSvg);
+            mockSVG.append = () => Object.assign({}, mockElement);
+            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+
+            let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
+            mockJqueryElement.on = function (e, func) {
+                if (this.id == "#line-drawing-button") {
+                    onDrawLineClicked = func
+                }
+
+                if (this.id == "#link-button") {
+                    onLinkClicked = func
+                }
+
+                if (this.id == "#add-datasheet-button") {
+                    onAddDatasheetClicked = func
+                }
+
+                if (this.id == "#comment-button") {
+                    onCommentClicked = func
+                }
+            }
+            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+
+            enviromentVariables.Handsontable = function (div, init) {
+                onCellChanged = init.afterChange;
+                return {
+                    getSelected: function () {
+                        return [
+                            [0, 0, 1, 1]
+                        ]
+                    }
+                }
+            }
+
+            setVariables();
+            mainInit();
+
+            assert.notEqual(onAddDatasheetClicked, null);
+
+            assert.notEqual(onDrawLineClicked, null);
+            assert.notEqual(onLineDragStart, null);
+            assert.notEqual(onLineDrag, null);
+            assert.notEqual(onLineDragEnd, null);
+
+            assert.notEqual(onLinkClicked, null);
+
+            onAddDatasheetClicked();
+            assert.equal(modelController.getAllTables().length, 1);
+            assert.notEqual(onCellChanged, null);
+
+            onCellChanged([
+                [0, 0, "", "5"], [0, 1, "", "15"],
+                [1, 0, "", "10"], [1, 1, "", "25"],
+            ])
+
+            onDrawLineClicked();
+
+            onLineDragStart()
+            onLineDrag({ x: 0, y: 10 });
+            onLineDrag({ x: 100, y: 10 });
+            onLineDragEnd({ x: 100, y: 10 });
+
+            assert.equal(modelController.getAllTimelines().length, 1);
+            assert.equal(modelController.getAllTimelines()[0].linePath.points.length, 3)
+            assert.notEqual(onLineTargetClicked, null);
+
+            onLinkClicked();
+            onLineTargetClicked({ x: 50, y: 50 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
+
+            // won't bind the two time cols.
+            assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 2);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(modelController.getBoundData().length, 2);
+            assert.equal(modelController.getBoundData().find(item => item.axis).axis.val1, 15);
+            assert.equal(modelController.getBoundData().find(item => item.axis).axis.val2, 25);
+
+            assert.equal(wasCalled, true);
         });
     })
 });
