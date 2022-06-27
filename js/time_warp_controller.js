@@ -1,4 +1,4 @@
-function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding) {
+function TimeWarpController(svg) {
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
     const TICK_TARGET_SIZE = 10;
@@ -7,8 +7,6 @@ function TimeWarpController(svg, getUpdatedWarpSet, mapLinePercentToTimeBinding)
 
     let mActive = false;
 
-    let mExernalCallGetUpdatedWarpSet = getUpdatedWarpSet;
-    let mExernalCallMapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
     let mUpdateWarpBindingCallback = () => { };
 
     let mTailGroup = svg.append('g')

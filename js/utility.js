@@ -214,100 +214,84 @@ let PathMath = function () {
 }();
 
 let TimeBindingUtil = function () {
-    const PLACE_HOLDER = TimeBindingTypes.PLACE_HOLDER;
     const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
 
     function AGreaterThanB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.placeHolder > b.placeHolder;
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.timestamp > b.timestamp;
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function ALessThanB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.placeHolder < b.placeHolder;
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.timestamp < b.timestamp;
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function AEqualsB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.placeHolder == b.placeHolder;
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
             return a.timestamp == b.timestamp;
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function timeBetweenAandB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return Math.abs(a.placeHolder - b.placeHolder);
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
             return Math.abs(a.timestamp - b.timestamp);
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function subtractAFromB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return b.placeHolder - a.placeHolder;
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
             return b.timestamp - a.timestamp;
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function percentBetweenAandB(a, b, val) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-            if (val.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
-
-            return (val - a.placeHolder) / (b.placeHolder - a.placeHolder);
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
             if (val.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
 
             return (val - a.timestamp) / (b.timestamp - a.timestamp);
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function averageAandB(a, b) {
-        if (a.type == PLACE_HOLDER) {
-            if (b.type != PLACE_HOLDER) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return (a.placeHolder + b.placeHolder) / 2;
-        } else if (a.type == TIMESTRAMP) {
+        if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
             return Math.floor((a.timestamp + b.timestamp) / 2);
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
     }
 
     function incrementBy(time, value) {
-        if (time.type == PLACE_HOLDER) {
-            time.placeHolder += value;
-        } else if (time.type == TIMESTRAMP) {
+        if (time.type == TIMESTRAMP) {
             time.timestamp += value;
+        } else {
+            console.error("Invalid time type: " + a.type);
         }
         return time;
     }
@@ -332,8 +316,6 @@ let DataUtil = function () {
             return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
         } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
             return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
-        } else if (cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.PLACE_HOLDER) {
-            return { val: cellVal.placeHolder, type: DataTypes.NUM }
         } else if (isDate(cellVal)) {
             if (cellVal instanceof DataStructs.TimeBinding) return cellVal;
             else return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }

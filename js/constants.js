@@ -12,6 +12,5 @@ DataTypesColor[DataTypes.TEXT] = 'steelblue';
 DataTypesColor[DataTypes.NUM] = 'green';
 
 const TimeBindingTypes = {
-    PLACE_HOLDER: 'place_holder',
     TIMESTRAMP: 'timestamp',
 }

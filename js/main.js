@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mode == MODE_COMMENT) {
             let type = DataTypes.NUM;
             if (modelController.hasTimeMapping(timelineId)) type = DataTypes.TIME_BINDING;
-            let timeBinding = modelController.mapLinePercentToTimeBinding(timelineId, type, linePoint.percent);
+            let timeBinding = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
             modelController.addBoundTextRow(timeBinding.toString(), timeBinding, timelineId);
             dataController.drawData(modelController.getBoundData());
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
-    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpSet, modelController.mapLinePercentToTimeBinding);
+    let timeWarpController = new TimeWarpController(svg);
     timeWarpController.setUpdateWarpBindingCallback((timelineId, bindingData) => {
         modelController.updateWarpBinding(timelineId, bindingData);
         timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());

@@ -38,9 +38,9 @@ describe('Test ModelController', function () {
             let modelController = new ModelController();
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
-            assert.equal(modelController.mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, 0.5), 0.5);
-            assert.equal(modelController.mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, 0.25), 0.25);
-            assert.equal(modelController.mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, 0.8), 0.8);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5), 0.5);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25), 0.25);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.8), 0.8);
         });
     })
 

@@ -117,36 +117,37 @@ let DataStructs = function () {
         }
     }
 
-    function TimeBinding(type = TimeBindingTypes.PLACE_HOLDER, value = 0) {
+    function TimeBinding(type = TimeBindingTypes.TIMESTRAMP, value = 0) {
         this.id = getUniqueId();
         this.type = type;
         this.placeHolder = null;
         this.timeStamp = null;
 
         switch (type) {
-            case TimeBindingTypes.PLACE_HOLDER:
-                this.placeHolder = value;
-                break;
             case TimeBindingTypes.TIMESTRAMP:
                 this.timeStamp = value;
+                break;
+            default:
+                console.error("Invalid time type: " + type);
         }
 
         this.setTime = function (value) {
             switch (this.type) {
-                case TimeBindingTypes.PLACE_HOLDER:
-                    this.placeHolder = value;
-                    break;
                 case TimeBindingTypes.TIMESTRAMP:
                     this.timeStamp = value;
+                    break;
+                default:
+                    console.error("Invalid time type: " + type);
             }
         }
 
         this.toString = function () {
             switch (this.type) {
-                case TimeBindingTypes.PLACE_HOLDER:
-                    return (this.placeHolder * 100).toFixed(0) + "%"
                 case TimeBindingTypes.TIMESTRAMP:
                     return new Date(this.timeStamp).toDateString();
+                default:
+                    console.error("Invalid time type: " + type);
+                    return "";
             }
         }
 

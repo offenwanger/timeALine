@@ -174,23 +174,23 @@ function ModelController() {
 
                         if (i > 0) {
                             if (hasTimeMapping(timeline.id)) {
-                                let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                                let time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
                                 let binding = createAndAddBindingRow(0, time)
                                 newTimeline.warpBindings.push(binding);
                             }
 
-                            let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, segment.startPercent);
+                            let time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
                             let binding = createAndAddBindingRow(0, time)
                             newTimeline.warpBindings.push(binding);
                         }
                         if (i < segments.length - 1) {
                             if (hasTimeMapping(timeline.id)) {
-                                let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                                let time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
                                 let binding = createAndAddBindingRow(1, time)
                                 newTimeline.warpBindings.push(binding);
                             }
 
-                            let time = mapLinePercentToTimeBinding(timeline.id, DataTypes.NUM, segment.endPercent);
+                            let time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.endPercent);
                             let binding = createAndAddBindingRow(1, time)
                             newTimeline.warpBindings.push(binding);
                         }
@@ -438,10 +438,10 @@ function ModelController() {
                         let timeType = timeCell.getType();
                         // TODO: Clean this
                         if (timeType == DataTypes.TIME_BINDING) {
-                            if (hasTimeMapping(timeline.id)) linePercent = mapTimeBindingToLinePercent(timeline.id, timeType, timeCell.getValue());
+                            if (hasTimeMapping(timeline.id)) linePercent = mapTimeToLinePercent(timeline.id, timeType, timeCell.getValue());
                             else linePercent = 0;
                         } else if (timeType == DataTypes.NUM) {
-                            linePercent = mapTimeBindingToLinePercent(timeline.id, timeType, timeCell.getValue());
+                            linePercent = mapTimeToLinePercent(timeline.id, timeType, timeCell.getValue());
                         } else {
                             linePercent = 0;
                         }
@@ -510,7 +510,7 @@ function ModelController() {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
-    function mapTimeBindingToLinePercent(timelineId, type, val) {
+    function mapTimeToLinePercent(timelineId, type, val) {
         let { max, min, warpBindingsData, greaterThan, percentBetween } = getMaxMinWarpBindingsCompare(timelineId, type);
 
         if (warpBindingsData.length == 0) {
@@ -534,7 +534,7 @@ function ModelController() {
         }
     }
 
-    function mapLinePercentToTimeBinding(timelineId, type, linePercent) {
+    function mapLinePercentToTime(timelineId, type, linePercent) {
         let { max, min, warpBindingsData, greaterThan, subtractAFromB, incrementBy } = getMaxMinWarpBindingsCompare(timelineId, type);
 
         if (warpBindingsData.length == 0) {
@@ -757,7 +757,7 @@ function ModelController() {
     this.updateWarpBinding = updateWarpBinding;
     this.getWarpBindingsData = getWarpBindingsData;
 
-    this.mapLinePercentToTimeBinding = mapLinePercentToTimeBinding;
+    this.mapLinePercentToTime = mapLinePercentToTime;
     this.hasTimeMapping = hasTimeMapping;
 
     this.updateText = updateText;
