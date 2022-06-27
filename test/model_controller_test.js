@@ -34,7 +34,7 @@ describe('Test ModelController', function () {
     });
 
     describe('LinePercent to TimeBinding mapping tests', function () {
-        it('should caluclate simple results without error', function () {
+        it('should caluclate NUM with no references', function () {
             let modelController = new ModelController();
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
@@ -45,7 +45,7 @@ describe('Test ModelController', function () {
     })
 
     describe('TimeBinding to line point mapping tests', function () {
-        it('should call without error', function () {
+        it('should caluclate NUM with no references', function () {
             let ds = enviromentVariables.DataStructs;
             let modelController = new ModelController();
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
