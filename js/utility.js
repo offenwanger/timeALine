@@ -175,7 +175,9 @@ let PathMath = function () {
     }
 
     function getPositionForPercent(points, percent) {
-        if (points.length < 2) throw new Error("invalid point array! Too short!", points);
+        if (isNaN(percent)) throw new Error("Invalid percent: " + percent);
+        if (!points) throw new Error("Invalid point array:  " + points);
+        if (points.length < 2) throw new Error("Invalid point array, too short: " + points);
 
         if (percent < 0) {
             let direction = MathUtil.vectorFromAToB(points[1], points[0]);

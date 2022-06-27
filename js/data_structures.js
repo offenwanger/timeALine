@@ -19,6 +19,7 @@ let DataStructs = function () {
     }
 
     function CellBinding(tableId, rowId, columnId, cellId) {
+        this.id = getUniqueId();
         this.tableId = tableId;
         this.rowId = rowId;
         this.columnId = columnId;
@@ -26,6 +27,7 @@ let DataStructs = function () {
     }
 
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {
+        this.id = getUniqueId();
         this.tableId = tableId;
         this.rowId = rowId;
         this.linePercent = linePercent;
@@ -36,19 +38,20 @@ let DataStructs = function () {
     // These are only for number sets now, but if we get 
     // another type (i.e. duration) might need a 'type' specifier. 
     function AxisBinding(columnId) {
+        this.id = getUniqueId();
         this.columnId = columnId;
         this.val1 = 0;
         this.dist1 = 0;
         this.val2 = 1;
         this.dist2 = 1;
-        this.lineBinding = 1;
+        this.linePercent = 1;
         this.clone = function () {
             let newAxis = new AxisBinding(this.columnId);
             newAxis.val1 = this.val1;
             newAxis.dist1 = this.dist1;
             newAxis.val2 = this.val2;
             newAxis.dist2 = this.dist2;
-            newAxis.lineBinding = this.lineBinding;
+            newAxis.linePercent = this.linePercent;
         }
     }
 

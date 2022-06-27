@@ -96,6 +96,7 @@ before(function () {
             exit: function () { return this; },
             enter: function () { return this; },
             node: function () { },
+            text: function () { return this; },
         },
 
         mockSvg: {

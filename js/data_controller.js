@@ -8,6 +8,7 @@ function DataViewController(svg) {
     function drawData(boundData) {
         mAnnotationController.drawAnnotations(boundData.filter(b => b.type == DataTypes.TEXT));
         mPointController.drawPoints(boundData.filter(b => b.type == DataTypes.NUM))
+        mPointController.drawAxes(DataUtil.getUniqueList(boundData.filter(d => d.axis).map(d => { return { id: d.axis.id, line: d.line, axis: d.axis } }), 'id'))
     }
 
     this.drawData = drawData;
@@ -23,7 +24,7 @@ function DataPointController(svg) {
 
     let mDataPointGroup = svg.append('g')
         .attr("id", 'data-point-display-g');
-    let mAxesGroup = svg.append('g')
+    let mAxisGroup = svg.append('g')
         .attr("id", 'data-axis-display-g');
 
     function drawPoints(boundData) {
@@ -77,119 +78,87 @@ function DataPointController(svg) {
             .style('opacity', function (d) { return d.opacity })
     }
 
-    function drawAxes(axes) {
-        axes.forEach(axis => {
+    function drawAxes(axesData) {
+        let axisLineData = []
+        let axisControlData = []
 
+        axesData.forEach(axisData => {
+            let axis = axisData.axis;
+            let pos1 = PathMath.getPositionForPercentAndDist(axisData.line, axis.linePercent, axis.dist1);
+            let pos2 = PathMath.getPositionForPercentAndDist(axisData.line, axis.linePercent, axis.dist2);
+
+            axisLineData.push({ x1: pos1.x, y1: pos1.y, x2: pos2.x, y2: pos2.y });
+
+            axisControlData.push({ axisId: axis.id, ctrl: 1, x: pos1.x, y: pos1.y, val: axis.val1 });
+            axisControlData.push({ axisId: axis.id, ctrl: 2, x: pos2.x, y: pos2.y, val: axis.val2 });
         })
+
+        let lines = mAxisGroup.selectAll('.axis-line').data(axisLineData);
+        lines.exit().remove();
+        lines.enter()
+            .append('line')
+            .classed("axis-line", true)
+            .attr('stroke-width', 1.5)
+            .attr('stroke', 'black');
+        mAxisGroup.selectAll('.axis-line')
+            .attr('x1', function (d) { return d.x1 })
+            .attr('y1', function (d) { return d.y1 })
+            .attr('x2', function (d) { return d.x2 })
+            .attr('y2', function (d) { return d.y2 });
+
+        let controlLabels = mAxisGroup.selectAll('.axis-control-label').data(axisControlData);
+        controlLabels.exit().remove();
+        controlLabels.enter()
+            .append('text')
+            .classed('axis-control-label', true)
+            .attr('text-anchor', 'left')
+            .style('font-size', '16px');
+
+        mAxisGroup.selectAll('.axis-control-label')
+            .attr('x', function (d) { return d.x })
+            .attr('y', function (d) { return d.y })
+            .text(function (d) { return d.val });
+
+        let controls = mAxisGroup.selectAll('.axis-control-circle').data(axisControlData);
+        controls.exit().remove();
+        controls.enter()
+            .append('circle')
+            .classed("axis-control-circle", true)
+            .attr('r', 3.5)
+            .attr('cursor', 'pointer')
+            .call(d3.drag()
+                .on('drag', axisControlDragged)
+                .on('end', axisControlDragEnd));
+        mAxisGroup.selectAll('.axis-control-circle')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y });
+    }
+
+    function axisControlDragged(event, d) {
+        console.log(d)
+        // needs to be in model coords
+        let dragPoint = { x: event.x, y: event.y };
+
+        let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
+        let origin = mPath.node().getPointAtLength(0)
+
+        let newPosition = PathMath.projectPointOntoNormal(dragPoint, normal, origin);
+        let dist = PathMath.distancebetween(origin, newPosition.point);
+        dist = newPosition.neg ? -1 * dist : dist;
+
+        d3.select(this).attr("ctrl") == "low" ? mLowValDist = dist : mHighValDist = dist;
+
+        // redraw the line for this axis;
+        drawAxis();
+    }
+
+    function axisControlDragEnd(event, d) {
+        mAxisUpdatedCallback();
     }
 
     this.drawPoints = drawPoints;
     this.drawAxes = drawAxes;
     this.setAxisUpdatedCallback = (callback) => mAxisUpdatedCallback = callback;
-
-
-    // let valRange = d3.extent(data.map(item => item.val));
-    // let mLowVal = valRange[0];
-    // let mHighVal = valRange[1]
-
-    // let mGroup = svg.append('g');
-
-    // let mPath = path;
-    // let mPathLength = path.node().getTotalLength();
-
-    // const tailPointCount = 20;
-
-    // let dataAxisCtrlLow = mGroup.append('circle')
-    //     .attr("ctrl", "low")
-    //     .attr('r', 3.5)
-    //     .attr('cursor', 'pointer')
-    //     .call(d3.drag()
-    //         .on('drag', dataAxisControlDragged)
-    //         .on('end', drawData));
-    // let dataAxisCtrlLowLabel = mGroup.append('text')
-    //     .attr('text-anchor', 'left')
-    //     .style('font-size', '16px');
-
-    // let dataAxisCtrlHigh = mGroup.append('circle')
-    //     .attr("ctrl", "high")
-    //     .attr('r', 3.5)
-    //     .attr('cursor', 'pointer')
-    //     .call(d3.drag()
-    //         .on('drag', dataAxisControlDragged)
-    //         .on('end', drawData));
-    // let dataAxisCtrlHighLabel = mGroup.append('text')
-    //     .attr('text-anchor', 'left')
-    //     .style('font-size', '16px');
-
-    // let dataAxisLine = mGroup.append('line')
-    //     .attr('stroke-width', 1.5)
-    //     .attr('stroke', 'black');
-
-    // dataAxisCtrlLowLabel.text(mLowVal).lower();
-    // dataAxisCtrlHighLabel.text(mHighVal).lower();
-
-    // drawAxis();
-    // drawData();
-
-    // function drawAxis() {
-    //     let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
-    //     let origin = mPath.node().getPointAtLength(0)
-
-    //     let ctrl1Pos = PathMath.getPointAtDistanceAlongNormal(mLowValDist, normal, origin)
-    //     dataAxisCtrlLow
-    //         .attr('cx', ctrl1Pos.x)
-    //         .attr('cy', ctrl1Pos.y);
-    //     dataAxisCtrlLowLabel
-    //         .attr('x', ctrl1Pos.x + 3)
-    //         .attr('y', ctrl1Pos.y);
-
-    //     let ctrl2Pos = PathMath.getPointAtDistanceAlongNormal(mHighValDist, normal, origin)
-    //     dataAxisCtrlHigh
-    //         .attr('cx', ctrl2Pos.x)
-    //         .attr('cy', ctrl2Pos.y);
-    //     dataAxisCtrlHighLabel
-    //         .attr('x', ctrl2Pos.x + 3)
-    //         .attr('y', ctrl2Pos.y);
-
-    //     dataAxisLine
-    //         .attr('x1', ctrl1Pos.x)
-    //         .attr('y1', ctrl1Pos.y)
-    //         .attr('x2', ctrl2Pos.x)
-    //         .attr('y2', ctrl2Pos.y);
-    // }
-
-    // function drawData() {
-
-    // }
-
-    // function dataAxisControlDragged(event) {
-    //     // needs to be in model coords
-    //     let dragPoint = { x: event.x, y: event.y };
-
-    //     let normal = PathMath.getNormalAtPercentOfPath(mPath, 0);
-    //     let origin = mPath.node().getPointAtLength(0)
-
-    //     let newPosition = PathMath.projectPointOntoNormal(dragPoint, normal, origin);
-    //     let dist = PathMath.distancebetween(origin, newPosition.point);
-    //     dist = newPosition.neg ? -1 * dist : dist;
-
-    //     d3.select(this).attr("ctrl") == "low" ? mLowValDist = dist : mHighValDist = dist;
-
-    //     drawAxis();
-    // }
-
-    // // accessors
-    // this.updatePath = function (path) {
-    //     mPath = path;
-    //     mPathLength = path.node().getTotalLength();
-
-    //     drawAxis();
-    //     drawData();
-    // };
-
-    // this.remove = function () {
-    //     mGroup.remove()
-    // };
 }
 
 function AnnotationController(svg) {

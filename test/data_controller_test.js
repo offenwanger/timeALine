@@ -17,6 +17,7 @@ describe('Test DataController', function () {
 
         enviromentVariables = {
             PathMath: utility.__get__('PathMath'),
+            DataUtil: utility.__get__('DataUtil'),
             d3: Object.assign({}, TestUtils.mockD3),
             document: TestUtils.fakeDocument,
         }
