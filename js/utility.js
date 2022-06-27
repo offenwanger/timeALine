@@ -85,6 +85,10 @@ let MathUtil = function () {
         return (360 + Math.round(degrees)) % 360 - 90; //round number, avoid decimal fragments
     }
 
+    function rotateVectorLeft(vector) {
+        return { x: -vector.y, y: vector.x };
+    }
+
     return {
         vectorFromAToB,
         distanceFromAToB,
@@ -96,6 +100,7 @@ let MathUtil = function () {
         getPointAtDistanceAlongVector,
         projectPointOntoVector,
         vectorToRotation,
+        rotateVectorLeft,
     }
 }();
 
@@ -187,6 +192,36 @@ let PathMath = function () {
         }
     }
 
+    function getNormalForPercent(points, percent) {
+        if (points.length < 2) throw new Error("invalid point array! Too short!", points);
+
+        let path = getPath(points);
+        let totalLength = path.getTotalLength();
+        let length = totalLength * percent;
+
+        let point1, point2;
+        // if the percent is really close to or off the end
+        if (length < 1) {
+            point1 = points[0]
+            point2 = points[1];
+        } else if (length > totalLength - 1) {
+            point1 = points[points.length - 2];
+            point2 = points[points.length - 1];
+        } else {
+            point1 = path.getPointAtLength(length);
+            point2 = path.getPointAtLength(length + 1);
+        }
+
+        return MathUtil.rotateVectorLeft(MathUtil.normalize(MathUtil.vectorFromAToB(point1, point2)));
+    }
+
+    function getPositionForPercentAndDist(points, percent, dist) {
+        let basePose = getPositionForPercent(points, percent);
+        let normal = getNormalForPercent(points, percent);
+
+        return MathUtil.getPointAtDistanceAlongVector(dist, normal, basePose);
+    }
+
     function getPointsWithin(x, coords, points) {
         let returnable = [];
         for (let i = 0; i < points.length; i++) {
@@ -207,6 +242,7 @@ let PathMath = function () {
         getPath,
         getPathLength,
         getPositionForPercent,
+        getPositionForPercentAndDist,
         getClosestPointOnPath,
         getPointsWithin,
         mergePointSegments,
