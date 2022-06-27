@@ -268,7 +268,7 @@ function ModelController() {
         mDataTables[0].dataRows.push(newRow);
 
         let timeColId = mDataTables[0].dataColumns.find(col => col.index == 0).id;
-        let timeCell = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding, timeColId)
+        let timeCell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, timeBinding, timeColId)
         newRow.dataCells.push(timeCell);
 
         let nextColId = mDataTables[0].dataColumns.find(col => col.index == 1).id;
@@ -436,10 +436,12 @@ function ModelController() {
                         linePercent = 0;
                     } else {
                         let timeType = timeCell.getType();
-                        // TODO: Clean this
                         if (timeType == DataTypes.TIME_BINDING) {
-                            if (hasTimeMapping(timeline.id)) linePercent = mapTimeToLinePercent(timeline.id, timeType, timeCell.getValue());
-                            else linePercent = 0;
+                            if (hasTimeMapping(timeline.id)) {
+                                linePercent = mapTimeToLinePercent(timeline.id, timeType, timeCell.getValue());
+                            } else {
+                                linePercent = 0;
+                            }
                         } else if (timeType == DataTypes.NUM) {
                             linePercent = mapTimeToLinePercent(timeline.id, timeType, timeCell.getValue());
                         } else {

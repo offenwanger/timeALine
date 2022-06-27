@@ -361,6 +361,18 @@ describe('Test Main - Integration Test', function () {
             }
             enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
+            let wasCalled = false;
+            let mockAnnotation = Object.assign({}, TestUtils.mockAnnotation);
+            mockAnnotation.annotations = function (result) {
+                if (result.length == 1) {
+                    wasCalled = true;
+                    // the annotation should be where we clicked
+                    expect(result[0].x).to.be.closeTo(150, 0.1);
+                    expect(result[0].y).to.be.closeTo(102, 0.1);
+                }
+            }
+            enviromentVariables.d3.annotation = () => mockAnnotation;
+
             setVariables();
             mainInit();
 
@@ -389,6 +401,7 @@ describe('Test Main - Integration Test', function () {
             onLineTargetClicked({ x: 150, y: 102 }, { id: modelController.getAllTimelines()[0].id, points: modelController.getAllTimelines()[0].linePath.points });
 
             assert.equal(modelController.getBoundData().length, 1);
+            assert.equal(wasCalled, true);
         });
 
         it('should move a comment', function () {
