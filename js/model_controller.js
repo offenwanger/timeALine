@@ -535,10 +535,10 @@ function ModelController() {
     }
 
     function mapLinePercentToTimeBinding(timelineId, type, linePercent) {
-        let { max, min, warpBindingsData, greaterThan, subtract, incrementBy } = getMaxMinWarpBindingsCompare(timelineId, type);
+        let { max, min, warpBindingsData, greaterThan, subtractAFromB, incrementBy } = getMaxMinWarpBindingsCompare(timelineId, type);
 
         if (warpBindingsData.length == 0) {
-            return incrementBy(min, subtract(max, min) * linePercent);
+            return incrementBy(min, subtractAFromB(min, max) * linePercent);
         } else {
             if (warpBindingsData[0].linePercent > 0) {
                 warpBindingsData.push({ val: min, linePercent: 0 });
@@ -549,7 +549,7 @@ function ModelController() {
 
             for (let i = 1; i < warpBindingsData.length; i++) {
                 if (greaterThan(linePercent, warpBindingsData[i - 1].linePercent) && greaterThan(warpBindingsData[i].linePercent, linePercent)) {
-                    return incrementBy(warpBindingsData[i - 1].val, subtract(warpBindingsData[i].val, warpBindingsData[i - 1].val) * linePercent);
+                    return incrementBy(warpBindingsData[i - 1].val, subtractAFromB(warpBindingsData[i].val, warpBindingsData[i - 1].val) * linePercent);
                 }
             }
 
@@ -560,19 +560,19 @@ function ModelController() {
 
     function getMaxMinWarpBindingsCompare(timelineId, type) {
         let greaterThan;
-        let subtract;
+        let subtractAFromB;
         let equals;
         let incrementBy;
         let percentBetween;
         if (type == DataTypes.TIME_BINDING) {
             greaterThan = TimeBindingUtil.AGreaterThanB;
-            subtract = TimeBindingUtil.subtractAFromB;
+            subtractAFromB = TimeBindingUtil.subtractAFromB;
             equals = TimeBindingUtil.AEqualsB;
             incrementBy = TimeBindingUtil.incrementBy;
             percentBetween = TimeBindingUtil.percentBetweenAandB;
         } else if (type == DataTypes.NUM) {
             greaterThan = (a, b) => a > b;
-            subtract = (a, b) => b - a;
+            subtractAFromB = (a, b) => b - a;
             equals = (a, b) => a == b;
             incrementBy = (a, b) => a + b;
             percentBetween = (a, b, v) => (v - a) / (b - a);
@@ -606,11 +606,11 @@ function ModelController() {
                 // there were no values
                 if (warpBindingsData.length > 1) {
                     // but at least two warp bindings
-                    let minTimeDiff = subtract(warpBindingsData[1].val, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (warpBindingsData[1].linePercent - warpBindingsData[0].linePercent)
+                    let minTimeDiff = subtractAFromB(warpBindingsData[1].val, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (warpBindingsData[1].linePercent - warpBindingsData[0].linePercent)
                     min = incrementBy(warpBindingsData[0].val, -minTimeDiff);
 
                     let last = warpBindingsData.length - 1;
-                    let maxTimeDiff = subtract(warpBindingsData[last].val, warpBindingsData[last - 1].val) * (1 - warpBindingsData[last].linePercent) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
+                    let maxTimeDiff = subtractAFromB(warpBindingsData[last].val, warpBindingsData[last - 1].val) * (1 - warpBindingsData[last].linePercent) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
                     max = incrementBy(warpBindingsData[0].val, maxTimeDiff);
                 } else {
                     if (type == DataTypes.TIME_BINDING) {
@@ -641,7 +641,7 @@ function ModelController() {
                     let prevVal = warpBindingsData.length == 1 ? min : warpBindingsData[last - 1].val;
                     let prevLine = warpBindingsData.length == 1 ? 0 : warpBindingsData[last - 1].linePercent;
 
-                    let maxTimeDiff = subtract(warpBindingsData[last].val, prevVal) * (1 - prevLine) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
+                    let maxTimeDiff = subtractAFromB(warpBindingsData[last].val, prevVal) * (1 - prevLine) / (warpBindingsData[last].linePercent - warpBindingsData[last - 1].linePercent)
                     max = incrementBy(warpBindingsData[0].val, maxTimeDiff);
 
 
@@ -650,7 +650,7 @@ function ModelController() {
                     let nextVal = warpBindingsData.length == 1 ? max : warpBindingsData[1].val;
                     let nextLine = warpBindingsData.length == 1 ? 1 : warpBindingsData[1].linePercent;
 
-                    let minTimeDiff = subtract(nextVal, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (nextLine.linePercent - warpBindingsData[0].linePercent)
+                    let minTimeDiff = subtractAFromB(nextVal, warpBindingsData[0].val) * warpBindingsData[0].linePercent / (nextLine.linePercent - warpBindingsData[0].linePercent)
                     min = incrementBy(warpBindingsData[0].val, -minTimeDiff);
                 }
             } else {
@@ -667,7 +667,7 @@ function ModelController() {
             }
         }
 
-        return { max, min, warpBindingsData, greaterThan, percentBetween, subtract, incrementBy };
+        return { max, min, warpBindingsData, greaterThan, percentBetween, subtractAFromB, incrementBy };
     }
 
     function getMaxValue(timelineId, type) {
