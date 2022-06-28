@@ -302,7 +302,7 @@ function ModelController() {
         let timeCell = new DataStructs.DataCell(DataTypes.TIME_BINDING, timeBinding, timeColId)
         newRow.dataCells.push(timeCell);
 
-        for (let i = i; i < mDataTables[0].dataColumns.length; i++) {
+        for (let i = 0; i < mDataTables[0].dataColumns.length; i++) {
             let colId = mDataTables[0].dataColumns.find(col => col.index == i).id;
             let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
             newRow.dataCells.push(cell);
