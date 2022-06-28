@@ -10,7 +10,7 @@ function DataTableController() {
     function updateTableData(tables) {
         tables.forEach(table => {
             if (table.id in hotTables) {
-                hotTables[table.id].loadData(getSimpleTable(table));
+                hotTables[table.id].loadData(getTextArray(table));
             } else {
                 addTable(table);
             }
@@ -25,7 +25,7 @@ function DataTableController() {
         $("#table-list").append(newDiv);
 
         let hot = new Handsontable(newDiv.get(0), {
-            data: getSimpleTable(table),
+            data: getTextArray(table),
             rowHeaders: true,
             colHeaders: colHeader,
             columnSorting: true,
@@ -121,7 +121,7 @@ function DataTableController() {
 
             mTableUpdatedCallback(table)
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getSimpleTable(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(table)), 0);
         }
 
         function afterRemoveRow(index, amount) {
@@ -133,7 +133,7 @@ function DataTableController() {
 
             mTableUpdatedCallback(table, true)
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getSimpleTable(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(table)), 0);
         }
 
         function afterRowMove(movedRows, finalIndex) {
@@ -154,7 +154,7 @@ function DataTableController() {
 
             mTableUpdatedCallback(table, true)
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getSimpleTable(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(table)), 0);
         }
 
         function afterCreateCol(startIndex, numberOfCols) {
@@ -171,14 +171,14 @@ function DataTableController() {
             mTableUpdatedCallback(table)
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.loadData(getSimpleTable(table));
+                hot.loadData(getTextArray(table));
                 table.dataColumns.sort((a, b) => a.index - b.index)
                 hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
             }, 0);
         }
 
         function afterRemoveCol(index, amount) {
-            let removedColumns = table.dataColumns.filter(col => col.index >= index || col.index < index + amount).map(col => col.id);
+            let removedColumns = table.dataColumns.filter(col => col.index >= index && col.index < index + amount).map(col => col.id);
             table.dataColumns = table.dataColumns.filter(col => col.index < index || col.index >= index + amount);
 
             table.dataColumns.forEach(col => {
@@ -192,9 +192,8 @@ function DataTableController() {
             mTableUpdatedCallback(table, true)
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.loadData(getSimpleTable(table));
-                table.dataColumns.sort((a, b) => a.index - b.index)
                 hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+                hot.loadData(getTextArray(table));
             }, 0);
         }
 
@@ -217,7 +216,7 @@ function DataTableController() {
             mTableUpdatedCallback(table)
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.loadData(getSimpleTable(table));
+                hot.loadData(getTextArray(table));
                 table.dataColumns.sort((a, b) => a.index - b.index)
                 hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
             }, 0);
@@ -282,7 +281,7 @@ function DataTableController() {
             });
 
             mTableUpdatedCallback(table, true)
-            setTimeout(() => { hot.loadData(getSimpleTable(table)); }, 0);
+            setTimeout(() => { hot.loadData(getTextArray(table)); }, 0);
 
             return false;
         }
@@ -356,7 +355,7 @@ function DataTableController() {
     }
 
     // this functions takes complex data types and simplifies them for table display
-    function getSimpleTable(table) {
+    function getTextArray(table) {
         let arr2D = Array(table.dataRows.length).fill(0).map(i => Array(table.dataColumns.length));
 
         table.dataRows.forEach(row => row.dataCells.forEach(cell => {
@@ -364,10 +363,7 @@ function DataTableController() {
             if (!column) {
                 console.error("Column missing!")
             } else {
-                arr2D[row.index][column.index] = cell.getValue();
-                if (arr2D[row.index][column.index] instanceof DataStructs.TimeBinding) {
-                    arr2D[row.index][column.index] = arr2D[row.index][column.index].toString();
-                }
+                arr2D[row.index][column.index] = cell.toString();
             }
         }))
 

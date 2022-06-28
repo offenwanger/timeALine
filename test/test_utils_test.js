@@ -62,12 +62,13 @@ before(function () {
             }
         },
 
-        makeMockHandsOnTable: function (div, init) {
-            return {
-                getSelected: function () { return null },
-                loadData: function () { },
-            }
+        mockHandsontable: {
+            getSelected: function () { return null },
+            loadData: function () { },
+            updateSettings: function () { },
         },
+
+        makeMockHandsontable: function (div, init) { Object.assign(this, TestUtils.mockHandsontable); },
 
         mockElement: {
             attrs: {},

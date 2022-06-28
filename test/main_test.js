@@ -33,7 +33,7 @@ describe('Test Main - Integration Test', function () {
         enviromentVariables = {
             d3: Object.assign({}, TestUtils.mockD3),
             $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.makeMockHandsOnTable,
+            Handsontable: TestUtils.makeMockHandsontable,
             window: { innerWidth: 1000, innerHeight: 800 },
             ModelController: function () {
                 model_controller.__get__("ModelController").call(this);

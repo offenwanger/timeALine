@@ -17,7 +17,7 @@ describe('Test TableViewer', function () {
 
         enviromentVariables = {
             $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.makeMockHandsOnTable,
+            Handsontable: TestUtils.makeMockHandsontable,
             DataStructs,
             DataUtil: utility.__get__('DataUtil'),
         }
@@ -49,6 +49,7 @@ describe('Test TableViewer', function () {
             let afterRowMove;
             enviromentVariables.Handsontable = function (div, init) {
                 afterRowMove = init.afterRowMove;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () { done() };
             }
 
@@ -93,6 +94,7 @@ describe('Test TableViewer', function () {
             let afterRowMove;
             enviromentVariables.Handsontable = function (div, init) {
                 afterRowMove = init.afterRowMove;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () { done() };
             }
 
@@ -137,6 +139,7 @@ describe('Test TableViewer', function () {
             let afterRowMove;
             enviromentVariables.Handsontable = function (div, init) {
                 afterRowMove = init.afterRowMove;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () { done() };
             }
 
@@ -181,6 +184,7 @@ describe('Test TableViewer', function () {
             let afterRowMove;
             enviromentVariables.Handsontable = function (div, init) {
                 afterRowMove = init.afterRowMove;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () { done() };
             }
 
@@ -231,6 +235,7 @@ describe('Test TableViewer', function () {
             let doneCalled = 0;
             enviromentVariables.Handsontable = function (div, init) {
                 beforeColumnSort = init.beforeColumnSort;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () {
                     // async cleanup
                     doneCalled++;
@@ -306,6 +311,7 @@ describe('Test TableViewer', function () {
             let doneCalled = 0;
             enviromentVariables.Handsontable = function (div, init) {
                 beforeColumnSort = init.beforeColumnSort;
+                Object.assign(this, TestUtils.mockHandsontable);
                 this.loadData = function () {
                     // async cleanup
                     doneCalled++;
@@ -348,6 +354,41 @@ describe('Test TableViewer', function () {
             });
             beforeColumnSort([], [{ column: 0 }])
 
+
+            assert.equal(callbackCalled, true);
+        });
+    });
+
+
+    describe('remove columns and rows test', function () {
+        it('should remove one column', function (done) {
+            let afterRemoveCol;
+            enviromentVariables.Handsontable = function (div, init) {
+                afterRemoveCol = init.afterRemoveCol;
+                Object.assign(this, TestUtils.mockHandsontable);
+                this.loadData = function () { done() };
+            }
+
+            let callbackCalled = false;
+
+
+            let controller = getController();
+
+            let rowCount = 6;
+            let colCount = 5;
+            controller.addTable(TestUtils.makeTestTable(rowCount, colCount));
+
+            controller.setTableUpdatedCallback((table) => {
+                assert.equal(table.dataRows.length, rowCount);
+                assert.equal(table.dataColumns.length, 3);
+
+                expect(table.dataColumns.map(col => col.index).sort()).to.eql([0, 1, 2]);
+                expect(table.dataRows[0].dataCells.map(cell => cell.val).sort()).to.eql(["0_0", "0_3", "0_4"]);
+
+                callbackCalled = true;
+            });
+
+            afterRemoveCol(1, 2)
 
             assert.equal(callbackCalled, true);
         });

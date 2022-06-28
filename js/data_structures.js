@@ -118,6 +118,18 @@ let DataStructs = function () {
         this.getType = function () {
             return this.type == DataTypes.UNSPECIFIED ? DataUtil.inferDataAndType(this.val).type : this.type;
         }
+
+        this.toString = function () {
+            if (typeof this.val == 'string') {
+                return this.val;
+            } if (typeof this.val == 'number') {
+                return "" + Math.round(this.val * 100) / 100;
+            } else if (this.val instanceof TimeBinding) {
+                return this.val.toString();
+            } else {
+                console.error("Invalid value type! ", this.val);
+            }
+        }
     }
 
     function TimeBinding(type = TimeBindingTypes.TIMESTRAMP, value = 0) {
