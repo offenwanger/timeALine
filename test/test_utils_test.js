@@ -3,6 +3,9 @@ let fs = require('fs');
 let vm = require('vm');
 let rewire = require('rewire');
 
+let chai = require('chai');
+let assert = chai.assert;
+
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
 
@@ -341,5 +344,46 @@ before(function () {
         makeTestTable,
         MockHandsontable,
         getIntegrationEnviroment,
+    }
+
+    function drawLine(points, enviromentVariables) {
+        assert('#line-drawing-g' in enviromentVariables.d3.selectors, "Line Drawing G not created!");
+        let lineDrawingG = enviromentVariables.d3.selectors['#line-drawing-g'];
+        let drawingRect = lineDrawingG.children.find(c => c.type == 'rect');
+        let onLineDragStart = drawingRect.drag.start;
+        let onLineDrag = drawingRect.drag.drag;
+        let onLineDragEnd = drawingRect.drag.end;
+        assert(onLineDragStart, "onLineDragStart not set");
+        assert(onLineDrag, "onLineDrag not set");
+        assert(onLineDragEnd, "onLineDragEnd not set");
+
+        clickButton("#line-drawing-button", enviromentVariables.$);
+
+        onLineDragStart()
+        points.forEach(point => {
+            onLineDrag(point);
+        })
+        onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 });
+
+        clickButton("#line-drawing-button", enviromentVariables.$);
+    }
+
+    function clickButton(buttonId, fakeJQ) {
+        assert(buttonId in fakeJQ.selectors, buttonId + " not found!");
+        let clickFunc = fakeJQ.selectors[buttonId].eventCallbacks['click'];
+        assert(clickFunc, buttonId + " click not set!");
+        clickFunc();
+    }
+
+    function clickLine(coords, lineId, enviromentVariables) {
+        let timeLineTargets = enviromentVariables.d3.selectors['.timelineTarget'];
+        let data = timeLineTargets.innerData.find(d => d.id == lineId);
+        timeLineTargets.eventCallbacks['click'](coords, data);
+    }
+
+    IntegrationUtils = {
+        drawLine,
+        clickButton,
+        clickLine,
     }
 });

@@ -58,3 +58,139 @@ describe('Test DataController', function () {
         })
     });
 });
+
+describe('Integration Test DataController', function () {
+    let integrationEnv;
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+    });
+
+    afterEach(function (done) {
+        integrationEnv.cleanup(done);
+    });
+
+    describe('comment test', function () {
+        it('should add a comment to a line', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 110, y: 100 },
+                { x: 120, y: 100 },
+                { x: 150, y: 102 },
+                { x: 90, y: 102 },
+                { x: 40, y: 103 },
+                { x: 10, y: 105 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 10, y: 105 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            assert.equal(annotationSet.length, 3)
+            expect(annotationSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
+            expect(annotationSet.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
+
+            assert.equal(integrationEnv.ModelController.getBoundData().length, 3);
+        });
+
+        it('should move a comment', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 110, y: 100 },
+                { x: 120, y: 100 },
+                { x: 150, y: 102 },
+                { x: 90, y: 102 },
+                { x: 40, y: 103 },
+                { x: 10, y: 105 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getBoundData().length, 1);
+
+            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            let fakeThis = {
+                attr: function () {
+                    return annotationSet[0].className;
+                }
+            }
+            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
+            onCommentDrag.call(fakeThis, { dx: 10, dy: 10 });
+            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
+            onCommentDragEnd.call(fakeThis, { dx: 0, dy: 0 });
+
+            assert.equal(integrationEnv.ModelController.getBoundData().length, 1);
+
+            expect(integrationEnv.ModelController.getBoundData()[0].offset).to.eql({ x: 20, y: 20 });
+        });
+    })
+
+
+    describe('data test', function () {
+        it('should draw data on the line', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "5"], [0, 1, "", "15"],
+                [1, 0, "", "10"], [1, 1, "", "25"],
+            ])
+
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
+
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
+            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            // won't bind the two time cols.
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getBoundData().length, 2);
+            assert.equal(integrationEnv.ModelController.getBoundData().find(item => item.axis).axis.val1, 15);
+            assert.equal(integrationEnv.ModelController.getBoundData().find(item => item.axis).axis.val2, 25);
+        });
+
+        it('should update the axis', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "5"], [0, 1, "", "15"],
+                [1, 0, "", "10"], [1, 1, "", "25"],
+            ])
+
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
+
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
+            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-control-circle'];
+            assert.equal(axisControlCircles.innerData.length, 2);
+
+            let data = axisControlCircles.innerData.find(d => d.ctrl == 1);
+
+            let fakeCircle = { attr: () => { } };
+            axisControlCircles.drag.drag.call(fakeCircle, { x: 0, y: 50 }, data)
+            axisControlCircles.drag.end.call(fakeCircle, { x: 0, y: 50 }, data)
+
+            assert.equal(integrationEnv.ModelController.getBoundData()[0].axis.dist1, 40);
+        });
+    })
+});
