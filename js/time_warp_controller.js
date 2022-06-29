@@ -42,6 +42,7 @@ function TimeWarpController(svg) {
         let tickData = getTicksForSegment(path, totalLength, 0, bindings.length > 0 ? bindings[0].linePercent : 1);
         let tickTargetData = [];
 
+        bindings.sort((a, b) => a.linePercent - b.linePercent)
         bindings.forEach((binding, index) => {
             let position = path.getPointAtLength(totalLength * binding.linePercent);
 

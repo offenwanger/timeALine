@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
             dataController.drawData(modelController.getBoundData());
         } else if (mode == MODE_PIN) {
-            console.log("Add pin here!", timelineId, linePoint)
+            modelController.createWarpBindingRow(timelineId, linePoint.percent);
+            timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
+            dataController.drawData(modelController.getBoundData());
         }
     })
 

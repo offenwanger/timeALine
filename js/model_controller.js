@@ -285,6 +285,16 @@ function ModelController() {
         getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
+    function createWarpBindingRow(timelineId, linePercent) {
+        if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
+        if (typeof linePercent != "number") throw new Error("Invalid linePercent: " + linePercent);
+
+        let type = hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
+        let timeBinding = mapLinePercentToTime(timelineId, type, linePercent);
+        let warpBinding = createAndAddBindingRow(linePercent, timeBinding);
+        getTimelineById(timelineId).warpBindings.push(warpBinding);
+    }
+
     function createAndAddBindingRow(linePercent, timeBinding) {
         if (mDataTables.length == 0) {
             let newTable = new DataStructs.DataTable([
@@ -576,6 +586,9 @@ function ModelController() {
     }
 
     function getMaxMinWarpBindingsCompare(timelineId, type) {
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) throw new Error("Invalid id: " + timelineId)
+
         let greaterThan;
         let subtractAFromB;
         let equals;
@@ -593,7 +606,7 @@ function ModelController() {
             equals = (a, b) => a == b;
             incrementBy = (a, b) => a + b;
             percentBetween = (a, b, v) => (v - a) / (b - a);
-        } else { console.error("cannot map type " + type); return 0; }
+        } else { throw new Error("Cannot map type: " + type); }
 
         let warpBindingsData = getTimelineById(timelineId).warpBindings
             .filter(b => b.isValid)
@@ -729,7 +742,7 @@ function ModelController() {
                 let cell = getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id)
                 return { linePercent: b.linePercent, val: cell.getValue(), type: cell.getType() }
             })
-            .filter(result => result.type == type);
+            .filter(result => result.type == DataTypes.TIME_BINDING);
         // if we have two warp bindings, there's enough data
         if (warpBindingsData.length > 2) return true;
 
@@ -778,6 +791,7 @@ function ModelController() {
 
     this.updateWarpBinding = updateWarpBinding;
     this.getWarpBindingsData = getWarpBindingsData;
+    this.createWarpBindingRow = createWarpBindingRow;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.hasTimeMapping = hasTimeMapping;

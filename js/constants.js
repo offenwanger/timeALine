@@ -10,6 +10,7 @@ const DataTypes = {
 const DataTypesColor = {};
 DataTypesColor[DataTypes.TEXT] = 'steelblue';
 DataTypesColor[DataTypes.NUM] = 'green';
+DataTypesColor[DataTypes.TIME_BINDING] = 'purple';
 
 const TimeBindingTypes = {
     TIMESTRAMP: 'timestamp',

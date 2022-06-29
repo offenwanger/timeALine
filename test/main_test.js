@@ -508,6 +508,48 @@ describe('Test Main - Integration Test', function () {
 
         });
     })
+
+    describe('warp data tests', function () {
+        it('should link non-blank data cell', function () {
+            let onPinClicked = null;
+
+            let mockElement = Object.assign({}, TestUtils.mockElement);
+            let mockSVG = Object.assign({}, TestUtils.mockSvg);
+            let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
+
+            mockSVG.append = () => Object.assign({}, mockElement);
+            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+
+            let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
+            let clickLineFunc = testLineClick(mockElement);
+
+            let onFunc = mockJqueryElement.on;
+            mockJqueryElement.on = function (e, func) {
+                if (this.id == "#pin-button") {
+                    onPinClicked = func
+                } else onFunc.call(this, e, func);
+            }
+            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+
+            setVariables();
+            mainInit();
+
+            assert.notEqual(onPinClicked, null);
+
+            drawLineFunc([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            onPinClicked();
+            clickLineFunc({ x: 150, y: 102 }, modelController.getAllTimelines()[0]);
+            clickLineFunc({ x: 125, y: 101 }, modelController.getAllTimelines()[0]);
+            clickLineFunc({ x: 175, y: 103 }, modelController.getAllTimelines()[0]);
+
+            assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 3);
+            expect(modelController.getAllTimelines()[0].warpBindings.map(w =>Math.round(w.linePercent*100)/100).sort()).to.eql([0.25, 0.50, 0.75]);
+            assert.equal(modelController.getBoundData().length, 0);
+        });
+    })
 });
 
 function testLineDraw(mockElement, mockJqueryElement) {
