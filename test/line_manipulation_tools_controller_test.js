@@ -19,13 +19,14 @@ describe('Test LayoutController', function () {
             PathMath: utility.__get__('PathMath'),
             MathUtil: utility.__get__('MathUtil'),
             d3: Object.assign({}, TestUtils.mockD3),
+            svg: Object.assign({}, TestUtils.mockSvg),
             document: TestUtils.fakeDocument,
         }
 
         getDragController = function () {
             line_manipulation_tools_controller.__set__(enviromentVariables);
             let DragController = line_manipulation_tools_controller.__get__('DragController');
-            return new DragController(Object.assign({}, TestUtils.mockSvg));
+            return new DragController(enviromentVariables.svg);
         }
 
         done();
@@ -390,6 +391,76 @@ describe('Test LayoutController', function () {
             dragStart({ x: 378, y: 265 });
             drag({ x: 178, y: 65 });
             dragEnd({ x: 178, y: 65 });
+
+            assert.equal(called, true);
+        });
+
+        it('should rotate the line', function () {
+            let onDragStart = null;
+            let onDrag = null;
+            let onDragEnd = null;
+
+            let mockEndPoints = Object.assign({}, TestUtils.mockElement);
+            mockEndPoints.call = function (drag) {
+                onDragStart = drag.start;
+                onDrag = drag.drag;
+                onDragEnd = drag.end;
+                return this;
+            }
+
+            let mockElement = Object.assign({}, TestUtils.mockElement);
+            let selectAllFunc = mockElement.selectAll;
+            mockElement.selectAll = function (selection) {
+                if (selection == '.end-point') return mockEndPoints;
+                else return selectAllFunc.call(this, selection);
+            };
+
+            enviromentVariables.svg.append = function () { return Object.assign({}, mockElement); };
+
+            let dragController = getDragController();
+
+            let lineData = {
+                id: "1656511643611_1",
+                points: [
+                    { x: 0, y: 0 },
+                    { x: 10, y: 10 },
+                    { x: 5, y: 10 },
+                    { x: 10, y: 15 },
+                    { x: 15, y: 20 },
+                    { x: 20, y: 20 },
+                    { x: 15, y: 15 },
+                    { x: 10, y: 10 },
+                    { x: 15, y: 5 },
+                    { x: 25, y: 5 },
+                    { x: 25, y: 10 },
+                    { x: 25, y: 15 },
+                    { x: 20, y: 15 },
+                    { x: 10, y: 10 }
+                ]
+            };
+
+            dragController.linesUpdated([lineData]);
+            dragController.setActive(true);
+
+            let called = false;
+            dragController.setLineModifiedCallback((result) => {
+                assert.equal(result.length, 1);
+                assert.equal(result[0].oldSegments.length, 1);
+                assert.equal(result[0].oldSegments[0].length, lineData.points.length);
+                assert.equal(result[0].newSegments.length, 1);
+                assert.equal(result[0].newSegments[0].length, lineData.points.length);
+                expect(result[0].newSegments[0].map(p => Math.round(p.x))).to.eql(lineData.points.map(p => p.y * 2));
+                expect(result[0].newSegments[0].map(p => Math.round(p.y))).to.eql(lineData.points.map(p => p.x == 0 ? 0 : p.x * -2));
+                called = true;
+            })
+
+            assert.notEqual(onDragStart, null, "drag start wasn't set")
+            assert.notEqual(onDrag, null, "drag wasn't set")
+            assert.notEqual(onDragEnd, null, "drag end wasn't set")
+
+            onDragStart({ x: 10, y: 10 }, lineData);
+            onDrag({ x: 20, y: -20 }, lineData);
+            onDragEnd({ x: 20, y: -20 }, lineData);
 
             assert.equal(called, true);
         });

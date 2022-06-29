@@ -596,11 +596,21 @@ function DragController(svg) {
     function pointsToPercentDistMapping(points) {
         let lineStart = points[0];
         let lineEnd = points[points.length - 1];
+
         let len = MathUtil.distanceFromAToB(lineStart, lineEnd);
+        if (len == 0) throw new Error("Line start and line end are the same!")
+
+        let vector = MathUtil.vectorFromAToB(lineStart, lineEnd);
         let result = []
         points.forEach(point => {
-            let projection = projectPointOntoLine(point, lineStart, lineEnd);
-            result.push({ percent: projection.percent, distPercent: projection.distance / len })
+            let projectedPoint = MathUtil.projectPointOntoVector(point, vector, lineStart);
+            let projPercent = (projectedPoint.neg ? -1 : 1) * MathUtil.distanceFromAToB(lineStart, projectedPoint) / len;
+
+            let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(vector));
+            let neg = MathUtil.projectPointOntoVector(point, normal, projectedPoint).neg;
+            let distance = (neg ? -1 : 1) * MathUtil.distanceFromAToB(projectedPoint, point);
+
+            result.push({ percent: projPercent, distPercent: distance / len })
         })
         return result;
     }
@@ -625,26 +635,6 @@ function DragController(svg) {
             result.push(MathUtil.getPointAtDistanceAlongVector(entry.distPercent * len, normal, origin));
         });
         return result;
-    }
-
-    function projectPointOntoLine(point, lineStart, lineEnd) {
-        let vector = MathUtil.vectorFromAToB(lineStart, lineEnd);
-        let len = MathUtil.distanceFromAToB(lineStart, lineEnd);
-
-        if (len == 0) throw new Error("Line start and line end are the same!")
-
-        let projectedPoint = MathUtil.projectPointOntoVector(point, vector, lineStart);
-        let projPercent = projectedPoint.neg ? -1 : 1 * MathUtil.distanceFromAToB(lineStart, projectedPoint) / len;
-
-        let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(vector));
-        let neg = MathUtil.projectPointOntoVector(point, normal, projectedPoint).neg;
-        let distance = neg ? -1 : 1 * MathUtil.distanceFromAToB(projectedPoint, point);
-
-        return {
-            point: projectedPoint,
-            distance,
-            percent: projPercent
-        };
     }
 
     function drawLines(points) {
