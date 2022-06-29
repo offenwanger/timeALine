@@ -1,81 +1,20 @@
 let chai = require('chai');
-let rewire = require('rewire');
 let assert = chai.assert;
 let expect = chai.expect;
 
 describe('Test Main - Integration Test', function () {
-    let enviromentVariables;
-    let mainInit;
-    let modelController;
-    let setVariables;
+    let integrationVariables;
     beforeEach(function () {
-        if (global.d3) throw new Error("Context leaks!")
-
-        global.document = Object.assign({
-            addEventListener: function (event, callback) {
-                if (event == "DOMContentLoaded") {
-                    mainInit = callback;
-                }
-            }
-        }, TestUtils.fakeDocument)
-
-        let main = rewire('../js/main.js');
-        let data_structures = rewire('../js/data_structures.js');
-        let table_view_controller = rewire('../js/table_view_controller.js');
-        let model_controller = rewire('../js/model_controller.js');
-        let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
-        let line_view_controller = rewire('../js/line_view_controller.js');
-        let time_warp_controller = rewire('../js/time_warp_controller.js');
-        let data_controller = rewire('../js/data_controller.js');
-
-        let utility = rewire('../js/utility.js');
-
-        enviromentVariables = {
-            d3: Object.assign({}, TestUtils.mockD3),
-            $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.makeMockHandsontable,
-            window: { innerWidth: 1000, innerHeight: 800 },
-            ModelController: function () {
-                model_controller.__get__("ModelController").call(this);
-                modelController = this;
-            },
-            DataStructs: data_structures.__get__("DataStructs"),
-            LineViewController: line_view_controller.__get__("LineViewController"),
-            TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
-            DataViewController: data_controller.__get__("DataViewController"),
-            AnnotationController: data_controller.__get__("AnnotationController"),
-            LineDrawingController: line_manipulation_tools_controller.__get__("LineDrawingController"),
-            EraserController: line_manipulation_tools_controller.__get__("EraserController"),
-            DragController: line_manipulation_tools_controller.__get__("DragController"),
-            IronController: line_manipulation_tools_controller.__get__("IronController"),
-            DataTableController: table_view_controller.__get__("DataTableController"),
-            PathMath: utility.__get__("PathMath"),
-            MathUtil: utility.__get__("MathUtil"),
-            DataUtil: utility.__get__("DataUtil"),
-            TimeBindingUtil: utility.__get__("TimeBindingUtil"),
-        }
-
-        setVariables = function () {
-            main.__set__(enviromentVariables);
-        }
-
-        setVariables();
+        integrationVariables = getIntegrationVariables();
     });
 
     afterEach(function (done) {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        delete global.document;
-        delete modelController;
-
-        done();
+        integrationVariables.cleanup(done);
     });
 
     describe('intialization test', function () {
         it('should intialize', function () {
-            mainInit();
+            integrationVariables.mainInit();
         });
     })
 
@@ -87,13 +26,15 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+
+            let modelController = integrationVariables.ModelController;
 
             drawLineFunc([{ x: 100, y: 100 }, { x: 110, y: 100 }, { x: 120, y: 100 }, { x: 150, y: 102 }, { x: 90, y: 102 }, { x: 40, y: 103 }, { x: 10, y: 105 }]);
 
@@ -122,8 +63,8 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
@@ -136,9 +77,9 @@ describe('Test Main - Integration Test', function () {
                     onAddDatasheetClicked = func
                 } else onFunc.call(this, e, func);
             }
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
-            enviromentVariables.Handsontable = function (div, init) {
+            integrationVariables.enviromentVariables.Handsontable = function (div, init) {
                 onCellChanged = init.afterChange;
                 return {
                     getSelected: function () {
@@ -150,8 +91,9 @@ describe('Test Main - Integration Test', function () {
                 }
             }
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onAddDatasheetClicked, null);
             assert.notEqual(onLinkClicked, null);
@@ -175,7 +117,7 @@ describe('Test Main - Integration Test', function () {
 
             onLinkClicked();
             clickLineFunc({ x: 150, y: 102 }, modelController.getAllTimelines()[0]);
-            
+
             // won't bind the two time cols.
             assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 3);
             assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
@@ -195,8 +137,8 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
@@ -218,10 +160,11 @@ describe('Test Main - Integration Test', function () {
                     expect(result.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
                 }
             }
-            enviromentVariables.d3.annotation = () => mockAnnotation;
+            integrationVariables.enviromentVariables.d3.annotation = () => mockAnnotation;
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onCommentClicked, null);
 
@@ -230,10 +173,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(modelController.getAllTimelines().length, 1);
 
             onCommentClicked();
-            clickLineFunc({ x: 100, y: 100 },  modelController.getAllTimelines()[0]);
-            clickLineFunc({ x: 10, y: 105 },  modelController.getAllTimelines()[0]);
-            clickLineFunc({ x: 150, y: 102 },  modelController.getAllTimelines()[0]);
-            
+            clickLineFunc({ x: 100, y: 100 }, modelController.getAllTimelines()[0]);
+            clickLineFunc({ x: 10, y: 105 }, modelController.getAllTimelines()[0]);
+            clickLineFunc({ x: 150, y: 102 }, modelController.getAllTimelines()[0]);
+
             assert.equal(modelController.getBoundData().length, 3);
             assert.equal(wasCalled, true);
         });
@@ -249,7 +192,7 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
@@ -259,7 +202,7 @@ describe('Test Main - Integration Test', function () {
                 annotationData = data;
                 return this;
             }
-            enviromentVariables.d3.annotation = () => mockAnnotation;
+            integrationVariables.enviromentVariables.d3.annotation = () => mockAnnotation;
 
             let mockAnnotationsSelection = Object.assign({}, TestUtils.mockElement);
             mockAnnotationsSelection.call = function (drag) {
@@ -276,8 +219,8 @@ describe('Test Main - Integration Test', function () {
                 } else return this.attrs[name];
             };
 
-            enviromentVariables.d3.selectAll = () => Object.assign({}, mockAnnotationsSelection);
-            enviromentVariables.d3.select = (selection) => {
+            integrationVariables.enviromentVariables.d3.selectAll = () => Object.assign({}, mockAnnotationsSelection);
+            integrationVariables.enviromentVariables.d3.select = (selection) => {
                 if (selection == '#svg_container') return Object.assign({}, mockSVG);
                 else return mockAnnotationsSelection;
             };
@@ -288,10 +231,11 @@ describe('Test Main - Integration Test', function () {
                     onCommentClicked = func
                 } else onFunc.call(this, e, func)
             }
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onCommentClicked, null);
 
@@ -329,8 +273,8 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
@@ -363,9 +307,9 @@ describe('Test Main - Integration Test', function () {
                     onCommentClicked = func
                 } else return onFunc.call(this, e, func);
             }
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
-            enviromentVariables.Handsontable = function (div, init) {
+            integrationVariables.enviromentVariables.Handsontable = function (div, init) {
                 onCellChanged = init.afterChange;
                 return {
                     getSelected: function () {
@@ -376,8 +320,9 @@ describe('Test Main - Integration Test', function () {
                 }
             }
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onAddDatasheetClicked, null);
 
@@ -424,12 +369,12 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
-    
+
             let controlPointData;
 
             let controlPointSelection = Object.assign({}, TestUtils.mockElement);
@@ -443,7 +388,7 @@ describe('Test Main - Integration Test', function () {
                 onControlDragEnd = drag.end;
                 return this;
             };
-            
+
             mockElement.selectAll = function (selection) {
                 if (selection == '.axis-control-circle') {
                     return controlPointSelection;
@@ -460,9 +405,9 @@ describe('Test Main - Integration Test', function () {
                     onCommentClicked = func
                 } else return onFunc.call(this, e, func);
             }
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
-            enviromentVariables.Handsontable = function (div, init) {
+            integrationVariables.enviromentVariables.Handsontable = function (div, init) {
                 onCellChanged = init.afterChange;
                 return {
                     getSelected: function () {
@@ -473,8 +418,9 @@ describe('Test Main - Integration Test', function () {
                 }
             }
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onAddDatasheetClicked, null);
 
@@ -518,8 +464,8 @@ describe('Test Main - Integration Test', function () {
             let mockJqueryElement = Object.assign({}, TestUtils.mockJqueryElement);
 
             mockSVG.append = () => Object.assign({}, mockElement);
-            enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.d3.select = () => Object.assign({}, mockSVG);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
             let drawLineFunc = testLineDraw(mockElement, mockJqueryElement);
             let clickLineFunc = testLineClick(mockElement);
@@ -530,10 +476,11 @@ describe('Test Main - Integration Test', function () {
                     onPinClicked = func
                 } else onFunc.call(this, e, func);
             }
-            enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
+            integrationVariables.enviromentVariables.$ = TestUtils.makeMockJquery(mockJqueryElement);
 
-            setVariables();
-            mainInit();
+            integrationVariables.setVariables();
+            integrationVariables.mainInit();
+            let modelController = integrationVariables.ModelController;
 
             assert.notEqual(onPinClicked, null);
 
@@ -546,7 +493,7 @@ describe('Test Main - Integration Test', function () {
             clickLineFunc({ x: 175, y: 103 }, modelController.getAllTimelines()[0]);
 
             assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 3);
-            expect(modelController.getAllTimelines()[0].warpBindings.map(w =>Math.round(w.linePercent*100)/100).sort()).to.eql([0.25, 0.50, 0.75]);
+            expect(modelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort()).to.eql([0.25, 0.50, 0.75]);
             assert.equal(modelController.getBoundData().length, 0);
         });
     })
@@ -626,7 +573,7 @@ function testLineClick(mockElement) {
         } else return classedFunc.call(this, classed, val);
     }
 
-    return function(coords, timeline) {
+    return function (coords, timeline) {
         assert.notEqual(onLineTargetClicked, null, "onLineTargetClicked not set")
 
         onLineTargetClicked(coords, { id: timeline.id, points: timeline.linePath.points });

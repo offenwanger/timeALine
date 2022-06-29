@@ -1,6 +1,7 @@
 // This file defines the constants for all the tests. 
 let fs = require('fs');
 let vm = require('vm');
+let rewire = require('rewire');
 
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
@@ -166,5 +167,80 @@ before(function () {
             }
             return t;
         }
+    }
+
+    getIntegrationVariables = function () {
+        let returnable = {};
+
+        if (global.d3) throw new Error("Context leaks!")
+
+        global.document = Object.assign({
+            addEventListener: function (event, callback) {
+                if (event == "DOMContentLoaded") {
+                    returnable.mainInit = callback;
+                }
+            }
+        }, TestUtils.fakeDocument);
+
+        let main = rewire('../js/main.js');
+        let data_structures = rewire('../js/data_structures.js');
+        let table_view_controller = rewire('../js/table_view_controller.js');
+        let model_controller = rewire('../js/model_controller.js');
+        let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
+        let line_view_controller = rewire('../js/line_view_controller.js');
+        let time_warp_controller = rewire('../js/time_warp_controller.js');
+        let data_controller = rewire('../js/data_controller.js');
+
+        let utility = rewire('../js/utility.js');
+
+        // designed to extract objects with contructors that are called one time
+        returnable.snagConstructor = function (source, constructor) {
+            return function () {
+                source.__get__(constructor).call(this, ...arguments);
+                returnable[constructor] = this;
+            }
+        };
+
+        returnable.enviromentVariables = {
+            d3: Object.assign({}, TestUtils.mockD3),
+            $: TestUtils.makeMockJquery(),
+            Handsontable: TestUtils.makeMockHandsontable,
+            window: { innerWidth: 1000, innerHeight: 800 },
+            DataStructs: data_structures.__get__("DataStructs"),
+            ModelController: returnable.snagConstructor(model_controller, "ModelController"),
+            LineViewController: line_view_controller.__get__("LineViewController"),
+            TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
+            DataViewController: data_controller.__get__("DataViewController"),
+            AnnotationController: data_controller.__get__("AnnotationController"),
+            LineDrawingController: line_manipulation_tools_controller.__get__("LineDrawingController"),
+            EraserController: line_manipulation_tools_controller.__get__("EraserController"),
+            DragController: line_manipulation_tools_controller.__get__("DragController"),
+            IronController: line_manipulation_tools_controller.__get__("IronController"),
+            DataTableController: table_view_controller.__get__("DataTableController"),
+            PathMath: utility.__get__("PathMath"),
+            MathUtil: utility.__get__("MathUtil"),
+            DataUtil: utility.__get__("DataUtil"),
+            TimeBindingUtil: utility.__get__("TimeBindingUtil"),
+        };
+        main.__set__(returnable.enviromentVariables);
+
+        function setVariables() {
+            main.__set__(returnable.enviromentVariables);
+        }
+        returnable.setVariables = setVariables;
+
+        function cleanup(done) {
+            Object.keys(returnable.enviromentVariables).forEach((key) => {
+                delete global[key];
+            })
+            delete returnable.enviromentVariables;
+            delete returnable.modelController;
+            delete global.document;
+
+            done();
+        };
+        returnable.cleanup = cleanup;
+
+        return returnable;
     }
 });
