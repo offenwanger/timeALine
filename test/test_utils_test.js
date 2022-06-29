@@ -238,7 +238,7 @@ before(function () {
         this.updateSettings = function () { };
         this.init = init;
         // silly workaround
-        this.asyncDone = () => {};
+        this.asyncDone = () => { };
     };
 
     function getIntegrationEnviroment() {
@@ -258,7 +258,11 @@ before(function () {
         let data_structures = rewire('../js/data_structures.js');
         let table_view_controller = rewire('../js/table_view_controller.js');
         let model_controller = rewire('../js/model_controller.js');
-        let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
+        let brush_controller = rewire('../js/brush_controller.js');
+        let eraser_controller = rewire('../js/eraser_controller.js');
+        let drag_controller = rewire('../js/drag_controller.js');
+        let iron_controller = rewire('../js/iron_controller.js');
+        let line_drawing_controller = rewire('../js/line_drawing_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
         let time_warp_controller = rewire('../js/time_warp_controller.js');
         let data_controller = rewire('../js/data_controller.js');
@@ -274,7 +278,7 @@ before(function () {
         };
 
         // silly workaround
-        returnable.asyncDone = () => {};
+        returnable.asyncDone = () => { };
 
         returnable.snagTable = function (tableConstructor) {
             return function () {
@@ -296,10 +300,11 @@ before(function () {
             TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
             DataViewController: data_controller.__get__("DataViewController"),
             AnnotationController: data_controller.__get__("AnnotationController"),
-            LineDrawingController: line_manipulation_tools_controller.__get__("LineDrawingController"),
-            EraserController: line_manipulation_tools_controller.__get__("EraserController"),
-            DragController: line_manipulation_tools_controller.__get__("DragController"),
-            IronController: line_manipulation_tools_controller.__get__("IronController"),
+            BrushController: brush_controller.__get__("BrushController"),
+            LineDrawingController: line_drawing_controller.__get__("LineDrawingController"),
+            EraserController: eraser_controller.__get__("EraserController"),
+            DragController: drag_controller.__get__("DragController"),
+            IronController: iron_controller.__get__("IronController"),
             DataTableController: table_view_controller.__get__("DataTableController"),
             PathMath: utility.__get__("PathMath"),
             MathUtil: utility.__get__("MathUtil"),
