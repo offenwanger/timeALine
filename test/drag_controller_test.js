@@ -2,7 +2,7 @@ const chai = require('chai');
 let assert = chai.assert;
 let expect = chai.expect;
 
-describe('Test LayoutController', function () {
+describe('Test DragController', function () {
     let integrationEnv;
     let getDragController;
     beforeEach(function () {
@@ -23,7 +23,7 @@ describe('Test LayoutController', function () {
         })
     });
 
-    describe('drag test', function () {
+    describe('drag line tests', function () {
         it('should start drag without error', function () {
             let dragController = getDragController();
             dragController.linesUpdated([{
@@ -285,6 +285,9 @@ describe('Test LayoutController', function () {
             assert.equal(called, true);
         });
 
+    });
+
+    describe('drag endpoint tests', function () {
         it('should rotate the line', function () {
             let dragController = getDragController();
 
