@@ -53,7 +53,7 @@ describe('Test LayoutController', function () {
             mockDrag.on = function (event, func) {
                 switch (event) {
                     case "start":
-                        dragStart = func;
+                        if (!dragStart) dragStart = func;
                         break;
                 }
                 return this;

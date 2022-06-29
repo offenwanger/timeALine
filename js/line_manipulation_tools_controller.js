@@ -325,9 +325,9 @@ function DragController(svg) {
             .attr('fill', '#1c1db5')
             .attr("stroke", "black")
             .call(d3.drag()
-                .on('start', function (e, d) { console.log("Impliment me!") })
-                .on('drag', function (e, d) { console.log("Impliment me!") })
-                .on('end', function (e, d) { console.log("Impliment me!") }));
+                .on('start', onRotatePointDragStart)
+                .on('drag', onRotatePointDrag)
+                .on('end', onRotatePointDragEnd));
         mPointsGroup.selectAll('.end-point')
             .attr('cx', (d) => d.point.x)
             .attr('cy', (d) => d.point.y);
@@ -550,6 +550,101 @@ function DragController(svg) {
         drawLines([]);
         mCover.style("visibility", 'hidden');
         mPointsGroup.style("visibility", '');
+    }
+
+    function onRotatePointDragStart(e, d) {
+        mDragStartPos = { x: e.x, y: e.y };
+        mMovingLines = [{
+            id: d.id,
+            oldSegments: [{ covered: true, points: d.points }],
+            percentDistMapping: pointsToPercentDistMapping(d.points),
+        }];
+        mCover.style("visibility", '');
+        mPointsGroup.style("visibility", 'hidden');
+    }
+
+    function onRotatePointDrag(e) {
+        let coords = { x: e.x, y: e.y };
+        let lineStart = mMovingLines[0].oldSegments[0].points[0];
+        let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
+
+        drawLines([points]);
+    }
+
+    function onRotatePointDragEnd(e, d) {
+        let coords = { x: e.x, y: e.y };
+        let lineStart = mMovingLines[0].oldSegments[0].points[0];
+        let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
+
+        let result = mMovingLines.map(line => {
+            return {
+                id: line.id,
+                oldSegments: line.oldSegments.map(segment => segment.points),
+                newSegments: [points]
+            }
+        });
+        mLineModifiedCallback(result);
+
+        // reset
+        mMovingLines = []
+        mDragStartPos = null
+        drawLines([]);
+        mCover.style("visibility", 'hidden');
+        mPointsGroup.style("visibility", '');
+    }
+
+    function pointsToPercentDistMapping(points) {
+        let lineStart = points[0];
+        let lineEnd = points[points.length - 1];
+        let len = MathUtil.distanceFromAToB(lineStart, lineEnd);
+        let result = []
+        points.forEach(point => {
+            let projection = projectPointOntoLine(point, lineStart, lineEnd);
+            result.push({ percent: projection.percent, distPercent: projection.distance / len })
+        })
+        return result;
+    }
+
+    function percentDistMappingToPoints(mapping, lineStart, lineEnd) {
+        let lineVector = MathUtil.vectorFromAToB(lineStart, lineEnd);
+        let len = MathUtil.distanceFromAToB(lineStart, lineEnd);
+        if (len == 0) {
+            // we appear to have eliminated the line, tweak it to avoid errors. 
+            lineEnd.x++;
+            lineVector = MathUtil.vectorFromAToB(lineStart, lineEnd);
+            len = MathUtil.distanceFromAToB(lineStart, lineEnd);
+        }
+        let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(lineVector));
+        let result = [];
+        mapping.forEach(entry => {
+            origin = {
+                x: lineVector.x * entry.percent + lineStart.x,
+                y: lineVector.y * entry.percent + lineStart.y
+            }
+
+            result.push(MathUtil.getPointAtDistanceAlongVector(entry.distPercent * len, normal, origin));
+        });
+        return result;
+    }
+
+    function projectPointOntoLine(point, lineStart, lineEnd) {
+        let vector = MathUtil.vectorFromAToB(lineStart, lineEnd);
+        let len = MathUtil.distanceFromAToB(lineStart, lineEnd);
+
+        if (len == 0) throw new Error("Line start and line end are the same!")
+
+        let projectedPoint = MathUtil.projectPointOntoVector(point, vector, lineStart);
+        let projPercent = projectedPoint.neg ? -1 : 1 * MathUtil.distanceFromAToB(lineStart, projectedPoint) / len;
+
+        let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(vector));
+        let neg = MathUtil.projectPointOntoVector(point, normal, projectedPoint).neg;
+        let distance = neg ? -1 : 1 * MathUtil.distanceFromAToB(projectedPoint, point);
+
+        return {
+            point: projectedPoint,
+            distance,
+            percent: projPercent
+        };
     }
 
     function drawLines(points) {
