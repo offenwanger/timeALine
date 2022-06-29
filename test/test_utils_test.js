@@ -6,170 +6,242 @@ let rewire = require('rewire');
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
 
-    TestUtils = {
-        fakeSVGPath: {
-            setAttribute: function (attrName, attr) {
-                if (attrName == "d") {
-                    this.d = attr;
-                }
-            },
-            getTotalLength: function () {
-                let d = this.d;
-                // aproximate the d value
-                let len = 0;
-                for (let i = 1; i < d.length; i++) {
-                    let a = d[i - 1];
-                    let b = d[i]
-                    let diffX = a.x - b.x;
-                    let diffY = a.y - b.y;
-                    len += Math.sqrt(diffX * diffX + diffY * diffY);
-                }
-                return len;
-            },
-            getPointAtLength: function (length) {
-                let d = this.d;
-                if (length < 0) return d[0];
+    function fakeD3() {
+        let selectors = {};
 
-                // aproximate the d value
-                let len = 0;
-                for (let i = 1; i < d.length; i++) {
-                    let a = d[i - 1];
-                    let b = d[i]
+        this.selectors = selectors;
 
-                    let diffX = b.x - a.x;
-                    let diffY = b.y - a.y;
-                    let lineLen = Math.sqrt(diffX * diffX + diffY * diffY);
-                    if (length >= len && length <= len + lineLen) {
-                        let percent = (length - len) / lineLen
-                        return { x: diffX * percent + a.x, y: diffY * percent + a.y };
-                    }
+        this.mockSvg = {
+            append: () => new MockElement(),
+            attr: () => { return 10 },
+        };
 
-                    len += lineLen;
-                }
-
-                if (length > len) {
-                    return d[d.length - 1]
-                }
-
-                throw new Error("should be unreachable");
-            }
-        },
-
-        fakeDocument: {
-            createElementNS: (ns, item) => {
-                if (item == "path") {
-                    return Object.assign({}, TestUtils.fakeSVGPath);
-                }
-            }
-        },
-
-        mockHandsontable: {
-            getSelected: function () { return null },
-            loadData: function () { },
-            updateSettings: function () { },
-        },
-
-        makeMockHandsontable: function (div, init) { Object.assign(this, TestUtils.mockHandsontable); },
-
-        mockElement: {
-            attrs: {},
-            styles: {},
-            innerData: {},
-            attr: function (name, val = null) {
+        function MockElement() {
+            this.attrs = {};
+            this.attr = function (name, val = null) {
                 if (val != null) {
                     this.attrs[name] = val;
+                    if (name == "id" && selectors) { selectors["#" + val] = this; }
                     return this;
                 } else return this.attrs[name];
-            },
-            style: function (name, val = null) {
+            };
+            this.styles = {};
+            this.style = function (name, val = null) {
                 if (val != null) {
                     this.styles[name] = val;
                     return this;
                 } else return this.styles[name];
-            },
-            classed: function () { return this; },
-            call: function () { return this; },
-            on: function () { return this; },
-            append: function () { return Object.assign({}, this) },
-            select: function () { return this; },
-            selectAll: function () { return this; },
-            remove: () => { },
-            data: function (data) { innerData = data; return this; },
-            exit: function () { return this; },
-            enter: function () { return this; },
-            node: function () { },
-            text: function () { return this; },
-        },
+            };
+            this.classes = [];
+            this.classed = function (name, isTrue) {
+                if (isTrue != null) {
+                    this.classes[name] = isTrue;
+                    if (selectors) selectors["." + name] = this;
+                    return this;
+                } else return this.classes[name];
+            };
+            this.drag = null;
+            this.call = function (val) {
+                if (typeof val.drag == 'function') this.drag = val;
+                return this;
+            };
+            this.eventCallbacks = {};
+            this.on = function (event, func) {
+                this.eventCallbacks[event] = func;
+                return this;
+            };
+            this.children = [];
+            this.append = function (type) {
+                let child = new MockElement();
+                child.type = type;
+                // bad mocking but w/e
+                child.innerData = this.innerData;
+                this.children.push(child)
+                return child;
+            };
+            this.select = function (selector) {
+                if (selectors) {
+                    if (!selectors[selector]) selectors[selector] = new MockElement();
+                    return selectors[selector]
+                } else return new MockElement();
+            };
+            this.selectAll = function (selector) {
+                if (selectors) {
+                    if (!selectors[selector]) selectors[selector] = new MockElement();
+                    return selectors[selector]
+                } else return new MockElement();
+            };
+            this.remove = () => { };
+            this.innerData = null;
+            this.data = function (data) { this.innerData = data; return this; };
+            this.exit = function () { return this; };
+            this.enter = function () { return this; };
+            this.node = function () {
+                let node = Object.assign({}, fakeSVGPath);
+                node.d = this.attrs.d;
+                return node;
+            };
+            this.text = function () { return this; };
+        };
+        this.mockElement = MockElement;
 
-        mockSvg: {
-            append: () => Object.assign({}, TestUtils.mockElement),
-            attr: () => { return 10 },
-        },
-
-        mockDrag: {
+        this.mockDrag = {
             on: function (e, func) { this[e] = func; return this; }
-        },
-
-        mockD3: {
-            line: () => Object.assign({}, TestUtils.mockLine),
-            curveCatmullRom: { alpha: () => { } },
-            select: () => Object.assign({}, TestUtils.mockSvg),
-            selectAll: () => Object.assign({}, TestUtils.mockElement),
-            annotation: () => Object.assign({}, TestUtils.mockAnnotation),
-            drag: () => Object.assign({}, TestUtils.mockDrag),
-            pointer: (coords) => [coords.x, coords.y],
-        },
-
-        mockJqueryElement: {
-            find: function () { return this },
-            on: function () { return this },
-            append: function () { return this },
-            get: function () { return this },
-            val: function () { return "" },
-            farbtastic: function () { return this },
-            setColor: function () { return this },
-            css: function () { return this },
-            hide: function () { return this },
-            show: function () { return this },
-        },
-
-        mockLine: {
-            x: function () { return this },
-            y: function () { return this },
-            curve: function () { return function (val) { return val } },
-            node: function () { },
-        },
-
-        mockAnnotation: {
-            accessors: function () { return this },
-            annotations: function () { return this },
-        },
-
-        makeMockJquery: (mockJqueryElement = null) => {
-            let mockJQ = (id) => Object.assign({ id }, mockJqueryElement ? mockJqueryElement : TestUtils.mockJqueryElement);
-            mockJQ.farbtastic = () => Object.assign({}, TestUtils.mockJqueryElement);
-            return mockJQ;
-        },
-
-        makeTestTable: function (height, width) {
-            let t = new DataStructs.DataTable([new DataStructs.DataColumn("Time", 0)]);
-            for (let i = 1; i < width; i++) {
-                t.dataColumns.push(new DataStructs.DataColumn("Col" + i, i))
-            }
-
-            for (let i = 0; i < height; i++) {
-                let dataRow = new DataStructs.DataRow()
-                dataRow.index = i;
-                for (let j = 0; j < t.dataColumns.length; j++) {
-                    dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, i + "_" + j, t.dataColumns[j].id));
-                }
-                t.dataRows.push(dataRow)
-            }
-            return t;
         }
+
+        this.fakeAnnotation = {
+            annotationData: null,
+            accessors: function () { return this },
+            annotations: function (data) {
+                this.annotationData = data;
+                return this;
+            },
+        }
+        this.annotation = () => this.fakeAnnotation;
+
+        this.svg = Object.assign({}, this.mockSvg);
+
+
+        this.line = function () {
+            return {
+                x: function () { return this },
+                y: function () { return this },
+                curve: function () { return function (val) { return val } },
+                node: function () { },
+            }
+        };
+
+        this.curveCatmullRom = { alpha: () => { } };
+        this.select = function (selection) {
+            if (selection == '#svg_container') return this.svg;
+            else return selection;
+        };
+        this.selectAll = function (selector) {
+            if (!selectors[selector]) selectors[selector] = new MockElement();
+            return selectors[selector];
+        }
+
+        this.drag = () => Object.assign({}, this.mockDrag);
+        this.pointer = (coords) => [coords.x, coords.y];
     }
 
-    getIntegrationVariables = function () {
+
+    function fakeJqueryFactory() {
+        let selectors = {};
+
+        function MockJqueryElement() {
+            this.find = function () { return this };
+            this.eventCallbacks = {};
+            this.on = function (event, func) {
+                this.eventCallbacks[event] = func;
+                return this;
+            };
+            this.append = function () { return this };
+            this.get = function () { return this };
+            this.val = function () { return "" };
+            this.farbtastic = function () { return this };
+            this.setColor = function () { return this };
+            this.css = function () { return this };
+            this.hide = function () { return this };
+            this.show = function () { return this };
+        };
+
+        function fakeJquery(selector) {
+            if (!selectors[selector]) selectors[selector] = new MockJqueryElement();
+            return selectors[selector];
+        };
+        fakeJquery.MockJqueryElement = MockJqueryElement;
+        fakeJquery.farbtastic = () => new MockJqueryElement();
+        fakeJquery.selectors = selectors;
+
+        return fakeJquery;
+    }
+
+    let fakeSVGPath = {
+        setAttribute: function (attrName, attr) {
+            if (attrName == "d") {
+                this.d = attr;
+            }
+        },
+        getTotalLength: function () {
+            let d = this.d;
+            // aproximate the d value
+            let len = 0;
+            for (let i = 1; i < d.length; i++) {
+                let a = d[i - 1];
+                let b = d[i]
+                let diffX = a.x - b.x;
+                let diffY = a.y - b.y;
+                len += Math.sqrt(diffX * diffX + diffY * diffY);
+            }
+            return len;
+        },
+        getPointAtLength: function (length) {
+            let d = this.d;
+            if (length < 0) return d[0];
+
+            // aproximate the d value
+            let len = 0;
+            for (let i = 1; i < d.length; i++) {
+                let a = d[i - 1];
+                let b = d[i]
+
+                let diffX = b.x - a.x;
+                let diffY = b.y - a.y;
+                let lineLen = Math.sqrt(diffX * diffX + diffY * diffY);
+                if (length >= len && length <= len + lineLen) {
+                    let percent = (length - len) / lineLen
+                    return { x: diffX * percent + a.x, y: diffY * percent + a.y };
+                }
+
+                len += lineLen;
+            }
+
+            if (length > len) {
+                return d[d.length - 1]
+            }
+
+            throw new Error("should be unreachable");
+        }
+    };
+
+
+    let fakeDocument = {
+        createElementNS: (ns, item) => {
+            if (item == "path") {
+                return Object.assign({}, fakeSVGPath);
+            }
+        }
+    };
+
+    function makeTestTable(height, width) {
+        let t = new DataStructs.DataTable([new DataStructs.DataColumn("Time", 0)]);
+        for (let i = 1; i < width; i++) {
+            t.dataColumns.push(new DataStructs.DataColumn("Col" + i, i))
+        }
+
+        for (let i = 0; i < height; i++) {
+            let dataRow = new DataStructs.DataRow()
+            dataRow.index = i;
+            for (let j = 0; j < t.dataColumns.length; j++) {
+                dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, i + "_" + j, t.dataColumns[j].id));
+            }
+            t.dataRows.push(dataRow)
+        }
+        return t;
+    }
+
+    function MockHandsontable(div, init) {
+        this.selected = null;
+        this.getSelected = function () { return this.selected };
+        this.loadData = function () { this.asyncDone() };
+        this.updateSettings = function () { };
+        this.init = init;
+        // silly workaround
+        this.asyncDone = () => {};
+    };
+
+    function getIntegrationEnviroment() {
         let returnable = {};
 
         if (global.d3) throw new Error("Context leaks!")
@@ -201,10 +273,22 @@ before(function () {
             }
         };
 
+        // silly workaround
+        returnable.asyncDone = () => {};
+
+        returnable.snagTable = function (tableConstructor) {
+            return function () {
+                tableConstructor.call(this, ...arguments);
+                this.asyncDone = returnable.asyncDone;
+                returnable.enviromentVariables.handsontables.push(this);
+            }
+        };
+
         returnable.enviromentVariables = {
-            d3: Object.assign({}, TestUtils.mockD3),
-            $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.makeMockHandsontable,
+            d3: new fakeD3(),
+            $: fakeJqueryFactory(),
+            handsontables: [],
+            Handsontable: returnable.snagTable(MockHandsontable),
             window: { innerWidth: 1000, innerHeight: 800 },
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
@@ -242,5 +326,15 @@ before(function () {
         returnable.cleanup = cleanup;
 
         return returnable;
+    }
+
+    TestUtils = {
+        fakeD3,
+        fakeJqueryFactory,
+        fakeSVGPath,
+        fakeDocument,
+        makeTestTable,
+        MockHandsontable,
+        getIntegrationEnviroment,
     }
 });

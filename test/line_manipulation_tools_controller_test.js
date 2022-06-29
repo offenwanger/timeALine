@@ -1,43 +1,20 @@
 const chai = require('chai');
-const rewire = require('rewire');
-
 let assert = chai.assert;
 let expect = chai.expect;
-let should = chai.should();
-
 
 describe('Test LayoutController', function () {
+    let integrationEnv;
     let getDragController;
-    let enviromentVariables;
-
-    beforeEach(function (done) {
-        let line_manipulation_tools_controller = rewire('../js/line_manipulation_tools_controller.js');
-
-        let utility = rewire('../js/utility.js');
-
-        enviromentVariables = {
-            PathMath: utility.__get__('PathMath'),
-            MathUtil: utility.__get__('MathUtil'),
-            d3: Object.assign({}, TestUtils.mockD3),
-            svg: Object.assign({}, TestUtils.mockSvg),
-            document: TestUtils.fakeDocument,
-        }
-
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
         getDragController = function () {
-            line_manipulation_tools_controller.__set__(enviromentVariables);
-            let DragController = line_manipulation_tools_controller.__get__('DragController');
-            return new DragController(enviromentVariables.svg);
+            let DragController = integrationEnv.enviromentVariables.DragController;
+            return new DragController(integrationEnv.enviromentVariables.d3.svg);
         }
-
-        done();
     });
 
     afterEach(function (done) {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        done();
+        integrationEnv.cleanup(done);
     });
 
     describe('instantiation test', function () {
@@ -48,17 +25,6 @@ describe('Test LayoutController', function () {
 
     describe('drag test', function () {
         it('should start drag without error', function () {
-            let dragStart;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        if (!dragStart) dragStart = func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "id1", points: [
@@ -72,27 +38,12 @@ describe('Test LayoutController', function () {
                     { x: 15, y: 15 }]
             }])
             dragController.setActive(true);
+
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
             dragStart({ x: 10, y: 10 });
         })
 
         it('should drag start of line without error', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "id1", points: [
@@ -106,12 +57,17 @@ describe('Test LayoutController', function () {
                     { x: 30, y: 30 }]
             }])
             dragController.setActive(true);
+
             let called = false;
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].newSegments[0][0].x, 15)
                 assert.equal(result[0].newSegments[0][0].y, 15)
                 called = true;
             })
+
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let drag = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
 
             dragStart({ x: 10, y: 10 });
             drag({ x: 15, y: 15 });
@@ -121,23 +77,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should drag end of line without error', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "id1", points: [
@@ -158,6 +97,10 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let drag = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
             dragStart({ x: -5, y: -28 });
             drag({ x: 5, y: -8 });
             dragEnd({ x: 5, y: -10 });
@@ -166,23 +109,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should drag points in middle of line', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "1654867647735_5", points: [
@@ -213,6 +139,10 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let drag = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
             dragStart({ x: 420, y: 313 });
             drag({ x: 100, y: 100 });
             dragEnd({ x: 15, y: 15 });
@@ -221,23 +151,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should create appropriate new points for line with no points', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "1654867647735_5", points: [
@@ -271,6 +184,10 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
+
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
             let clickPoint = { x: 21, y: 19 };
             dragStart(clickPoint);
             dragEnd(clickPoint);
@@ -279,23 +196,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should create appropriate new points for line with points', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "1654867647735_5", points: [
@@ -330,6 +230,9 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
             let clickPoint = { x: 21, y: 19 };
             dragStart(clickPoint);
             dragEnd(clickPoint);
@@ -338,23 +241,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should drag line between points', function () {
-            let dragStart, drag, dragEnd;
-            let mockDrag = Object.assign({}, TestUtils.mockDrag);
-            enviromentVariables.d3.drag = () => Object.assign({}, mockDrag);
-            mockDrag.on = function (event, func) {
-                switch (event) {
-                    case "start":
-                        dragStart = dragStart ? dragStart : func;
-                        break;
-                    case "drag":
-                        drag = drag ? drag : func;
-                        break;
-                    case "end":
-                        dragEnd = dragEnd ? dragEnd : func;
-                        break;
-                }
-                return this;
-            }
             let dragController = getDragController();
             dragController.linesUpdated([{
                 id: "1654867647735_5", points: [
@@ -388,6 +274,10 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let drag = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
             dragStart({ x: 378, y: 265 });
             drag({ x: 178, y: 65 });
             dragEnd({ x: 178, y: 65 });
@@ -396,27 +286,6 @@ describe('Test LayoutController', function () {
         });
 
         it('should rotate the line', function () {
-            let onDragStart = null;
-            let onDrag = null;
-            let onDragEnd = null;
-
-            let mockEndPoints = Object.assign({}, TestUtils.mockElement);
-            mockEndPoints.call = function (drag) {
-                onDragStart = drag.start;
-                onDrag = drag.drag;
-                onDragEnd = drag.end;
-                return this;
-            }
-
-            let mockElement = Object.assign({}, TestUtils.mockElement);
-            let selectAllFunc = mockElement.selectAll;
-            mockElement.selectAll = function (selection) {
-                if (selection == '.end-point') return mockEndPoints;
-                else return selectAllFunc.call(this, selection);
-            };
-
-            enviromentVariables.svg.append = function () { return Object.assign({}, mockElement); };
-
             let dragController = getDragController();
 
             let lineData = {
@@ -454,13 +323,10 @@ describe('Test LayoutController', function () {
                 called = true;
             })
 
-            assert.notEqual(onDragStart, null, "drag start wasn't set")
-            assert.notEqual(onDrag, null, "drag wasn't set")
-            assert.notEqual(onDragEnd, null, "drag end wasn't set")
-
-            onDragStart({ x: 10, y: 10 }, lineData);
-            onDrag({ x: 20, y: -20 }, lineData);
-            onDragEnd({ x: 20, y: -20 }, lineData);
+            let endPoint = integrationEnv.enviromentVariables.d3.selectors['.end-point'];
+            endPoint.drag.start({ x: 10, y: 10 }, lineData);
+            endPoint.drag.drag({ x: 20, y: -20 }, lineData);
+            endPoint.drag.end({ x: 20, y: -20 }, lineData);
 
             assert.equal(called, true);
         });

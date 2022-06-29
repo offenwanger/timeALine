@@ -7,41 +7,22 @@ let should = chai.should();
 
 
 describe('Test TimeWarpController', function () {
+    let integrationEnv;
     let getTimeWarpController;
-    let enviromentVariables;
     let DataStructs;
 
-    beforeEach(function (done) {
-        let time_warp_controller = rewire('../js/time_warp_controller.js');
-        let data_structures = rewire('../js/data_structures.js');
-
-        let utility = rewire('../js/utility.js');
-        DataStructs = data_structures.__get__("DataStructs");
-
-        enviromentVariables = {
-            d3: Object.assign({}, TestUtils.mockD3),
-            PathMath: utility.__get__('PathMath'),
-            MathUtil: utility.__get__('MathUtil'),
-            document: TestUtils.fakeDocument,
-            svg: Object.assign({}, TestUtils.mockSvg),
-            DataStructs,
-        }
-
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+        DataStructs = integrationEnv.enviromentVariables.DataStructs;
         getTimeWarpController = function () {
-            time_warp_controller.__set__(enviromentVariables);
-            let TimeWarpController = time_warp_controller.__get__('TimeWarpController');
-            return new TimeWarpController(Object.assign({}, enviromentVariables.svg));
+            let TimeWarpController = integrationEnv.enviromentVariables.TimeWarpController;
+            return new TimeWarpController(integrationEnv.enviromentVariables.d3.svg);
         }
-
-        done();
     });
 
     afterEach(function (done) {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        done();
+        integrationEnv.cleanup(done);
+        delete modelController;
     });
 
     describe('instantiation test', function () {

@@ -1,226 +1,116 @@
 let chai = require('chai');
-let rewire = require('rewire');
 let assert = chai.assert;
 let expect = chai.expect;
 
 describe('Test TableViewer', function () {
-    let enviromentVariables;
-    let getController;
-    let DataStructs;
-
+    let integrationEnv;
+    let getTableViewController;
     beforeEach(function () {
-        let table_view_controller = rewire('../js/table_view_controller.js');
-        let data_structures = rewire('../js/data_structures.js');
-        let utility = rewire('../js/utility.js');
-
-        DataStructs = data_structures.__get__("DataStructs");
-
-        enviromentVariables = {
-            $: TestUtils.makeMockJquery(),
-            Handsontable: TestUtils.makeMockHandsontable,
-            DataStructs,
-            DataUtil: utility.__get__('DataUtil'),
-        }
-
-        getController = function () {
-            table_view_controller.__set__(enviromentVariables);
-            let DataTableController = table_view_controller.__get__('DataTableController');
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+        getTableViewController = function () {
+            let DataTableController = integrationEnv.enviromentVariables.DataTableController;
             return new DataTableController();
         }
     });
 
-    afterEach(function () {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        delete DataStructs;
+    afterEach(function (done) {
+        integrationEnv.cleanup(done);
     });
 
     describe('intialization test', function () {
         it('should intialize', function () {
-            let controller = getController();
+            let controller = getTableViewController();
             controller.addTable(TestUtils.makeTestTable(3, 3));
         });
     })
 
     describe('move row test', function () {
         it('should shift one element down the table', function (done) {
-            let afterRowMove;
-            enviromentVariables.Handsontable = function (div, init) {
-                afterRowMove = init.afterRowMove;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () { done() };
-            }
+            integrationEnv.asyncDone = done;
 
             let callbackCalled = false;
-
             let rowCount = 6;
+            let controller = getTableViewController();
 
-            let controller = getController();
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
-                let indexes = [];
-                table.dataRows.forEach(row => {
-                    indexes.push(row.index);
-                    if (row.index == 0) {
-                        assert.equal(row.dataCells[0].val, "0_0");
-                    } else if (row.index == 1) {
-                        assert.equal(row.dataCells[0].val, "2_0");
-                    } else if (row.index == 2) {
-                        assert.equal(row.dataCells[0].val, "3_0");
-                    } else if (row.index == 3) {
-                        assert.equal(row.dataCells[0].val, "4_0");
-                    } else if (row.index == 4) {
-                        assert.equal(row.dataCells[0].val, "1_0");
-                    } else if (row.index == 5) {
-                        assert.equal(row.dataCells[0].val, "5_0");
-                    }
-                })
-
-                expect(indexes.sort()).to.eql([0, 1, 2, 3, 4, 5]);
-
+                table.dataRows.sort((a, b) => a.index - b.index);
+                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
+                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql(["0_0", "2_0", "3_0", "4_0", "1_0", "5_0"])
                 callbackCalled = true;
             });
 
             controller.addTable(TestUtils.makeTestTable(rowCount, 3));
-
-            afterRowMove([1], 4)
+            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([1], 4)
 
             assert.equal(callbackCalled, true);
         });
 
         it('should shift one element up the table', function (done) {
-            let afterRowMove;
-            enviromentVariables.Handsontable = function (div, init) {
-                afterRowMove = init.afterRowMove;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () { done() };
-            }
+            integrationEnv.asyncDone = done;
 
             let callbackCalled = false;
 
             let rowCount = 6;
 
-            let controller = getController();
+            let controller = getTableViewController();
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
-                let indexes = [];
-                table.dataRows.forEach(row => {
-                    indexes.push(row.index);
-                    if (row.index == 0) {
-                        assert.equal(row.dataCells[0].val, "0_0");
-                    } else if (row.index == 1) {
-                        assert.equal(row.dataCells[0].val, "3_0");
-                    } else if (row.index == 2) {
-                        assert.equal(row.dataCells[0].val, "1_0");
-                    } else if (row.index == 3) {
-                        assert.equal(row.dataCells[0].val, "2_0");
-                    } else if (row.index == 4) {
-                        assert.equal(row.dataCells[0].val, "4_0");
-                    } else if (row.index == 5) {
-                        assert.equal(row.dataCells[0].val, "5_0");
-                    }
-                })
-
-                expect(indexes.sort()).to.eql([0, 1, 2, 3, 4, 5]);
-
+                table.dataRows.sort((a, b) => a.index - b.index);
+                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
+                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql(["0_0", "3_0", "1_0", "2_0", "4_0", "5_0"]);
                 callbackCalled = true;
             });
 
             controller.addTable(TestUtils.makeTestTable(rowCount, 3));
 
-            afterRowMove([3], 1)
+            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3], 1)
 
             assert.equal(callbackCalled, true);
         });
 
         it('should shift multiple elements down the table', function (done) {
-            let afterRowMove;
-            enviromentVariables.Handsontable = function (div, init) {
-                afterRowMove = init.afterRowMove;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () { done() };
-            }
+            integrationEnv.asyncDone = done;
 
             let callbackCalled = false;
 
             let rowCount = 6;
 
-            let controller = getController();
+            let controller = getTableViewController();
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
-                let indexes = [];
-                table.dataRows.forEach(row => {
-                    indexes.push(row.index);
-                    if (row.index == 0) {
-                        assert.equal(row.dataCells[0].val, "2_0");
-                    } else if (row.index == 1) {
-                        assert.equal(row.dataCells[0].val, "3_0");
-                    } else if (row.index == 2) {
-                        assert.equal(row.dataCells[0].val, "4_0");
-                    } else if (row.index == 3) {
-                        assert.equal(row.dataCells[0].val, "0_0");
-                    } else if (row.index == 4) {
-                        assert.equal(row.dataCells[0].val, "1_0");
-                    } else if (row.index == 5) {
-                        assert.equal(row.dataCells[0].val, "5_0");
-                    }
-                })
-
-                expect(indexes.sort()).to.eql([0, 1, 2, 3, 4, 5]);
-
+                table.dataRows.sort((a, b) => a.index - b.index);
+                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
+                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql(["2_0", "3_0", "4_0", "0_0", "1_0", "5_0"]);
                 callbackCalled = true;
             });
 
             controller.addTable(TestUtils.makeTestTable(rowCount, 3));
 
-            afterRowMove([0, 1], 3)
+            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([0, 1], 3)
 
             assert.equal(callbackCalled, true);
         })
 
         it('should shift multiple elements up the table', function (done) {
-            let afterRowMove;
-            enviromentVariables.Handsontable = function (div, init) {
-                afterRowMove = init.afterRowMove;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () { done() };
-            }
+            integrationEnv.asyncDone = done;
 
             let callbackCalled = false;
 
             let rowCount = 6;
 
-            let controller = getController();
+            let controller = getTableViewController();
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
-                let indexes = [];
-                table.dataRows.forEach(row => {
-                    indexes.push(row.index);
-                    if (row.index == 0) {
-                        assert.equal(row.dataCells[0].val, "0_0");
-                    } else if (row.index == 1) {
-                        assert.equal(row.dataCells[0].val, "3_0");
-                    } else if (row.index == 2) {
-                        assert.equal(row.dataCells[0].val, "4_0");
-                    } else if (row.index == 3) {
-                        assert.equal(row.dataCells[0].val, "1_0");
-                    } else if (row.index == 4) {
-                        assert.equal(row.dataCells[0].val, "2_0");
-                    } else if (row.index == 5) {
-                        assert.equal(row.dataCells[0].val, "5_0");
-                    }
-                })
-
-                expect(indexes.sort()).to.eql([0, 1, 2, 3, 4, 5]);
-
+                table.dataRows.sort((a, b) => a.index - b.index);
+                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
+                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql(["0_0", "3_0", "4_0", "1_0", "2_0", "5_0"]);
                 callbackCalled = true;
             });
 
             controller.addTable(TestUtils.makeTestTable(rowCount, 3));
 
-            afterRowMove([3, 4], 1)
+            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3, 4], 1);
 
             assert.equal(callbackCalled, true);
         })
@@ -229,37 +119,32 @@ describe('Test TableViewer', function () {
 
     describe('sort rows test', function () {
         it('should sort all text rows by multiple columns', function (done) {
-            let beforeColumnSort;
-
             let doneCalls = 5;
             let doneCalled = 0;
-            enviromentVariables.Handsontable = function (div, init) {
-                beforeColumnSort = init.beforeColumnSort;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () {
-                    // async cleanup
-                    doneCalled++;
-                    if (doneCalled == doneCalls) done();
-                };
-            }
+            integrationEnv.asyncDone = function () {
+                // async cleanup
+                doneCalled++;
+                if (doneCalled == doneCalls) done();
+            };
 
-            let callbackCalled = false;
+            let callbackCalled = 0;
 
             let rowCount = 6;
 
-            let controller = getController();
+            let controller = getTableViewController();
 
             controller.addTable(TestUtils.makeTestTable(rowCount, 3));
-
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
 
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["0_0", "1_0", "2_0", "3_0", "4_0", "5_0",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 0 }])
+
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -267,9 +152,10 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["5_0", "4_0", "3_0", "2_0", "1_0", "0_0",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 0 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -277,9 +163,10 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["0_0", "1_0", "2_0", "3_0", "4_0", "5_0",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 0 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -287,9 +174,10 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["0_0", "1_0", "2_0", "3_0", "4_0", "5_0",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 1 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 1 }])
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -297,33 +185,28 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["5_0", "4_0", "3_0", "2_0", "1_0", "0_0",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 1 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 1 }])
 
-            assert.equal(callbackCalled, true);
+            assert.equal(callbackCalled, doneCalls);
         });
 
         it('should mixed types correctly', function (done) {
-            let beforeColumnSort;
-
             let doneCalls = 2;
             let doneCalled = 0;
-            enviromentVariables.Handsontable = function (div, init) {
-                beforeColumnSort = init.beforeColumnSort;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () {
-                    // async cleanup
-                    doneCalled++;
-                    if (doneCalled == doneCalls) done();
-                };
-            }
+            integrationEnv.asyncDone = function () {
+                // async cleanup
+                doneCalled++;
+                if (doneCalled == doneCalls) done();
+            };
 
-            let callbackCalled = false;
+            let callbackCalled = 0;
 
             let rowCount = 6;
 
-            let controller = getController();
+            let controller = getTableViewController();
 
             let table = TestUtils.makeTestTable(rowCount, 3);
             table.dataRows[0].dataCells[0].val = "text1"
@@ -340,9 +223,10 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["2022-02-03", "2022-02-04", "7", "10", "text1", "text2"]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 0 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -350,29 +234,23 @@ describe('Test TableViewer', function () {
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["text2", "text1", "10", "7", "2022-02-04", "2022-02-03"]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled = true;
+                callbackCalled++;
             });
-            beforeColumnSort([], [{ column: 0 }])
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                beforeColumnSort([], [{ column: 0 }])
 
-
-            assert.equal(callbackCalled, true);
+            assert.equal(callbackCalled, doneCalls);
         });
     });
 
 
     describe('remove columns and rows test', function () {
         it('should remove one column', function (done) {
-            let afterRemoveCol;
-            enviromentVariables.Handsontable = function (div, init) {
-                afterRemoveCol = init.afterRemoveCol;
-                Object.assign(this, TestUtils.mockHandsontable);
-                this.loadData = function () { done() };
-            }
+            integrationEnv.asyncDone = done;
 
             let callbackCalled = false;
 
-
-            let controller = getController();
+            let controller = getTableViewController();
 
             let rowCount = 6;
             let colCount = 5;
@@ -388,7 +266,8 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            afterRemoveCol(1, 2)
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                afterRemoveCol(1, 2)
 
             assert.equal(callbackCalled, true);
         });

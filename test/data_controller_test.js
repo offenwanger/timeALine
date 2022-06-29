@@ -1,42 +1,21 @@
 const chai = require('chai');
-const rewire = require('rewire');
-
 let assert = chai.assert;
 let expect = chai.expect;
-let should = chai.should();
 
 
 describe('Test DataController', function () {
+    let integrationEnv;
     let getDataController;
-    let enviromentVariables;
-
-    beforeEach(function (done) {
-        let data_controller = rewire('../js/data_controller.js');
-
-        let utility = rewire('../js/utility.js');
-
-        enviromentVariables = {
-            PathMath: utility.__get__('PathMath'),
-            DataUtil: utility.__get__('DataUtil'),
-            d3: Object.assign({}, TestUtils.mockD3),
-            document: TestUtils.fakeDocument,
-        }
-
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
         getDataController = function () {
-            data_controller.__set__(enviromentVariables);
-            let DataViewController = data_controller.__get__('DataViewController');
-            return new DataViewController(Object.assign({}, TestUtils.mockSvg));
+            let DataViewController = integrationEnv.enviromentVariables.DataViewController;
+            return new DataViewController(integrationEnv.enviromentVariables.d3.svg);
         }
-
-        done();
     });
 
     afterEach(function (done) {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        done();
+        integrationEnv.cleanup(done);
     });
 
     describe('instantiation test', function () {
@@ -47,14 +26,6 @@ describe('Test DataController', function () {
 
     describe('annotation draw test', function () {
         it('should try to draw annotations at the correct location', function () {
-            let wasCalled = false;
-            let mockAnnotation = Object.assign({}, TestUtils.mockAnnotation);
-            mockAnnotation.annotations = function (result) {
-                wasCalled = true;
-                expect(result.map(i => { return { x: Math.floor(i.x), y: Math.floor(i.y) } })).to.eql([{ x: 20, y: 10 }, { x: 10, y: 5 }, { x: 30, y: 15 }], 0.0001);
-            }
-            enviromentVariables.d3.annotation = () => mockAnnotation;
-            let controller = getDataController();
 
             let boundData = [{
                 id: "1656331754127_8",
@@ -79,9 +50,11 @@ describe('Test DataController', function () {
                 line: [{ x: 0, y: 0 }, { x: 40, y: 20 }]
             }]
 
-            controller.drawData(boundData);
+            getDataController().drawData(boundData);
 
-            assert.equal(wasCalled, true);
+            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            expect(annotationSet.map(i => { return { x: Math.floor(i.x), y: Math.floor(i.y) } }))
+                .to.eql([{ x: 20, y: 10 }, { x: 10, y: 5 }, { x: 30, y: 15 }], 0.0001);
         })
     });
 });
