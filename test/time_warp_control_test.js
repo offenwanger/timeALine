@@ -7,7 +7,6 @@ let expect = chai.expect;
 describe('Test TimeWarpController', function () {
     let integrationEnv;
     let getTimeWarpController;
-    let DataStructs;
 
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
@@ -70,7 +69,7 @@ describe('Integration Test TimeWarpController', function () {
     });
 
     describe('warp data tests', function () {
-        it('should link non-blank data cell', function () {
+        it('should place pins where expected', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv.enviromentVariables);
@@ -81,7 +80,8 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.clickLine({ x: 175, y: 103 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 3);
-            expect(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort()).to.eql([0.25, 0.50, 0.75]);
+            expect(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
+                .to.eql([0.25, 0.50, 0.75]);
             assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
         });
     })
