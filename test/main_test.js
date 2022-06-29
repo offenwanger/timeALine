@@ -22,7 +22,7 @@ describe('Test Main - Integration Test', function () {
         it('should draw a line', function () {
             integrationEnv.mainInit();
 
-            testLineDraw([{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 1, y: 15 }], integrationEnv.enviromentVariables);
+            drawLine([{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 1, y: 15 }], integrationEnv.enviromentVariables);
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 2)
@@ -36,12 +36,12 @@ describe('Test Main - Integration Test', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }
             ];
-            testLineDraw(longerLine, integrationEnv.enviromentVariables);
+            drawLine(longerLine, integrationEnv.enviromentVariables);
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[1].linePath.points.length, 5)
 
-            testLineDraw([], integrationEnv.enviromentVariables);
+            drawLine([], integrationEnv.enviromentVariables);
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
         });
@@ -64,7 +64,7 @@ describe('Test Main - Integration Test', function () {
                 [2, 2, "", "text2"],
             ])
 
-            testLineDraw([
+            drawLine([
                 { x: 100, y: 100 },
                 { x: 110, y: 100 },
                 { x: 120, y: 100 },
@@ -97,7 +97,7 @@ describe('Test Main - Integration Test', function () {
         it('should add a comment to a line', function () {
             integrationEnv.mainInit();
 
-            testLineDraw([
+            drawLine([
                 { x: 100, y: 100 },
                 { x: 110, y: 100 },
                 { x: 120, y: 100 },
@@ -124,7 +124,7 @@ describe('Test Main - Integration Test', function () {
         it('should move a comment', function () {
             integrationEnv.mainInit();
 
-            testLineDraw([
+            drawLine([
                 { x: 100, y: 100 },
                 { x: 110, y: 100 },
                 { x: 120, y: 100 },
@@ -170,7 +170,7 @@ describe('Test Main - Integration Test', function () {
                 [1, 0, "", "10"], [1, 1, "", "25"],
             ])
 
-            testLineDraw([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
 
@@ -197,7 +197,7 @@ describe('Test Main - Integration Test', function () {
                 [1, 0, "", "10"], [1, 1, "", "25"],
             ])
 
-            testLineDraw([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
 
@@ -222,7 +222,7 @@ describe('Test Main - Integration Test', function () {
         it('should link non-blank data cell', function () {
             integrationEnv.mainInit();
 
-            testLineDraw([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv.enviromentVariables);
+            drawLine([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv.enviromentVariables);
 
             clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
@@ -236,7 +236,7 @@ describe('Test Main - Integration Test', function () {
     })
 });
 
-function testLineDraw(points, enviromentVariables) {
+function drawLine(points, enviromentVariables) {
     assert('#line-drawing-g' in enviromentVariables.d3.selectors, "Line Drawing G not created!");
     let lineDrawingG = enviromentVariables.d3.selectors['#line-drawing-g'];
     let drawingRect = lineDrawingG.children.find(c => c.type == 'rect');
@@ -256,31 +256,6 @@ function testLineDraw(points, enviromentVariables) {
     onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 });
 
     clickButton("#line-drawing-button", enviromentVariables.$);
-}
-
-function testLineClick(mockElement) {
-    let onLineTargetClicked = null;
-
-    let timelineTarget = Object.assign({}, TestUtils.mockElement);
-    timelineTarget.on = function (e, func) {
-        if (e == "click") {
-            onLineTargetClicked = func;
-        }
-    }
-
-    let classedFunc = mockElement.classed;
-    mockElement.classed = function (classed, val) {
-        if (classed == "timelineTarget") {
-            return timelineTarget;
-        } else return classedFunc.call(this, classed, val);
-    }
-
-    return function (coords, timeline) {
-        assert.notEqual(onLineTargetClicked, null, "onLineTargetClicked not set")
-
-        onLineTargetClicked(coords, { id: timeline.id, points: timeline.linePath.points });
-    }
-
 }
 
 function clickButton(buttonId, fakeJQ) {
