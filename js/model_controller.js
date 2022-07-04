@@ -11,14 +11,7 @@ function ModelController() {
         return timeline;
     }
 
-    function createTimeline(points) {
-        let timeline = new DataStructs.Timeline();
-        timeline.linePath.points = points;
-
-        return timeline;
-    }
-
-    function extendTimeline(points, timelineId, extendStart) {
+    function extendTimeline(timelineId, points, extendStart) {
         let timeline = getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.linePath.points);
 
@@ -44,7 +37,7 @@ function ModelController() {
         }
     }
 
-    function mergeTimeline(points, timelineIdStart, timelineIdEnd) {
+    function mergeTimeline(timelineIdStart, timelineIdEnd, points) {
         let startTimeline = getTimelineById(timelineIdStart);
         let endTimeline = getTimelineById(timelineIdEnd);
 
@@ -814,6 +807,21 @@ function ModelController() {
         // otherwise there isn't.
         return false;
     }
+
+    /****
+     * Utility
+     */
+
+    function createTimeline(points) {
+        let timeline = new DataStructs.Timeline();
+        timeline.linePath.points = points;
+
+        return timeline;
+    }
+
+    /****
+     * Exports
+     */
 
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;

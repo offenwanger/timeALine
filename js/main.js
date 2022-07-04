@@ -89,10 +89,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // the line which has it's end point connecting to the other line goes first
             let startLineId = endPointLineId;
             let endLineId = startPointLineId;
-            let removedIds = modelController.mergeTimeline(newPoints, startLineId, endLineId);
+            let removedIds = modelController.mergeTimeline(startLineId, endLineId, newPoints);
             timeWarpController.removeTimeControls(removedIds);
         } else {
-            modelController.extendTimeline(newPoints, startPointLineId ? startPointLineId : endPointLineId, startPointLineId != null);
+            modelController.extendTimeline(startPointLineId ? startPointLineId : endPointLineId, newPoints, startPointLineId != null);
         }
 
         updateAllControls();
