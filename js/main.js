@@ -99,23 +99,27 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
 
-    let eraserController = new EraserController(svg);
-    eraserController.setEraseCallback(mask => {
-        let removedIds = modelController.deletePoints(mask);
-        timeWarpController.removeTimeControls(removedIds);
+    let eraserController = new EraserController(svg, modelController.getTimelinePaths);
+    eraserController.setEraseCallback(data => {
+        let eraseIds = data.filter(d => d.segments.points.length == 1).map(d => d.id);
+        let breakData = data.filter(d => d.segments.points.length > 1);
 
+        eraseIds.forEach(id => modelController.deleteTimeline(id));
+        breakData.forEach(d => modelController.breakTimeline(d.id, d.segments));
+
+        timeWarpController.removeTimeControls(eraseIds);
         updateAllControls();
     })
 
     let dragController = new DragController(svg);
-    dragController.setLineModifiedCallback(lines => {
-        modelController.pointsUpdated(lines);
+    dragController.setLineModifiedCallback(data => {
+        data.forEach(d => modelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
         updateAllControls();
     });
 
     let ironController = new IronController(svg);
-    ironController.setLineModifiedCallback(lines => {
-        modelController.pointsUpdated(lines);
+    ironController.setLineModifiedCallback(data => {
+        data.forEach(d => modelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
         updateAllControls();
     });
 
@@ -165,7 +169,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#eraser-button").on("click", () => {
         if (mode == MODE_ERASER) {
-            clearMode()
         } else {
             clearMode()
             mode = MODE_ERASER;

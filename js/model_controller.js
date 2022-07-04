@@ -108,148 +108,120 @@ function ModelController() {
         return [timelineIdStart, timelineIdEnd];
     }
 
-    function deletePoints(mask) {
-        let currentTimelines = [];
-        let removedTimelines = [];
-        mTimelines.forEach(timeline => {
-            timeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; })
-
-            let segments = [{ covered: mask.isCovered(timeline.linePath.points[0]), points: [timeline.linePath.points[0]] }]
-
-            // TODO: Subdivide the line segment to get a more exact erase in the affected areas
-            for (let i = 1; i < timeline.linePath.points.length; i++) {
-                let point = timeline.linePath.points[i];
-                if (mask.isCovered(point) == segments[segments.length - 1].covered) {
-                    segments[segments.length - 1].points.push(point);
-                } else {
-                    let previousPoint = timeline.linePath.points[i - 1]
-                    segments.push({ covered: mask.isCovered(point), points: [previousPoint, point] })
-                }
-            }
-
-            // remove the first segment if it was only one point long. 
-            if (segments.length > 1 && segments[0].points.length == 1) segments.shift();
-
-            if (segments.length > 1) {
-                removedTimelines.push(timeline);
-
-                let totalLength = PathMath.getPathLength(timeline.linePath.points);
-
-                let warpIndex = 0;
-                for (let i = 0; i < segments.length; i++) {
-                    let segment = segments[i];
-
-                    segment.length = PathMath.getPathLength(segments[i].points);
-
-                    (i == 0) ?
-                        segment.startPercent = 0 :
-                        segment.startPercent = segments[i - 1].endPercent;
-
-                    segment.endPercent = (segment.length / totalLength) + segment.startPercent;
-
-                    segment.warpBindings = [];
-
-                    for (warpIndex; warpIndex < timeline.warpBindings.length; warpIndex++) {
-                        // if the line percent is on this segment (or if this is the last segment just put on everything that's left)
-                        if (timeline.warpBindings[warpIndex].linePercent <= segment.endPercent || i == segments.length - 1) {
-                            let binding = timeline.warpBindings[warpIndex].clone();
-                            binding.linePercent -= segment.startPercent
-                            binding.linePercent /= segment.endPercent - segment.startPercent;
-                            segment.warpBindings.push(binding);
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if (!segment.covered) {
-                        let newTimeline = createTimeline(segment.points);
-                        newTimeline.warpBindings = segment.warpBindings;
-
-                        if (i > 0) {
-                            let time;
-                            if (hasTimeMapping(timeline.id)) {
-                                time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
-                            } else {
-                                time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
-                            }
-
-                            let newRowData = addRowWithTime(time);
-                            let linePercent = 0;
-                            let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
-                            newTimeline.warpBindings.push(binding);
-                        }
-
-                        if (i < segments.length - 1) {
-                            let time;
-                            if (hasTimeMapping(timeline.id)) {
-                                time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
-                            } else {
-                                time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
-                            }
-
-                            let newRowData = addRowWithTime(time);
-                            let linePercent = 1;
-                            let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
-                            newTimeline.warpBindings.push(binding);
-                        }
-
-                        newTimeline.cellBindings = [...timeline.cellBindings];
-
-                        currentTimelines.push(newTimeline)
-                    }
-                }
-            } else if (segments.length == 1) {
-                if (segments[0].covered) {
-                    removedTimelines.push(timeline);
-                } else {
-                    currentTimelines.push(timeline);
-                }
-            } else console.error("Unhandled edge case!!", timeline);
-        });
-
-        mTimelines = currentTimelines;
-        return removedTimelines.map(timeline => timeline.id);
+    function deleteTimeline(timelineId) {
+        mTimelines = mTimelines.filter(t => t.id != timelineId);
     }
 
-    function pointsUpdated(lines) {
-        lines.forEach(line => {
-            let timeline = getTimelineById(line.id);
+    function breakTimeline(timelineId, segments) {
+        if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
-            let newSegments = line.newSegments;
-            let oldSegments = line.oldSegments;
+        let timeline = getTimelineById(timelineId);
 
-            timeline.linePath.points = PathMath.mergePointSegments(newSegments);
+        timeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; });
+        let totalLength = PathMath.getPathLength(timeline.linePath.points);
 
-            // update the warp points
-            let newLength = PathMath.getPathLength(PathMath.mergePointSegments(newSegments));
-            let oldLength = PathMath.getPathLength(PathMath.mergePointSegments(oldSegments));
-            let cumulativeNewLength = 0;
-            let cumulativeOldLength = 0;
-            for (let i = 0; i < oldSegments.length; i++) {
-                let newSegmentLength = PathMath.getPathLength(newSegments[i]);
-                let oldSegmentLength = PathMath.getPathLength(oldSegments[i]);
 
-                let newStartPercent = cumulativeNewLength / newLength;
-                let oldStartPercent = cumulativeOldLength / oldLength;
+        let warpIndex = 0;
+        for (let i = 0; i < segments.length; i++) {
+            let segment = segments[i];
 
-                cumulativeNewLength += newSegmentLength;
-                cumulativeOldLength += oldSegmentLength;
+            segment.length = PathMath.getPathLength(segments[i].points);
 
-                let newEndPercent = cumulativeNewLength / newLength;
-                let oldEndPercent = cumulativeOldLength / oldLength;
+            (i == 0) ?
+                segment.startPercent = 0 :
+                segment.startPercent = segments[i - 1].endPercent;
 
-                let newInterval = newEndPercent - newStartPercent;
-                let oldInterval = oldEndPercent - oldStartPercent;
+            segment.endPercent = (segment.length / totalLength) + segment.startPercent;
 
-                timeline.warpBindings
-                    .filter(binding =>
-                        binding.linePercent >= oldStartPercent &&
-                        binding.linePercent <= oldEndPercent)
-                    .forEach(binding => {
-                        binding.linePercent = (((binding.linePercent - oldStartPercent) / oldInterval) * newInterval) + newStartPercent;
-                    })
+            segment.warpBindings = [];
+
+            for (warpIndex; warpIndex < timeline.warpBindings.length; warpIndex++) {
+                // if the line percent is on this segment (or if this is the last segment just put on everything that's left)
+                if (timeline.warpBindings[warpIndex].linePercent <= segment.endPercent || i == segments.length - 1) {
+                    let binding = timeline.warpBindings[warpIndex].clone();
+                    binding.linePercent -= segment.startPercent
+                    binding.linePercent /= segment.endPercent - segment.startPercent;
+                    segment.warpBindings.push(binding);
+                } else {
+                    break;
+                }
             }
-        })
+
+            if (segment.label == SEGMENT_LABELS.UNAFFECTED) {
+                let newTimeline = createTimeline(segment.points);
+                newTimeline.warpBindings = segment.warpBindings;
+
+                if (i > 0) {
+                    let time;
+                    if (hasTimeMapping(timeline.id)) {
+                        time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                    } else {
+                        time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
+                    }
+
+                    let newRowData = addRowWithTime(time);
+                    let linePercent = 0;
+                    let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
+                    newTimeline.warpBindings.push(binding);
+                }
+
+                if (i < segments.length - 1) {
+                    let time;
+                    if (hasTimeMapping(timeline.id)) {
+                        time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                    } else {
+                        time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
+                    }
+
+                    let newRowData = addRowWithTime(time);
+                    let linePercent = 1;
+                    let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
+                    newTimeline.warpBindings.push(binding);
+                }
+
+                newTimeline.cellBindings = [...timeline.cellBindings];
+
+                mTimelines.push(newTimeline)
+            }
+        }
+
+        mTimelines = mTimelines.filter(t => t.id != timelineId);
+    }
+
+    function updateTimelinePoints(timelineId, oldSegments, newSegments) {
+        let timeline = getTimelineById(timelineId);
+
+        timeline.linePath.points = PathMath.mergeSegments(newSegments);
+
+        // update the warp points
+        let newLength = PathMath.getPathLength(PathMath.mergeSegments(newSegments));
+        let oldLength = PathMath.getPathLength(PathMath.mergeSegments(oldSegments));
+        let cumulativeNewLength = 0;
+        let cumulativeOldLength = 0;
+        for (let i = 0; i < oldSegments.length; i++) {
+            let newSegmentLength = PathMath.getPathLength(newSegments[i]);
+            let oldSegmentLength = PathMath.getPathLength(oldSegments[i]);
+
+            let newStartPercent = cumulativeNewLength / newLength;
+            let oldStartPercent = cumulativeOldLength / oldLength;
+
+            cumulativeNewLength += newSegmentLength;
+            cumulativeOldLength += oldSegmentLength;
+
+            let newEndPercent = cumulativeNewLength / newLength;
+            let oldEndPercent = cumulativeOldLength / oldLength;
+
+            let newInterval = newEndPercent - newStartPercent;
+            let oldInterval = oldEndPercent - oldStartPercent;
+
+            timeline.warpBindings
+                .filter(binding =>
+                    binding.linePercent >= oldStartPercent &&
+                    binding.linePercent <= oldEndPercent)
+                .forEach(binding => {
+                    binding.linePercent = (((binding.linePercent - oldStartPercent) / oldInterval) * newInterval) + newStartPercent;
+                })
+        }
     }
 
     function addBoundTextRow(text, timeBinding, timelineId) {
@@ -826,9 +798,9 @@ function ModelController() {
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
     this.mergeTimeline = mergeTimeline;
-
-    this.deletePoints = deletePoints;
-    this.pointsUpdated = pointsUpdated;
+    this.deleteTimeline = deleteTimeline;
+    this.breakTimeline = breakTimeline;
+    this.updateTimelinePoints = updateTimelinePoints;
 
     this.getTimelineById = getTimelineById;
     this.getAllTimelines = () => [...mTimelines];

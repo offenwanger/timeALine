@@ -31,9 +31,11 @@ function IronController(svg) {
     function dragStart(coords, radius) {
         mStartPosition = coords;
         mLines.forEach(line => {
-            let segments = segmentLine(coords, radius, line.points);
+            let oldSegments = PathMath.segmentPath(line.points, true,
+                (point) => distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+            let newSegments = PathMath.cloneSegments(oldSegments);
             if (segments.length > 1 || segments[0].covered) {
-                mMovingLines.push({ id: line.id, oldSegments: segments, newSegments: copySegments(segments) });
+                mMovingLines.push({ id: line.id, oldSegments, newSegments });
             }
         })
 
@@ -47,7 +49,7 @@ function IronController(svg) {
         let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
         let drawingLines = [];
         mMovingLines.forEach(line => {
-            drawingLines.push(PathMath.mergePointSegments(ironSegments(line.newSegments, ironStrength)));
+            drawingLines.push(PathMath.mergeSegments(ironSegments(line.newSegments, ironStrength)));
         })
 
         drawLines(drawingLines);
@@ -112,42 +114,6 @@ function IronController(svg) {
             }
         });
         return returnArray;
-    }
-
-    function segmentLine(coords, radius, points) {
-        // this line is under the drag circle. 
-        let segments = [{ covered: MathUtil.distanceFromAToB(points[0], coords) < radius, points: [points[0]] }]
-        for (let i = 1; i < points.length; i++) {
-            let point = points[i];
-            let isCovered = MathUtil.distanceFromAToB(point, coords) < radius;
-            if (isCovered == segments[segments.length - 1].covered) {
-                segments[segments.length - 1].points.push(point);
-            } else {
-                if (isCovered) {
-                    // if a line section is partly covered, we want it in the covered segment
-                    let previousPoint = points[i - 1]
-                    segments.push({ covered: isCovered, points: [previousPoint, point] })
-                } else {
-                    // if a line section is partly covered, we want it in the previous covered segment
-                    segments[segments.length - 1].points.push(point);
-                    segments.push({ covered: isCovered, points: [point] })
-                }
-            }
-        }
-        segments = segments.filter(segment => segment.points.length > 1);
-
-        return segments;
-    }
-
-    function copySegments(segments) {
-        return [...segments.map(segment => {
-            return {
-                covered: segment.covered,
-                points: segment.points.map(p => {
-                    return { x: p.x, y: p.y };
-                })
-            };
-        })]
     }
 
     function drawLines(points) {

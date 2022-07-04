@@ -1,8 +1,10 @@
-function EraserController(svg) {
+function EraserController(svg, getAllLinePaths) {
     let mActive = false;
     let mDraggedPoints = [];
 
     let mEraseCallback = () => { };
+
+    let mExternalCallGetAllLinePaths = getAllLinePaths;
 
     let mEraserGroup = svg.append('g')
         .attr("id", 'eraser-g')
@@ -52,10 +54,92 @@ function EraserController(svg) {
             mDraggedPoints = [];
             mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
 
-            mEraseCallback(new CanvasMask(canvas));
+            let mask = new CanvasMask(canvas);
+            let linePaths = mExternalCallGetAllLinePaths();
+            let boundingBox = mask.getBoundingBox();
+
+            let checkedPaths = linePaths.filter(p => {
+                for (let i = 0; i < p.points.length - 1; i++) {
+                    if (crossesBoundingBox(p.points[i], p.points[i + 1], boundingBox)) return true;
+                }
+                return false;
+            })
+
+            let segmentsData = checkedPaths.map(p => {
+                return {
+                    id: p.id,
+                    segments: PathMath.segmentPath(p.points, true, (point) => {
+                        return mask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
+                    })
+                }
+            })
+
+            // filter out untouched lines
+            segmentsData = segmentsData.filter(sd => sd.segments.length != 1 || sd.segments[0].label == SEGMENT_LABELS.DELETED);
+
+            mEraseCallback(segmentsData);
         };
         image.src = blobURL;
     })
+
+    function crossesBoundingBox(point1, point2, boundingBox) {
+        if (point1.x <= boundingBox.xMax && point1.x >= boundingBox.xMin
+            && point1.y <= boundingBox.yMax && point1.y >= boundingBox.yMin) {
+            return true;
+        }
+
+        if (point2.x <= boundingBox.xMax && point2.x >= boundingBox.xMin
+            && point2.y <= boundingBox.yMax && point2.y >= boundingBox.yMin) {
+            return true;
+        }
+
+        return intersects(point1.x, point1.y, point2.x, point2.y, boundingBox.xMin, boundingBox.yMin, boundingBox.xMax, boundingBox.yMin)
+            || intersects(point1.x, point1.y, point2.x, point2.y, boundingBox.xMin, boundingBox.yMax, boundingBox.xMax, boundingBox.yMax)
+            || intersects(point1.x, point1.y, point2.x, point2.y, boundingBox.xMin, boundingBox.yMin, boundingBox.xMin, boundingBox.yMax)
+            || intersects(point1.x, point1.y, point2.x, point2.y, boundingBox.xMax, boundingBox.yMin, boundingBox.xMax, boundingBox.yMax);
+    }
+
+    // returns true if the line from (a,b)->(c,d) intersects with (p,q)->(r,s)
+    function intersects(a, b, c, d, p, q, r, s) {
+        var det, gamma, lambda;
+        det = (c - a) * (s - q) - (r - p) * (d - b);
+        if (det === 0) {
+            return false;
+        } else {
+            lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+            gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+            return (-0.01 < lambda && lambda < 1.01) && (-0.01 < gamma && gamma < 1.01);
+        }
+    };
+
+    function CanvasMask(canvas) {
+        this.canvas = canvas;
+        let mContext = canvas.getContext("2d");
+
+        this.isCovered = function (coords) {
+            return mContext.getImageData(Math.round(coords.x), Math.round(coords.y), 1, 1).data[3] > 0;
+        }
+
+        this.getBoundingBox = function () {
+            let xMin = this.canvas.width;
+            let xMax = 0
+            let yMin = this.canvas.height;
+            let yMax = 0
+
+            for (let i = 0; i < this.canvas.width; i++) {
+                for (let j = 0; j < this.canvas.height; j++) {
+                    if (mContext.getImageData(i, j, 1, 1).data[3] > 0) {
+                        xMin = Math.min(xMin, i)
+                        xMax = Math.max(xMax, i)
+                        yMin = Math.min(yMin, j)
+                        yMax = Math.max(yMax, j)
+                    }
+                }
+            }
+
+            return { xMin, xMax, yMin, yMax }
+        }
+    }
 
     this.setActive = (active) => {
         if (active && !mActive) {

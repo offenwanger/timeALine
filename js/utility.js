@@ -232,11 +232,96 @@ let PathMath = function () {
         return returnable;
     }
 
-    function mergePointSegments(segments) {
-        return segments[0].concat(...segments
-            .slice(1, segments.length)
-            // slice off the first point as it's a duplicate in a properly formatted segment array.
-            .map(points => points.slice(1, points.length)));
+    function segmentPath(points, fineDetail, labelerFunc) {
+        let segments = []
+
+        let seg = { label: labelerFunc(points[0]), points: [points[0]] };
+        for (let i = 1; i < points.length; i++) {
+            let point = points[i];
+            let label = labelerFunc(point);
+            if (label == seg.label) {
+                seg.points.push(point);
+            } else {
+                segments.push(seg)
+                seg = { label, points: [point] }
+            }
+        }
+        segments.push(seg);
+
+        if (fineDetail && segments.length == 1) {
+            let originalSegment = segments[0];
+
+            segments = [];
+            let seg = { label: originalSegment.label, points: [originalSegment.points[0]] };
+            for (let i = 1; i < originalSegment.points.length; i++) {
+                let startLen = getPathLength(originalSegment.points.slice(0, i))
+                let subPath = getPath(originalSegment.points.slice(0, i + 1));
+                let endLen = subPath.getTotalLength();
+
+                for (let len = startLen; len < endLen; len++) {
+                    let point = subPath.getPointAtLength(len);
+                    let label = labelerFunc(point);
+                    if (label != seg.label) {
+                        seg.points.push(point);
+                        segments.push(seg);
+                        seg = { label, points: [point] }
+                    }
+                }
+
+                seg.points.push(originalSegment.points[i]);
+            }
+            segments.push(seg);
+
+        } else if (fineDetail) {
+            for (let i = 0; i < segments.length - 1; i++) {
+                let startLen = getPathLength(mergeSegments(segments.slice(0, i + 1)))
+                let subPath = getPath(mergeSegments(segments.slice(0, i + 2)));
+                let endLen = subPath.getTotalLength();
+
+                let found = false;
+                for (let len = startLen; len < endLen; len++) {
+                    let point = subPath.getPointAtLength(len);
+                    let label = labelerFunc(point);
+                    if (label != segments[i].label) {
+                        if (label != segments[i + 1].label) console.error("Something funky going on here.", label, segments[i].label, segments[i + 1].label);
+                        // we found the crossover point
+                        segments[i].points.push(point);
+                        segments[i + 1].points.unshift(point);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) console.error("Unhandled edge case! But probably won't break anything by itself.");
+            }
+        }
+
+        return segments;
+    }
+
+    function mergeSegments(segments) {
+        if (!segments.length) throw new Error("Array has no length!");
+
+        let points = [...segments[0].points];
+        for (let i = 1; i < segments.length; i++) {
+            let s = segments[i];
+            if (MathUtil.pointsEqual(s.points[0], points[points.length - 1])) {
+                points.push(...s.points.slice(1))
+            } else {
+                points.push(...s.points)
+            }
+        }
+        return points;
+    }
+
+    function cloneSegments(segments) {
+        return [...segments.map(segment => {
+            return {
+                label: segment.label,
+                points: segment.points.map(p => {
+                    return { x: p.x, y: p.y };
+                })
+            };
+        })]
     }
 
     return {
@@ -248,7 +333,9 @@ let PathMath = function () {
         getPositionForPercentAndDist,
         getClosestPointOnPath,
         getPointsWithin,
-        mergePointSegments,
+        segmentPath,
+        mergeSegments,
+        cloneSegments,
     }
 }();
 
@@ -452,12 +539,3 @@ let DataUtil = function () {
         percentBetween,
     }
 }();
-
-function CanvasMask(canvas) {
-    this.canvas = canvas;
-    let mContext = canvas.getContext("2d");
-
-    this.isCovered = function (coords) {
-        return mContext.getImageData(coords.x, coords.y, 1, 1).data[3] > 0;
-    }
-}

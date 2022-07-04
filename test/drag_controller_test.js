@@ -32,7 +32,7 @@ describe('Test DragController', function () {
                     { x: 10, y: 15 },
                     { x: 5, y: 20 }]
             }, {
-                id: "id1", points: [
+                id: "id2", points: [
                     { x: 10, y: 10 },
                     { x: 15, y: 10 },
                     { x: 15, y: 15 }]
@@ -60,8 +60,8 @@ describe('Test DragController', function () {
 
             let called = false;
             dragController.setLineModifiedCallback((result) => {
-                assert.equal(result[0].newSegments[0][0].x, 15)
-                assert.equal(result[0].newSegments[0][0].y, 15)
+                assert.equal(result[0].newSegments[0].points[0].x, 15)
+                assert.equal(result[0].newSegments[0].points[0].y, 15)
                 called = true;
             })
 
@@ -92,8 +92,8 @@ describe('Test DragController', function () {
             dragController.setActive(true);
             let called = false;
             dragController.setLineModifiedCallback((result) => {
-                assert.equal(result[0].newSegments[1][2].x, 5)
-                assert.equal(result[0].newSegments[1][2].y, -2)
+                assert.equal(result[0].newSegments[1].points[1].x, 5)
+                assert.equal(result[0].newSegments[1].points[1].y, -2)
                 called = true;
             })
 
@@ -131,11 +131,11 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
-                assert.equal(result[0].oldSegments[1].length, 3);
+                assert.equal(result[0].oldSegments[1].points.length, 3);
                 assert.equal(result[0].newSegments.length, 3);
-                assert.equal(result[0].newSegments[1].length, 5);
-                expect(result[0].newSegments[1][2].x).to.be.closeTo(14.2, .1);
-                expect(result[0].newSegments[1][2].y).to.be.closeTo(13.4, .1);
+                assert.equal(result[0].newSegments[1].points.length, 3);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(14.2, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(13.4, .1);
                 called = true;
             })
 
@@ -164,23 +164,16 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
-                assert.equal(result[0].oldSegments[1].length, 2);
+                assert.equal(result[0].oldSegments[1].points.length, 2);
                 assert.equal(result[0].newSegments.length, 3);
-                assert.equal(result[0].newSegments[1].length, 5);
-                expect(result[0].newSegments[1][0].x).to.be.closeTo(0, .1);
-                expect(result[0].newSegments[1][0].y).to.be.closeTo(0, .1);
+                assert.equal(result[0].newSegments[1].points.length, 2);
 
-                expect(result[0].newSegments[1][1].x).to.be.closeTo(13.4, .1);
-                expect(result[0].newSegments[1][1].y).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
 
-                expect(result[0].newSegments[1][2].x).to.be.closeTo(20, .1);
-                expect(result[0].newSegments[1][2].y).to.be.closeTo(20, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(27.5, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(27.5, .1);
 
-                expect(result[0].newSegments[1][3].x).to.be.closeTo(26.5, .1);
-                expect(result[0].newSegments[1][3].y).to.be.closeTo(26.5, .1);
-
-                expect(result[0].newSegments[1][4].x).to.be.closeTo(40, .1);
-                expect(result[0].newSegments[1][4].y).to.be.closeTo(40, .1);
                 called = true;
             })
 
@@ -210,23 +203,19 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
-                assert.equal(result[0].oldSegments[1].length, 3);
+                assert.equal(result[0].oldSegments[1].points.length, 3);
                 assert.equal(result[0].newSegments.length, 3);
-                assert.equal(result[0].newSegments[1].length, 5);
-                expect(result[0].newSegments[1][0].x).to.be.closeTo(0, .1);
-                expect(result[0].newSegments[1][0].y).to.be.closeTo(0, .1);
+                assert.equal(result[0].newSegments[1].points.length, 3);
 
-                expect(result[0].newSegments[1][1].x).to.be.closeTo(13.4, .1);
-                expect(result[0].newSegments[1][1].y).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
 
-                expect(result[0].newSegments[1][2].x).to.be.closeTo(20, .1);
-                expect(result[0].newSegments[1][2].y).to.be.closeTo(20, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(20, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(20, .1);
 
-                expect(result[0].newSegments[1][3].x).to.be.closeTo(26.5, .1);
-                expect(result[0].newSegments[1][3].y).to.be.closeTo(26.5, .1);
+                expect(result[0].newSegments[1].points[2].x).to.be.closeTo(27, 1);
+                expect(result[0].newSegments[1].points[2].y).to.be.closeTo(27, 1);
 
-                expect(result[0].newSegments[1][4].x).to.be.closeTo(40, .1);
-                expect(result[0].newSegments[1][4].y).to.be.closeTo(40, .1);
                 called = true;
             })
 
@@ -266,11 +255,13 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
-                assert.equal(result[0].oldSegments[1].length, 2);
+                assert.equal(result[0].oldSegments[1].points.length, 2);
                 assert.equal(result[0].newSegments.length, 3);
-                assert.equal(result[0].newSegments[1].length, 5);
-                expect(result[0].newSegments[1][2].x).to.be.closeTo(177.9, .1);
-                expect(result[0].newSegments[1][2].y).to.be.closeTo(67.5, .1);
+                assert.equal(result[0].newSegments[1].points.length, 2);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(168.4, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(67.7, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(188.4, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(67.2, .1);
                 called = true;
             })
 
@@ -318,11 +309,11 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 1);
-                assert.equal(result[0].oldSegments[0].length, lineData.points.length);
+                assert.equal(result[0].oldSegments[0].points.length, lineData.points.length);
                 assert.equal(result[0].newSegments.length, 1);
-                assert.equal(result[0].newSegments[0].length, lineData.points.length);
-                expect(result[0].newSegments[0].map(p => Math.round(p.x))).to.eql(lineData.points.map(p => p.y * 2));
-                expect(result[0].newSegments[0].map(p => Math.round(p.y))).to.eql(lineData.points.map(p => p.x == 0 ? 0 : p.x * -2));
+                assert.equal(result[0].newSegments[0].points.length, lineData.points.length);
+                expect(result[0].newSegments[0].points.map(p => Math.round(p.x))).to.eql(lineData.points.map(p => p.y * 2));
+                expect(result[0].newSegments[0].points.map(p => Math.round(p.y))).to.eql(lineData.points.map(p => p.x == 0 ? 0 : p.x * -2));
                 called = true;
             })
 

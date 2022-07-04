@@ -15,8 +15,15 @@ before(function () {
         this.selectors = selectors;
 
         this.mockSvg = {
+            attrs: { width: 500, height: 500 },
             append: () => new MockElement(),
-            attr: () => { return 10 },
+            attr: function (name, val = null) {
+                if (val != null) {
+                    this.attrs[name] = val;
+                    return this;
+                } else return this.attrs[name];
+            },
+            node: function () { return { outerHTML: "" }; },
         };
 
         function MockElement() {
@@ -116,7 +123,10 @@ before(function () {
 
         this.curveCatmullRom = { alpha: () => { } };
         this.select = function (selection) {
-            if (selection == '#svg_container') return this.svg;
+            if (selection.attr) {
+                // it's one of those cases where we are selected an obj
+                return selection;
+            } else if (selection == '#svg_container') return this.svg;
             else return selection;
         };
         this.selectAll = function (selector) {
@@ -213,9 +223,21 @@ before(function () {
         createElementNS: (ns, item) => {
             if (item == "path") {
                 return Object.assign({}, fakeSVGPath);
+            } else if (item == "svg") {
+                return Object.assign({}, new fakeD3().mockSvg);
             }
+        },
+        canvasImage: Array(500).fill().map(() => Array(500).fill().map(() => { return { data: [0, 0, 0, 0] }; })),
+        createElement: function (name) {
+            if (name == 'canvas') return Object.assign({ height: 500, width: 500, canvasImage: this.canvasImage }, mockCanvas);
         }
     };
+
+    let mockCanvas = {
+        getContext: function () { return this; },
+        drawImage: function () { },
+        getImageData: function (x, y, height, width) { return this.canvasImage[x][y]; },
+    }
 
     function makeTestTable(height, width) {
         let t = new DataStructs.DataTable([new DataStructs.DataColumn("Time", 0)]);
@@ -296,7 +318,10 @@ before(function () {
             $: fakeJqueryFactory(),
             handsontables: [],
             Handsontable: returnable.snagTable(MockHandsontable),
-            window: { innerWidth: 1000, innerHeight: 800 },
+            window: { innerWidth: 1000, innerHeight: 800, createObjectURL: () => { } },
+            Blob: function () { },
+            img: {},
+            Image: function () { returnable.enviromentVariables.img = this },
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
@@ -328,6 +353,8 @@ before(function () {
             delete returnable.enviromentVariables;
             delete returnable.modelController;
             delete global.document;
+
+            fakeDocument.canvasImage = Array(500).fill().map(() => Array(500).fill().map(() => { return { data: [0, 0, 0, 0] }; }));
 
             done();
         };

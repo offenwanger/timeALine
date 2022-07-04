@@ -15,3 +15,9 @@ DataTypesColor[DataTypes.TIME_BINDING] = 'purple';
 const TimeBindingTypes = {
     TIMESTRAMP: 'timestamp',
 }
+
+const SEGMENT_LABELS = {
+    UNAFFECTED: 'unaffected',
+    DELETED: 'erased',
+    CHANGED: 'changed'
+}

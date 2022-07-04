@@ -46,7 +46,12 @@ describe('Test ModelController', function () {
 
     describe('delete points tests', function () {
         it('should break one line into two', function () {
-            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 10, y: 0 }, { x: 15, y: 0 }, { x: 20, y: 0 }]);
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
 
             assert.equal(modelController.getAllTimelines().length, 1);
 
@@ -63,13 +68,28 @@ describe('Test ModelController', function () {
             ])
 
             assert.equal(modelController.getBoundData().length, 2);
-
-            let mockMask = {
-                isCovered: function (point) {
-                    return (point.x == 10) ? true : false;
-                }
-            }
-            modelController.deletePoints(mockMask);
+            modelController.breakTimeline(modelController.getAllTimelines()[0].id, [
+                {
+                    label: SEGMENT_LABELS.UNAFFECTED,
+                    points: [{ x: 0, y: 0 },
+                    { x: 5, y: 0 },
+                    { x: 10, y: 0 },
+                    { x: 14, y: 0 },]
+                },
+                {
+                    label: SEGMENT_LABELS.DELETED,
+                    points: [
+                        { x: 14, y: 0 },
+                        { x: 15, y: 0 },
+                        { x: 16, y: 0 }]
+                },
+                {
+                    label: SEGMENT_LABELS.UNAFFECTED,
+                    points: [
+                        { x: 16, y: 0 },
+                        { x: 20, y: 0 }]
+                },
+            ]);
 
             assert.equal(modelController.getAllTimelines().length, 2);
             assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 2);

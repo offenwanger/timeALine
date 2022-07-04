@@ -99,4 +99,38 @@ describe('Test PathMath', function () {
             expect(point.y).to.be.closeTo(15, .0001);
         })
     })
+
+    describe('path segmentation tests', function () {
+        it('should break line into three segments', function () {
+            let points = [
+                { x: 10, y: 10 },
+                { x: 10, y: 15 },
+                { x: 15, y: 15 },
+                { x: 20, y: 15 },
+                { x: 15, y: 20 },
+                { x: 20, y: 20 }
+            ]
+
+            let segments = PathMath.segmentPath(points, false, (point) => {
+                if (point.x == 15 && point.y == 15) return "labelYes";
+                else return "labelNo";
+            });
+
+            assert.equal(segments.length, 3);
+        })
+
+        it('should segment line on empty section', function () {
+            let points = [
+                { x: 0, y: 0 },
+                { x: 0, y: 100 }
+            ]
+
+            let segments = PathMath.segmentPath(points, true, (point) => {
+                if (point.y > 40 && point.y <= 50) return "labelYes";
+                else return "labelNo";
+            });
+
+            assert.equal(segments.length, 3);
+        })
+    });
 });
