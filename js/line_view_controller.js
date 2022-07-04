@@ -1,6 +1,9 @@
 function LineViewController(svg) {
     let mActive;
     let mLineClickedCallback = () => { };
+    let mLineDragStartCallback = () => { };
+    let mLineDragCallback = () => { };
+    let mLineDragEndCallback = () => { };
 
     let mLineGroup = svg.append('g')
         .attr("id", 'line-view-g');
@@ -43,7 +46,10 @@ function LineViewController(svg) {
                     let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
                     mLineClickedCallback(d.id, PathMath.getClosestPointOnPath(mouseCoords, d.points))
                 }
-            });
+            }).call(d3.drag()
+                .on('start', function (e, d) { onDrag('start', e, d); })
+                .on('drag', function (e, d) { onDrag('drag', e, d); })
+                .on('end', function (e, d) { onDrag('end', e, d); }));
         targets.exit().remove();
         mTargetGroup.selectAll('.timelineTarget').attr('d', (path) => PathMath.getPathD(path.points));
     }
@@ -60,7 +66,27 @@ function LineViewController(svg) {
         mActive = active;
     };
 
+    function onDrag(drag, e, d) {
+        let callback;
+        switch (drag) {
+            case 'start':
+                callback = mLineDragStartCallback;
+                break;
+            case 'drag':
+                callback = mLineDragCallback;
+                break;
+            case 'end':
+                callback = mLineDragEndCallback;
+                break;
+        }
+
+        callback(d.id, { x: e.x, y: e.y }, PathMath.getClosestPointOnPath({ x: e.x, y: e.y }, d.points));
+    }
+
     this.linesUpdated = linesUpdated;
     this.setActive = setActive;
     this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
+    this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
+    this.setLineDragCallback = (callback) => mLineDragCallback = callback;
+    this.setLineDragEndCallback = (callback) => mLineDragEndCallback = callback;
 }
