@@ -11,6 +11,7 @@
         "vm": "^0.1.0"
     },
     "scripts": {
-        "test": "nyc --reporter=html --reporter=text mocha --timeout=3000"
+        "test": "nyc --reporter=html --reporter=text mocha --timeout=3000",
+        "testOnly": "nyc --reporter=html --reporter=text mocha -g \"filter text\" --timeout=3000"
     }
 }
