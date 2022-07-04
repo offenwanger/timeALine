@@ -63,21 +63,4 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getBoundData().find(item => item.axis).axis.val2, 20);
         });
     });
-
-    describe('warp data tests', function () {
-        it('should link non-blank data cell', function () {
-            integrationEnv.mainInit();
-
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv.enviromentVariables);
-
-            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 125, y: 101 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 175, y: 103 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 3);
-            expect(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort()).to.eql([0.25, 0.50, 0.75]);
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
-        });
-    })
 });
