@@ -353,9 +353,9 @@ before(function () {
         let onLineDragStart = drawingRect.drag.start;
         let onLineDrag = drawingRect.drag.drag;
         let onLineDragEnd = drawingRect.drag.end;
-        assert(onLineDragStart, "onLineDragStart not set");
-        assert(onLineDrag, "onLineDrag not set");
-        assert(onLineDragEnd, "onLineDragEnd not set");
+        assert(onLineDragStart, "drawing DragStart not set");
+        assert(onLineDrag, "drawing Drag not set");
+        assert(onLineDragEnd, "drawing DragEnd not set");
 
         clickButton("#line-drawing-button", enviromentVariables.$);
 
@@ -381,9 +381,30 @@ before(function () {
         timeLineTargets.eventCallbacks['click'](coords, data);
     }
 
+    function dragLine(points, lineId, enviromentVariables) {
+        assert('.timelineTarget' in enviromentVariables.d3.selectors, "No timeline targets!");
+        let timeLineTargets = enviromentVariables.d3.selectors['.timelineTarget'];
+        let data = timeLineTargets.innerData.find(d => d.id == lineId);
+
+        let onLineDragStart = timeLineTargets.drag.start;
+        let onLineDrag = timeLineTargets.drag.drag;
+        let onLineDragEnd = timeLineTargets.drag.end;
+
+        assert(onLineDragStart, "line DragStart not set");
+        assert(onLineDrag, "line Drag not set");
+        assert(onLineDragEnd, "line DragEnd not set");
+
+        onLineDragStart(points.length > 0 ? points[0] : { x: 0, y: 0 }, data)
+        points.forEach(point => {
+            onLineDrag(point, data);
+        })
+        onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, data);
+    }
+
     IntegrationUtils = {
         drawLine,
         clickButton,
         clickLine,
+        dragLine,
     }
 });

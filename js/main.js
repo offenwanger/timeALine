@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let modelController = new ModelController();
 
     let lineViewController = new LineViewController(svg);
+    // Note that both click and drag get called, ensure code doesn't overlap. 
     lineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mode == MODE_COMMENT) {
             let type = DataTypes.NUM;
@@ -32,16 +33,36 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mode == MODE_LINK) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
             dataController.drawData(modelController.getBoundData());
-        } else if (mode == MODE_PIN) {
-            modelController.createWarpBindingRow(timelineId, linePoint.percent);
-            timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
-            dataController.drawData(modelController.getBoundData());
         }
     })
 
-    let timeWarpController = new TimeWarpController(svg);
-    timeWarpController.setUpdateWarpBindingCallback((timelineId, bindingData) => {
-        modelController.updateWarpBinding(timelineId, bindingData);
+    lineViewController.setLineDragStartCallback((timelineId, mousePoint, linePoint) => {
+        if (mode == MODE_PIN) {
+            let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
+            let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
+
+            let rowData = modelController.addRowWithTime(time)
+            dataTableController.updateTableData(modelController.getAllTables());
+
+            let warpBinding = new DataStructs.WarpBinding(rowData.tableId, rowData.rowId, linePoint.percent, true);
+            timeWarpController.pinDragStart(timelineId, warpBinding);
+        }
+    })
+    lineViewController.setLineDragCallback((timelineId, mousePoint, linePoint) => {
+        if (mode == MODE_PIN) {
+            timeWarpController.pinDrag(timelineId, linePoint.percent);
+        }
+    })
+    lineViewController.setLineDragEndCallback((timelineId, mousePoint, linePoint) => {
+        if (mode == MODE_PIN) {
+            timeWarpController.pinDragEnd(timelineId, linePoint.percent);
+        }
+    })
+
+    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpBindings);
+    timeWarpController.setUpdateWarpBindingCallback((timelineId, warpBinding) => {
+        modelController.updateWarpBinding(timelineId, warpBinding);
+
         timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
         dataController.drawData(modelController.getBoundData());
     })
@@ -123,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         lineDrawingController.linesUpdated(modelController.getTimelinePaths());
         dragController.linesUpdated(modelController.getTimelinePaths());
         ironController.linesUpdated(modelController.getTimelinePaths());
+        dataTableController.updateTableData(modelController.getAllTables());
 
         dataController.drawData(modelController.getBoundData());
 

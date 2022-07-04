@@ -354,8 +354,10 @@ let DataUtil = function () {
         } else if (isNumeric("" + cellVal)) {
             return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
         } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
+            console.error("Fix the get time type here.");
             return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
         } else if (isDate(cellVal)) {
+            console.error("Fix the get time type here.");
             if (cellVal instanceof DataStructs.TimeBinding) return cellVal;
             else return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
         } else {
@@ -395,11 +397,59 @@ let DataUtil = function () {
         return [...new Map(list.map(binding => [key ? binding[key] : binding, binding])).values()]
     }
 
+    function AGreaterThanB(a, b, type) {
+        if (type == DataTypes.TIME_BINDING) {
+            return TimeBindingUtil.AGreaterThanB(a, b);
+        } else if (type == DataTypes.NUM) {
+            return a > b;
+        } else { throw new Error("Cannot calculate greaterThan for type: " + type); }
+    }
+
+    function subtractAFromB(a, b, type) {
+        if (type == DataTypes.TIME_BINDING) {
+            return TimeBindingUtil.subtractAFromB(a, b);
+        } else if (type == DataTypes.NUM) {
+            return b - a;
+        } else { throw new Error("Cannot calculate subtract for type: " + type); }
+    }
+
+    function AEqualsB(a, b, type) {
+        if (type == DataTypes.TIME_BINDING) {
+            return TimeBindingUtil.AEqualsB(a, b);
+        } else if (type == DataTypes.NUM) {
+            return a == b;
+        } else { throw new Error("Cannot calculate equals for type: " + type); }
+    }
+
+    function incrementAByB(a, b, type) {
+        if (type == DataTypes.TIME_BINDING) {
+            return TimeBindingUtil.incrementBy(a, b);
+        } else if (type == DataTypes.NUM) {
+            return a + b;
+        } else { throw new Error("Cannot calculate increment by for type: " + type); }
+    }
+
+
+    function percentBetween(a, b, v, type) {
+        if (type == DataTypes.TIME_BINDING) {
+            return TimeBindingUtil.percentBetweenAandB(a, b, v);
+        } else if (type == DataTypes.NUM) {
+            return (v - a) / (b - a);
+        } else { throw new Error("Cannot calculate percents for type: " + type); }
+    }
+
+
     return {
         inferDataAndType,
         getUniqueList,
         isDate,
         isNumeric,
+
+        AGreaterThanB,
+        subtractAFromB,
+        AEqualsB,
+        incrementAByB,
+        percentBetween,
     }
 }();
 

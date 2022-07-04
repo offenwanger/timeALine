@@ -1,4 +1,4 @@
-function TimeWarpController(svg) {
+function TimeWarpController(svg, getUpdatedWarpBindings) {
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
     const TICK_TARGET_SIZE = 10;
@@ -7,6 +7,10 @@ function TimeWarpController(svg) {
 
     let mActive = false;
 
+    let mLinePoints = {};
+    let mDraggingBinding = null;
+
+    let mExternalCallGetUpdatedWarpBindings = getUpdatedWarpBindings;
     let mUpdateWarpBindingCallback = () => { };
 
     let mTailGroup = svg.append('g')
@@ -18,16 +22,18 @@ function TimeWarpController(svg) {
         .attr("id", 'tick-target-g')
         .style('visibility', "hidden")
 
-    function addOrUpdateTimeControls(lineAndBindings) {
-        lineAndBindings.forEach(timelineData => {
+    function addOrUpdateTimeControls(timelinesData) {
+        timelinesData.forEach(timelineData => {
+            mLinePoints[timelineData.id] = timelineData.linePoints;
             drawTails(timelineData.id, timelineData.linePoints);
             drawTicks(timelineData.id, timelineData.linePoints, timelineData.bindings);
-            setTickHandlers(timelineData.id, timelineData.linePoints, timelineData.bindings);
+            setTickHandlers(timelineData.id);
         });
     }
 
     function removeTimeControls(timelineIds) {
         timelineIds.forEach(id => {
+            delete mLinePoints[id];
             mControlTickGroup.selectAll('.warpTick_' + id).remove();
             mControlTickTargetGroup.selectAll('.warpTickTarget_' + id).remove();
             mTailGroup.select('#timelineTail1_' + id).remove();
@@ -207,46 +213,27 @@ function TimeWarpController(svg) {
             .attr('y2', tail2End.y);
     }
 
-    function setTickHandlers(timelineId, linePoints, bindings) {
+    function setTickHandlers(timelineId) {
         let targets = mControlTickTargetGroup.selectAll('.warpTickTarget_' + timelineId);
         targets.on('mousedown.drag', null);
         targets.call(d3.drag()
-            .on('start', (event, d) => { /** nothing for now */ })
+            .on('start', (event, d) => {
+                if (mActive) {
+                    pinDragStart(d.timelineId, d.binding);
+                }
+            })
             .on('drag', (event, d) => {
                 if (mActive) {
                     let dragPoint = { x: event.x, y: event.y };
-                    let currBinding = d.binding;
-
-                    let newPercent = mousePositionToLinePercent(dragPoint, linePoints);
-                    let oldPercent = currBinding.linePercent;
-                    let tempBindings = bindings.filter(b => {
-                        // pop this out to, we'll add the updated one later.
-                        if (b.id == currBinding.id) return false;
-                        // wrong type, unaffected.
-                        if (b.type != currBinding.type) return true;
-                        // we cross this point when moving, ditch it
-                        if (b.linePercent <= newPercent && b.linePercent >= oldPercent) return false;
-                        if (b.linePercent <= oldPercent && b.linePercent >= newPercent) return false;
-                        // it's outside the drag range, keep it.
-                        return true;
-                    })
-
-                    if (newPercent >= 0 || newPercent <= 1) {
-                        let binding = Object.assign({}, currBinding);
-                        binding.linePercent = newPercent;
-                        tempBindings.push(binding);
-                    }
-
-                    drawTicks(timelineId, linePoints, tempBindings);
+                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.timelineId]).percent;
+                    pinDrag(d.timelineId, linePercent);
                 }
             })
             .on('end', (event, d) => {
                 if (mActive) {
                     let dragPoint = { x: event.x, y: event.y };
-                    let linePercent = mousePositionToLinePercent(dragPoint, linePoints)
-                    let binding = Object.assign({}, currBinding);
-                    binding.linePercent = linePercent;
-                    mUpdateWarpBindingCallback(binding);
+                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.timelineId]).percent;
+                    pinDragEnd(d.timelineId, linePercent);
                 }
             }))
             .on("mouseover", (event, d) => {
@@ -264,6 +251,46 @@ function TimeWarpController(svg) {
             .on("mouseout", function () {
                 $("#tooltip-div").hide();
             });
+    }
+
+    function pinDragStart(timelineId, warpBinding) {
+        if (mActive) {
+            mDraggingBinding = warpBinding;
+            pinDrag(timelineId, warpBinding.linePercent);
+        }
+    }
+
+    function pinDrag(timelineId, linePercent) {
+        if (mActive) {
+            if (!mDraggingBinding) throw new Error("Bad state! Binding not set!")
+
+            if (linePercent < 0) linePercent = 0;
+            if (linePercent > 1) linePercent = 1;
+
+            let binding = mDraggingBinding.clone();
+            binding.linePercent = linePercent;
+            let tempBindings = mExternalCallGetUpdatedWarpBindings(timelineId, binding);
+
+            let linePoints = mLinePoints[timelineId];
+
+            drawTicks(timelineId, linePoints, tempBindings);
+        }
+    }
+
+    function pinDragEnd(timelineId, linePercent) {
+        if (mActive) {
+            if (!mDraggingBinding) throw new Error("Bad state! Binding not set!")
+
+            if (linePercent < 0) linePercent = 0;
+            if (linePercent > 1) linePercent = 1;
+
+            let binding = mDraggingBinding.clone();
+            binding.linePercent = linePercent;
+
+            mUpdateWarpBindingCallback(timelineId, binding);
+
+            mDraggingBinding = null;
+        }
     }
 
     function constrainValue(x) {
@@ -309,5 +336,9 @@ function TimeWarpController(svg) {
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
     this.removeTimeControls = removeTimeControls;
     this.setUpdateWarpBindingCallback = (callback) => mUpdateWarpBindingCallback = callback;
+
+    this.pinDragStart = pinDragStart;
+    this.pinDrag = pinDrag;
+    this.pinDragEnd = pinDragEnd;
 }
 
