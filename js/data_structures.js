@@ -5,17 +5,12 @@ let DataStructs = function () {
         return Date.now() + "_" + idCounter;
     }
 
-    function Timeline() {
+    function Timeline(points = []) {
         this.id = getUniqueId();
-        this.linePath = new LinePath();
+        this.points = points;
         this.cellBindings = [];
         this.warpBindings = [];
         this.axisBindings = [];
-    }
-
-    function LinePath() {
-        this.id = getUniqueId();
-        this.points = [];
     }
 
     function CellBinding(tableId, rowId, columnId, cellId) {
@@ -184,7 +179,6 @@ let DataStructs = function () {
 
     return {
         Timeline,
-        LinePath,
         CellBinding,
         WarpBinding,
         AxisBinding,

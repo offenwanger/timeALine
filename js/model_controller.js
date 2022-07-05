@@ -5,7 +5,7 @@ function ModelController() {
     function newTimeline(points) {
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
-        let timeline = createTimeline(points);
+        let timeline = new DataStructs.Timeline(points);
         mTimelines.push(timeline);
 
         return timeline;
@@ -13,16 +13,16 @@ function ModelController() {
 
     function extendTimeline(timelineId, points, extendStart) {
         let timeline = getTimelineById(timelineId);
-        let originalLength = PathMath.getPathLength(timeline.linePath.points);
+        let originalLength = PathMath.getPathLength(timeline.points);
 
         // knock off the first point cuz it's probably pretty close. 
         //TODO: Handle this properly.
         extendStart ? points.pop() : points.unshift();
 
-        let newPoints = extendStart ? points.concat(timeline.linePath.points) : timeline.linePath.points.concat(points);
+        let newPoints = extendStart ? points.concat(timeline.points) : timeline.points.concat(points);
         let newLength = PathMath.getPathLength(newPoints);
 
-        timeline.linePath.points = newPoints;
+        timeline.points = newPoints;
         if (extendStart) {
             let diff = newLength - originalLength;
             timeline.warpBindings.forEach(binding => {
@@ -41,17 +41,17 @@ function ModelController() {
         let startTimeline = getTimelineById(timelineIdStart);
         let endTimeline = getTimelineById(timelineIdEnd);
 
-        let originalStartLength = PathMath.getPathLength(startTimeline.linePath.points);
-        let originalEndLength = PathMath.getPathLength(endTimeline.linePath.points);
+        let originalStartLength = PathMath.getPathLength(startTimeline.points);
+        let originalEndLength = PathMath.getPathLength(endTimeline.points);
 
         // knock off the end points cuz they're probably pretty close.
         points.pop();
         points.unshift();
 
-        let newPoints = startTimeline.linePath.points.concat(points, endTimeline.linePath.points);
+        let newPoints = startTimeline.points.concat(points, endTimeline.points);
         let newLength = PathMath.getPathLength(newPoints);
 
-        let newTimeline = createTimeline(newPoints);
+        let newTimeline = new DataStructs.Timeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
 
         mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
@@ -118,7 +118,7 @@ function ModelController() {
         let timeline = getTimelineById(timelineId);
 
         // assign the segments their correct line percents:
-        let totalLength = PathMath.getPathLength(timeline.linePath.points);
+        let totalLength = PathMath.getPathLength(timeline.points);
         segments[0].startLength = 0;
         segments[0].startPercent = 0;
         segments[0].endLength = PathMath.getPathLength(segments[0].points);
@@ -153,7 +153,7 @@ function ModelController() {
                         time = mapLinePercentToTime(timelineId, DataTypes.NUM, segment.startPercent);
                     }
 
-                    let newRowData = addRowWithTime(time);
+                    let newRowData = addTimeRow(time);
                     let linePercent = 0;
                     let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
                     segment.warpBindings.push(binding);
@@ -167,7 +167,7 @@ function ModelController() {
                         time = mapLinePercentToTime(timelineId, DataTypes.NUM, segment.endPercent);
                     }
 
-                    let newRowData = addRowWithTime(time);
+                    let newRowData = addTimeRow(time);
                     let linePercent = 1;
                     let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
                     segment.warpBindings.push(binding);
@@ -177,7 +177,7 @@ function ModelController() {
 
         // create the new timelines
         let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
-            let newTimeline = createTimeline(segment.points);
+            let newTimeline = new DataStructs.Timeline(segment.points);
             newTimeline.warpBindings = segment.warpBindings;
             newTimeline.cellBindings = [...timeline.cellBindings].map(b => b.clone());
             return newTimeline;
@@ -190,7 +190,7 @@ function ModelController() {
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
         let timeline = getTimelineById(timelineId);
 
-        timeline.linePath.points = PathMath.mergeSegments(newSegments);
+        timeline.points = PathMath.mergeSegments(newSegments);
 
         // update the warp points
         let newLength = PathMath.getPathLength(PathMath.mergeSegments(newSegments));
@@ -286,7 +286,7 @@ function ModelController() {
         return validBindings;
     }
 
-    function addRowWithTime(time) {
+    function addTimeRow(time) {
         if ((typeof time == "number" && isNaN(time))) throw new Error("Invalid time!")
 
         if (mDataTables.length == 0) {
@@ -458,7 +458,7 @@ function ModelController() {
                     type: cell.getType(),
                     val: cell.getValue(),
                     offset: cell.offset,
-                    line: timeline.linePath.points,
+                    line: timeline.points,
                     linePercent,
                     axis: timeline.axisBindings.find(a => a.columnId == binding.columnId)
                 });
@@ -513,7 +513,7 @@ function ModelController() {
             return {
                 id: timeline.id,
                 bindings: bindings,
-                linePoints: timeline.linePath.points,
+                linePoints: timeline.points,
             }
         });
     }
@@ -780,17 +780,6 @@ function ModelController() {
     }
 
     /****
-     * Utility
-     */
-
-    function createTimeline(points) {
-        let timeline = new DataStructs.Timeline();
-        timeline.linePath.points = points;
-
-        return timeline;
-    }
-
-    /****
      * Exports
      */
 
@@ -808,9 +797,8 @@ function ModelController() {
     this.addTableFromCSV = addTableFromCSV;
     this.getAllTables = () => [...mDataTables];
     this.tableUpdated = tableUpdated;
-    this.addRowWithTime = addRowWithTime
+    this.addTimeRow = addTimeRow
 
-    this.getTimelinePaths = function () { return mTimelines.map(timeline => { return { id: timeline.id, points: timeline.linePath.points } }) };
 
     this.addBoundTextRow = addBoundTextRow;
     this.bindCells = bindCells;

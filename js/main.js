@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
             let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
-            let rowData = modelController.addRowWithTime(time)
+            let rowData = modelController.addTimeRow(time)
             dataTableController.updateTableData(modelController.getAllTables());
 
             let warpBinding = new DataStructs.WarpBinding(rowData.tableId, rowData.rowId, linePoint.percent, true);
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
 
-    let eraserController = new EraserController(svg, modelController.getTimelinePaths);
+    let eraserController = new EraserController(svg, modelController.getAllTimelines);
     eraserController.setEraseCallback(lineData => {
         let eraseIds = lineData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
         let breakData = lineData.filter(d => d.segments.length > 1);
@@ -144,10 +144,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     function updateAllControls() {
-        lineViewController.linesUpdated(modelController.getTimelinePaths());
-        lineDrawingController.linesUpdated(modelController.getTimelinePaths());
-        dragController.linesUpdated(modelController.getTimelinePaths());
-        ironController.linesUpdated(modelController.getTimelinePaths());
+        lineViewController.linesUpdated(modelController.getAllTimelines());
+        lineDrawingController.linesUpdated(modelController.getAllTimelines());
+        dragController.linesUpdated(modelController.getAllTimelines());
+        ironController.linesUpdated(modelController.getAllTimelines());
+
         dataTableController.updateTableData(modelController.getAllTables());
 
         dataController.drawData(modelController.getBoundData());

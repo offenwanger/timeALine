@@ -148,7 +148,7 @@ describe('Integration Test DataController', function () {
 
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 3)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
@@ -175,7 +175,7 @@ describe('Integration Test DataController', function () {
 
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 3)
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 3)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);

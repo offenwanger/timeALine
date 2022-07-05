@@ -45,7 +45,7 @@ describe('Test Main - Integration Test', function () {
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].linePath.points.length, 5)
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 5)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [
                 [0, 0, 0, 2],
