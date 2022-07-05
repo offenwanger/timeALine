@@ -117,75 +117,74 @@ function ModelController() {
 
         let timeline = getTimelineById(timelineId);
 
-        timeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; });
+        // assign the segments their correct line percents:
         let totalLength = PathMath.getPathLength(timeline.linePath.points);
+        segments[0].startLength = 0;
+        segments[0].startPercent = 0;
+        segments[0].endLength = PathMath.getPathLength(segments[0].points);
+        segments[0].endPercent = segments[0].endLength / totalLength;
+        for (let i = 1; i < segments.length; i++) {
+            segments[i].startLength = segments[i - 1].endLength;
+            segments[i].startPercent = segments[i - 1].endPercent;
+            segments[i].endLength = PathMath.getPathLength(PathMath.mergeSegments(segments.slice(0, i + 1)));
+            segments[i].endPercent = segments[i].endLength / totalLength;
+        }
 
 
-        let warpIndex = 0;
-        for (let i = 0; i < segments.length; i++) {
-            let segment = segments[i];
+        // split up the warp bindings into their proper segments
+        segments.forEach(s => s.warpBindings = []);
+        timeline.warpBindings.forEach(binding => {
+            let segment = segments.find(s => {
+                s.startPercent <= binding.linePercent &&
+                    s.endPercent >= binding.linePercent
+            });
+            if (!segment) { console.error("Something wierd here."); };
+            segment.warpBindings.push(binding.clone());
+        })
 
-            segment.length = PathMath.getPathLength(segments[i].points);
-
-            (i == 0) ?
-                segment.startPercent = 0 :
-                segment.startPercent = segments[i - 1].endPercent;
-
-            segment.endPercent = (segment.length / totalLength) + segment.startPercent;
-
-            segment.warpBindings = [];
-
-            for (warpIndex; warpIndex < timeline.warpBindings.length; warpIndex++) {
-                // if the line percent is on this segment (or if this is the last segment just put on everything that's left)
-                if (timeline.warpBindings[warpIndex].linePercent <= segment.endPercent || i == segments.length - 1) {
-                    let binding = timeline.warpBindings[warpIndex].clone();
-                    binding.linePercent -= segment.startPercent
-                    binding.linePercent /= segment.endPercent - segment.startPercent;
-                    segment.warpBindings.push(binding);
-                } else {
-                    break;
-                }
-            }
-
+        // add warp bindings to ensure the correct data stays in the line
+        segments.forEach(segment => {
             if (segment.label == SEGMENT_LABELS.UNAFFECTED) {
-                let newTimeline = createTimeline(segment.points);
-                newTimeline.warpBindings = segment.warpBindings;
-
-                if (i > 0) {
+                if (segment.startPercent > 0) {
                     let time;
-                    if (hasTimeMapping(timeline.id)) {
-                        time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                    if (hasTimeMapping(timelineId)) {
+                        time = mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, segment.startPercent);
                     } else {
-                        time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
+                        time = mapLinePercentToTime(timelineId, DataTypes.NUM, segment.startPercent);
                     }
 
                     let newRowData = addRowWithTime(time);
                     let linePercent = 0;
                     let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
-                    newTimeline.warpBindings.push(binding);
+                    segment.warpBindings.push(binding);
                 }
 
-                if (i < segments.length - 1) {
+                if (segment.endPercent < 1) {
                     let time;
-                    if (hasTimeMapping(timeline.id)) {
-                        time = mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, segment.startPercent);
+                    if (hasTimeMapping(timelineId)) {
+                        time = mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, segment.endPercent);
                     } else {
-                        time = mapLinePercentToTime(timeline.id, DataTypes.NUM, segment.startPercent);
+                        time = mapLinePercentToTime(timelineId, DataTypes.NUM, segment.endPercent);
                     }
 
                     let newRowData = addRowWithTime(time);
                     let linePercent = 1;
                     let binding = new DataStructs.WarpBinding(newRowData.tableId, newRowData.rowId, linePercent, true);
-                    newTimeline.warpBindings.push(binding);
+                    segment.warpBindings.push(binding);
                 }
-
-                newTimeline.cellBindings = [...timeline.cellBindings];
-
-                mTimelines.push(newTimeline)
             }
-        }
+        })
+
+        // create the new timelines
+        let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
+            let newTimeline = createTimeline(segment.points);
+            newTimeline.warpBindings = segment.warpBindings;
+            newTimeline.cellBindings = [...timeline.cellBindings].map(b => b.clone());
+            return newTimeline;
+        })
 
         mTimelines = mTimelines.filter(t => t.id != timelineId);
+        mTimelines.push(...newTimelines);
     }
 
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
@@ -820,8 +819,8 @@ function ModelController() {
     this.updateAxisDist = updateAxisDist;
 
     this.updateWarpBinding = updateWarpBinding;
-    this.getUpdatedWarpBindings = getUpdatedWarpBindings;
     this.getWarpBindingsData = getWarpBindingsData;
+    this.getUpdatedWarpBindings = getUpdatedWarpBindings;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.hasTimeMapping = hasTimeMapping;

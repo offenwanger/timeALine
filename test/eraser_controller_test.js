@@ -287,5 +287,38 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 0);
         });
+
+        it('should correctly add end warp points', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            colorSquare(20, 0, 40, 20);
+            colorSquare(60, 0, 80, 20);
+
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let eraser = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
+            eraserStart({ x: 30, y: 0 });
+            eraser({ x: 30, y: -50 });
+            eraser({ x: 70, y: -50 });
+            eraser({ x: 70, y: 0 });
+            eraserEnd({ x: 70, y: 0 });
+
+            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+            integrationEnv.enviromentVariables.img.onload();
+
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 3);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[1].warpBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[2].warpBindings.length, 1);
+
+            let warpBindings = integrationEnv.ModelController.getWarpBindingsData();
+            expect(warpBindings.map(wb => wb.bindings.map(b => b.timeVal))).to.eql([[0.2], [0.4, 0.6], [0.8]]);
+            expect(warpBindings.map(wb => wb.bindings.map(b => b.linePercent))).to.eql([[1], [0, 1], [0]]);
+        });
     })
 });
