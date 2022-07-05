@@ -316,9 +316,14 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getAllTimelines()[1].warpBindings.length, 2);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[2].warpBindings.length, 1);
 
-            let warpBindings = integrationEnv.ModelController.getWarpBindingsData();
-            expect(warpBindings.map(wb => wb.bindings.map(b => b.timeVal))).to.eql([[0.2], [0.4, 0.6], [0.8]]);
-            expect(warpBindings.map(wb => wb.bindings.map(b => b.linePercent))).to.eql([[1], [0, 1], [0]]);
+            let id1 = integrationEnv.ModelController.getAllTimelines()[0].id;
+            let id2 = integrationEnv.ModelController.getAllTimelines()[1].id;
+            let id3 = integrationEnv.ModelController.getAllTimelines()[2].id;
+
+            let warpBindingData = integrationEnv.ModelController.getAllWarpBindingData();
+            expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.2, 0.4, 0.6, 0.8]);
+            expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id2, id3]);
+            expect(warpBindingData.map(wbd => wbd.linePercent)).to.eql([1, 0, 1, 0]);
         });
     })
 });

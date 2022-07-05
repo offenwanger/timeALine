@@ -25,13 +25,32 @@ let DataStructs = function () {
         }
     }
 
+    function CellBindingData(timelineId, cellBindingId, timeCell, dataCell) {
+        this.timelineId = timelineId;
+        this.cellBindingId = cellBindingId;
+        this.timeCell = timeCell;
+        this.dataCell = dataCell;
+    }
+
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {
         this.id = getUniqueId();
         this.tableId = tableId;
         this.rowId = rowId;
         this.linePercent = linePercent;
         this.isValid = isValid;
-        this.clone = function () { return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid); };
+
+        this.clone = function () {
+            return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
+        };
+    }
+
+    function WarpBindingData(timelineId, warpBindingId, tableId, rowId, timeCell, linePercent) {
+        this.timelineId = timelineId;
+        this.warpBindingId = warpBindingId;
+        this.tableId = tableId,
+            this.rowId = rowId,
+            this.timeCell = timeCell;
+        this.linePercent = linePercent;
     }
 
     // These are only for number sets now, but if we get 
@@ -187,6 +206,9 @@ let DataStructs = function () {
         DataRow,
         DataCell,
         TimeBinding,
+        // utility data structs
+        CellBindingData,
+        WarpBindingData,
     }
 }();
 

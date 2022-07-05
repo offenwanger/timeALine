@@ -539,3 +539,32 @@ let DataUtil = function () {
         percentBetween,
     }
 }();
+
+let WarpBindingUtil = function () {
+    function filterValidWarpBindingIds(warpBindingData, alteredBindingData) {
+        let alteredType = alteredBindingData.timeCell.getType();
+        let alteredValue = alteredBindingData.timeCell.getValue();
+        let alteredPercent = alteredBindingData.linePercent;
+
+        let validBindingIds = [];
+        warpBindingData.forEach(binding => {
+            if (binding.timeCell.getType() == alteredType) {
+                if (binding.warpBindingId == alteredBindingData.warpBindingId) {
+                    validBindingIds.push(binding.warpBindingId);
+                } else if (binding.linePercent > alteredPercent && DataUtil.AGreaterThanB(binding.timeCell.getValue(), alteredValue, alteredType)) {
+                    validBindingIds.push(binding.warpBindingId);
+                } else if (alteredPercent > binding.linePercent && DataUtil.AGreaterThanB(alteredValue, binding.timeCell.getValue(), alteredType)) {
+                    validBindingIds.push(binding.warpBindingId);
+                }
+            } else {
+                validBindingIds.push(binding.warpBindingId);
+            }
+        });
+
+        return validBindingIds;
+    }
+
+    return {
+        filterValidWarpBindingIds,
+    }
+}();

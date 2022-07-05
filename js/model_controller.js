@@ -80,6 +80,9 @@ function ModelController() {
                 linePercent: b.linePercent
             }
         });
+
+        // TODO: use the utilty function
+
         // only num and time can be invalid
         let lastBinding;
         let invalidWarpBindings = [];
@@ -254,36 +257,25 @@ function ModelController() {
         getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
-    function updateWarpBinding(timelineId, binding) {
+    function addOrUpdateWarpBinding(timelineId, alteredBindingData) {
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
 
         let timeline = getTimelineById(timelineId);
 
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        timeline.warpBindings = getUpdatedWarpBindings(timeline.id, binding);
-    }
-
-    function getUpdatedWarpBindings(timelineId, alteredBinding) {
-        let allBindings = getTimelineById(timelineId).warpBindings;
-        let alteredTimeCell = getTimeCellForRow(alteredBinding.tableId, alteredBinding.rowId);
-        let alteredType = alteredTimeCell.getType();
-        let alteredValue = alteredTimeCell.getValue();
-
-        let validBindings = [alteredBinding];
-        allBindings.forEach(binding => {
-            let timeCell = getTimeCellForRow(binding.tableId, binding.rowId);
-            if (timeCell.getType() == alteredType) {
-                if (binding.linePercent > alteredBinding.linePercent && DataUtil.AGreaterThanB(timeCell.getValue(), alteredValue, alteredType)) {
-                    validBindings.push(binding)
-                } else if (alteredBinding.linePercent > binding.linePercent && DataUtil.AGreaterThanB(alteredValue, timeCell.getValue(), alteredType)) {
-                    validBindings.push(binding)
-                } // TODO: else delete row if it's not being used for anything else?
-            } else {
-                validBindings.push(binding);
-            }
-        });
-        return validBindings;
+        let warpBindingData = getAllWarpBindingData().filter(wbd => wbd.timelineId == timelineId);
+        let validIds = WarpBindingUtil.filterValidWarpBindingIds(warpBindingData, alteredBindingData);
+        timeline.warpBindings = timeline.warpBindings.filter(wb => validIds.includes(wb.id));
+        if (!warpBindingData.warpBindingId) {
+            // new warp binging
+            timeline.warpBindings.push(new DataStructs.WarpBinding(
+                alteredBindingData.tableId, alteredBindingData.rowId, alteredBindingData.linePercent));
+        } else {
+            let warpBinding = timeline.warpBindings.find(wb => wb.id == alteredBindingData.id);
+            if (!warpBinding) { console.error("Cannot find warp binding!"); return; }
+            warpBinding.linePercent = alteredBindingData.linePercent;
+        }
     }
 
     function addTimeRow(time) {
@@ -311,7 +303,7 @@ function ModelController() {
             newRow.dataCells.push(cell);
         }
 
-        return { tableId: mDataTables[0].id, rowId: newRow.id };
+        return { tableId: mDataTables[0].id, rowId: newRow.id, timeCell };
     }
 
     function updateText(cellId, text) {
@@ -497,43 +489,6 @@ function ModelController() {
         }
     }
 
-    function getWarpBindingsData() {
-        return mTimelines.map(timeline => {
-            let bindings = timeline.warpBindings.map(b => {
-                let timeCell = getTableById(b.tableId).getRow(b.rowId).getCell(getTimeColumn(b.tableId).id);
-                return {
-                    rowId: b.rowId,
-                    timeVal: timeCell.getValue(),
-                    type: timeCell.getType(),
-                    linePercent: b.linePercent,
-                    isValid: b.isValid,
-                }
-            });
-
-            return {
-                id: timeline.id,
-                bindings: bindings,
-                linePoints: timeline.points,
-            }
-        });
-    }
-
-    function getTableRow(tableId, rowId) {
-        return getTableById(tableId).getRow(rowId);
-    }
-
-    function getTimeColumn(tableId) {
-        return getTableById(tableId).dataColumns.find(col => col.index == 0);
-    }
-
-    function getTimeCellForRow(tableId, rowId) {
-        let row = getTableRow(tableId, rowId);
-        if (!row) throw new Error("Invalid row id!");
-        let cell = row.getCell(getTimeColumn(tableId).id);
-        if (!cell) throw new Error("Bad table state! Failed to get time cell");
-        return cell;
-    }
-
     function mapTimeToLinePercent(timelineId, type, timeVal) {
         let { min, max, warpBindingsData } = getMaxMinWarpBindings(timelineId, type);
 
@@ -590,6 +545,55 @@ function ModelController() {
             console.error("Unhandle edge case!", max, min, val);
             return 0;
         }
+    }
+
+    function getAllWarpBindingData() {
+        let returnable = [];
+        mTimelines.forEach(timeline => {
+            timeline.warpBindings.forEach(warpBinding => {
+                let row = getTableRow(warpBinding.tableId, warpBinding.rowId);
+                if (!row) { console.error("Invalid warp binding! No row!"); return; }
+
+                let timeCell = row.getCell(getTimeColumn(warpBinding.tableId).id);
+                if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
+
+                returnable.push(new DataStructs.WarpBindingData(timeline.id, warpBinding.id,
+                    warpBinding.tableId, warpBinding.rowId, timeCell, warpBinding.linePercent));
+            })
+        })
+        return returnable;
+    }
+
+    function getAllCellBindingData() {
+        let returnable = [];
+        mTimelines.forEach(timeline => {
+            timeline.cellBindings.forEach(cellBinding => {
+                let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
+                if (!row) { console.error("Invalid warp binding! No row!"); return; }
+
+                let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
+                if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
+
+                let dataCell = row.getCell(cellBinding.columnId);
+                if (!dataCell) { console.error("Failed to get cell for column"); return; }
+                if (dataCell.id != cellBinding.cellId) throw new Error("Got the wrong cell!");
+
+                returnable.push(new DataStructs.CellBindingData(timeline.id, cellBinding.id, timeCell, dataCell));
+            })
+        })
+        return returnable;
+    }
+
+    /****
+     * Utility
+     */
+
+    function getTableRow(tableId, rowId) {
+        return getTableById(tableId).getRow(rowId);
+    }
+
+    function getTimeColumn(tableId) {
+        return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
     function getMaxMinWarpBindings(timelineId, type) {
@@ -799,21 +803,23 @@ function ModelController() {
     this.tableUpdated = tableUpdated;
     this.addTimeRow = addTimeRow
 
-
+    // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
+    this.updateText = updateText;
+    this.updateTextOffset = updateTextOffset;
+
     this.bindCells = bindCells;
     this.getBoundData = getBoundData;
 
     this.updateAxisDist = updateAxisDist;
 
-    this.updateWarpBinding = updateWarpBinding;
-    this.getWarpBindingsData = getWarpBindingsData;
-    this.getUpdatedWarpBindings = getUpdatedWarpBindings;
+    this.addOrUpdateWarpBinding = addOrUpdateWarpBinding;
+
+    this.getAllWarpBindingData = getAllWarpBindingData;
+    this.getAllCellBindingData = getAllCellBindingData;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.hasTimeMapping = hasTimeMapping;
 
-    this.updateText = updateText;
-    this.updateTextOffset = updateTextOffset;
 
 }

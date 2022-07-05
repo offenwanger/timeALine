@@ -338,6 +338,7 @@ before(function () {
             MathUtil: utility.__get__("MathUtil"),
             DataUtil: utility.__get__("DataUtil"),
             TimeBindingUtil: utility.__get__("TimeBindingUtil"),
+            WarpBindingUtil: utility.__get__("WarpBindingUtil"),
         };
         main.__set__(returnable.enviromentVariables);
 

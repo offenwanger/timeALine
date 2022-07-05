@@ -41,11 +41,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
             let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
-            let rowData = modelController.addTimeRow(time)
+            let tableRowData = modelController.addTimeRow(time);
             dataTableController.updateTableData(modelController.getAllTables());
 
-            let warpBinding = new DataStructs.WarpBinding(rowData.tableId, rowData.rowId, linePoint.percent, true);
-            timeWarpController.pinDragStart(timelineId, warpBinding);
+            let warpBindingData = new DataStructs.WarpBindingData(timelineId, null,
+                tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                linePoint.percent);
+            timeWarpController.pinDragStart(timelineId, warpBindingData);
         }
     })
     lineViewController.setLineDragCallback((timelineId, mousePoint, linePoint) => {
@@ -59,11 +61,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
-    let timeWarpController = new TimeWarpController(svg, modelController.getUpdatedWarpBindings);
+    let timeWarpController = new TimeWarpController(svg);
     timeWarpController.setUpdateWarpBindingCallback((timelineId, warpBinding) => {
-        modelController.updateWarpBinding(timelineId, warpBinding);
+        modelController.addOrUpdateWarpBinding(timelineId, warpBinding);
 
-        timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
+        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
         dataController.drawData(modelController.getBoundData());
     })
 
@@ -153,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         dataController.drawData(modelController.getBoundData());
 
-        timeWarpController.addOrUpdateTimeControls(modelController.getWarpBindingsData());
+        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
     }
 
 

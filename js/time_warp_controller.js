@@ -1,4 +1,4 @@
-function TimeWarpController(svg, getUpdatedWarpBindings) {
+function TimeWarpController(svg) {
     const TICK_WIDTH = 3;
     const TICK_LENGTH = 8
     const TICK_TARGET_SIZE = 10;
@@ -8,9 +8,9 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
     let mActive = false;
 
     let mLinePoints = {};
+    let mBindings = []
     let mDraggingBinding = null;
 
-    let mExternalCallGetUpdatedWarpBindings = getUpdatedWarpBindings;
     let mUpdateWarpBindingCallback = () => { };
 
     let mTailGroup = svg.append('g')
@@ -22,12 +22,14 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
         .attr("id", 'tick-target-g')
         .style('visibility', "hidden")
 
-    function addOrUpdateTimeControls(timelinesData) {
-        timelinesData.forEach(timelineData => {
-            mLinePoints[timelineData.id] = timelineData.linePoints;
-            drawTails(timelineData.id, timelineData.linePoints);
-            drawTicks(timelineData.id, timelineData.linePoints, timelineData.bindings);
-            setTickHandlers(timelineData.id);
+    function addOrUpdateTimeControls(timelines, warpBindingData) {
+        mBindings = warpBindingData;
+
+        timelines.forEach(timeline => {
+            mLinePoints[timeline.id] = timeline.points;
+            drawTails(timeline.id, timeline.points);
+            drawTicks(timeline.id, timeline.points, warpBindingData.filter(wbd => wbd.timelineId == timeline.id));
+            setTickHandlers(timeline.id);
         });
     }
 
@@ -41,15 +43,15 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
         })
     }
 
-    function drawTicks(timelineId, linePoints, bindings) {
+    function drawTicks(timelineId, linePoints, warpBindingData) {
         let path = PathMath.getPath(linePoints);
         let totalLength = path.getTotalLength();
 
-        let tickData = getTicksForSegment(path, totalLength, 0, bindings.length > 0 ? bindings[0].linePercent : 1);
+        let tickData = getTicksForSegment(path, totalLength, 0, warpBindingData.length > 0 ? warpBindingData[0].linePercent : 1);
         let tickTargetData = [];
 
-        bindings.sort((a, b) => a.linePercent - b.linePercent)
-        bindings.forEach((binding, index) => {
+        warpBindingData.sort((a, b) => a.linePercent - b.linePercent)
+        warpBindingData.forEach((binding, index) => {
             let position = path.getPointAtLength(totalLength * binding.linePercent);
 
             let degrees;
@@ -68,13 +70,13 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
                 size: constrainValue(size),
                 degrees,
                 binding,
-                color: binding.color ? binding.color : DataTypesColor[binding.type],
+                color: binding.color ? binding.color : DataTypesColor[binding.timeCell.getType()],
             };
             tickData.push(boundTickData);
             tickTargetData.push(boundTickData);
 
             // get the regular ticks for the following segment
-            tickData.push(...getTicksForSegment(path, totalLength, binding.linePercent, index + 1 < bindings.length ? bindings[index + 1].linePercent : 1));
+            tickData.push(...getTicksForSegment(path, totalLength, binding.linePercent, index + 1 < warpBindingData.length ? warpBindingData[index + 1].linePercent : 1));
         });
 
         let startTailDirection = MathUtil.vectorFromAToB(linePoints[1], linePoints[0]);
@@ -267,9 +269,20 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
             if (linePercent < 0) linePercent = 0;
             if (linePercent > 1) linePercent = 1;
 
-            let binding = mDraggingBinding.clone();
+            let binding = new DataStructs.WarpBindingData(
+                mDraggingBinding.timelineId,
+                mDraggingBinding.warpBindingId,
+                mDraggingBinding.tableId,
+                mDraggingBinding.rowId,
+                mDraggingBinding.timeCell,
+                linePercent,
+            );
             binding.linePercent = linePercent;
-            let tempBindings = mExternalCallGetUpdatedWarpBindings(timelineId, binding);
+            let validBindings = WarpBindingUtil.filterValidWarpBindingIds(mBindings.filter(b => b.timelineId == timelineId), binding);
+            let tempBindings = mBindings.filter(b =>
+                b.warpBindingId != binding.warpBindingId &&
+                validBindings.includes(b.warpBindingId))
+            tempBindings.push(binding);
 
             let linePoints = mLinePoints[timelineId];
 
@@ -284,8 +297,14 @@ function TimeWarpController(svg, getUpdatedWarpBindings) {
             if (linePercent < 0) linePercent = 0;
             if (linePercent > 1) linePercent = 1;
 
-            let binding = mDraggingBinding.clone();
-            binding.linePercent = linePercent;
+            let binding = new DataStructs.WarpBindingData(
+                mDraggingBinding.timelineId,
+                mDraggingBinding.warpBindingId,
+                mDraggingBinding.tableId,
+                mDraggingBinding.rowId,
+                mDraggingBinding.timeCell,
+                linePercent,
+            );
 
             mUpdateWarpBindingCallback(timelineId, binding);
 

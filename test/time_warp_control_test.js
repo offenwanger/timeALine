@@ -30,30 +30,22 @@ describe('Test TimeWarpController', function () {
 
     describe('time controls test', function () {
         it('should add time controls without error', function () {
+            let timelines = [
+                { id: "id1", points: [{ x: 0, y: 0 }, { x: 10, y: 15 }, { x: 5, y: 20 }] },
+                { id: "id2", points: [{ x: 10, y: 10 }, { x: 15, y: 10 }, { x: 15, y: 15 }] },
+            ]
             let bindings = [{
-                id: "id1",
-                bindings: [{
-                    rowId: "id2",
-                    timeVal: 5,
-                    type: DataTypes.NUM,
-                    linePercent: 0.5,
-                    isValid: true,
-                }],
-                linePoints: [{ x: 0, y: 0 }, { x: 10, y: 15 }, { x: 5, y: 20 }],
+                timelineId: "id1",
+                timeCell: { getValue: () => 5, getType: () => DataTypes.NUM },
+                linePercent: 0.5,
             }, {
-                id: "id3",
-                bindings: [{
-                    rowId: "id4",
-                    timeVal: 10,
-                    type: DataTypes.NUM,
-                    linePercent: 0.25,
-                    isValid: true,
-                }],
-                linePoints: [{ x: 10, y: 10 }, { x: 15, y: 10 }, { x: 15, y: 15 }],
+                timelineId: "id1",
+                timeCell: { getValue: () => 2, getType: () => DataTypes.NUM },
+                linePercent: 0.2,
             }];
 
             let timeWarpController = getTimeWarpController(() => { });
-            timeWarpController.addOrUpdateTimeControls(bindings);
+            timeWarpController.addOrUpdateTimeControls(timelines, bindings);
         })
     });
 });
@@ -146,7 +138,7 @@ describe('Integration Test TimeWarpController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
             let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
 
-            assert.isNotNull(bindingTickData);
+            assert(bindingTickData, "tick was not drawn");
             assert.equal(bindingTickData.color, DataTypesColor[DataTypes.NUM], "color was not set properly");
 
             // the timeline not been updated yet
@@ -157,8 +149,10 @@ describe('Integration Test TimeWarpController', function () {
             // the tick was updated
             assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId], "warp ticks were not set")
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
-            assert.isNotNull(bindingTickData);
-            assert.equal(bindingTickData.color, 0);
+
+            bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            assert(bindingTickData);
+            expect(bindingTickData.position).to.eql({ x: 125, y: 100 });
 
             // the timeline not been updated yet
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 0);
@@ -173,11 +167,10 @@ describe('Integration Test TimeWarpController', function () {
             // the table was created and a row added
             assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0][0].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // no data was bound
             assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
-
         });
     })
 });
