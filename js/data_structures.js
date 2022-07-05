@@ -24,6 +24,10 @@ let DataStructs = function () {
         this.rowId = rowId;
         this.columnId = columnId;
         this.cellId = cellId;
+
+        this.clone = function () {
+            return new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
+        }
     }
 
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {
@@ -78,7 +82,7 @@ let DataStructs = function () {
         this.getCell = (columnId) => this.dataCells.find(cell => cell.columnId == columnId);
     }
 
-    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }, valid = false) {
+    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
@@ -129,6 +133,10 @@ let DataStructs = function () {
             } else {
                 console.error("Invalid value type! ", this.val);
             }
+        }
+
+        this.clone = function () {
+            return new DataCell(this.type, this.val, this.columnId, this.offset);
         }
     }
 
