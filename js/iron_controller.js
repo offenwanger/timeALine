@@ -29,49 +29,56 @@ function IronController(svg) {
 
 
     function dragStart(coords, radius) {
-        mStartPosition = coords;
-        mLines.forEach(line => {
-            let oldSegments = PathMath.segmentPath(line.points, true,
-                (point) => distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
-            let newSegments = PathMath.cloneSegments(oldSegments);
-            if (segments.length > 1 || segments[0].covered) {
-                mMovingLines.push({ id: line.id, oldSegments, newSegments });
-            }
-        })
+        if (mActive) {
 
-        mBrushController.freeze(true);
-        mCover.style("visibility", '');
+            mStartPosition = coords;
+            mLines.forEach(line => {
+                let oldSegments = PathMath.segmentPath(line.points, true,
+                    (point) => distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+                let newSegments = PathMath.cloneSegments(oldSegments);
+                if (segments.length > 1 || segments[0].covered) {
+                    mMovingLines.push({ id: line.id, oldSegments, newSegments });
+                }
+            })
 
-        drag(coords, radius);
+            mBrushController.freeze(true);
+            mCover.style("visibility", '');
+
+            drag(coords, radius);
+        }
     }
 
     function drag(coords) {
-        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
-        let drawingLines = [];
-        mMovingLines.forEach(line => {
-            drawingLines.push(PathMath.mergeSegments(ironSegments(line.newSegments, ironStrength)));
-        })
+        if (mActive) {
+            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
+            let drawingLines = [];
+            mMovingLines.forEach(line => {
+                drawingLines.push(PathMath.mergeSegments(ironSegments(line.newSegments, ironStrength)));
+            })
 
-        drawLines(drawingLines);
+            drawLines(drawingLines);
+        }
     }
 
     function dragEnd(coords, radius) {
-        let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
-        let result = mMovingLines.map(line => {
-            return {
-                id: line.id,
-                oldSegments: line.oldSegments.map(segment => segment.points),
-                newSegments: ironSegments(line.newSegments, ironStrength)
-            }
-        });
-        mLineModifiedCallback(result);
+        if (mActive) {
+            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
+            let result = mMovingLines.map(line => {
+                return {
+                    id: line.id,
+                    oldSegments: line.oldSegments.map(segment => segment.points),
+                    newSegments: ironSegments(line.newSegments, ironStrength)
+                }
+            });
+            mLineModifiedCallback(result);
 
-        // reset
-        mMovingLines = []
-        mStartPosition = null;
-        drawLines([]);
-        mCover.style("visibility", 'hidden');
-        mBrushController.freeze(false);
+            // reset
+            mMovingLines = []
+            mStartPosition = null;
+            drawLines([]);
+            mCover.style("visibility", 'hidden');
+            mBrushController.freeze(false);
+        }
     }
 
     function ironSegments(segments, ironStrength) {

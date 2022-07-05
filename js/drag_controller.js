@@ -87,33 +87,39 @@ function DragController(svg) {
     }
 
     function brushDragStart(coords, brushRadius) {
-        mDragStartPos = coords;
-        mLines.forEach(line => {
-            let closestPoint = PathMath.getClosestPointOnPath(coords, line.points);
-            if (MathUtil.distanceFromAToB(closestPoint, coords) < brushRadius) {
-                let oldSegments = PathMath.segmentPath(line.points, true,
-                    (point) => MathUtil.distanceFromAToB(point, coords) < brushRadius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
-                let newSegments = PathMath.cloneSegments(oldSegments);
+        if (mActive) {
 
-                mMovingLines.push({
-                    id: line.id,
-                    oldSegments,
-                    newSegments
-                });
+            mDragStartPos = coords;
+            mLines.forEach(line => {
+                let closestPoint = PathMath.getClosestPointOnPath(coords, line.points);
+                if (MathUtil.distanceFromAToB(closestPoint, coords) < brushRadius) {
+                    let oldSegments = PathMath.segmentPath(line.points, true,
+                        (point) => MathUtil.distanceFromAToB(point, coords) < brushRadius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+                    let newSegments = PathMath.cloneSegments(oldSegments);
+
+                    mMovingLines.push({
+                        id: line.id,
+                        oldSegments,
+                        newSegments
+                    });
+                }
+            });
+
+            if (mMovingLines.length > 0) {
+                mCover.style("visibility", '');
+                mPointsGroup.style("visibility", 'hidden');
             }
-        });
-
-        if (mMovingLines.length > 0) {
-            mCover.style("visibility", '');
-            mPointsGroup.style("visibility", 'hidden');
         }
     }
 
     function onDrag(coords) {
-        let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-        let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
+        if (mActive) {
+            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
+            let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
 
-        drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
+            drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
+
+        }
     }
 
     function moveSegments(segments, amount) {
@@ -132,22 +138,24 @@ function DragController(svg) {
     }
 
     function onDragEnd(coords) {
-        let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-        let result = mMovingLines.map(line => {
-            return {
-                id: line.id,
-                oldSegments: line.oldSegments,
-                newSegments: moveSegments(line.newSegments, diff)
-            }
-        });
-        mLineModifiedCallback(result);
+        if (mActive) {
+            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
+            let result = mMovingLines.map(line => {
+                return {
+                    id: line.id,
+                    oldSegments: line.oldSegments,
+                    newSegments: moveSegments(line.newSegments, diff)
+                }
+            });
+            mLineModifiedCallback(result);
 
-        // reset
-        mMovingLines = []
-        mDragStartPos = null
-        drawLines([]);
-        mCover.style("visibility", 'hidden');
-        mPointsGroup.style("visibility", '');
+            // reset
+            mMovingLines = []
+            mDragStartPos = null
+            drawLines([]);
+            mCover.style("visibility", 'hidden');
+            mPointsGroup.style("visibility", '');
+        }
     }
 
     function onRotatePointDragStart(e, d) {
