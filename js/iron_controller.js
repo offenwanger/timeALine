@@ -22,10 +22,10 @@ function IronController(svg) {
 
     let mMovingLines = [];
     let mStartPosition = null;
-    let mBrushController = new BrushController(svg);
-    mBrushController.setDragStartCallback(dragStart);
-    mBrushController.setDragCallback(drag);
-    mBrushController.setDragEndCallback(dragEnd);
+    let mBrushController = BrushController.getInstance(svg);
+    mBrushController.addDragStartCallback(dragStart);
+    mBrushController.addDragCallback(drag);
+    mBrushController.addDragEndCallback(dragEnd);
 
 
     function dragStart(coords, radius) {

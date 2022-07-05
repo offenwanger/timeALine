@@ -6,9 +6,9 @@ function BrushController(svg) {
     let mFreeze = false;
     let mBrushSize = 10;
 
-    let mDragStartCallback = () => { };
-    let mDragCallback = () => { };
-    let mDragEndCallback = () => { };
+    let mDragStartCallbacks = [];
+    let mDragCallbacks = [];
+    let mDragEndCallbacks = [];
 
     let mBrushGroup = svg.append('g')
         .attr("id", 'brush-g')
@@ -24,18 +24,18 @@ function BrushController(svg) {
         .call(d3.drag()
             .on('start', function (e) {
                 if (mActive) {
-                    mDragStartCallback({ x: e.x, y: e.y }, mBrushSize);
+                    mDragStartCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
                 }
             })
             .on('drag', function (e) {
                 if (!mFreeze) updateCircle({ x: e.x, y: e.y });
                 if (mActive) {
-                    mDragCallback({ x: e.x, y: e.y }, mBrushSize)
+                    mDragCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
                 }
             })
             .on('end', function (e) {
                 if (mActive) {
-                    mDragEndCallback({ x: e.x, y: e.y }, mBrushSize)
+                    mDragEndCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
                 }
             }))
         .on("mousemove", (e) => {
@@ -72,7 +72,16 @@ function BrushController(svg) {
 
     this.freeze = (freeze) => mFreeze = freeze;
     this.setActive = setActive;
-    this.setDragStartCallback = (callback) => mDragStartCallback = callback;
-    this.setDragCallback = (callback) => mDragCallback = callback;
-    this.setDragEndCallback = (callback) => mDragEndCallback = callback;
+    this.addDragStartCallback = (callback) => mDragStartCallbacks.push(callback);
+    this.addDragCallback = (callback) => mDragCallbacks.push(callback);
+    this.addDragEndCallback = (callback) => mDragEndCallbacks.push(callback);
+    // At some point may need callback removes as well, but the current system achitecture doesn't call for it.
+}
+
+BrushController.getInstance = function (svg) {
+    if (!BrushController.instance) {
+        BrushController.instance = new BrushController(svg);
+    }
+
+    return BrushController.instance;
 }

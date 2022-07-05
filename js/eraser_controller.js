@@ -16,17 +16,17 @@ function EraserController(svg, getAllLinePaths) {
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round');
 
-    let mBrushController = new BrushController(svg);
-    mBrushController.setDragStartCallback((c, brushRadius) => {
+    let mBrushController = BrushController.getInstance(svg);
+    mBrushController.addDragStartCallback((c, brushRadius) => {
         mEraserLine.attr('stroke-width', brushRadius * 2);
     });
 
-    mBrushController.setDragCallback((coords) => {
+    mBrushController.addDragCallback((coords) => {
         mDraggedPoints.push(coords);
         mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
     })
 
-    mBrushController.setDragEndCallback(() => {
+    mBrushController.addDragEndCallback(() => {
         let width = svg.attr('width');
         let height = svg.attr('height');
 

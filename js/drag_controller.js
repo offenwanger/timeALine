@@ -5,10 +5,10 @@ function DragController(svg) {
     let mLines = [];
     let mLineModifiedCallback = () => { };
 
-    let mBrushController = new BrushController(svg);
-    mBrushController.setDragStartCallback(brushDragStart);
-    mBrushController.setDragCallback(onDrag);
-    mBrushController.setDragEndCallback(onDragEnd);
+    let mBrushController = BrushController.getInstance(svg);
+    mBrushController.addDragStartCallback(brushDragStart);
+    mBrushController.addDragCallback(onDrag);
+    mBrushController.addDragEndCallback(onDragEnd);
 
     let mDragGroup = svg.append('g')
         .attr("id", 'drag-g')
