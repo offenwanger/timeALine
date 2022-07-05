@@ -100,9 +100,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
 
     let eraserController = new EraserController(svg, modelController.getTimelinePaths);
-    eraserController.setEraseCallback(data => {
-        let eraseIds = data.filter(d => d.segments.points.length == 1).map(d => d.id);
-        let breakData = data.filter(d => d.segments.points.length > 1);
+    eraserController.setEraseCallback(lineData => {
+        let eraseIds = lineData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
+        let breakData = lineData.filter(d => d.segments.length > 1);
 
         eraseIds.forEach(id => modelController.deleteTimeline(id));
         breakData.forEach(d => modelController.breakTimeline(d.id, d.segments));
@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#eraser-button").on("click", () => {
         if (mode == MODE_ERASER) {
+            clearMode()
         } else {
             clearMode()
             mode = MODE_ERASER;
