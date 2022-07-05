@@ -318,7 +318,7 @@ before(function () {
             $: fakeJqueryFactory(),
             handsontables: [],
             Handsontable: returnable.snagTable(MockHandsontable),
-            window: { innerWidth: 1000, innerHeight: 800, createObjectURL: () => { } },
+            window: { innerWidth: 500, innerHeight: 500, createObjectURL: () => { } },
             Blob: function () { },
             img: {},
             Image: function () { returnable.enviromentVariables.img = this },

@@ -233,7 +233,7 @@ describe('Integration Test EraserController', function () {
     });
 
     describe('erase line test', function () {
-        it('should erase a whole line', function () {
+        it('should break line into two', function () {
             integrationEnv.mainInit();
             let longerLine = [
                 { x: 100, y: 100 },
@@ -260,8 +260,32 @@ describe('Integration Test EraserController', function () {
             eraserEnd({ x: 150, y: 100 });
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+            integrationEnv.enviromentVariables.img.onload();
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
+        });
+
+        it('should erase whole line', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }, { x: 120, y: 80 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            colorSquare(90, 70, 130, 110);
+
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let eraser = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
+            eraserStart({ x: 90, y: 70 });
+            eraser({ x: 130, y: 110 });
+            eraserEnd({ x: 130, y: 110 });
+
+            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+            integrationEnv.enviromentVariables.img.onload();
+
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 0);
         });
     })
 });
