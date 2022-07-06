@@ -133,8 +133,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet.length, 2)
             assert.equal(annotationSet[0].x, 175);
             assert.equal(annotationSet[0].y, 100);
+            assert.equal(annotationSet[0].note.label, "0.5");
             assert.equal(annotationSet[1].x, 200);
             assert.equal(annotationSet[1].y, 100);
+            assert.equal(annotationSet[1].note.label, "1");
 
             // TODO update the table data
             // check the the comment moved

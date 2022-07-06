@@ -195,7 +195,7 @@ function AnnotationController(svg) {
             let pos = PathMath.getPositionForPercent(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent);
             let annotationData = {
                 note: {
-                    label: binding.val,
+                    label: binding.dataCell.getValue(),
                     wrap: 200,
                     padding: 10
                 },
