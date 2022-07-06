@@ -221,21 +221,22 @@ function TimeWarpController(svg) {
         targets.call(d3.drag()
             .on('start', (event, d) => {
                 if (mActive) {
-                    pinDragStart(d.timelineId, d.binding);
+                    pinDragStart(d.binding.timelineId, d.binding);
                 }
             })
             .on('drag', (event, d) => {
                 if (mActive) {
                     let dragPoint = { x: event.x, y: event.y };
-                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.timelineId]).percent;
-                    pinDrag(d.timelineId, linePercent);
+                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.binding.timelineId]).percent;
+                    pinDrag(d.binding.timelineId, linePercent);
                 }
             })
             .on('end', (event, d) => {
                 if (mActive) {
+
                     let dragPoint = { x: event.x, y: event.y };
-                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.timelineId]).percent;
-                    pinDragEnd(d.timelineId, linePercent);
+                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.binding.timelineId]).percent;
+                    pinDragEnd(d.binding.timelineId, linePercent);
                 }
             }))
             .on("mouseover", (event, d) => {
@@ -316,31 +317,6 @@ function TimeWarpController(svg) {
         // constrains the value between 1 and 3
         return 3 / (Math.exp(1 - x) + 1);
     }
-
-    function mousePositionToLinePercent(mousePoint, linePoints) {
-        let pointOnPath = PathMath.getClosestPointOnPath(mousePoint, linePoints);
-
-        let percent = pointOnPath.percent;
-        let distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnPath)
-
-        let pointOnTail1 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(linePoints[1], linePoints[0]), linePoints[0]);
-        if (!pointOnTail1.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail1) < distToPath) {
-            percent = (-1 * MathUtil.distanceFromAToB(pointOnTail1, linePoints[0])) / PathMath.getPath(linePoints).getTotalLength();
-
-            distToPath = MathUtil.distanceFromAToB(mousePoint, pointOnTail1);
-        }
-
-        let last = linePoints.length - 1;
-        let pointOnTail2 = MathUtil.projectPointOntoVector(mousePoint, MathUtil.vectorFromAToB(linePoints[last - 1], linePoints[last]), linePoints[last]);
-        if (!pointOnTail2.neg && MathUtil.distanceFromAToB(mousePoint, pointOnTail2) < distToPath) {
-            let totalLength = PathMath.getPath(linePoints).getTotalLength();
-
-            percent = (MathUtil.distanceFromAToB(pointOnTail2, linePoints[last]) + totalLength) / totalLength;
-        }
-
-        return percent
-    }
-
 
     this.setActive = (active) => {
         if (active && !mActive) {

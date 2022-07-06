@@ -39,8 +39,8 @@ describe('Test ModelController', function () {
 
             modelController.bindCells(timeline.id, [new DataStructs.CellBinding(table.id, table.dataRows[0].id, table.dataColumns[1].id, table.dataRows[0].dataCells[1].id)])
 
-            assert.equal(modelController.getBoundData().length, 1);
-            assert.equal(modelController.getBoundData()[0].linePercent, 1);
+            assert.equal(modelController.getAllCellBindingData().length, 1);
+            assert.equal(modelController.getAllCellBindingData()[0].linePercent, 1);
         });
     })
 
@@ -67,7 +67,7 @@ describe('Test ModelController', function () {
                 new DataStructs.CellBinding(table.id, table.dataRows[1].id, table.dataColumns[1].id, table.dataRows[1].dataCells[1].id),
             ])
 
-            assert.equal(modelController.getBoundData().length, 2);
+            assert.equal(modelController.getAllCellBindingData().length, 2);
             modelController.breakTimeline(modelController.getAllTimelines()[0].id, [
                 {
                     label: SEGMENT_LABELS.UNAFFECTED,

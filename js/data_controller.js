@@ -1,14 +1,17 @@
 function DataViewController(svg) {
-    let dataPointDisplayGroup = svg.append('g')
-        .attr("id", 'data-point-display-g');
-
     let mAnnotationController = new AnnotationController(svg);
     let mPointController = new DataPointController(svg);
 
-    function drawData(boundData) {
-        mAnnotationController.drawAnnotations(boundData.filter(b => b.type == DataTypes.TEXT));
-        mPointController.drawPoints(boundData.filter(b => b.type == DataTypes.NUM))
-        mPointController.drawAxes(DataUtil.getUniqueList(boundData.filter(d => d.axis).map(d => { return { id: d.axis.id, line: d.line, axis: d.axis } }), 'id'))
+    function drawData(timelines, boundData) {
+        mAnnotationController.drawAnnotations(timelines, boundData.filter(b => b.dataCell.getType() == DataTypes.TEXT));
+        mPointController.drawPoints(timelines, boundData.filter(b => b.dataCell.getType() == DataTypes.NUM))
+        mPointController.drawAxes(DataUtil.getUniqueList(boundData.filter(d => d.axisBinding).map(d => {
+            return {
+                id: d.axisBinding.id,
+                line: timelines.find(t => t.id == d.timelineId).points,
+                axis: d.axisBinding
+            }
+        }), 'id'))
     }
 
     this.drawData = drawData;
@@ -27,21 +30,21 @@ function DataPointController(svg) {
     let mAxisGroup = svg.append('g')
         .attr("id", 'data-axis-display-g');
 
-    function drawPoints(boundData) {
+    function drawPoints(timelines, boundData) {
         let drawingData = []
         let tail1Data = []
         let tail2Data = []
 
-        boundData.forEach(point => {
-            let { val1, val2, dist1, dist2 } = point.axis;
-            let dist = (dist2 - dist1) * (point.val - val1) / (val2 - val1) + dist1;
-            let pos = PathMath.getPositionForPercentAndDist(point.line, point.linePercent, dist);
+        boundData.forEach(binding => {
+            let { val1, val2, dist1, dist2 } = binding.axisBinding;
+            let dist = (dist2 - dist1) * (binding.val - val1) / (val2 - val1) + dist1;
+            let pos = PathMath.getPositionForPercentAndDist(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent, dist);
 
-            let data = { id: point.id, x: pos.x, y: pos.y, opacity: 1, color: "red" };
+            let data = { id: binding.cellBindingId, x: pos.x, y: pos.y, opacity: 1, color: "red" };
 
-            if (point.linePercent < 0) {
+            if (binding.linePercent < 0) {
                 tail1Data.push(data);
-            } else if (point.linePercent > 1) {
+            } else if (binding.linePercent > 1) {
                 tail2Data.push(data);
             } else {
                 drawingData.push(data)
@@ -184,13 +187,12 @@ function AnnotationController(svg) {
     let mAnnotationDisplayGroup = svg.append('g')
         .attr("id", 'annotation-display-g');
 
-    function drawAnnotations(boundData) {
+    function drawAnnotations(timelines, boundData) {
         // convert annotations to annotation data
         let annotationSet = []
 
-
         boundData.forEach(binding => {
-            let pos = PathMath.getPositionForPercent(binding.line, binding.linePercent);
+            let pos = PathMath.getPositionForPercent(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent);
             let annotationData = {
                 note: {
                     label: binding.val,
@@ -202,8 +204,8 @@ function AnnotationController(svg) {
                 // hack to get around the broken drag events from the new d3 version
                 className: "id-" + binding.id,
 
-                dy: binding.offset.y,
-                dx: binding.offset.x,
+                dy: binding.dataCell.offset.y,
+                dx: binding.dataCell.offset.x,
 
                 binding
             }
@@ -229,7 +231,7 @@ function AnnotationController(svg) {
                 .on('end', function (e) {
                     let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
                     let annotation = annotationSet.find(a => a.className == id);
-                    mAnnotationMovedCallback(annotation.binding.id, { x: annotation.dx, y: annotation.dy });
+                    mAnnotationMovedCallback(annotation.binding.dataCell.id, { x: annotation.dx, y: annotation.dy });
                 }))
             .on('dblclick', function () {
                 let position = d3.select(this).select("tspan").node().getBoundingClientRect();

@@ -26,31 +26,29 @@ describe('Test DataController', function () {
 
     describe('annotation draw test', function () {
         it('should try to draw annotations at the correct location', function () {
+            let timelines = [{ id: "tid1", points: [{ x: 0, y: 0 }, { x: 40, y: 20 }] }];
+            let boundData = [
+                new DataStructs.CellBindingData(
+                    "tid1",
+                    "cbid1",
+                    new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
+                    new DataStructs.DataCell(DataTypes.TEXT, "0.28"),
+                    0.5),
+                new DataStructs.CellBindingData(
+                    "tid1",
+                    "cbid2",
+                    new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
+                    new DataStructs.DataCell(DataTypes.TEXT, "0.40"),
+                    0.25),
+                new DataStructs.CellBindingData(
+                    "tid1",
+                    "cbid3",
+                    new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
+                    new DataStructs.DataCell(DataTypes.TEXT, "0.82"),
+                    0.75),
+            ];
 
-            let boundData = [{
-                id: "1656331754127_8",
-                type: "text",
-                val: "0.28",
-                offset: { "x": 10, "y": 10 },
-                linePercent: 0.5,
-                line: [{ x: 0, y: 0 }, { x: 40, y: 20 }]
-            }, {
-                id: "1656331754663_11",
-                type: "text",
-                val: "0.40",
-                offset: { "x": 10, "y": 10 },
-                linePercent: 0.25,
-                line: [{ x: 0, y: 0 }, { x: 40, y: 20 }]
-            }, {
-                id: "1656331756433_14",
-                type: "text",
-                val: "0.82",
-                offset: { "x": 10, "y": 10 },
-                linePercent: 0.75,
-                line: [{ x: 0, y: 0 }, { x: 40, y: 20 }]
-            }]
-
-            getDataController().drawData(boundData);
+            getDataController().drawData(timelines, boundData);
 
             let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
             expect(annotationSet.map(i => { return { x: Math.floor(i.x), y: Math.floor(i.y) } }))
@@ -90,11 +88,11 @@ describe('Integration Test DataController', function () {
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
-            assert.equal(annotationSet.length, 3)
+            assert.equal(annotationSet.length, 3, "Annotations not created")
             expect(annotationSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
             expect(annotationSet.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
 
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 3);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
         });
 
         it('should move a comment', function () {
@@ -114,7 +112,7 @@ describe('Integration Test DataController', function () {
             IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 1);
 
             let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
             let fakeThis = {
@@ -127,9 +125,9 @@ describe('Integration Test DataController', function () {
             let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
             onCommentDragEnd.call(fakeThis, { dx: 0, dy: 0 });
 
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 1);
 
-            expect(integrationEnv.ModelController.getBoundData()[0].offset).to.eql({ x: 20, y: 20 });
+            expect(integrationEnv.ModelController.getAllCellBindingData()[0].dataCell.offset).to.eql({ x: 20, y: 20 });
         });
     })
 
@@ -157,9 +155,9 @@ describe('Integration Test DataController', function () {
             // won't bind the two time cols.
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 2);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 2);
-            assert.equal(integrationEnv.ModelController.getBoundData().find(item => item.axis).axis.val1, 15);
-            assert.equal(integrationEnv.ModelController.getBoundData().find(item => item.axis).axis.val2, 25);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 15);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 25);
         });
 
         it('should update the axis', function () {
@@ -190,7 +188,7 @@ describe('Integration Test DataController', function () {
             axisControlCircles.drag.drag.call(fakeCircle, { x: 0, y: 50 }, data)
             axisControlCircles.drag.end.call(fakeCircle, { x: 0, y: 50 }, data)
 
-            assert.equal(integrationEnv.ModelController.getBoundData()[0].axis.dist1, 40);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].axisBinding.dist1, 40);
         });
     })
 });

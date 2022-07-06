@@ -25,11 +25,13 @@ let DataStructs = function () {
         }
     }
 
-    function CellBindingData(timelineId, cellBindingId, timeCell, dataCell) {
+    function CellBindingData(timelineId, cellBindingId, timeCell, dataCell, linePercent, axisBinding = null) {
         this.timelineId = timelineId;
         this.cellBindingId = cellBindingId;
         this.timeCell = timeCell;
         this.dataCell = dataCell;
+        this.linePercent = linePercent;
+        this.axisBinding = axisBinding;
     }
 
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {

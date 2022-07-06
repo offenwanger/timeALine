@@ -28,11 +28,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let timeBinding = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
             modelController.addBoundTextRow(timeBinding.toString(), timeBinding, timelineId);
-            dataController.drawData(modelController.getBoundData());
+            dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
             dataTableController.updateTableData(modelController.getAllTables());
         } else if (mode == MODE_LINK) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
-            dataController.drawData(modelController.getBoundData());
+            dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
         }
     })
 
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelController.addOrUpdateWarpBinding(timelineId, warpBinding);
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
-        dataController.drawData(modelController.getBoundData());
+        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
     })
 
     let dataController = new DataViewController(svg);
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     dataController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
         modelController.updateAxisDist(axisId, oneOrTwo, newDist);
-        dataController.drawData(modelController.getBoundData());
+        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
     });
 
 
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         dataTableController.updateTableData(modelController.getAllTables());
 
-        dataController.drawData(modelController.getBoundData());
+        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
 
         timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
     }

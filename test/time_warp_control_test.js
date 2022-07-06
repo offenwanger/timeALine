@@ -75,7 +75,7 @@ describe('Integration Test TimeWarpController', function () {
 
             expect(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
         });
     })
 
@@ -100,7 +100,7 @@ describe('Integration Test TimeWarpController', function () {
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // no data was bound
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
 
             // the tick was drawn
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
@@ -170,7 +170,7 @@ describe('Integration Test TimeWarpController', function () {
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // no data was bound
-            assert.equal(integrationEnv.ModelController.getBoundData().length, 0);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
         });
     })
 });

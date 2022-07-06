@@ -130,6 +130,8 @@ let PathMath = function () {
     }
 
     function getClosestPointOnPath(point, points) {
+        if (!Array.isArray(points)) throw new Error("Bad point array: " + points);
+
         let path = getPath(points);
         let pathLength = path.getTotalLength();
         let precision = 20;
