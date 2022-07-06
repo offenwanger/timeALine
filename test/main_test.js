@@ -83,7 +83,10 @@ describe('Test Main - Integration Test', function () {
 
             // check that a table row was created with a time
             assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.5);
+            // check that row is displaying
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][0], "0.5");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][1], "");
 
             // add a comment
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -106,6 +109,11 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[1].dataCells[1].val, "0.5");
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[2].dataCells[1].val, "1");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data.length, 3);
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][0], "0.5");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][1], "0.5");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][0], "1");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][1], "1");
 
             // check that the annotation was bound to the line
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);

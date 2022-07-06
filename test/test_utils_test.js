@@ -259,7 +259,7 @@ before(function () {
     function MockHandsontable(div, init) {
         this.selected = null;
         this.getSelected = function () { return this.selected };
-        this.loadData = function () { this.asyncDone() };
+        this.loadData = function (data) { this.init.data = data; this.asyncDone() };
         this.updateSettings = function () { };
         this.init = init;
         // silly workaround
