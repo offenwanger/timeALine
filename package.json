@@ -11,7 +11,9 @@
         "vm": "^0.1.0"
     },
     "scripts": {
-        "test": "nyc --reporter=html --reporter=text mocha --timeout=3000",
-        "testOnly": "nyc --reporter=html --reporter=text mocha -g \"filter text\" --timeout=3000"
+        "test": "mocha --timeout=3000",
+        "testOnly": "mocha -g \"filter text\" --timeout=3000",
+        "coverage": "nyc --reporter=html --reporter=text mocha --timeout=3000",
+        "coverageOnly": "nyc --reporter=html --reporter=text mocha -g \"filter text\" --timeout=3000"
     }
 }
