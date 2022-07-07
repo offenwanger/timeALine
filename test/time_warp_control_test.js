@@ -77,9 +77,7 @@ describe('Integration Test TimeWarpController', function () {
                 .to.eql([0.25, 0.50, 0.75]);
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
         });
-    })
 
-    describe('warp data tests', function () {
         it('should create and update a pin on drag', function () {
             integrationEnv.mainInit();
 
@@ -108,9 +106,7 @@ describe('Integration Test TimeWarpController', function () {
             assert.isNotNull(bindingTickData);
             assert.equal(bindingTickData.color, DataTypesColor[DataTypes.NUM]);
         });
-    })
 
-    describe('warp data tests', function () {
         it('should display a pin while dragging, but not update until done', function () {
             integrationEnv.mainInit();
 

@@ -74,26 +74,26 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
 
-            // add a warp binding at 50%, and drag to 25%
+            // add a warp binding at 40%, and drag to 20%
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.dragLine([{ x: 150, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 120, y: 110 }], timelineId, integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.5);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.2);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
 
             // check that a table row was created with a time
             assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.5);
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.4);
             // check that row is displaying
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][0], "0.5");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][0], "0.4");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][1], "");
 
             // add a comment
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 125, y: 110 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 120, y: 110 }, timelineId, integrationEnv.enviromentVariables);
             let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
             assert.equal(annotationSet.length, 1, "annotation not created");
-            assert.equal(annotationSet[0].x, 125);
+            assert.equal(annotationSet[0].x, 120);
             assert.equal(annotationSet[0].y, 100);
 
             // add a second comment
@@ -107,18 +107,18 @@ describe('Test Main - Integration Test', function () {
             // check that two table rows were created
             assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[1].dataCells[1].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[1].dataCells[1].val, "0.4");
             assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[2].dataCells[1].val, "1");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data.length, 3);
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][0], "0.5");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][1], "0.5");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][0], "0.4");
+            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][1], "0.4");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][0], "1");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][1], "1");
 
             // check that the annotation was bound to the line
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].timeCell.getValue(), 0.5);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].dataCell.getValue(), "0.5");
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].dataCell.getValue(), "0.4");
             assert.equal(integrationEnv.ModelController.getAllCellBindingData()[1].timeCell.getValue(), 1);
             assert.equal(integrationEnv.ModelController.getAllCellBindingData()[1].dataCell.getValue(), "1");
 
@@ -129,25 +129,51 @@ describe('Test Main - Integration Test', function () {
             let dragStart = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.start;
             let drag = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.drag;
             let dragEnd = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.end;
-            dragStart({ x: 125, y: 100 }, d);
-            drag({ x: 175, y: 110 }, d);
-            dragEnd({ x: 175, y: 110 }, d);
+            dragStart({ x: 120, y: 100 }, d);
+            drag({ x: 150, y: 110 }, d);
+            dragEnd({ x: 150, y: 110 }, d);
             assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.75);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.5);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
 
             // check that comments moved
             annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
             assert.equal(annotationSet.length, 2)
-            assert.equal(annotationSet[0].x, 175);
+            assert.equal(annotationSet[0].x, 150);
             assert.equal(annotationSet[0].y, 100);
-            assert.equal(annotationSet[0].note.label, "0.5");
+            assert.equal(annotationSet[0].note.label, "0.4");
             assert.equal(annotationSet[1].x, 200);
             assert.equal(annotationSet[1].y, 100);
             assert.equal(annotationSet[1].note.label, "1");
 
-            // TODO update the table data
+            // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
+            IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[1].linePercent, 0.7);
+            expect(integrationEnv.ModelController.getAllWarpBindingData()[1].timeCell.getValue()).to.be.closeTo(0.7, 0.0000001);
+
+            // update the time cells
+            // check the table is what we expect it to be
+            expect(integrationEnv.enviromentVariables.handsontables[0].init.data).to.eql([['0.4', ''], ['0.4', '0.4'], ['1', '1'], ['0.7', '']])
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([[0, 0, "0.4", "0.2"]])
+
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
+
             // check the the comment moved
+            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            assert.equal(annotationSet.length, 2)
+            assert.equal(annotationSet[0].x, 158);
+            assert.equal(annotationSet[0].y, 100);
+            assert.equal(annotationSet[0].note.label, "0.4");
+            assert.equal(annotationSet[1].x, 200);
+            assert.equal(annotationSet[1].y, 100);
+            assert.equal(annotationSet[1].note.label, "1");
         });
     });
 });

@@ -44,13 +44,20 @@ function TimeWarpController(svg) {
     }
 
     function drawTicks(timelineId, linePoints, warpBindingData) {
+        warpBindingData.sort((a, b) => a.linePercent - b.linePercent)
+
         let path = PathMath.getPath(linePoints);
         let totalLength = path.getTotalLength();
 
-        let tickData = getTicksForSegment(path, totalLength, 0, warpBindingData.length > 0 ? warpBindingData[0].linePercent : 1);
+        let tickData = [];
         let tickTargetData = [];
 
-        warpBindingData.sort((a, b) => a.linePercent - b.linePercent)
+        if (warpBindingData.length == 0) {
+            tickData.push(...getTicksForSegment(path, totalLength, 0, 1))
+        } else if (warpBindingData[0].linePercent > 0) {
+            tickData.push(...getTicksForSegment(path, totalLength, 0, warpBindingData[0].linePercent))
+        }
+
         warpBindingData.forEach((binding, index) => {
             let position = path.getPointAtLength(totalLength * binding.linePercent);
 
@@ -247,7 +254,8 @@ function TimeWarpController(svg) {
                 div.show();
                 let str;
 
-                str = "Impliment me!"
+                str = d.binding.timeCell.toString();
+                // TODO: Highlight the row
 
                 div.html(str);
             })

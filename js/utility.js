@@ -506,6 +506,9 @@ let DataUtil = function () {
         if (type == DataTypes.TIME_BINDING) {
             return TimeBindingUtil.AEqualsB(a, b);
         } else if (type == DataTypes.NUM) {
+            // only check to 4 decimal places
+            return Math.round(a * 10000) == Math.round(b * 10000);
+        } else if (type == DataTypes.TEXT) {
             return a == b;
         } else { throw new Error("Cannot calculate equals for type: " + type); }
     }

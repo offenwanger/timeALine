@@ -272,4 +272,30 @@ describe('Test TableViewer', function () {
             assert.equal(callbackCalled, true);
         });
     });
+
+    describe('change cells test', function () {
+        it('should update a cell', function () {
+            let callbackCalled = false;
+
+            let controller = getTableViewController();
+
+            let rowCount = 6;
+            let colCount = 5;
+            controller.addTable(TestUtils.makeTestTable(rowCount, colCount));
+
+            controller.setTableUpdatedCallback((table) => {
+                assert.equal(table.dataRows.length, rowCount);
+                assert.equal(table.dataColumns.length, colCount);
+
+                expect(table.dataRows[0].dataCells[3].val).to.eql("newValue");
+
+                callbackCalled = true;
+            });
+
+            integrationEnv.enviromentVariables.handsontables[0].init.
+                afterChange([[0, 3, "oldValue", "newValue"]])
+
+            assert.equal(callbackCalled, true);
+        });
+    });
 });

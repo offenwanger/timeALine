@@ -18,18 +18,203 @@ describe('Test ModelController', function () {
         delete modelController;
     });
 
-    describe('LinePercent to TimeBinding mapping tests', function () {
+    describe('percent - time mapping tests', function () {
         it('should caluclate NUM with no references', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
             assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5), 0.5);
             assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25), 0.25);
             assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.8), 0.8);
+
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.5), 0.5);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.25), 0.25);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.8), 0.8);
+        });
+
+        it('should caluclate NUM with one positive warp binding', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+            let time = 1 / 3;
+            let percent = 2 / 3;
+
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null,
+                tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0), 0);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25), 0.125);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5), 0.25);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.8), 0.4);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1), 0.5);
+
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0), 0);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.125), 0.25);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.25), 0.5);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.4), 0.8);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.5), 1);
+        });
+
+        it('should caluclate NUM with one negative warp binding', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+            let time = -1 / 3;
+            let percent = 1 / 3;
+
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null,
+                tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(-1, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25)).to.be.closeTo(-0.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.75)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(1, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -0.5)).to.be.closeTo(0.25, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(0.75, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(1, 0.0001);
+        });
+
+        it('should caluclate NUM with one positive cell binding', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+
+            modelController.addBoundTextRow("", 0.5, timeline.id);
+
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0), 0);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25), 0.125);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5), 0.25);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.8), 0.4);
+            assert.equal(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1), 0.5);
+
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0), 0);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.125), 0.25);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.25), 0.5);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.4), 0.8);
+            assert.equal(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.5), 1);
+        });
+
+        it('should caluclate NUM with one negative cell binding', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+
+            modelController.addBoundTextRow("", -1, timeline.id);
+
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(-1, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25)).to.be.closeTo(-0.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.75)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(1, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -0.5)).to.be.closeTo(0.25, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(0.75, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(1, 0.0001);
+        });
+
+        it('should caluclate NUM with two cell bindings', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+
+            modelController.addBoundTextRow("", -2, timeline.id);
+            modelController.addBoundTextRow("", -1, timeline.id);
+
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(-2, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25)).to.be.closeTo(-1.75, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(-1.5, .0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.75)).to.be.closeTo(-1.25, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(-1, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -2)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1.75)).to.be.closeTo(0.25, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1.5)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1.25)).to.be.closeTo(0.75, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1)).to.be.closeTo(1, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -3)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(1, 0.0001);
+        });
+
+        it('should caluclate NUM with one cell binding and one warp binding', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+            let time = -2 / 3;
+            let percent = 1 / 3;
+
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null, tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            modelController.addBoundTextRow("", -1, timeline.id);
+
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(-1, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25)).to.be.closeTo(-0.75, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(-0.5, .0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.75)).to.be.closeTo(-0.25, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(0, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -1)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -0.75)).to.be.closeTo(0.25, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -0.5)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, -0.25)).to.be.closeTo(0.75, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(1, 0.0001);
+        });
+
+        it('should caluclate NUM with one cell binding between two warp bindings', function () {
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+
+            let time = 3;
+            let percent = 1 / 3;
+
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null, tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            let time2 = 5;
+            let percent2 = 2 / 3;
+
+            let tableRowData2 = modelController.addTimeRow(time2);
+            let warpBindingData2 = new DataStructs.WarpBindingData(timeline.id, null, tableRowData2.tableId, tableRowData2.rowId, tableRowData2.timeCell,
+                percent2);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData2);
+
+            modelController.addBoundTextRow("", 3, timeline.id);
+
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0)).to.be.closeTo(1, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.25)).to.be.closeTo(2.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.5)).to.be.closeTo(4, .0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 0.75)).to.be.closeTo(5.5, 0.0001);
+            expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(7, 0.0001);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 1)).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 2.5)).to.be.closeTo(0.25, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 4)).to.be.closeTo(0.5, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 5.5)).to.be.closeTo(0.75, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.NUM, 7)).to.be.closeTo(1, 0.0001);
+        });
+
+
+        it('should map TEXT to 0 or a binding', function () {
+            // TODO: map text based on Index
+            let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
+            let time = "summer";
+            let percent = 0.25;
+
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null, tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.TEXT, "winter")).to.be.closeTo(0, 0.0001);
+            expect(modelController.mapTimeToLinePercent(timeline.id, DataTypes.TEXT, "summer")).to.be.closeTo(0.25, 0.0001);
         });
     })
 
-    describe('TimeBinding to line point mapping tests', function () {
-        it('should caluclate NUM with no references', function () {
+    describe('Cell binding test', function () {
+        it('should bind a cell without error', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
             let table = TestUtils.makeTestTable(3, 3);
