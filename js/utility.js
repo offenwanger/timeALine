@@ -483,7 +483,7 @@ let DataUtil = function () {
     }
 
     function getUniqueList(list, key = null) {
-        return [...new Map(list.map(binding => [key ? binding[key] : binding, binding])).values()]
+        return [...new Map(list.map(item => [key ? item[key] : item, item])).values()]
     }
 
     function AGreaterThanB(a, b, type) {
