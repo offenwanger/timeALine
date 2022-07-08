@@ -429,10 +429,52 @@ before(function () {
         onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, data);
     }
 
+    function erase(points, radius, enviromentVariables) {
+        colorSquare = function (x1, y1, x2, y2, val) {
+            for (let i = x1; i < x2; i++) {
+                for (let j = y1; j < y2; j++) {
+                    global.document.canvasImage[i][j].data = [0, 0, 0, val];
+                }
+            }
+        }
+
+        points.forEach(point => colorSquare(
+            point.x - radius,
+            point.y - radius,
+            point.x + radius,
+            point.y + radius,
+            1
+        ))
+
+        clickButton("#eraser-button", enviromentVariables.$);
+
+        let eraserStart = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+        let eraser = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
+        let eraserEnd = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+
+        eraserStart(points[0]);
+        points.forEach(point => eraser(point))
+        eraserEnd(points[points.length - 1]);
+
+        assert.isNotNull(enviromentVariables.img.onload);
+        enviromentVariables.img.onload();
+
+        clickButton("#eraser-button", enviromentVariables.$);
+
+        points.forEach(point => colorSquare(
+            point.x - radius,
+            point.y - radius,
+            point.x + radius,
+            point.y + radius,
+            0
+        ))
+    }
+
     IntegrationUtils = {
         drawLine,
         clickButton,
         clickLine,
         dragLine,
+        erase,
     }
 });
