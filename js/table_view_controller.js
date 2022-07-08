@@ -1,5 +1,9 @@
 function DataTableController() {
     let mDrawerController = new DrawerController("#data-drawer");
+    mDrawerController.setOnDrawerClosed(() => {
+        Object.values(hotTables).forEach(table => table.deselectCell());
+    });
+
     let mTableUpdatedCallback;
     let mSelectionCallback;
 
@@ -389,7 +393,9 @@ function DrawerController(dataDrawerId) {
     const OPEN_SPEED = 50;
     const CLOSE_SPEED = 350;
 
-    let isOpen = false;
+    let mIsOpen = false;
+
+    let mOnDrawerClosedCallback = () => { };
 
     $(dataDrawerId).find('.close-button').on('click', closeDrawer);
 
@@ -400,7 +406,7 @@ function DrawerController(dataDrawerId) {
             $(dataDrawerId).addClass('is-visible')
         }, OPEN_SPEED);
 
-        isOpen = true;
+        mIsOpen = true;
     }
 
     function closeDrawer() {
@@ -410,10 +416,13 @@ function DrawerController(dataDrawerId) {
             $(dataDrawerId).removeClass('is-active');
         }, CLOSE_SPEED);
 
-        isOpen = false;
+        mIsOpen = false;
+
+        mOnDrawerClosedCallback();
     }
 
     this.openDrawer = openDrawer;
     this.closeDrawer = closeDrawer;
-    this.isOpen = () => isOpen;
+    this.setOnDrawerClosed = (callback) => mOnDrawerClosedCallback = callback;
+    this.isOpen = () => mIsOpen;
 }
