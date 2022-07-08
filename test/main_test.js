@@ -62,6 +62,88 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 10);
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 20);
         });
+
+        it('draw data points for linked cells', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 1);
+
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
+                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "1.5"], [3, 1, "", "text4"], [3, 2, "", "10"],
+            ])
+
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 150, y: 100 },
+                { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 3, 2]];
+
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            // check that all 8 data cells were bound, with one axis for each column
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 8);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 2);
+
+            // check that the comments were drawn in the correct places
+            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            assert.equal(annotationSet.length, 5)
+            expect(annotationSet.map(a => {
+                return {
+                    x: a.x,
+                    y: a.y,
+                    label: a.note.label
+                }
+            }).sort((a, b) => a.label < b.label ? -1 : 1)).to.eql([{
+                x: 100,
+                y: 100,
+                label: "text1"
+            }, {
+                x: 200,
+                y: 100,
+                label: "text2"
+            }, {
+                x: 200,
+                y: 100,
+                label: "text3"
+            }, {
+                x: 150,
+                y: 100,
+                label: "text4"
+            }, {
+                x: 100,
+                y: 100,
+                label: "text5"
+            }]);
+
+            // check that the numbers were drawn in the correct places
+            let dataPoints = integrationEnv.enviromentVariables.d3.selectors[".data-display-point"].innerData;
+            assert.equal(dataPoints.length, 3)
+            expect(dataPoints.map(d => {
+                return {
+                    x: d.x,
+                    y: d.y
+                }
+            }).sort((a, b) => a.x - b.x == 0 ? a.y - b.y : a.x - b.x)).to.eql([{
+                x: 100,
+                y: 130,
+            }, {
+                x: 100,
+                y: 200,
+            }, {
+                x: 150,
+                y: 200,
+            }]);
+        });
     });
 
 

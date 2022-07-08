@@ -376,7 +376,7 @@ function ModelController() {
 
     function bindCells(lineId, cellBindings) {
         let timeline = getTimelineById(lineId);
-        let filteredBindings = cellBindings.filter(binding => getTimeColumn(binding.tableId).id != binding.columnId);
+        let filteredBindings = cellBindings.filter(binding => binding.columnId != getTimeColumn(binding.tableId).id);
         timeline.cellBindings.push(...filteredBindings);
         // clear out duplicates
         timeline.cellBindings = DataUtil.getUniqueList(timeline.cellBindings, "cellId");
@@ -392,12 +392,13 @@ function ModelController() {
             let rows = rowIds.map(rowId => table.getRow(rowId));
             let cells = rows.map(row => row.getCell(columnId));
             let numCells = cells.filter(cell => cell.getType() == DataTypes.NUM && cell.isValid())
-            // TODO: Handle invalid cells
+
             if (numCells.length > 0) {
                 let min = Math.min(...numCells.map(i => i.getValue()));
                 let max = Math.max(...numCells.map(i => i.getValue()));
-                let axis = oldAxes.find(a => a.columnId == columnId);
+                if (min == max) min > 0 ? min = 0 : max = 0;
 
+                let axis = oldAxes.find(a => a.columnId == columnId);
                 if (!axis) {
                     axis = new DataStructs.AxisBinding(columnId);
                     axis.dist1 = 30;

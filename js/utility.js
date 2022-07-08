@@ -220,6 +220,8 @@ let PathMath = function () {
     }
 
     function getPositionForPercentAndDist(points, percent, dist) {
+        if (isNaN(percent) || isNaN(dist)) throw new Error("Invalid percent, dist: " + percent + ", " + dist);
+
         let basePose = getPositionForPercent(points, percent);
         let normal = getNormalForPercent(points, percent);
 

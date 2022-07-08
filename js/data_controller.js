@@ -149,7 +149,9 @@ function DataPointController(svg) {
 
     function getDrawingData(timeline, binding) {
         let { val1, val2, dist1, dist2 } = binding.axisBinding;
-        let dist = (dist2 - dist1) * (binding.val - val1) / (val2 - val1) + dist1;
+        if (val1 == val2) throw new Error("Invalid binding values: " + val1 + ", " + val2);
+
+        let dist = (dist2 - dist1) * (binding.dataCell.getValue() - val1) / (val2 - val1) + dist1;
         let pos = PathMath.getPositionForPercentAndDist(timeline.points, binding.linePercent, dist);
 
         return {
