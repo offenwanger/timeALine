@@ -327,6 +327,7 @@ function AnnotationController(svg) {
             mAnnotationSet.push(annotationData);
         })
 
+        // TODO: Find a better library. This one has loading time issues. 
         const makeAnnotations = d3.annotation();
         makeAnnotations.annotations(mAnnotationSet);
         mAnnotationDisplayGroup.call(makeAnnotations);
