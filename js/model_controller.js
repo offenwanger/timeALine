@@ -526,44 +526,58 @@ function ModelController() {
 
     }
 
-    function getAllWarpBindingData() {
+    function getWarpBindingData(timelineId) {
         let returnable = [];
-        mTimelines.forEach(timeline => {
-            timeline.warpBindings.forEach(warpBinding => {
-                let row = getTableRow(warpBinding.tableId, warpBinding.rowId);
-                if (!row) { console.error("Invalid warp binding! No row!"); return; }
+        let timeline = getTimelineById(timelineId);
+        timeline.warpBindings.forEach(warpBinding => {
+            let row = getTableRow(warpBinding.tableId, warpBinding.rowId);
+            if (!row) { console.error("Invalid warp binding! No row!"); return; }
 
-                let timeCell = row.getCell(getTimeColumn(warpBinding.tableId).id);
-                if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
+            let timeCell = row.getCell(getTimeColumn(warpBinding.tableId).id);
+            if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
 
-                returnable.push(new DataStructs.WarpBindingData(timeline.id, warpBinding.id,
-                    warpBinding.tableId, warpBinding.rowId, timeCell, warpBinding.linePercent));
-            })
+            returnable.push(new DataStructs.WarpBindingData(timeline.id, warpBinding.id,
+                warpBinding.tableId, warpBinding.rowId, timeCell, warpBinding.linePercent));
+        })
+        return returnable;
+    }
+
+    function getAllWarpBindingData() {
+        return mTimelines.map(timeline => getWarpBindingData(timeline.id)).flat();
+    }
+
+    function getCellBindingData(timelineId) {
+        let timeline = getTimelineById(timelineId);
+        let returnable = [];
+        timeline.cellBindings.forEach(cellBinding => {
+            let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
+            if (!row) { console.error("Invalid warp binding! No row!"); return; }
+
+            let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
+            if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
+
+            let dataCell = row.getCell(cellBinding.columnId);
+            if (!dataCell) { console.error("Failed to get cell for column"); return; }
+            if (dataCell.id != cellBinding.cellId) throw new Error("Got the wrong cell!");
+
+            let linePercent = mapTimeToLinePercent(timeline.id, timeCell.getType(), timeCell.getValue());
+            let axis = timeline.axisBindings.find(a => a.columnId == cellBinding.columnId);
+
+            returnable.push(new DataStructs.CellBindingData(
+                timeline.id,
+                cellBinding.id,
+                cellBinding.tableId,
+                cellBinding.rowId,
+                timeCell,
+                dataCell,
+                linePercent,
+                axis ? axis : null));
         })
         return returnable;
     }
 
     function getAllCellBindingData() {
-        let returnable = [];
-        mTimelines.forEach(timeline => {
-            timeline.cellBindings.forEach(cellBinding => {
-                let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
-                if (!row) { console.error("Invalid warp binding! No row!"); return; }
-
-                let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
-                if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
-
-                let dataCell = row.getCell(cellBinding.columnId);
-                if (!dataCell) { console.error("Failed to get cell for column"); return; }
-                if (dataCell.id != cellBinding.cellId) throw new Error("Got the wrong cell!");
-
-                let linePercent = mapTimeToLinePercent(timeline.id, timeCell.getType(), timeCell.getValue());
-                let axis = timeline.axisBindings.find(a => a.columnId == cellBinding.columnId);
-
-                returnable.push(new DataStructs.CellBindingData(timeline.id, cellBinding.id, timeCell, dataCell, linePercent, axis ? axis : null));
-            })
-        })
-        return returnable;
+        return mTimelines.map(timeline => getCellBindingData(timeline.id)).flat();
     }
 
     /****
@@ -808,7 +822,9 @@ function ModelController() {
 
     this.addOrUpdateWarpBinding = addOrUpdateWarpBinding;
 
+    this.getWarpBindingData = getWarpBindingData;
     this.getAllWarpBindingData = getAllWarpBindingData;
+    this.getCellBindingData = getCellBindingData;
     this.getAllCellBindingData = getAllCellBindingData;
 
     this.mapLinePercentToTime = mapLinePercentToTime;

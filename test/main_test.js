@@ -65,7 +65,7 @@ describe('Test Main - Integration Test', function () {
     });
 
 
-    describe('Two way warp binding test', function () {
+    describe('table - warp binding test', function () {
         it('warp binding should move comment', function () {
             integrationEnv.mainInit();
 
@@ -174,6 +174,120 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet[1].x, 200);
             assert.equal(annotationSet[1].y, 100);
             assert.equal(annotationSet[1].note.label, "1");
+        });
+    });
+
+    describe('Data - warp binding test', function () {
+        it('should create a warp point for a dragged comment', function () {
+            integrationEnv.mainInit();
+
+            // draw a line
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+
+            // add a few comments
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 200, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 120, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+
+            // check that three table rows were created
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+
+            // get the drag functions
+            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            let fakeThis = {
+                attr: function () {
+                    return annotationSet[2].className;
+                }
+            }
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.start;
+            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
+            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
+
+            // go to pin mode
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            // there should be no bindings yet
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 0);
+
+            // drag the comment
+            onCommentDragStart.call(fakeThis, { x: 130, y: 110 });
+            onCommentDrag.call(fakeThis, { x: 140, y: 130 });
+            onCommentDragEnd.call(fakeThis, { x: 140, y: 130 });
+
+            // check that there are still three table rows
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+
+            // check that a binding was created for the annotation row
+            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].rowId, annotationSet[2].binding.rowId);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
+
+            // check that the comment is where it's expect to be
+            assert.equal(annotationSet[2].x, 140);
+            assert.equal(annotationSet[2].y, 100);
+            assert.equal(annotationSet[2].dx, 10);
+            assert.equal(annotationSet[2].dy, 40, "offset not updated");
+        });
+
+        it('should set the offset correctly for dragged comment creating warp point', function () {
+            integrationEnv.mainInit();
+
+            // draw a line
+            IntegrationUtils.drawLine([{ x: 100, y: 200 }, { x: 150, y: 150 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+
+            // add a few comments
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 200 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 200, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 120, y: 180 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+
+            // check that three table rows were created
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+
+            // get the drag functions
+            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            let fakeThis = {
+                attr: function () {
+                    return annotationSet[2].className;
+                }
+            }
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.start;
+            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
+            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
+
+            // go to pin mode
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            // there should be no bindings yet
+            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 0);
+
+            // drag the comment
+            onCommentDragStart.call(fakeThis, { x: 130, y: 190 });
+            onCommentDrag.call(fakeThis, { x: 150, y: 170 });
+            onCommentDragEnd.call(fakeThis, { x: 150, y: 170 });
+
+            // check that there are still three table rows
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+
+            // check that the offset is what it's expect to be
+            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            expect(annotationSet[2].x).to.be.closeTo(140, 0.1);
+            expect(annotationSet[2].y).to.be.closeTo(160, 0.1);
+            expect(annotationSet[2].dx).to.be.closeTo(20, 0.1);
+            expect(annotationSet[2].dy).to.be.closeTo(20, 0.1);
         });
     });
 });

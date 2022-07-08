@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let modelController = new ModelController();
 
+    let mDraggingValue = null;
+
     let lineViewController = new LineViewController(svg);
     // Note that both click and drag get called, ensure code doesn't overlap. 
     lineViewController.setLineClickCallback((timelineId, linePoint) => {
@@ -75,8 +77,84 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelController.updateText(cellId, text);
         dataTableController.updateTableData(modelController.getAllTables());
     });
-    dataController.setTextMovedCallback((cellId, newOffset) => {
-        modelController.updateTextOffset(cellId, newOffset);
+    dataController.setDataDragStartCallback((cellBindingData, startPos) => {
+        if (mode == MODE_PIN) {
+            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+            let linePoint = PathMath.getClosestPointOnPath(startPos, timeline.points);
+
+            // check if there is a warp binding for this row
+            let warpBindingData = modelController.getWarpBindingData(cellBindingData.timelineId);
+            mDraggingValue = {};
+            // copy to avoid data leaks
+            mDraggingValue.cellBindingData = cellBindingData.copy();
+
+            mDraggingValue.binding = warpBindingData.find(wbd => wbd.rowId == cellBindingData.rowId);
+            if (mDraggingValue.binding) {
+                mDraggingValue.binding.linePercent = linePoint.percent;
+            } else {
+                // if not, create one
+                mDraggingValue.binding = new DataStructs.WarpBindingData(cellBindingData.timelineId, null,
+                    cellBindingData.tableId, cellBindingData.rowId, cellBindingData.timeCell,
+                    linePoint.percent);
+            }
+
+            timeWarpController.pinDragStart(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding);
+            mDraggingValue.cellBindingData.linePercent = linePoint.percent;
+            dataController.drawTimelineData(
+                modelController.getTimelineById(mDraggingValue.cellBindingData.timelineId),
+                [mDraggingValue.cellBindingData]);
+        }
+    });
+    dataController.setDataDragCallback((cellBindingData, startPos, mousePos) => {
+        if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+            let bindingData = modelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
+
+            // copy the dataCell to avoid modification leaks
+            let dataCell = bindingData.find(b => b.id == cellBindingData.id).dataCell.clone();
+            dataCell.offset = offset;
+            bindingData.find(b => b.id == cellBindingData.id).dataCell = dataCell;
+
+            dataController.drawTimelineData(modelController.getTimelineById(cellBindingData.timelineId), bindingData);
+        } else if (mode == MODE_PIN) {
+            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+            let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
+
+            mDraggingValue.binding.linePercent = linePoint.percent;
+            timeWarpController.pinDrag(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+
+            let cellBData = mDraggingValue.cellBindingData;
+            if (cellBData.dataCell.getType() == DataTypes.TEXT) {
+                cellBData = cellBData.copy();
+                cellBData.dataCell.offset = MathUtil.addAToB(cellBData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+            }
+            cellBData.linePercent = linePoint.percent;
+            dataController.drawTimelineData(timeline, [cellBData]);
+        }
+    });
+    dataController.setDataDragEndCallback((cellBindingData, startPos, mousePos) => {
+        if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
+            modelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+
+            let bindingData = modelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+
+            dataController.drawTimelineData(modelController.getTimelineById(cellBindingData.timelineId), bindingData);
+        } else if (mode == MODE_PIN) {
+            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+            let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
+
+            if (cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+                let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+                modelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+            }
+
+            mDraggingValue.binding.linePercent = linePoint.percent;
+            // this will trigger a warp point update, which will update everything
+            timeWarpController.pinDragEnd(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+        }
+
+        mDraggingValue = null;
     });
     dataController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
         modelController.updateAxisDist(axisId, oneOrTwo, newDist);

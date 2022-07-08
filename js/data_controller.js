@@ -1,6 +1,29 @@
 function DataViewController(svg) {
-    let mAnnotationController = new AnnotationController(svg);
     let mPointController = new DataPointController(svg);
+    mPointController.setPointDragStartCallback((cellBindingData, startPos) => {
+        mDataDragStartCallback(cellBindingData, startPos);
+    });
+    mPointController.setPointDragCallback((cellBindingData, startPos, mousePos) => {
+        mDataDragCallback(cellBindingData, startPos, mousePos);
+    });
+    mPointController.setPointDragEndCallback((cellBindingData, startPos, mousePos) => {
+        mDataDragEndCallback(cellBindingData, startPos, mousePos);
+    });
+
+    let mAnnotationController = new AnnotationController(svg);
+    mAnnotationController.setAnnotationDragStartCallback((cellBindingData, startPos) => {
+        mDataDragStartCallback(cellBindingData, startPos);
+    });
+    mAnnotationController.setAnnotationDragCallback((cellBindingData, startPos, mousePos) => {
+        mDataDragCallback(cellBindingData, startPos, mousePos);
+    });
+    mAnnotationController.setAnnotationDragEndCallback((cellBindingData, startPos, mousePos) => {
+        mDataDragEndCallback(cellBindingData, startPos, mousePos);
+    });
+
+    let mDataDragStartCallback = () => { };
+    let mDataDragCallback = () => { };
+    let mDataDragEndCallback = () => { };
 
     function drawData(timelines, boundData) {
         mAnnotationController.drawAnnotations(timelines, boundData.filter(b => b.dataCell.getType() == DataTypes.TEXT));
@@ -14,9 +37,28 @@ function DataViewController(svg) {
         }), 'id'))
     }
 
+    function drawTimelineData(timeline, boundData) {
+        let textData = boundData.filter(b => b.dataCell.getType() == DataTypes.TEXT);
+        let numData = boundData.filter(b => b.dataCell.getType() == DataTypes.NUM);
+
+        if (textData.length) {
+            mAnnotationController.drawTimelineAnnotations(timeline, textData);
+        }
+
+        if (numData.length) {
+            // we do not redraw the axis on the assumption that they won't be changing. 
+            mPointController.drawTimelinePointSet(timeline, numData);
+        }
+    }
+
     this.drawData = drawData;
+    this.drawTimelineData = drawTimelineData;
     this.setTextUpdatedCallback = (callback) => mAnnotationController.setAnnotationTextUpdatedCallback(callback);
-    this.setTextMovedCallback = (callback) => mAnnotationController.setAnnotationMovedCallback(callback);
+
+    this.setDataDragStartCallback = (callback) => mDataDragStartCallback = callback;
+    this.setDataDragCallback = (callback) => mDataDragCallback = callback;
+    this.setDataDragEndCallback = (callback) => mDataDragEndCallback = callback;
+
     this.setAxisUpdatedCallback = (callback) => mPointController.setAxisUpdatedCallback(callback);
 }
 
@@ -24,6 +66,12 @@ function DataPointController(svg) {
     const TAIL_POINT_COUNT = 20;
 
     let mAxisUpdatedCallback = () => { };
+    let mPointDragStartCallback = () => { };
+    let mPointDragCallback = () => { };
+    let mPointDragEndCallback = () => { };
+
+    let mDraggingPointBinding = null;
+    let mDragStartPos = null;
 
     let mDataPointGroup = svg.append('g')
         .attr("id", 'data-point-display-g');
@@ -31,46 +79,14 @@ function DataPointController(svg) {
         .attr("id", 'data-axis-display-g');
 
     function drawPoints(timelines, boundData) {
-        let drawingData = []
-        let tail1Data = []
-        let tail2Data = []
-
-        boundData.forEach(binding => {
-            let { val1, val2, dist1, dist2 } = binding.axisBinding;
-            let dist = (dist2 - dist1) * (binding.val - val1) / (val2 - val1) + dist1;
-            let pos = PathMath.getPositionForPercentAndDist(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent, dist);
-
-            let data = { id: binding.cellBindingId, x: pos.x, y: pos.y, opacity: 1, color: "red" };
-
-            if (binding.linePercent < 0) {
-                tail1Data.push(data);
-            } else if (binding.linePercent > 1) {
-                tail2Data.push(data);
-            } else {
-                drawingData.push(data)
-            }
-        });
-
-        function filterAndFade(arr, count) {
-            let n = Math.ceil(arr.length / count);
-            let shuffled = arr.sort(function () { return .5 - Math.random() });
-            let selected = arr.slice(0, n);
-            let fade = 1;
-            selected.forEach(pointData => {
-                fade -= 1 / n;
-                pointData.opacity = fade;
-            })
-            return selected;
-        }
-
-        drawingData.push(...filterAndFade(tail1Data, TAIL_POINT_COUNT));
-        drawingData.push(...filterAndFade(tail2Data, TAIL_POINT_COUNT));
+        let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timelineId == t.id))).flat();
 
         let points = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
         points.exit().remove();
         points.enter()
             .append('circle')
             .classed('data-display-point', true)
+            .classed(d => 'data-display-point-set_' + d.binding.columnId, true)
             .attr('r', 3.0)
             .attr('stroke', 'black');
 
@@ -80,6 +96,83 @@ function DataPointController(svg) {
             .attr('fill', function (d) { return d.color })
             .style('opacity', function (d) { return d.opacity })
     }
+
+    function drawTimelinePointSet(timeline, boundData) {
+        let drawingData = getTimelineDrawingData(timeline, boundData);
+
+        let setsIds = DataUtil.getUniqueList(boundData.map(boundData.columnId));
+        setsIds.forEach(setId => {
+            let setData = drawingData.filter(drawingData.binding.columnId == setId);
+            let points = mDataPointGroup.selectAll('.data-display-point-set_' + setId).data(setData);
+            points.exit().remove();
+            points.enter()
+                .append('circle')
+                .classed('data-display-point', true)
+                .classed(d => 'data-display-point-set_' + d.binding.columnId, true)
+                .attr('r', 3.0)
+                .attr('stroke', 'black')
+                .call(d3.drag()
+                    .on('start', function (e, d) {
+                        mDraggingPointBinding = d.binding;
+                        mDragStartPos = { x: e.x, y: e.y };
+                        mPointDragStartCallback(mDraggingPointBinding, mDragStartPos);
+                    })
+                    .on('drag', function (e) {
+                        mPointDragCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
+                    })
+                    .on('end', function (e) {
+                        mPointDragEndCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
+                        // cleanup
+                        mDraggingPointBinding = null;
+                        mDragStartPos = null;
+                    }));
+
+            mDataPointGroup.selectAll('.data-display-point')
+                .attr('cx', function (d) { return d.x })
+                .attr('cy', function (d) { return d.y })
+                .attr('fill', function (d) { return d.color })
+                .style('opacity', function (d) { return d.opacity })
+        });
+    }
+
+    //// point draw utility ////
+    function getTimelineDrawingData(timeline, boundData) {
+        let drawingData = boundData.filter(b => b.linePercent >= 0 && b.linePercent <= 1).map(b => getDrawingData(timeline, b));
+        let tail1Data = boundData.filter(b => b.linePercent < 0).map(b => getDrawingData(timeline, b));
+        let tail2Data = boundData.filter(b => b.linePercent > 1).map(b => getDrawingData(timeline, b));
+
+        drawingData.push(...filterAndFade(tail1Data, TAIL_POINT_COUNT));
+        drawingData.push(...filterAndFade(tail2Data, TAIL_POINT_COUNT));
+
+        return drawingData;
+    }
+
+    function getDrawingData(timeline, binding) {
+        let { val1, val2, dist1, dist2 } = binding.axisBinding;
+        let dist = (dist2 - dist1) * (binding.val - val1) / (val2 - val1) + dist1;
+        let pos = PathMath.getPositionForPercentAndDist(timeline.points, binding.linePercent, dist);
+
+        return {
+            binding,
+            x: pos.x,
+            y: pos.y,
+            opacity: 1,
+            color: "red"
+        };
+    }
+
+    function filterAndFade(tailArr, count) {
+        let n = Math.ceil(tailArr.length / count);
+        let shuffled = tailArr.sort(function () { return .5 - Math.random() });
+        let selected = shuffled.slice(0, n);
+        let fade = 1;
+        selected.forEach(pointData => {
+            fade -= 1 / n;
+            pointData.opacity = fade;
+        })
+        return selected;
+    }
+    //// end point draw utility ////
 
     function drawAxes(axesData) {
         let axisLineData = []
@@ -176,21 +269,40 @@ function DataPointController(svg) {
     }
 
     this.drawPoints = drawPoints;
+    this.drawTimelinePointSet = drawTimelinePointSet;
     this.drawAxes = drawAxes;
     this.setAxisUpdatedCallback = (callback) => mAxisUpdatedCallback = callback;
+    this.setPointDragStartCallback = (callback) => mPointDragStartCallback = callback;
+    this.setPointDragCallback = (callback) => mPointDragCallback = callback;
+    this.setPointDragEndCallback = (callback) => mPointDragEndCallback = callback
 }
 
 function AnnotationController(svg) {
-    let mAnnotationTextUpdatedCallback = () => { };
-    let mAnnotationMovedCallback = () => { };
-
     let mAnnotationDisplayGroup = svg.append('g')
         .attr("id", 'annotation-display-g');
 
-    function drawAnnotations(timelines, boundData) {
-        // convert annotations to annotation data
-        let annotationSet = []
+    let mAnnotationTextUpdatedCallback = () => { };
 
+    let mAnnotationDragStartCallback = () => { };
+    let mAnnotationDragCallback = () => { };
+    let mAnnotationDragEndCallback = () => { };
+
+    let mDraggingAnnotation = null;
+    let mDragStartPos = null;
+    let mAnnotationSet = [];
+
+    function drawTimelineAnnotations(timeline, boundData) {
+        mAnnotationSet = mAnnotationSet.filter(item => item.binding.timelineId != timeline.id);
+        draw([timeline], boundData);
+    }
+
+    function drawAnnotations(timelines, boundData) {
+        mAnnotationSet = []
+        draw(timelines, boundData);
+    }
+
+    function draw(timelines, boundData) {
+        // convert annotations to annotation data
         boundData.forEach(binding => {
             let pos = PathMath.getPositionForPercent(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent);
             let annotationData = {
@@ -202,7 +314,7 @@ function AnnotationController(svg) {
                 x: pos.x,
                 y: pos.y,
                 // hack to get around the broken drag events from the new d3 version
-                className: "id-" + binding.id,
+                className: "id-" + binding.cellBindingId,
 
                 dy: binding.dataCell.offset.y,
                 dx: binding.dataCell.offset.x,
@@ -210,28 +322,32 @@ function AnnotationController(svg) {
                 binding
             }
 
-            annotationSet.push(annotationData);
+            mAnnotationSet.push(annotationData);
         })
 
         const makeAnnotations = d3.annotation();
-        makeAnnotations.annotations(annotationSet);
+        makeAnnotations.annotations(mAnnotationSet);
         mAnnotationDisplayGroup.call(makeAnnotations);
 
         d3.selectAll(".annotation")
             .on(".drag", null)
             .call(d3.drag()
-                .on('drag', function (e) {
+                .on('start', function (e) {
                     let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                    let annotation = annotationSet.find(a => a.className == id);
-                    annotation.dx += e.dx;
-                    annotation.dy += e.dy;
-                    makeAnnotations.annotations(annotationSet);
-                    mAnnotationDisplayGroup.call(makeAnnotations);
+                    let annotation = mAnnotationSet.find(a => a.className == id);
+                    mDraggingAnnotation = annotation;
+                    mDragStartPos = { x: e.x, y: e.y };
+
+                    mAnnotationDragStartCallback(annotation.binding, mDragStartPos);
+                })
+                .on('drag', function (e) {
+                    mAnnotationDragCallback(mDraggingAnnotation.binding, mDragStartPos, { x: e.x, y: e.y });
                 })
                 .on('end', function (e) {
-                    let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                    let annotation = annotationSet.find(a => a.className == id);
-                    mAnnotationMovedCallback(annotation.binding.dataCell.id, { x: annotation.dx, y: annotation.dy });
+                    mAnnotationDragEndCallback(mDraggingAnnotation.binding, mDragStartPos, { x: e.x, y: e.y });
+                    // cleanup
+                    mDraggingAnnotation = null;
+                    mDragStartPos = null;
                 }))
             .on('dblclick', function () {
                 let position = d3.select(this).select("tspan").node().getBoundingClientRect();
@@ -265,6 +381,9 @@ function AnnotationController(svg) {
     }
 
     this.drawAnnotations = drawAnnotations;
+    this.drawTimelineAnnotations = drawTimelineAnnotations;
     this.setAnnotationTextUpdatedCallback = (callback) => mAnnotationTextUpdatedCallback = callback
-    this.setAnnotationMovedCallback = (callback) => mAnnotationMovedCallback = callback;
+    this.setAnnotationDragStartCallback = (callback) => mAnnotationDragStartCallback = callback;
+    this.setAnnotationDragCallback = (callback) => mAnnotationDragCallback = callback;
+    this.setAnnotationDragEndCallback = (callback) => mAnnotationDragEndCallback = callback;
 }

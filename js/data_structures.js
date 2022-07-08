@@ -25,13 +25,32 @@ let DataStructs = function () {
         }
     }
 
-    function CellBindingData(timelineId, cellBindingId, timeCell, dataCell, linePercent, axisBinding = null) {
+    function CellBindingData(timelineId, cellBindingId, tableId, rowId, timeCell, dataCell, linePercent, axisBinding = null) {
         this.timelineId = timelineId;
         this.cellBindingId = cellBindingId;
+        this.tableId = tableId;
+        this.rowId = rowId;
         this.timeCell = timeCell;
         this.dataCell = dataCell;
         this.linePercent = linePercent;
         this.axisBinding = axisBinding;
+
+        // copy replicates the data without creating new objects.
+        this.copy = function () {
+            let b = new CellBindingData(
+                this.timelineId,
+                this.cellBindingId,
+                this.tableId,
+                this.rowId,
+                this.timeCell.clone(),
+                this.dataCell.clone(),
+                this.linePercent,
+                this.axisBinding
+            )
+            b.timeCell.id = this.timeCell.id;
+            b.dataCell.id = this.dataCell.id;
+            return b;
+        }
     }
 
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {
@@ -49,9 +68,9 @@ let DataStructs = function () {
     function WarpBindingData(timelineId, warpBindingId, tableId, rowId, timeCell, linePercent) {
         this.timelineId = timelineId;
         this.warpBindingId = warpBindingId;
-        this.tableId = tableId,
-            this.rowId = rowId,
-            this.timeCell = timeCell;
+        this.tableId = tableId;
+        this.rowId = rowId;
+        this.timeCell = timeCell;
         this.linePercent = linePercent;
     }
 

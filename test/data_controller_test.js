@@ -31,18 +31,24 @@ describe('Test DataController', function () {
                 new DataStructs.CellBindingData(
                     "tid1",
                     "cbid1",
+                    "table1",
+                    "row1",
                     new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
                     new DataStructs.DataCell(DataTypes.TEXT, "0.28"),
                     0.5),
                 new DataStructs.CellBindingData(
                     "tid1",
                     "cbid2",
+                    "table1",
+                    "row2",
                     new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
                     new DataStructs.DataCell(DataTypes.TEXT, "0.40"),
                     0.25),
                 new DataStructs.CellBindingData(
                     "tid1",
                     "cbid3",
+                    "table1",
+                    "row3",
                     new DataStructs.DataCell(DataTypes.UNSPECIFIED, "anything"),
                     new DataStructs.DataCell(DataTypes.TEXT, "0.82"),
                     0.75),
@@ -120,10 +126,13 @@ describe('Integration Test DataController', function () {
                     return annotationSet[0].className;
                 }
             }
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.start;
             let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
-            onCommentDrag.call(fakeThis, { dx: 10, dy: 10 });
             let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
-            onCommentDragEnd.call(fakeThis, { dx: 0, dy: 0 });
+
+            onCommentDragStart.call(fakeThis, { x: 130, y: 110 });
+            onCommentDrag.call(fakeThis, { x: 140, y: 120 });
+            onCommentDragEnd.call(fakeThis, { x: 140, y: 120 });
 
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 1);
 
