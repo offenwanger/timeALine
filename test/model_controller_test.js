@@ -283,4 +283,36 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getAllTimelines()[1].warpBindings.length, 1);
         });
     })
+
+
+    describe('delete updateTimelinePoints tests', function () {
+        it('should update the points', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let time = "summer";
+            let percent = 0.75;
+            let tableRowData = modelController.addTimeRow(time);
+            let warpBindingData = new DataStructs.WarpBindingData(timeline.id, null, tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
+                percent);
+            modelController.addOrUpdateWarpBinding(timeline.id, warpBindingData);
+
+            let oldSegments = PathMath.segmentPath(timeline.points, true, (point) => point.x > 11 ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+            let newSegments = oldSegments.map(s => { return { label: s.label, points: [...s.points] } });
+            newSegments[1].points = [{ x: 15, y: 0 }, { x: 20, y: 10 }, { x: 20, y: 0 }]
+
+            modelController.updateTimelinePoints(timeline.id, oldSegments, newSegments);
+
+            assert.equal(modelController.getAllTimelines().length, 1);
+            expect(modelController.getAllTimelines()[0].points.map(p => p.y)).to.eql([0, 0, 0, 0, 0, 10, 0]);
+            assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 1);
+            expect(modelController.getAllTimelines()[0].warpBindings[0].linePercent).to.be.closeTo(0.55, 0.01);
+
+        });
+    })
 });

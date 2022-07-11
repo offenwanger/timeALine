@@ -326,3 +326,42 @@ describe('Test DragController', function () {
         });
     });
 });
+
+describe('Integration Test DragController', function () {
+    let integrationEnv;
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+    });
+
+    afterEach(function (done) {
+        integrationEnv.cleanup(done);
+    });
+
+    describe('drag line end point test', function () {
+        it('should drag the whole line', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 200, y: 200 }
+            ], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            let data = integrationEnv.enviromentVariables.d3.selectors['.start-point'].innerData;
+            assert.equal(data.length, 1, "data not set");
+
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['.start-point'].drag.start;
+            let drag = integrationEnv.enviromentVariables.d3.selectors['.start-point'].drag.drag;
+            let dragEnd = integrationEnv.enviromentVariables.d3.selectors['.start-point'].drag.end;
+
+            IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
+            dragStart({ x: 100, y: 100 }, data[0]);
+            drag({ x: 150, y: 200 }, data[0]);
+            dragEnd({ x: 150, y: 200 }, data[0]);
+            IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
+
+            let linePoints = integrationEnv.ModelController.getAllTimelines()[0].points;
+            expect(linePoints[0]).to.eql({ x: 150, y: 200 });
+            expect(linePoints[linePoints.length - 1]).to.eql({ x: 250, y: 300 });
+        });
+    })
+});

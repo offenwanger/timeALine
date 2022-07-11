@@ -79,8 +79,8 @@ function DragController(svg) {
         mDragStartPos = { x: e.x, y: e.y };
         mMovingLines = [{
             id: d.id,
-            oldSegments: [{ covered: true, points: d.points }],
-            newSegments: [{ covered: true, points: [...d.points] }]
+            oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
+            newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: [...d.points] }]
         }];
         mCover.style("visibility", '');
         mPointsGroup.style("visibility", 'hidden');

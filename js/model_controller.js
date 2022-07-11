@@ -229,8 +229,8 @@ function ModelController() {
         let cumulativeNewLength = 0;
         let cumulativeOldLength = 0;
         for (let i = 0; i < oldSegments.length; i++) {
-            let newSegmentLength = PathMath.getPathLength(newSegments[i]);
-            let oldSegmentLength = PathMath.getPathLength(oldSegments[i]);
+            let newSegmentLength = PathMath.getPathLength(newSegments[i].points);
+            let oldSegmentLength = PathMath.getPathLength(oldSegments[i].points);
 
             let newStartPercent = cumulativeNewLength / newLength;
             let oldStartPercent = cumulativeOldLength / oldLength;
