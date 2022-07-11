@@ -256,31 +256,5 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 0);
         });
-
-        it('should correctly add end warp points', function () {
-            integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
-
-            IntegrationUtils.erase([
-                { x: 30, y: 10 },
-                { x: 30, y: 100 },
-                { x: 70, y: 100 },
-                { x: 70, y: 10 }], 10, integrationEnv.enviromentVariables);
-
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 3);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[1].warpBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[2].warpBindings.length, 1);
-
-            let id1 = integrationEnv.ModelController.getAllTimelines()[0].id;
-            let id2 = integrationEnv.ModelController.getAllTimelines()[1].id;
-            let id3 = integrationEnv.ModelController.getAllTimelines()[2].id;
-
-            let warpBindingData = integrationEnv.ModelController.getAllWarpBindingData();
-            expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.2, 0.4, 0.6, 0.8]);
-            expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id2, id3]);
-            expect(warpBindingData.map(wbd => wbd.linePercent)).to.eql([1, 0, 1, 0]);
-        });
     })
 });

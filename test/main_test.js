@@ -372,4 +372,88 @@ describe('Test Main - Integration Test', function () {
             expect(annotationSet[2].dy).to.be.closeTo(20, 0.1);
         });
     });
+
+    describe('Data linking - eraser test', function () {
+        it('should correctly add end warp points', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            // add a few comments
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 0, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 5, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 50, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 95, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            IntegrationUtils.erase([
+                { x: 30, y: 10 },
+                { x: 30, y: 100 },
+                { x: 70, y: 100 },
+                { x: 70, y: 10 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 3);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[1].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[2].warpBindings.length, 1);
+
+            let id1 = integrationEnv.ModelController.getAllTimelines()[0].id;
+            let id2 = integrationEnv.ModelController.getAllTimelines()[1].id;
+            let id3 = integrationEnv.ModelController.getAllTimelines()[2].id;
+
+            let warpBindingData = integrationEnv.ModelController.getAllWarpBindingData();
+            expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.05, 0.50, 0.95]);
+            expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id3]);
+            expect(warpBindingData.map(wbd => Math.round(wbd.linePercent * 100) / 100)).to.eql([0.25, 0.5, 0.75]);
+        });
+
+        it('should eliminate and split cell bindings', function () {
+            integrationEnv.mainInit();
+
+            // Draw the line
+            let longerLine = [
+                { x: 100, y: 100 },
+                { x: 110, y: 100 },
+                { x: 120, y: 100 },
+                { x: 150, y: 102 },
+                { x: 90, y: 102 },
+                { x: 40, y: 103 },
+                { x: 10, y: 105 }
+            ];
+            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            // Link Data
+            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 3);
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
+                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "1.3"], [3, 1, "", "text4"], [3, 2, "", "10"],
+                [4, 0, "", "1.1"], [4, 1, "", "text6"], [4, 2, "", "12"],
+                [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
+            ])
+
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 5, 2]];
+
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 12);
+            expect(integrationEnv.ModelController.getAllCellBindingData().map(cbd => Math.round(cbd.linePercent * 100) / 100).sort())
+                .to.eql([0, 0, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
+
+            // this erases a chunk between .26 and .32 percent of the line
+            IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 10);
+        })
+    })
 });

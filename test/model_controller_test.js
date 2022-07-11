@@ -277,9 +277,9 @@ describe('Test ModelController', function () {
             ]);
 
             assert.equal(modelController.getAllTimelines().length, 2);
-            assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 2);
+            assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 1);
             assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(modelController.getAllTimelines()[1].cellBindings.length, 2);
+            assert.equal(modelController.getAllTimelines()[1].cellBindings.length, 1);
             assert.equal(modelController.getAllTimelines()[1].warpBindings.length, 1);
         });
     })

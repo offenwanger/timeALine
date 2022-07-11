@@ -30,13 +30,15 @@ function IronController(svg) {
 
     function dragStart(coords, radius) {
         if (mActive) {
-
             mStartPosition = coords;
             mLines.forEach(line => {
                 let oldSegments = PathMath.segmentPath(line.points, true,
-                    (point) => distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
-                let newSegments = PathMath.cloneSegments(oldSegments);
-                if (segments.length > 1 || segments[0].covered) {
+                    (point) => MathUtil.distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+
+                if (oldSegments.length == 0) { console.error("Failed to get segments for line", line); return; };
+
+                if (oldSegments.length > 1 || oldSegments[0].label == SEGMENT_LABELS.CHANGED) {
+                    let newSegments = PathMath.cloneSegments(oldSegments);
                     mMovingLines.push({ id: line.id, oldSegments, newSegments });
                 }
             })
@@ -66,7 +68,7 @@ function IronController(svg) {
             let result = mMovingLines.map(line => {
                 return {
                     id: line.id,
-                    oldSegments: line.oldSegments.map(segment => segment.points),
+                    oldSegments: line.oldSegments,
                     newSegments: ironSegments(line.newSegments, ironStrength)
                 }
             });
@@ -84,8 +86,8 @@ function IronController(svg) {
     function ironSegments(segments, ironStrength) {
         let returnArray = [];
         segments.forEach(segment => {
-            if (!segment.covered) {
-                returnArray.push(segment.points);
+            if (segment.label == SEGMENT_LABELS.UNAFFECTED) {
+                returnArray.push(segment);
             } else {
                 let line = MathUtil.vectorFromAToB(segment.points[0], segment.points[segment.points.length - 1]);
                 let movedPoints = [];
@@ -117,7 +119,7 @@ function IronController(svg) {
                 }
                 newPoints.push(movedPoints[movedPoints.length - 1]);
 
-                returnArray.push(newPoints);
+                returnArray.push({ label: segment.label, points: newPoints });
             }
         });
         return returnArray;

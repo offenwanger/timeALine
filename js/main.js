@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         eraseIds.forEach(id => modelController.deleteTimeline(id));
         breakData.forEach(d => modelController.breakTimeline(d.id, d.segments));
 
-        timeWarpController.removeTimeControls(eraseIds);
+        timeWarpController.removeTimeControls(lineData.map(d => d.id));
         updateAllControls();
     })
 
