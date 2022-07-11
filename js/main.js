@@ -111,9 +111,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
 
             // copy the dataCell to avoid modification leaks
-            let dataCell = bindingData.find(b => b.id == cellBindingData.id).dataCell.clone();
+            let dataCell = bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell.clone();
             dataCell.offset = offset;
-            bindingData.find(b => b.id == cellBindingData.id).dataCell = dataCell;
+            bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell = dataCell;
 
             dataController.drawTimelineData(modelController.getTimelineById(cellBindingData.timelineId), bindingData);
         } else if (mode == MODE_PIN) {

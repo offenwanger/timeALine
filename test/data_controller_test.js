@@ -115,28 +115,38 @@ describe('Integration Test DataController', function () {
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 40, y: 103 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
 
             let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
-            let fakeThis = {
-                attr: function () {
-                    return annotationSet[0].className;
-                }
-            }
+            expect(annotationSet[1].dx).to.eql(10)
+            expect(annotationSet[1].dy).to.eql(10)
+            let class1 = annotationSet[1].className;
+            let label1 = annotationSet[1].note.label;
+            let fakeThis = { attr: () => class1 }
+
             let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.start;
             let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
             let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
 
             onCommentDragStart.call(fakeThis, { x: 130, y: 110 });
             onCommentDrag.call(fakeThis, { x: 140, y: 120 });
+
+            // Check that the correct annotation is updating
+            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            expect(annotationSet[1].dx).to.eql(20)
+            expect(annotationSet[1].dy).to.eql(20)
+            expect(annotationSet[1].note.label).to.eql(label1)
+
             onCommentDragEnd.call(fakeThis, { x: 140, y: 120 });
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 1);
+            // Check that the correct cell binding was updated
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
 
-            expect(integrationEnv.ModelController.getAllCellBindingData()[0].dataCell.offset).to.eql({ x: 20, y: 20 });
+            expect(integrationEnv.ModelController.getAllCellBindingData()[1].dataCell.offset).to.eql({ x: 20, y: 20 });
         });
     })
 
