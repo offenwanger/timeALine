@@ -18,6 +18,6 @@ const TimeBindingTypes = {
 
 const SEGMENT_LABELS = {
     UNAFFECTED: 'unaffected',
-    DELETED: 'erased',
+    DELETED: 'deleted',
     CHANGED: 'changed'
 }
