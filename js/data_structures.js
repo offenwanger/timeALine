@@ -91,6 +91,7 @@ let DataStructs = function () {
             newAxis.val2 = this.val2;
             newAxis.dist2 = this.dist2;
             newAxis.linePercent = this.linePercent;
+            return newAxis;
         }
     }
 
