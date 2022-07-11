@@ -89,6 +89,10 @@ let MathUtil = function () {
         return { x: -vector.y, y: vector.x };
     }
 
+    function rotateVectorRight(vector) {
+        return { x: vector.y, y: -vector.x };
+    }
+
     return {
         vectorFromAToB,
         distanceFromAToB,
@@ -101,6 +105,7 @@ let MathUtil = function () {
         projectPointOntoVector,
         vectorToRotation,
         rotateVectorLeft,
+        rotateVectorRight,
     }
 }();
 
@@ -216,7 +221,7 @@ let PathMath = function () {
             point2 = path.getPointAtLength(length + 1);
         }
 
-        return MathUtil.rotateVectorLeft(MathUtil.normalize(MathUtil.vectorFromAToB(point1, point2)));
+        return MathUtil.rotateVectorRight(MathUtil.normalize(MathUtil.vectorFromAToB(point1, point2)));
     }
 
     function getPositionForPercentAndDist(points, percent, dist) {

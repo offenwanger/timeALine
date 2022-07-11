@@ -131,6 +131,8 @@ function ModelController() {
             segments[i].startPercent = segments[i - 1].endPercent;
             segments[i].endLength = PathMath.getPathLength(PathMath.mergeSegments(segments.slice(0, i + 1)));
             segments[i].endPercent = segments[i].endLength / totalLength;
+            // ensure the last segment does indeed go to one, avoid rounding errors.
+            if (i == segments.length - 1) segments[i].endPercent = 1;
         }
 
 
@@ -150,7 +152,7 @@ function ModelController() {
         cellBindingData.forEach(binding => {
             let segment = segments.find(s => s.startPercent <= binding.linePercent &&
                 binding.linePercent <= s.endPercent);
-            if (!segment) { console.error("Something wierd here."); return; };
+            if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent: " + binding.linePercent); return; };
             segment.cellBindingsData.push(binding);
         });
 
@@ -167,7 +169,7 @@ function ModelController() {
 
             newTimeline.warpBindings = segment.warpBindingsData.map(wbd => {
                 let warpBinding = timeline.warpBindings.find(b => b.id == wbd.warpBindingId).clone();
-                warpBinding.linePercent = (maxNumData.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                warpBinding.linePercent = (warpBinding.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
                 return warpBinding;
             }).concat(segment.warpBindings);
 

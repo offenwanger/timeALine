@@ -212,7 +212,7 @@ function DragController(svg) {
             let projectedPoint = MathUtil.projectPointOntoVector(point, vector, lineStart);
             let projPercent = (projectedPoint.neg ? -1 : 1) * MathUtil.distanceFromAToB(lineStart, projectedPoint) / len;
 
-            let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(vector));
+            let normal = MathUtil.rotateVectorRight(MathUtil.normalize(vector));
             let neg = MathUtil.projectPointOntoVector(point, normal, projectedPoint).neg;
             let distance = (neg ? -1 : 1) * MathUtil.distanceFromAToB(projectedPoint, point);
 
@@ -230,7 +230,7 @@ function DragController(svg) {
             lineVector = MathUtil.vectorFromAToB(lineStart, lineEnd);
             len = MathUtil.distanceFromAToB(lineStart, lineEnd);
         }
-        let normal = MathUtil.rotateVectorLeft(MathUtil.normalize(lineVector));
+        let normal = MathUtil.rotateVectorRight(MathUtil.normalize(lineVector));
         let result = [];
         mapping.forEach(entry => {
             origin = {
