@@ -21,3 +21,13 @@ const SEGMENT_LABELS = {
     DELETED: 'deleted',
     CHANGED: 'changed'
 }
+
+const TableChange = {
+    REORDER_ROWS: "reorderRows",
+    REORDER_COLUMNS: "reorderColumns",
+    DELETE_ROWS: "deleteRows",
+    DELETE_COLUMNS: "deleteColumns",
+    CREATE_ROWS: "createRows",
+    CREATE_COLUMNS: "createColumns",
+    UPDATE_CELLS: "updateCells",
+}

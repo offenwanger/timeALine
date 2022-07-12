@@ -399,10 +399,60 @@ function ModelController() {
         });
     }
 
-    function tableUpdated(table) {
+    function tableUpdated(table, change, changeData) {
         let index = mDataTables.findIndex(t => t.id == table.id);
         mDataTables[index] = table;
+
+        if (change == TableChange.DELETE_ROWS) {
+            mTimelines.forEach(timeLine => {
+                let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.rowId));
+                if (deleteBindings) {
+                    // delete cell bindings for those rows
+                    timeLine.cellBindings = timeLine.cellBindings.filter(b => !changeData.includes(b.rowId));
+                    updateAndDeleteAxis(timeLine);
+                }
+            })
+        } else if (change == TableChange.DELETE_COLUMNS) {
+            mTimelines.forEach(timeLine => {
+                let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.columnId));
+                if (deleteBindings) {
+                    // delete cell bindings for those columns
+                    timeLine.cellBindings = timeLine.cellBindings.filter(b => !changeData.includes(b.columnId));
+                    // delete axis for those columns
+                    timeLine.axisBindings = timeLine.axisBindings.filter(b => !changeData.includes(b.columnId));
+                }
+            })
+        } else if (change == TableChange.UPDATE_CELLS) {
+            mTimelines.forEach(timeLine => {
+                let wasChanged = timeLine.cellBindings.some(b => changeData.includes(b.cellId));
+                if (wasChanged) {
+                    updateAndDeleteAxis(timeLine);
+                }
+            })
+        }
     }
+
+    //// table Update Util functions ////
+    function updateAndDeleteAxis(timeLine) {
+        // update axis
+        let deleteAxis = [];
+        let bindingAndCells = timeLine.cellBindings.map(cb => { return { binding: cb, cell: getCellFromBinding(cb).cell }; });
+        timeLine.axisBindings.forEach(axis => {
+            let cells = bindingAndCells.filter(bAndC => bAndC.binding.columnId == axis.columnId && bAndC.cell.getType() == DataTypes.NUM);
+            if (cells.length > 1) {
+                axis.val1 = Math.min(...cells.map(c => c.cell.getValue()));
+                axis.val2 = Math.max(...cells.map(c => c.cell.getValue()));
+            } else if (cells.length == 1) {
+                axis.val1 = 0;
+                axis.val2 = cells[0].cell.getValue();
+            } else {
+                deleteAxis.push(axis.id);
+            }
+        })
+        // delete axis that no longer have cells
+        timeLine.axisBindings = timeLine.axisBindings.filter(b => !deleteAxis.includes(b.id));
+    }
+    //// end of table Update Util functions ////
 
     function bindCells(lineId, cellBindings) {
         let timeline = getTimelineById(lineId);
@@ -590,7 +640,7 @@ function ModelController() {
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
             let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
-            if (!row) { console.error("Invalid warp binding! No row!"); return; }
+            if (!row) { console.error("Invalid cell binding! No row!"); return; }
 
             let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
             if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }

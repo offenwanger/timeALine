@@ -217,9 +217,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (mode == MODE_LINK) clearMode();
         }
     });
-    dataTableController.setTableUpdatedCallback((table, redraw) => {
-        modelController.tableUpdated(table);
-        if (redraw) {
+    dataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
+        modelController.tableUpdated(table, changeType, changeData);
+
+        // Could do some more checks to avoid expensive redraws
+        if (changeType == TableChange.DELETE_ROWS ||
+            changeType == TableChange.DELETE_COLUMNS ||
+            changeType == TableChange.UPDATE_CELLS) {
             updateAllControls();
         }
     });

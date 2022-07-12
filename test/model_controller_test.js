@@ -315,4 +315,159 @@ describe('Test ModelController', function () {
 
         });
     })
+
+    describe('tableUpdate tests', function () {
+        it('should delete axis whose cells changed type', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let table = TestUtils.makeTestTable(10, 3);
+            for (let i = 0; i < 10; i++) {
+                table.dataRows[i].dataCells[1].val = i;
+            }
+            modelController.addTable(table);
+            assert.equal(modelController.getAllTables().length, 1);
+
+            let cellBindings = []
+            for (let i = 0; i < 10; i++) {
+                cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[i].id, table.dataColumns[1].id, table.dataRows[i].dataCells[1].id));
+            }
+            modelController.bindCells(timeline.id, cellBindings);
+            assert.equal(modelController.getAllCellBindingData().length, 10);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+
+            for (let i = 0; i < 10; i++) {
+                table.dataRows[i].dataCells[1].val = "text";
+            }
+
+            modelController.tableUpdated(table, TableChange.UPDATE_CELLS, table.dataRows.map(r => r.dataCells[1].id));
+            assert.equal(modelController.getAllCellBindingData().length, 10);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 0);
+        });
+
+        it('should delete axis whose cells were in a deleted row', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let table = TestUtils.makeTestTable(10, 3);
+            for (let i = 0; i < 10; i++) {
+                if (i >= 5 && i <= 7) table.dataRows[i].dataCells[1].val = i;
+            }
+            modelController.addTable(table);
+            assert.equal(modelController.getAllTables().length, 1);
+
+            let cellBindings = []
+            for (let i = 0; i < 10; i++) {
+                cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[i].id, table.dataColumns[1].id, table.dataRows[i].dataCells[1].id));
+            }
+            modelController.bindCells(timeline.id, cellBindings);
+            assert.equal(modelController.getAllCellBindingData().length, 10);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+
+            let deleteRows = [table.dataRows[5].id, table.dataRows[6].id, table.dataRows[7].id];
+            table.dataRows = table.dataRows.filter((r, i) => i < 5 || i > 7);
+            table.dataRows.forEach((r, i) => { if (i > 7) r.index -= 3 });
+
+            modelController.tableUpdated(table, TableChange.DELETE_ROWS, deleteRows);
+            assert.equal(modelController.getAllCellBindingData().length, 7);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 0);
+        });
+
+        it('should delete axis for deleted column', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let table = TestUtils.makeTestTable(10, 3);
+            for (let i = 0; i < 10; i++) {
+                if (i > 3) table.dataRows[i].dataCells[1].val = i;
+                table.dataRows[i].dataCells[2].val = i;
+            }
+            modelController.addTable(table);
+            assert.equal(modelController.getAllTables().length, 1);
+
+            let cellBindings = []
+            for (let i = 0; i < 10; i++) {
+                cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[i].id, table.dataColumns[1].id, table.dataRows[i].dataCells[1].id));
+                cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[i].id, table.dataColumns[2].id, table.dataRows[i].dataCells[2].id));
+            }
+            modelController.bindCells(timeline.id, cellBindings);
+            assert.equal(modelController.getAllCellBindingData().length, 20);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 2);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 4);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[1].val1, 0);
+
+            let deleteCols = [table.dataColumns[1].id, table.dataRows[3].id];
+            table.dataColumns = table.dataColumns.filter((c, i) => i != 1 && i != 3);
+            table.dataRows.forEach((r) => { r.dataCells = r.dataCells.filter(cell => !deleteCols.includes(cell.columnId)) });
+
+            modelController.tableUpdated(table, TableChange.DELETE_COLUMNS, deleteCols);
+            assert.equal(modelController.getAllCellBindingData().length, 10);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 0);
+        });
+
+        it('should update axis values', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let table = TestUtils.makeTestTable(10, 3);
+            for (let i = 0; i < 10; i++) {
+                if (i >= 5 && i <= 7) table.dataRows[i].dataCells[1].val = i;
+            }
+            modelController.addTable(table);
+            assert.equal(modelController.getAllTables().length, 1);
+
+            let cellBindings = []
+            for (let i = 0; i < 10; i++) {
+                cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[i].id, table.dataColumns[1].id, table.dataRows[i].dataCells[1].id));
+            }
+            modelController.bindCells(timeline.id, cellBindings);
+            assert.equal(modelController.getAllCellBindingData().length, 10);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 5);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val2, 7);
+
+            let deleteRows = [table.dataRows[5].id];
+            table.dataRows = table.dataRows.filter((r, i) => i != 5);
+            table.dataRows.forEach((r, i) => { if (i > 5) r.index-- });
+
+            modelController.tableUpdated(table, TableChange.DELETE_ROWS, deleteRows);
+            assert.equal(modelController.getAllTables().length, 1);
+            assert.equal(modelController.getAllTables()[0].dataRows.length, 9);
+            assert.equal(modelController.getAllCellBindingData().length, 9);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 6);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val2, 7);
+
+            deleteRows = [table.dataRows[5].id];
+            table.dataRows = table.dataRows.filter((r, i) => i != 5);
+            table.dataRows.forEach((r, i) => { if (i > 5) r.index-- });
+            modelController.tableUpdated(table, TableChange.DELETE_ROWS, deleteRows);
+
+            assert.equal(modelController.getAllCellBindingData().length, 8);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 0);
+            assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val2, 7);
+        });
+    })
 });
