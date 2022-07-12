@@ -1,6 +1,6 @@
 function BrushController(svg) {
     const BRUSH_SIZE_MIN = 2;
-    const BRUSH_SIZE_MAX = 100;
+    const BRUSH_SIZE_MAX = 800;
 
     let mActive = false;
     let mFreeze = false;
