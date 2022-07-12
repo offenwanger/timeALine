@@ -489,8 +489,11 @@ function ModelController() {
         } else if (bindingArray.length == 0) {
             return DataUtil.percentBetween(start, end, timeVal, type);
         } else {
-            return mapBindingArrayInterval(bindingArray, timeVal, "time", type, "linePercent", DataTypes.NUM);
+            return mapBindingArrayInterval(bindingArray, timeVal,
+                "time", type,
+                "linePercent", DataTypes.NUM);
         }
+
     }
 
     function mapLinePercentToTime(timelineId, type, linePercent) {

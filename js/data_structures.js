@@ -177,33 +177,22 @@ let DataStructs = function () {
     }
 
     function TimeBinding(type = TimeBindingTypes.TIMESTRAMP, value = 0) {
-        this.id = getUniqueId();
         this.type = type;
-        this.placeHolder = null;
-        this.timeStamp = null;
+        this.value = value;
 
         switch (type) {
             case TimeBindingTypes.TIMESTRAMP:
-                this.timeStamp = value;
+                if (!Number.isInteger(value)) throw new Error("Invalid timestamp: " + value);
+                // no additional setup nessiary
                 break;
             default:
                 console.error("Invalid time type: " + type);
         }
 
-        this.setTime = function (value) {
-            switch (this.type) {
-                case TimeBindingTypes.TIMESTRAMP:
-                    this.timeStamp = value;
-                    break;
-                default:
-                    console.error("Invalid time type: " + type);
-            }
-        }
-
         this.toString = function () {
             switch (this.type) {
                 case TimeBindingTypes.TIMESTRAMP:
-                    return new Date(this.timeStamp).toDateString();
+                    return new Date(this.value).toDateString();
                 default:
                     console.error("Invalid time type: " + type);
                     return "";
@@ -211,10 +200,7 @@ let DataStructs = function () {
         }
 
         this.clone = function () {
-            let tb = new TimeBinding(this.type)
-            tb.placeHolder = this.placeHolder;
-            tb.timeStamp = this.timeStamp;
-            return tb;
+            return new TimeBinding(this.type, this.value);
         }
     }
 

@@ -240,20 +240,14 @@ function DataTableController() {
                 let returnable = 0;
                 let cellA = rowA.getCell(column.id);
                 let cellB = rowB.getCell(column.id);
-                if (cellA.type == DataTypes.UNSPECIFIED || cellA.type == DataTypes.TIME_BINDING) {
-                    cellA = DataUtil.inferDataAndType(cellA.val);
-                }
-                if (cellB.type == DataTypes.UNSPECIFIED || cellB.type == DataTypes.TIME_BINDING) {
-                    cellB = DataUtil.inferDataAndType(cellB.val);
-                }
-                let typeA = cellA.type;
-                let typeB = cellB.type;
+                let typeA = cellA.getType();
+                let typeB = cellB.getType();
 
                 if (typeA != typeB) {
-                    if (typeA == TimeBindingTypes.TIMESTRAMP) {
+                    if (typeA == DataTypes.TIME_BINDING) {
                         // a goes before b
                         returnable = -1;
-                    } else if (typeB == TimeBindingTypes.TIMESTRAMP) {
+                    } else if (typeB == DataTypes.TIME_BINDING) {
                         // a goes after b
                         returnable = 1;
                     } else if (typeA == DataTypes.NUM) {
@@ -262,19 +256,9 @@ function DataTableController() {
                     } else if (typeB == DataTypes.NUM) {
                         // a goes after b
                         returnable = 1;
-                    } else {
-                        console.error("Unhandled case!")
-                        return 0
-                    }
+                    } else { console.error("Unhandled case!"); return 0; }
                 } else {
-                    if (typeA == TimeBindingTypes.TIMESTRAMP || typeA == DataTypes.NUM) {
-                        returnable = cellA.val - cellB.val;
-                    } else if (typeA == DataTypes.TEXT) {
-                        returnable = cellA.val == cellB.val ? 0 : cellA.val < cellB.val ? -1 : 1;
-                    } else {
-                        console.error("Unhandled case!")
-                        return 0
-                    }
+                    returnable = DataUtil.AGreaterThanB(cellA.getValue(), cellB.getValue(), typeA) ? 1 : -1;
                 }
 
                 return returnable * order;

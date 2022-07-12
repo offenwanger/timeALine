@@ -67,16 +67,22 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 1);
+            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 5);
 
             assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
             assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
+
                 [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
                 [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
                 [3, 0, "", "1.5"], [3, 1, "", "text4"], [3, 2, "", "10"],
+
+                [4, 0, "", "2022-05-6"], [4, 1, "", "text6"], [4, 2, "", "text7"],
+                [5, 0, "", "May 11, 2022"], [5, 1, "", "text8"], [5, 2, "", "13"],
+                [6, 0, "", "2022-05-21"], [6, 1, "", "15"], [6, 2, "", "text9"],
+                [7, 0, "", "May 2022"], [7, 1, "", "16"], [7, 2, "", "18"],
             ])
 
             IntegrationUtils.drawLine([
@@ -85,22 +91,22 @@ describe('Test Main - Integration Test', function () {
                 { x: 200, y: 100 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
 
-            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 3, 2]];
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 7, 2]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             // check that all 8 data cells were bound, with one axis for each column
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 8);
+            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 16);
             assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 2);
 
             // check that the comments were drawn in the correct places
             annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
-            assert.equal(annotationSet.length, 5)
+            assert.equal(annotationSet.length, 9)
             expect(annotationSet.map(a => {
                 return {
-                    x: a.x,
-                    y: a.y,
+                    x: Math.round(a.x),
+                    y: Math.round(a.y),
                     label: a.note.label
                 }
             }).sort((a, b) => a.label < b.label ? -1 : 1)).to.eql([{
@@ -123,25 +129,53 @@ describe('Test Main - Integration Test', function () {
                 x: 100,
                 y: 100,
                 label: "text5"
+            }, {
+                x: 125,
+                y: 100,
+                label: "text6"
+            }, {
+                x: 125,
+                y: 100,
+                label: "text7"
+            }, {
+                x: 150,
+                y: 100,
+                label: "text8"
+            }, {
+                x: 200,
+                y: 100,
+                label: "text9"
             }]);
 
             // check that the numbers were drawn in the correct places
             let dataPoints = integrationEnv.enviromentVariables.d3.selectors[".data-display-point"].innerData;
-            assert.equal(dataPoints.length, 3)
+            assert.equal(dataPoints.length, 7)
             expect(dataPoints.map(d => {
                 return {
-                    x: d.x,
-                    y: d.y
+                    x: Math.round(d.x),
+                    y: Math.round(d.y)
                 }
             }).sort((a, b) => a.x - b.x == 0 ? a.y - b.y : a.x - b.x)).to.eql([{
                 x: 100,
                 y: 0,
             }, {
                 x: 100,
+                y: 0,
+            }, {
+                x: 100,
+                y: 28,
+            }, {
+                x: 100,
                 y: 70,
             }, {
                 x: 150,
-                y: 0,
+                y: 44,
+            }, {
+                x: 150,
+                y: 70,
+            }, {
+                x: 200,
+                y: 35,
             }]);
         });
     });

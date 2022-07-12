@@ -354,8 +354,7 @@ let TimeBindingUtil = function () {
     function AGreaterThanB(a, b) {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.timestamp > b.timestamp;
+            return a.value > b.value;
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -364,8 +363,7 @@ let TimeBindingUtil = function () {
     function ALessThanB(a, b) {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.timestamp < b.timestamp;
+            return a.value > b.value;
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -375,7 +373,7 @@ let TimeBindingUtil = function () {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
 
-            return a.timestamp == b.timestamp;
+            return a.value == b.value;
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -385,7 +383,7 @@ let TimeBindingUtil = function () {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
-            return Math.abs(a.timestamp - b.timestamp);
+            return Math.abs(a.value - b.value);
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -395,7 +393,7 @@ let TimeBindingUtil = function () {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
-            return b.timestamp - a.timestamp;
+            return b.value - a.value;
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -406,7 +404,7 @@ let TimeBindingUtil = function () {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
             if (val.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
 
-            return (val - a.timestamp) / (b.timestamp - a.timestamp);
+            return (val.value - a.value) / (b.value - a.value);
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -416,7 +414,7 @@ let TimeBindingUtil = function () {
         if (a.type == TIMESTRAMP) {
             if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
 
-            return Math.floor((a.timestamp + b.timestamp) / 2);
+            return Math.floor((a.value + b.value) / 2);
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -424,7 +422,7 @@ let TimeBindingUtil = function () {
 
     function incrementBy(time, value) {
         if (time.type == TIMESTRAMP) {
-            time.timestamp += value;
+            time.value += value;
         } else {
             console.error("Invalid time type: " + a.type);
         }
@@ -447,22 +445,24 @@ let DataUtil = function () {
     function inferDataAndType(cellVal) {
         if (typeof (x) === 'number') {
             return { val: cellVal, type: DataTypes.NUM }
-        } else if (isNumeric("" + cellVal)) {
+        } else if (isNumeric(String(cellVal))) {
             return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
-        } else if ((cellVal instanceof DataStructs.TimeBinding && cellVal.type == TimeBindingTypes.TIMESTRAMP)) {
-            console.error("Fix the get time type here.");
-            return { val: cellVal.timeStamp, type: TimeBindingTypes.TIMESTRAMP }
-        } else if (isDate(cellVal)) {
-            console.error("Fix the get time type here.");
-            if (cellVal instanceof DataStructs.TimeBinding) return cellVal;
-            else return { val: Date.parse(cellVal), type: TimeBindingTypes.TIMESTRAMP }
+        } else if ((cellVal instanceof DataStructs.TimeBinding)) {
+            return { val: cellVal, type: DataTypes.TIME_BINDING }
+        } else if (isDate(String(cellVal))) {
+            return { val: getTimeBinding(String(cellVal)), type: DataTypes.TIME_BINDING }
         } else {
-            return { val: cellVal, type: DataTypes.TEXT }
+            return { val: String(cellVal), type: DataTypes.TEXT }
         }
     }
 
     function isDate(val) {
-        return val instanceof DataStructs.TimeBinding || !isNaN(Date.parse(val));
+        // this is too aggressive
+        return !isNaN(Date.parse(val));
+    }
+
+    function getTimeBinding(strVal) {
+        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, Date.parse(strVal));
     }
 
     function isNumeric(val) {
@@ -498,6 +498,8 @@ let DataUtil = function () {
             return TimeBindingUtil.AGreaterThanB(a, b);
         } else if (type == DataTypes.NUM) {
             return a > b;
+        } else if (type == DataTypes.TEXT) {
+            return String(a) > String(b);
         } else { throw new Error("Cannot calculate greaterThan for type: " + type); }
     }
 
