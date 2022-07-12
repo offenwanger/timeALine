@@ -135,13 +135,13 @@ describe('Test Main - Integration Test', function () {
                 }
             }).sort((a, b) => a.x - b.x == 0 ? a.y - b.y : a.x - b.x)).to.eql([{
                 x: 100,
-                y: 130,
+                y: 0,
             }, {
                 x: 100,
-                y: 200,
+                y: 70,
             }, {
                 x: 150,
-                y: 200,
+                y: 0,
             }]);
         });
     });
