@@ -319,6 +319,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
+    $("#download-button").on("click", () => {
+        FileHandler.downloadJSON(modelController.getModel());
+    })
+
+    $("#upload-button").on("click", () => {
+        FileHandler.getJSONModel().then(result => {
+            modelController.setModelFromObject(result);
+            updateAllControls();
+        });
+    })
+
     $("#datasheet-toggle-button").on("click", () => {
         if (dataTableController.isOpen()) {
             dataTableController.closeTableView();

@@ -12,6 +12,14 @@ let DataStructs = function () {
         this.warpBindings = [];
         this.axisBindings = [];
     }
+    Timeline.fromObject = function (obj) {
+        let timeline = new Timeline(obj.points);
+        timeline.id = obj.id;
+        obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
+        obj.warpBindings.forEach(b => timeline.warpBindings.push(WarpBinding.fromObject(b)));
+        obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
+        return timeline;
+    }
 
     function CellBinding(tableId, rowId, columnId, cellId) {
         this.id = getUniqueId();
@@ -23,6 +31,11 @@ let DataStructs = function () {
         this.clone = function () {
             return new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
         }
+    }
+    CellBinding.fromObject = function (obj) {
+        let binding = new CellBinding(obj.tableId, obj.rowId, obj.columnId, obj.cellId);
+        binding.id = obj.id;
+        return binding;
     }
 
     function CellBindingData(timelineId, cellBindingId, tableId, rowId, timeCell, dataCell, linePercent, axisBinding = null) {
@@ -64,6 +77,11 @@ let DataStructs = function () {
             return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
         };
     }
+    WarpBinding.fromObject = function (obj) {
+        let binding = new WarpBinding(obj.tableId, obj.rowId, obj.linePercent, obj.isValid);
+        binding.id = obj.id;
+        return binding;
+    }
 
     function WarpBindingData(timelineId, warpBindingId, tableId, rowId, timeCell, linePercent) {
         this.timelineId = timelineId;
@@ -94,15 +112,31 @@ let DataStructs = function () {
             return newAxis;
         }
     }
+    AxisBinding.fromObject = function (obj) {
+        let binding = new AxisBinding(obj.columnId);
+        binding.id = obj.id;
+        binding.val1 = obj.val1;
+        binding.dist1 = obj.dist1;
+        binding.val2 = obj.val2;
+        binding.dist2 = obj.dist2;
+        binding.linePercent = obj.linePercent;
+        return binding;
+    }
 
     function DataTable(columns = []) {
         this.id = getUniqueId();
         this.dataRows = [];
         this.dataColumns = columns;
-        this.pos = { x: 0, y: 0 };
 
         this.getRow = (rowId) => this.dataRows.find(row => row.id == rowId);
         this.getColumn = (colId) => this.dataColumns.find(col => col.id == colId)
+    }
+    DataTable.fromObject = function (obj) {
+        let table = new DataTable();
+        table.id = obj.id;
+        obj.dataRows.forEach(r => table.dataRows.push(DataRow.fromObject(r)));
+        obj.dataColumns.forEach(c => table.dataColumns.push(DataColumn.fromObject(c)));
+        return table;
     }
 
     function DataColumn(name, index) {
@@ -110,12 +144,24 @@ let DataStructs = function () {
         this.name = name;
         this.index = index;
     }
+    DataColumn.fromObject = function (obj) {
+        let column = new DataColumn(obj.name, obj.index);
+        column.id = obj.id;
+        return column;
+    }
 
     function DataRow() {
         this.id = getUniqueId();
-        this.dataCells = [];
         this.index = -1;
+        this.dataCells = [];
         this.getCell = (columnId) => this.dataCells.find(cell => cell.columnId == columnId);
+    }
+    DataRow.fromObject = function (obj) {
+        let row = new DataRow();
+        row.id = obj.id;
+        row.index = obj.index;
+        obj.dataCells.forEach(c => row.dataCells.push(DataCell.fromObject(c)));
+        return row;
     }
 
     function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }) {
@@ -174,6 +220,19 @@ let DataStructs = function () {
         this.clone = function () {
             return new DataCell(this.type, this.val, this.columnId, this.offset);
         }
+    }
+    DataCell.fromObject = function (obj) {
+        let val = obj.val;
+        if (typeof val == 'object') {
+            if (val.type && Object.values(TimeBindingTypes).includes(val.type)) {
+                val = new TimeBinding(val.type, val.value);
+            } else {
+                console.error("Badly formatted import: ", val)
+            };
+        }
+        let cell = new DataCell(obj.type, val, obj.columnId, obj.offset);
+        cell.id = obj.id;
+        return cell;
     }
 
     function TimeBinding(type = TimeBindingTypes.TIMESTRAMP, value = 0) {

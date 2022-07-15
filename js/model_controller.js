@@ -853,6 +853,13 @@ function ModelController() {
         return false;
     }
 
+    function setModelFromObject(obj) {
+        mTimelines = [];
+        mDataTables = [];
+        obj.timelines.forEach(timeline => mTimelines.push(DataStructs.Timeline.fromObject(timeline)))
+        obj.dataTables.forEach(table => mDataTables.push(DataStructs.DataTable.fromObject(table)))
+    }
+
     /****
      * Utility
      */
@@ -920,4 +927,7 @@ function ModelController() {
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;
     this.hasTimeMapping = hasTimeMapping;
+
+    this.getModel = () => { return { timelines: mTimelines, dataTables: mDataTables }; };
+    this.setModelFromObject = setModelFromObject;
 }
