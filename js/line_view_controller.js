@@ -4,6 +4,8 @@ function LineViewController(svg) {
     let mLineDragStartCallback = () => { };
     let mLineDragCallback = () => { };
     let mLineDragEndCallback = () => { };
+    let mMouseOverCallback = () => { };
+    let mMouseOutCallback = () => { };
 
     let mLineGroup = svg.append('g')
         .attr("id", 'line-view-g');
@@ -46,7 +48,20 @@ function LineViewController(svg) {
                     let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
                     mLineClickedCallback(d.id, PathMath.getClosestPointOnPath(mouseCoords, d.points))
                 }
-            }).call(d3.drag()
+            })
+            .on('mouseover', (e, d) => {
+                if (mActive) {
+                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+                    mMouseOverCallback(d.id, mouseCoords)
+                }
+            })
+            .on('mouseout', (e, d) => {
+                if (mActive) {
+                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+                    mMouseOutCallback(d.id, mouseCoords)
+                }
+            })
+            .call(d3.drag()
                 .on('start', function (e, d) { onDrag('start', e, d); })
                 .on('drag', function (e, d) { onDrag('drag', e, d); })
                 .on('end', function (e, d) { onDrag('end', e, d); }));
@@ -89,4 +104,6 @@ function LineViewController(svg) {
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;
     this.setLineDragEndCallback = (callback) => mLineDragEndCallback = callback;
+    this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
+    this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
 }

@@ -261,6 +261,7 @@ before(function () {
         this.getSelected = function () { return this.selected };
         this.loadData = function (data) { this.init.data = data; this.asyncDone() };
         this.updateSettings = function () { };
+        this.render = function () { };
         this.init = init;
         // silly workaround
         this.asyncDone = () => { };
@@ -340,6 +341,8 @@ before(function () {
             TimeBindingUtil: utility.__get__("TimeBindingUtil"),
             WarpBindingUtil: utility.__get__("WarpBindingUtil"),
         };
+        returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
+
         main.__set__(returnable.enviromentVariables);
 
         function setVariables() {

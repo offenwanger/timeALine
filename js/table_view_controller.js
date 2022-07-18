@@ -11,6 +11,8 @@ function DataTableController() {
 
     let hotTables = {};
 
+    let mHighlightCells = [];
+
     function updateTableData(tables) {
         tables.forEach(table => {
             if (table.id in hotTables) {
@@ -38,6 +40,10 @@ function DataTableController() {
             manualColumnMove: true,
             manualRowMove: true,
             contextMenu: true,
+            //// Formats Cells ////
+            cells: function (row, col) {
+                return { renderer: highlightRender };
+            },
             //// Updates Data ////
             afterChange,
             afterCreateRow,
@@ -87,6 +93,16 @@ function DataTableController() {
             })
 
             return data;
+        }
+
+        function highlightRender(instance, td, row, col, prop, value, cellProperties) {
+            Handsontable.renderers.TextRenderer.apply(this, arguments);
+
+            let columnId = table.dataColumns.find(col => col.index == prop).id;
+            let cell = table.dataRows.find(r => r.index == row).getCell(columnId);
+            if (mHighlightCells.length > 0 && !mHighlightCells.includes(cell.id)) {
+                td.style.filter = 'brightness(85%) contrast(0.85) opacity(0.5)';
+            }
         }
 
         function afterChange(changes) {
@@ -346,6 +362,14 @@ function DataTableController() {
         return data;
     }
 
+    function highlightCells(cellIds) {
+        if (cellIds.length == 0 && mHighlightCells.length == 0) {
+            return;
+        }
+        mHighlightCells = cellIds;
+        Object.values(hotTables).forEach(hot => hot.render())
+    }
+
     // this functions takes complex data types and simplifies them for table display
     function getTextArray(table) {
         let arr2D = Array(table.dataRows.length).fill(0).map(i => Array(table.dataColumns.length));
@@ -371,6 +395,7 @@ function DataTableController() {
     this.updateTableData = updateTableData;
     this.setTableUpdatedCallback = (callback) => mTableUpdatedCallback = callback;
     this.getSelectedCells = getSelectedCells;
+    this.highlightCells = highlightCells;
     this.setOnSelectionCallback = (callback) => mSelectionCallback = callback;
     this.openTableView = () => mDrawerController.openDrawer();
     this.closeTableView = () => mDrawerController.closeDrawer();

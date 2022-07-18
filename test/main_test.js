@@ -1,6 +1,7 @@
 let chai = require('chai');
 let assert = chai.assert;
 let expect = chai.expect;
+let should = chai.should();
 
 describe('Test Main - Integration Test', function () {
     let integrationEnv;
@@ -488,6 +489,81 @@ describe('Test Main - Integration Test', function () {
 
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 10);
+        })
+    })
+    describe('Datat Highlight test', function () {
+        it('should highlight bound points', function () {
+            integrationEnv.mainInit();
+
+            // Draw the line
+            let longerLine = [
+                { x: 100, y: 100 },
+                { x: 110, y: 100 },
+                { x: 120, y: 100 },
+                { x: 150, y: 102 },
+                { x: 90, y: 102 },
+                { x: 40, y: 103 },
+                { x: 10, y: 105 }
+            ];
+            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+            // Link Data
+            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 3);
+
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
+                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "1.3"], [3, 1, "", "text4"], [3, 2, "", "10"],
+                [4, 0, "", "1.1"], [4, 1, "", "text6"], [4, 2, "", "12"],
+                [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
+            ])
+
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 3, 1]];
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 4);
+
+            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getAllTimelines()[0].id);
+            timeLineTargets.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
+
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+            let renderer = integrationEnv.enviromentVariables.handsontables[0].init.cells().renderer;
+
+            //check bound time rows
+            for (let i = 0; i < 4; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 0)
+                should.not.exist(td.style.filter)
+            }
+            //check unbound time rows
+            for (let i = 4; i < 6; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 0)
+                should.exist(td.style.filter)
+            }
+            //check bound data rows
+            for (let i = 0; i < 4; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 1)
+                should.not.exist(td.style.filter)
+            }
+            //check unbound data rows
+            for (let i = 4; i < 6; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 1)
+                should.exist(td.style.filter)
+            }
+            // check unbound col
+            for (let i = 0; i < 6; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 2)
+                should.exist(td.style.filter)
+            }
         })
     })
 });

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', function (e) {
+    const MODE_NONE = 'noneMode';
     const MODE_DEFAULT = 'default';
     const MODE_LINE_DRAWING = "drawing";
     const MODE_ERASER = "eraser";
@@ -10,8 +11,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_COLOR = "color";
     const MODE_EYEDROPPER = "eyedropper";
     const MODE_LINK = "link";
-
-    let mode = MODE_DEFAULT;
 
     let svg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
@@ -62,6 +61,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mode == MODE_PIN) {
             timeWarpController.pinDragEnd(timelineId, linePoint.percent);
         }
+    })
+
+    lineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
+        dataTableController.highlightCells(modelController.getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+    })
+
+    lineViewController.setMouseOutCallback((timelineId, mouseCoords) => {
+        dataTableController.highlightCells([]);
     })
 
     let timeWarpController = new TimeWarpController(svg);
@@ -244,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#line-drawing-button").on("click", () => {
         if (mode == MODE_LINE_DRAWING) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             lineDrawingController.setActive(true);
@@ -255,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#eraser-button").on("click", () => {
         if (mode == MODE_ERASER) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_ERASER;
@@ -266,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#drag-button").on("click", () => {
         if (mode == MODE_DRAG) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_DRAG;
@@ -277,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#iron-button").on("click", () => {
         if (mode == MODE_IRON) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_IRON;
@@ -288,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#scissors-button").on("click", () => {
         if (mode == MODE_SCISSORS) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_SCISSORS;
@@ -298,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#comment-button").on("click", () => {
         if (mode == MODE_COMMENT) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             lineViewController.setActive(true);
@@ -309,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#pin-button").on("click", () => {
         if (mode == MODE_PIN) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             lineViewController.setActive(true);
@@ -373,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#color-button").on("click", () => {
         if (mode == MODE_COLOR) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_COLOR;
@@ -383,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#eyedropper-button").on("click", () => {
         if (mode == MODE_EYEDROPPER) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_EYEDROPPER;
@@ -420,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#link-button").on('click', () => {
         if (mode == MODE_LINK) {
-            clearMode()
+            setDefaultMode()
         } else {
             clearMode()
             mode = MODE_LINK;
@@ -437,6 +444,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#mode-indicator-div').show();
     }
 
+    function setDefaultMode() {
+        clearMode();
+
+        // set active those things with default mouseovers, etc. 
+        lineViewController.setActive(true);
+
+        mode = MODE_DEFAULT;
+    }
+
     function clearMode() {
         lineViewController.setActive(false);
         lineDrawingController.setActive(false);
@@ -448,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
 
-        mode = MODE_DEFAULT;
+        mode = MODE_NONE;
     }
 
     function setColor(color) {
@@ -465,5 +481,5 @@ document.addEventListener('DOMContentLoaded', function (e) {
         });
     });
 
-
+    setDefaultMode();
 });
