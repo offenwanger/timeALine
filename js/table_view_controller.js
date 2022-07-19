@@ -74,10 +74,10 @@ function DataTableController() {
 
             selected.forEach(select => {
                 // selection can be 0 if the row/col header is selected.
-                let startRow = Math.max(0, select[0]);
-                let startCol = Math.max(0, select[1]);
-                let endRow = Math.max(0, select[2]);
-                let endCol = Math.max(0, select[3]);
+                let startRow = Math.max(0, Math.min(select[0], select[2]));
+                let startCol = Math.max(0, Math.min(select[1], select[3]));
+                let endRow = Math.max(0, select[0], select[2]);
+                let endCol = Math.max(0, select[1], select[3]);
 
                 for (let col = startCol; col <= endCol; col++) {
                     for (let row = startRow; row <= endRow; row++) {
