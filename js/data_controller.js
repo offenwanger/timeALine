@@ -9,6 +9,12 @@ function DataViewController(svg) {
     mPointController.setPointDragEndCallback((cellBindingData, startPos, mousePos) => {
         mDataDragEndCallback(cellBindingData, startPos, mousePos);
     });
+    mPointController.setPointMouseOverCallback((cellBindingData, mousePos) => {
+        mDataMouseOverCallback(cellBindingData, mousePos);
+    });
+    mPointController.setPointMouseOutCallback((cellBindingData, mousePos) => {
+        mDataMouseOutCallback(cellBindingData, mousePos);
+    });
 
     let mAnnotationController = new AnnotationController(svg);
     mAnnotationController.setAnnotationDragStartCallback((cellBindingData, startPos) => {
@@ -20,10 +26,18 @@ function DataViewController(svg) {
     mAnnotationController.setAnnotationDragEndCallback((cellBindingData, startPos, mousePos) => {
         mDataDragEndCallback(cellBindingData, startPos, mousePos);
     });
+    mAnnotationController.setAnnotationMouseOverCallback((cellBindingData, mousePos) => {
+        mDataMouseOverCallback(cellBindingData, mousePos);
+    });
+    mAnnotationController.setAnnotationMouseOutCallback((cellBindingData, mousePos) => {
+        mDataMouseOutCallback(cellBindingData, mousePos);
+    });
 
     let mDataDragStartCallback = () => { };
     let mDataDragCallback = () => { };
     let mDataDragEndCallback = () => { };
+    let mDataMouseOverCallback = () => { };
+    let mDataMouseOutCallback = () => { };
 
     function drawData(timelines, boundData) {
         mAnnotationController.drawAnnotations(timelines, boundData.filter(b => b.dataCell.getType() == DataTypes.TEXT));
@@ -58,6 +72,8 @@ function DataViewController(svg) {
     this.setDataDragStartCallback = (callback) => mDataDragStartCallback = callback;
     this.setDataDragCallback = (callback) => mDataDragCallback = callback;
     this.setDataDragEndCallback = (callback) => mDataDragEndCallback = callback;
+    this.setDataMouseOverCallback = (callback) => { mDataMouseOverCallback = callback; };
+    this.setDataMouseOutCallback = (callback) => { mDataMouseOutCallback = callback; };
 
     this.setAxisUpdatedCallback = (callback) => mPointController.setAxisUpdatedCallback(callback);
 }
@@ -69,6 +85,8 @@ function DataPointController(svg) {
     let mPointDragStartCallback = () => { };
     let mPointDragCallback = () => { };
     let mPointDragEndCallback = () => { };
+    let mPointMouseOverCallback = () => { };
+    let mPointMouseOutCallback = () => { };
 
     let mDraggingPointBinding = null;
     let mDragStartPos = null;
@@ -80,21 +98,8 @@ function DataPointController(svg) {
 
     function drawPoints(timelines, boundData) {
         let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timelineId == t.id))).flat();
-
         let points = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
-        points.exit().remove();
-        points.enter()
-            .append('circle')
-            .classed('data-display-point', true)
-            .classed(d => 'data-display-point-set_' + d.binding.columnId, true)
-            .attr('r', 3.0)
-            .attr('stroke', 'black');
-
-        mDataPointGroup.selectAll('.data-display-point')
-            .attr('cx', function (d) { return d.x })
-            .attr('cy', function (d) { return d.y })
-            .attr('fill', function (d) { return d.color })
-            .style('opacity', function (d) { return d.opacity })
+        setupCircles(points)
     }
 
     function drawTimelinePointSet(timeline, boundData) {
@@ -104,35 +109,48 @@ function DataPointController(svg) {
         setsIds.forEach(setId => {
             let setData = drawingData.filter(drawingData.binding.columnId == setId);
             let points = mDataPointGroup.selectAll('.data-display-point-set_' + setId).data(setData);
-            points.exit().remove();
-            points.enter()
-                .append('circle')
-                .classed('data-display-point', true)
-                .classed(d => 'data-display-point-set_' + d.binding.columnId, true)
-                .attr('r', 3.0)
-                .attr('stroke', 'black')
-                .call(d3.drag()
-                    .on('start', function (e, d) {
-                        mDraggingPointBinding = d.binding;
-                        mDragStartPos = { x: e.x, y: e.y };
-                        mPointDragStartCallback(mDraggingPointBinding, mDragStartPos);
-                    })
-                    .on('drag', function (e) {
-                        mPointDragCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
-                    })
-                    .on('end', function (e) {
-                        mPointDragEndCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
-                        // cleanup
-                        mDraggingPointBinding = null;
-                        mDragStartPos = null;
-                    }));
-
-            mDataPointGroup.selectAll('.data-display-point')
-                .attr('cx', function (d) { return d.x })
-                .attr('cy', function (d) { return d.y })
-                .attr('fill', function (d) { return d.color })
-                .style('opacity', function (d) { return d.opacity })
+            setupCircles(points)
         });
+    }
+
+    function setupCircles(selection) {
+        selection.exit().remove();
+        selection.enter()
+            .append('circle')
+            .classed('data-display-point', true)
+            // ERROR: TODO: Fix this, it's not calling a function here. 
+            .classed(d => { return 'data-display-point-set_' + d.binding.columnId; }, true)
+            .attr('r', 3.0)
+            .attr('stroke', 'black')
+            .call(d3.drag()
+                .on('start', function (e, d) {
+                    mDraggingPointBinding = d.binding;
+                    mDragStartPos = { x: e.x, y: e.y };
+                    mPointDragStartCallback(mDraggingPointBinding, mDragStartPos);
+                })
+                .on('drag', function (e) {
+                    mPointDragCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
+                })
+                .on('end', function (e) {
+                    mPointDragEndCallback(mDraggingPointBinding, mDragStartPos, { x: e.x, y: e.y });
+                    // cleanup
+                    mDraggingPointBinding = null;
+                    mDragStartPos = null;
+                }))
+            .on('mouseover', (e, d) => {
+                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+                mPointMouseOverCallback(d.binding, mouseCoords);
+            })
+            .on('mouseout', (e, d) => {
+                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+                mPointMouseOutCallback(d.binding, mouseCoords);
+            });
+
+        mDataPointGroup.selectAll('.data-display-point')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y })
+            .attr('fill', function (d) { return d.color })
+            .style('opacity', function (d) { return d.opacity });
     }
 
     //// point draw utility ////
@@ -277,6 +295,8 @@ function DataPointController(svg) {
     this.setPointDragStartCallback = (callback) => mPointDragStartCallback = callback;
     this.setPointDragCallback = (callback) => mPointDragCallback = callback;
     this.setPointDragEndCallback = (callback) => mPointDragEndCallback = callback
+    this.setPointMouseOverCallback = (callback) => { mPointMouseOverCallback = callback; };
+    this.setPointMouseOutCallback = (callback) => { mPointMouseOutCallback = callback; };
 }
 
 function AnnotationController(svg) {
@@ -288,6 +308,8 @@ function AnnotationController(svg) {
     let mAnnotationDragStartCallback = () => { };
     let mAnnotationDragCallback = () => { };
     let mAnnotationDragEndCallback = () => { };
+    let mAnnotationMouseOverCallback = () => { };
+    let mAnnotationMouseOutCallback = () => { };
 
     let mDraggingAnnotation = null;
     let mDragStartPos = null;
@@ -380,6 +402,20 @@ function AnnotationController(svg) {
                 inputbox.style("width", annotation.note.wrap + "px");
 
                 inputbox.node().focus();
+            })
+            .on('mouseover', function (e) {
+                let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
+                let annotation = mAnnotationSet.find(a => a.className == id);
+                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+
+                mAnnotationMouseOverCallback(annotation.binding, mouseCoords);
+            })
+            .on('mouseout', function (e) {
+                let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
+                let annotation = mAnnotationSet.find(a => a.className == id);
+                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
+
+                mAnnotationMouseOutCallback(annotation.binding, mouseCoords);
             });
     }
 
@@ -389,4 +425,6 @@ function AnnotationController(svg) {
     this.setAnnotationDragStartCallback = (callback) => mAnnotationDragStartCallback = callback;
     this.setAnnotationDragCallback = (callback) => mAnnotationDragCallback = callback;
     this.setAnnotationDragEndCallback = (callback) => mAnnotationDragEndCallback = callback;
+    this.setAnnotationMouseOverCallback = (callback) => mAnnotationMouseOverCallback = callback;
+    this.setAnnotationMouseOutCallback = (callback) => mAnnotationMouseOutCallback = callback;
 }

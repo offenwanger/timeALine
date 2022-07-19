@@ -167,6 +167,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelController.updateAxisDist(axisId, oneOrTwo, newDist);
         dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
     });
+    dataController.setDataMouseOverCallback((cellBindingData, mouseCoords) => {
+        dataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
+    })
+    dataController.setDataMouseOutCallback((cellBindingData, mouseCoords) => {
+        dataTableController.highlightCells([]);
+    })
 
 
     let lineDrawingController = new LineDrawingController(svg);

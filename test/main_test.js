@@ -491,8 +491,8 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 10);
         })
     })
-    describe('Datat Highlight test', function () {
-        it('should highlight bound points', function () {
+    describe('Data Highlight test', function () {
+        it('should highlight timeline bound points', function () {
             integrationEnv.mainInit();
 
             // Draw the line
@@ -563,6 +563,52 @@ describe('Test Main - Integration Test', function () {
                 let td = { style: {} };
                 renderer({}, td, i, 0, 2)
                 should.exist(td.style.filter)
+            }
+
+            timeLineTargets.eventCallbacks['mouseout']({ x: 150, y: 102 }, data);
+            // all data showing again
+            for (let i = 0; i < 6; i++) {
+                let td = { style: {} };
+                renderer({}, td, i, 0, 0)
+                should.not.exist(td.style.filter)
+                renderer({}, td, i, 0, 1)
+                should.not.exist(td.style.filter)
+                renderer({}, td, i, 0, 2)
+                should.not.exist(td.style.filter)
+            }
+
+            let cirleData = integrationEnv.enviromentVariables.d3.selectors['.data-display-point'];
+            data = cirleData.innerData[1];
+            cirleData.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
+            // all data showing again
+            for (let i = 0; i < 6; i++) {
+                if (i == 1) {
+                    let td = { style: {} };
+                    // the single set data cell
+                    renderer({}, td, i, 0, 1)
+                    should.not.exist(td.style.filter)
+
+                    // the single set time cell
+                    td = { style: {} };
+                    renderer({}, td, i, 0, 0)
+                    should.not.exist(td.style.filter)
+
+                    td = { style: {} };
+                    renderer({}, td, i, 0, 2)
+                    should.exist(td.style.filter)
+                } else {
+                    let td = { style: {} };
+                    renderer({}, td, i, 0, 0)
+                    should.exist(td.style.filter)
+
+                    td = { style: {} };
+                    renderer({}, td, i, 0, 1)
+                    should.exist(td.style.filter)
+
+                    td = { style: {} };
+                    renderer({}, td, i, 0, 2)
+                    should.exist(td.style.filter)
+                }
             }
         })
     })
