@@ -31,3 +31,17 @@ const TableChange = {
     CREATE_COLUMNS: "createColumns",
     UPDATE_CELLS: "updateCells",
 }
+
+class ModelStateError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "ModelStateError";
+    }
+}
+
+class DataTypeError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "DataTypeError";
+    }
+}

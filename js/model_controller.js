@@ -548,9 +548,8 @@ function ModelController() {
 
     function mapLinePercentToTime(timelineId, type, linePercent) {
         // can only be done if there are at least two reference points, or is num. 
-        if (type == DataTypes.TEXT) throw new Error("Cannot get time of type: " + type);
-        if (type != DataTypes.TIME_BINDING && type != DataTypes.NUM) throw new Error("Unhandled type: " + type);
-        if (type == DataTypes.TIME_BINDING && !hasTimeMapping(timelineId)) throw new Error("Insufficient data to get time of type: " + type);
+        if (type != DataTypes.TIME_BINDING && type != DataTypes.NUM) throw new DataTypeError("Unhandled type: " + type);
+        if (type == DataTypes.TIME_BINDING && !hasTimeMapping(timelineId)) throw new ModelStateError("Insufficient data to get time of type: " + type);
 
         let bindingArray = getBindingArray(timelineId, type);
 
@@ -585,7 +584,7 @@ function ModelController() {
     }
 
     function mapBindingArrayInterval(bindingArray, value, fromKey, fromType, toKey, toType) {
-        if (bindingArray.length < 2) throw new Error("Insufficent bindings for mapping!");
+        if (bindingArray.length < 2) throw new ModelStateError("Insufficent bindings for mapping!");
         if (DataUtil.AGreaterThanB(bindingArray[0][fromKey], value, fromType)) throw new Error("Value is outside binding range! Value:" + value + " Lower bound: " + bindingArray[0][fromKey]);
         if (DataUtil.AGreaterThanB(value, bindingArray[bindingArray.length - 1][fromKey], fromType)) throw new Error("Value is outside binding range! Value:" + value + " Upper bound: " + bindingArray[0][fromKey]);
 
@@ -647,10 +646,26 @@ function ModelController() {
 
             let dataCell = row.getCell(cellBinding.columnId);
             if (!dataCell) { console.error("Failed to get cell for column"); return; }
-            if (dataCell.id != cellBinding.cellId) throw new Error("Got the wrong cell!");
+            if (dataCell.id != cellBinding.cellId) throw new ModelStateError("Got the wrong cell!");
 
             let linePercent;
-            try { linePercent = mapTimeToLinePercent(timeline.id, timeCell.getType(), timeCell.getValue()); } catch (e) { console.error("Model State Error", e); return; }
+            // first check if there's a warp binding for this row
+            if (timeline.warpBindings.find(b => b.rowId == row.id)) {
+                linePercent = timeline.warpBindings.find(b => b.rowId == row.id).linePercent;
+            } else if (timeCell.getType() == DataTypes.TEXT) {
+                linePercent = 0;
+            } else {
+                try {
+                    linePercent = mapTimeToLinePercent(timeline.id, timeCell.getType(), timeCell.getValue());
+                } catch (e) {
+                    if (e.name == "ModelStateError" && timeline.cellBindings.length == 1 && timeCell.getType() == DataTypes.TIME_BINDING) {
+                        linePercent = 0;
+                    } else {
+                        console.error(e);
+                        return;
+                    }
+                }
+            }
             let axis = timeline.axisBindings.find(a => a.columnId == cellBinding.columnId);
 
             returnable.push(new DataStructs.CellBindingData(
@@ -709,7 +724,7 @@ function ModelController() {
 
         // handle the one or less reference points edge cases
         if (boundCellData.length + warpBindingsData.length < 2) {
-            if (type != DataTypes.NUM) throw new Error("Not enough data to caluclate end points!");
+            if (type != DataTypes.NUM) throw new ModelStateError("Not enough data to caluclate end points!");
 
             if (boundCellData.length == 0 && warpBindingsData.length == 0) {
                 // if there are utterly no references
