@@ -817,7 +817,7 @@ function ModelController() {
         } else if (type == DataTypes.NUM) {
             return Math.max(...values);
         } else if (type == DataTypes.TIME_BINDING) {
-            values.reduce((max, val) => TimeBindingUtil.AGreaterThanB(val, max) ? val : max);
+            return values.reduce((max, val) => TimeBindingUtil.AGreaterThanB(val, max) ? val : max);
         } else { console.error("cannot get max of " + type) };
     }
 
@@ -833,7 +833,7 @@ function ModelController() {
         } else if (type == DataTypes.NUM) {
             return Math.min(...values);
         } else if (type == DataTypes.TIME_BINDING) {
-            values.reduce((min, val) => TimeBindingUtil.AGreaterThanB(val, min) ? min : val);
+            return values.reduce((min, val) => TimeBindingUtil.AGreaterThanB(val, min) ? min : val);
         } else { console.error("cannot get max of " + type) };
     }
 
@@ -846,8 +846,7 @@ function ModelController() {
             })
             .filter(result => result.type == DataTypes.TIME_BINDING);
         // if we have two warp bindings, there's enough data
-        if (warpBindingsData.length > 2) return true;
-
+        if (warpBindingsData.length >= 2) return true;
 
         let max = getMaxBoundTime(timelineId, DataTypes.TIME_BINDING);
         let min = getMinBoundTime(timelineId, DataTypes.TIME_BINDING);
@@ -858,7 +857,7 @@ function ModelController() {
         // if we have two values, there's enough data
         if (!TimeBindingUtil.AEqualsB(max, min)) return true;
 
-        // if we have only have one value, there is not enough data
+        // if we have only have one value, and no warp bindings, there is not enough data
         if (warpBindingsData.length == 0) return false;
 
         // if we have one warp and one data piece that are different, there is enough data
