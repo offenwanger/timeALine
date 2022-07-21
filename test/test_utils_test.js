@@ -340,6 +340,7 @@ before(function () {
             DataUtil: utility.__get__("DataUtil"),
             TimeBindingUtil: utility.__get__("TimeBindingUtil"),
             WarpBindingUtil: utility.__get__("WarpBindingUtil"),
+            ToolTip: utility.__get__("ToolTip"),
         };
         returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
 

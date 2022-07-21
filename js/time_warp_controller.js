@@ -247,20 +247,11 @@ function TimeWarpController(svg) {
                 }
             }))
             .on("mouseover", (event, d) => {
-                let div = $("#tooltip-div").css({
-                    left: d.position.x + 10,
-                    top: d.position.y + 10
-                });
-                div.show();
-                let str;
-
-                str = d.binding.timeCell.toString();
-                // TODO: Highlight the row
-
-                div.html(str);
+                //TODO Highlight the time cell
+                ToolTip.show(d.binding.timeCell.toString(), d.position)
             })
             .on("mouseout", function () {
-                $("#tooltip-div").hide();
+                ToolTip.hide();
             });
     }
 

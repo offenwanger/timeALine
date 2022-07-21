@@ -582,3 +582,19 @@ let WarpBindingUtil = function () {
         filterValidWarpBindingIds,
     }
 }();
+
+let ToolTip = function () {
+    function show(str, pos) {
+        let div = $("#tooltip-div").css({
+            left: pos.x + 10,
+            top: pos.y + 10
+        });
+        div.html(str);
+        div.show();
+    }
+
+    return {
+        show,
+        hide: function () { $("#tooltip-div").hide(); }
+    }
+}();
