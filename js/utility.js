@@ -421,8 +421,9 @@ let TimeBindingUtil = function () {
     }
 
     function incrementBy(time, value) {
+        time = time.clone();
         if (time.type == TIMESTRAMP) {
-            time.value += value;
+            time.value += Math.round(value);
         } else {
             console.error("Invalid time type: " + a.type);
         }
