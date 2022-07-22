@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight - 50);
 
+    let mMouseDropShadow = new MouseDropShadow(svg);
+
     let modelController = new ModelController();
 
     let mDraggingValue = null;
@@ -24,8 +26,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // Note that both click and drag get called, ensure code doesn't overlap. 
     lineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mode == MODE_COMMENT) {
-            let type = DataTypes.NUM;
-            if (modelController.hasTimeMapping(timelineId)) type = DataTypes.TIME_BINDING;
+            let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
             let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
             modelController.addBoundTextRow(time.toString(), time, timelineId);
@@ -64,10 +65,30 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     lineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
+        lineViewControllerShowTime(timelineId, mouseCoords);
         dataTableController.highlightCells(modelController.getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
     })
 
+    lineViewController.setMouseMoveCallback(lineViewControllerShowTime);
+
+    function lineViewControllerShowTime(timelineId, mouseCoords) {
+        let timeline = modelController.getTimelineById(timelineId);
+        let pointOnLine = PathMath.getClosestPointOnPath(mouseCoords, timeline.points);
+        try {
+            let time;
+            if (modelController.hasTimeMapping(timelineId)) {
+                time = modelController.mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, pointOnLine.percent).toString();
+            } else {
+                time = "" + Math.round(modelController.mapLinePercentToTime(timelineId, DataTypes.NUM, pointOnLine.percent) * 100) / 100;
+            }
+            ToolTip.show(time, mouseCoords)
+            mMouseDropShadow.show(pointOnLine, mouseCoords)
+        } catch (e) { console.error(e.stack); }
+    }
+
     lineViewController.setMouseOutCallback((timelineId, mouseCoords) => {
+        ToolTip.hide();
+        mMouseDropShadow.hide();
         dataTableController.highlightCells([]);
     })
 
@@ -478,6 +499,37 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#color-picker-input').css('background-color', color);
         $('#color-picker-button').css('background-color', color);
         $.farbtastic('#color-picker-wrapper').setColor(color);
+    }
+
+    function MouseDropShadow(svg) {
+        let shadow = svg.append('g')
+            .attr("id", "mouse-drop-shadow");
+
+        shadow.append('circle')
+            .attr("id", "drop-position")
+            .attr('fill', "grey")
+            .attr('r', 3.5)
+            .attr('opacity', 0.5);
+        shadow.append('line')
+            .attr("id", "drop-line")
+            .attr('stroke-width', 1.5)
+            .attr('stroke', 'grey')
+            .attr('opacity', 0.5);
+
+        this.show = function (dropCoords, mouseCoords) {
+            shadow.select("#drop-position")
+                .attr("cx", dropCoords.x)
+                .attr("cy", dropCoords.y)
+            shadow.select("#drop-line")
+                .attr("x1", dropCoords.x)
+                .attr("y1", dropCoords.y)
+                .attr("x2", mouseCoords.x)
+                .attr("y2", mouseCoords.y)
+            shadow.style("visibility", null);
+        }
+        this.hide = function () { shadow.style("visibility", "hidden"); };
+        // start hidden
+        this.hide();
     }
 
     $(document).on('mousemove', function (e) {

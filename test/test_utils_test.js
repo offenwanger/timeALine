@@ -140,7 +140,7 @@ before(function () {
 
 
     function fakeJqueryFactory() {
-        let selectors = {};
+        let selectors = { "#tooltip-div": new MockJqueryElement() };
 
         function MockJqueryElement() {
             this.find = function () { return this };
@@ -157,6 +157,7 @@ before(function () {
             this.css = function () { return this };
             this.hide = function () { return this };
             this.show = function () { return this };
+            this.html = function (html) { if (html) this.html = html; return this.html; };
         };
 
         function fakeJquery(selector) {

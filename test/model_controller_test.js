@@ -301,9 +301,6 @@ describe('Test ModelController', function () {
 
             modelController.addBoundTextRow("", tb(30), timeline.id);
 
-            console.log(modelController.getAllCellBindingData().map(d => d.timeCell.val.value))
-            console.log(modelController.getAllWarpBindingData().map(d => d.timeCell.val.value))
-
             expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, 0).value).to.be.closeTo(10, 0.0001);
             expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, 0.25).value).to.be.closeTo(25, 0.0001);
             expect(modelController.mapLinePercentToTime(timeline.id, DataTypes.TIME_BINDING, 0.5).value).to.be.closeTo(40, .0001);
@@ -605,6 +602,49 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getAllTimelines()[0].axisBindings.length, 1);
             assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val1, 0);
             assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val2, 7);
+        });
+    })
+});
+
+
+describe('Integration Test ModelController', function () {
+    let integrationEnv;
+    beforeEach(function () {
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+    });
+
+    afterEach(function (done) {
+        integrationEnv.cleanup(done);
+    });
+
+    describe('data tooltips test', function () {
+        it('should show a tooltip with a date', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 125, y: 200 },
+                { x: 150, y: 100 },
+            ], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+
+
+            IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+                [0, 0, "", "July 1 2022"], [0, 1, "", "Text1"],
+                [1, 0, "", "July 11 2022"], [1, 1, "", "Text2"],
+                [2, 0, "", "July 21 2022"], [2, 1, "", "Text3"],
+            ]);
+            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 2, 1]];
+            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+
+            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getAllTimelines()[0].id);
+            timeLineTargets.eventCallbacks['mouseover']({ x: 125, y: 200 }, data);
+
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#tooltip-div"].html, "Sun Jul 10 2022");
         });
     })
 });
