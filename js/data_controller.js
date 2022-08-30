@@ -311,73 +311,115 @@ function AnnotationController(svg) {
     let mAnnotationMouseOverCallback = () => { };
     let mAnnotationMouseOutCallback = () => { };
 
-    let mDraggingAnnotation = null;
     let mDragStartPos = null;
-    let mAnnotationSet = [];
 
     function drawTimelineAnnotations(timeline, boundData) {
-        mAnnotationSet = mAnnotationSet.filter(item => item.binding.timelineId != timeline.id);
-        draw([timeline], boundData);
+        draw(timeline, boundData);
     }
 
     function drawAnnotations(timelines, boundData) {
-        mAnnotationSet = []
-        draw(timelines, boundData);
+        timelines.forEach(timeline => {
+            draw(timeline, boundData.filter(binding => binding.timelineId == timeline.id));
+        })
     }
 
-    function draw(timelines, boundData) {
-        // convert annotations to annotation data
+    function draw(timeline, boundData) {
+        let annotationData = [];
+        let textWidth = 200;
+        let linePadding = 2;
+
         boundData.forEach(binding => {
-            let pos = PathMath.getPositionForPercent(timelines.find(t => t.id == binding.timelineId).points, binding.linePercent);
-            let annotationData = {
-                note: {
-                    label: binding.dataCell.getValue(),
-                    wrap: 200,
-                    padding: 10
-                },
-                x: pos.x,
-                y: pos.y,
-                // hack to get around the broken drag events from the new d3 version
-                className: "id-" + binding.cellBindingId,
+            let pos = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
+            let text = binding.dataCell.getValue();
+            let offsetX = binding.dataCell.offset.x;
+            let offsetY = binding.dataCell.offset.y;
 
-                dy: binding.dataCell.offset.y,
-                dx: binding.dataCell.offset.x,
-
-                binding
-            }
-
-            mAnnotationSet.push(annotationData);
+            annotationData.push({ x: pos.x, y: pos.y, text, offsetX, offsetY, binding });
         })
 
-        // TODO: Find a better library. This one has loading time issues. 
-        const makeAnnotations = d3.annotation();
-        makeAnnotations.annotations(mAnnotationSet);
-        mAnnotationDisplayGroup.call(makeAnnotations);
+        let selection = mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id).data(annotationData);
+        selection.exit().remove();
+        selection.enter().append("text")
+            .classed("annotation-text_" + timeline.id, true)
 
-        d3.selectAll(".annotation")
+        mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id)
+            .attr("x", function (d) { return d.x + d.offsetX; })
+            .attr("y", function (d) { return d.y + d.offsetY; })
+            .text(function (d) { return d.text; })
+            .call(wrapWords, textWidth);
+
+        let horizontalLineData = []
+        let connectingLineData = []
+        mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id).each(function (d) {
+            let boundingBox = this.getBBox();
+            let x1 = boundingBox.x;
+            let x2 = boundingBox.x + boundingBox.width;
+            let y1 = boundingBox.y;
+            let y2 = boundingBox.y + boundingBox.height;
+            let closeY, closeX;
+            if (Math.abs(d.y - y1) < Math.abs(d.y - y2)) {
+                closeY = y1 - linePadding;
+            } else {
+                closeY = y2 + linePadding;
+            }
+
+            if (Math.abs(d.x - x1) < Math.abs(d.x - x2)) {
+                closeX = x1 - linePadding;
+            } else {
+                closeX = x2 + linePadding;
+            }
+
+            horizontalLineData.push({ x1: x1 - linePadding, x2: x2 + linePadding, y: closeY });
+            connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY });
+        })
+
+        let horizontalLines = mAnnotationDisplayGroup.selectAll('.horizontal-line_' + timeline.id).data(horizontalLineData);
+        horizontalLines.exit().remove();
+        horizontalLines.enter()
+            .append('line')
+            .classed("horizontal-line_" + timeline.id, true)
+            .attr('stroke-width', 0.5)
+            .attr('stroke', 'black')
+            .attr('opacity', 0.6);
+        mAnnotationDisplayGroup.selectAll('.horizontal-line_' + timeline.id)
+            .attr('x1', function (d) { return d.x1 })
+            .attr('y1', function (d) { return d.y })
+            .attr('x2', function (d) { return d.x2 })
+            .attr('y2', function (d) { return d.y });
+
+
+        let connectingLines = mAnnotationDisplayGroup.selectAll('.connecting-line_' + timeline.id).data(connectingLineData);
+        connectingLines.exit().remove();
+        connectingLines.enter()
+            .append('line')
+            .classed("connecting-line_" + timeline.id, true)
+            .attr('stroke-width', 0.5)
+            .attr('stroke', 'black')
+            .attr('opacity', 0.6);
+        mAnnotationDisplayGroup.selectAll('.connecting-line_' + timeline.id)
+            .attr('x1', function (d) { return d.x1 })
+            .attr('y1', function (d) { return d.y1 })
+            .attr('x2', function (d) { return d.x2 })
+            .attr('y2', function (d) { return d.y2 });
+
+        // Set interaction events
+        mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id)
             .on(".drag", null)
             .call(d3.drag()
-                .on('start', function (e) {
-                    let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                    let annotation = mAnnotationSet.find(a => a.className == id);
-                    mDraggingAnnotation = annotation;
+                .on('start', function (e, d) {
                     mDragStartPos = { x: e.x, y: e.y };
-
-                    mAnnotationDragStartCallback(annotation.binding, mDragStartPos);
+                    mAnnotationDragStartCallback(d.binding, mDragStartPos);
                 })
-                .on('drag', function (e) {
-                    mAnnotationDragCallback(mDraggingAnnotation.binding, mDragStartPos, { x: e.x, y: e.y });
+                .on('drag', function (e, d) {
+                    mAnnotationDragCallback(d.binding, mDragStartPos, { x: e.x, y: e.y });
                 })
-                .on('end', function (e) {
-                    mAnnotationDragEndCallback(mDraggingAnnotation.binding, mDragStartPos, { x: e.x, y: e.y });
+                .on('end', function (e, d) {
+                    mAnnotationDragEndCallback(d.binding, mDragStartPos, { x: e.x, y: e.y });
                     // cleanup
-                    mDraggingAnnotation = null;
                     mDragStartPos = null;
                 }))
-            .on('dblclick', function () {
-                let position = d3.select(this).select("tspan").node().getBoundingClientRect();
-                let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                let annotation = annotationSet.find(a => a.className == id);
+            .on('dblclick', function (e, d) {
+                let position = d3.select(this).node().getBoundingClientRect();
                 let inputbox = d3.select("#input-box");
 
                 inputbox
@@ -386,37 +428,80 @@ function AnnotationController(svg) {
                     .attr("height", inputbox.property("scrollHeight"))
                     .on('input', null)
                     .on('input', function (e) {
-                        annotation.note.label = inputbox.property("value");
-                        mAnnotationTextUpdatedCallback(annotation.binding.id, inputbox.property("value"))
+                        console.log(d)
+                        mAnnotationTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
                         inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
-                        makeAnnotations.annotations(annotationSet);
-                        mAnnotationDisplayGroup.call(makeAnnotations);
                     }).on('change', function (e) {
+                        inputbox
+                            .style("top", "-200px")
+                            .style("left", "-100px")
+                    }).on('blur', function (e) {
                         inputbox
                             .style("top", "-200px")
                             .style("left", "-100px")
                     });
 
-                inputbox.property("value", annotation.note.label);
+                inputbox.property("value", d.text);
                 inputbox.style("height", inputbox.property("scrollHeight") + "px");
-                inputbox.style("width", annotation.note.wrap + "px");
+                inputbox.style("width", textWidth + "px");
 
                 inputbox.node().focus();
             })
-            .on('mouseover', function (e) {
-                let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                let annotation = mAnnotationSet.find(a => a.className == id);
+            .on('mouseover', function (e, d) {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-
-                mAnnotationMouseOverCallback(annotation.binding, mouseCoords);
+                mAnnotationMouseOverCallback(d.binding, mouseCoords);
             })
-            .on('mouseout', function (e) {
-                let id = d3.select(this).attr("class").split(" ").filter(cls => cls.startsWith("id-"))
-                let annotation = mAnnotationSet.find(a => a.className == id);
+            .on('mouseout', function (e, d) {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-
-                mAnnotationMouseOutCallback(annotation.binding, mouseCoords);
+                mAnnotationMouseOutCallback(d.binding, mouseCoords);
             });
+    }
+
+    function wrapWords(text, width) {
+        text.each(function () {
+            let text = d3.select(this);
+            let words = text.text().split(/\s+/).reverse();
+            let word;
+            let line = [];
+            let lineNumber = 1;
+            let lineHeight = 1.1; // ems
+            let x = text.attr("x");
+            let y = text.attr("y");
+            let tspan = text.text(null).append("tspan")
+                .attr("x", x)
+                .attr("y", y)
+                .attr("dy", "0em");
+
+            while (word = words.pop()) {
+                tspan.text(word);
+                if (tspan.node().getComputedTextLength() > width) {
+                    for (let i = 0; i < word.length; i++) {
+                        tspan.text(word.substring(0, i));
+                        if (tspan.node().getComputedTextLength() > width) {
+                            temp = word.substring(0, i - 1);
+                            words.push(word.substring(i - 1));
+                            word = temp;
+                            break;
+                        }
+                    }
+                }
+
+                line.push(word);
+                tspan.text(line.join(" "));
+                if (tspan.node().getComputedTextLength() > width) {
+                    line.pop();
+                    tspan.text(line.join(" "));
+                    line = [word];
+                    tspan = text.append("tspan")
+                        .attr("x", x)
+                        .attr("y", y)
+                        .attr("dy", lineNumber * lineHeight + "em")
+                        .text(word);
+                    lineNumber++;
+
+                }
+            }
+        });
     }
 
     this.drawAnnotations = drawAnnotations;

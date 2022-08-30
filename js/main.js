@@ -135,6 +135,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     dataController.setDataDragCallback((cellBindingData, startPos, mousePos) => {
         if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, mousePos)) return;
+
             let bindingData = modelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
 
@@ -162,6 +165,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     dataController.setDataDragEndCallback((cellBindingData, startPos, mousePos) => {
         if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, mousePos)) return;
+
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
             modelController.updateTextOffset(cellBindingData.dataCell.id, offset);
 

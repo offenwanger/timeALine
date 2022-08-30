@@ -28,11 +28,9 @@ body {
     position: absolute;
     top: -100;
     left: -100;
-    background: transparent;
-    border: none;
-    outline: none;
+    background: white;
+    border: 1 solid black;
     cursor: default;
-    color: transparent;
     caret-color: black;
     font-family: "Times New Roman", Times, serif;
     font-size: 12pt;
