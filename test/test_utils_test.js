@@ -91,6 +91,7 @@ before(function () {
                 node.d = this.attrs.d;
                 return node;
             };
+            this.each = function (func) { };
             this.text = function () { return this; };
         };
         this.mockElement = MockElement;
@@ -98,16 +99,6 @@ before(function () {
         this.mockDrag = {
             on: function (e, func) { this[e] = func; return this; }
         }
-
-        this.fakeAnnotation = {
-            annotationData: null,
-            accessors: function () { return this },
-            annotations: function (data) {
-                this.annotationData = data;
-                return this;
-            },
-        }
-        this.annotation = () => this.fakeAnnotation;
 
         this.svg = Object.assign({}, this.mockSvg);
 

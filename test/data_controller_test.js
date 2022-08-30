@@ -56,7 +56,7 @@ describe('Test DataController', function () {
 
             getDataController().drawData(timelines, boundData);
 
-            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelines[0].id].innerData;
             expect(annotationSet.map(i => { return { x: Math.floor(i.x), y: Math.floor(i.y) } }))
                 .to.eql([{ x: 20, y: 10 }, { x: 10, y: 5 }, { x: 30, y: 15 }], 0.0001);
         })
@@ -86,14 +86,15 @@ describe('Integration Test DataController', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 10, y: 105 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
             assert.equal(annotationSet.length, 3, "Annotations not created")
             expect(annotationSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
             expect(annotationSet.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
@@ -113,35 +114,39 @@ describe('Integration Test DataController', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 40, y: 103 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 100, y: 100 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 40, y: 103 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            expect(annotationSet[1].offsetX).to.eql(10)
+            expect(annotationSet[1].offsetY).to.eql(10)
+            let annotationData = annotationSet[1]
+            let label = annotationData.text;
 
-            let annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
-            expect(annotationSet[1].dx).to.eql(10)
-            expect(annotationSet[1].dy).to.eql(10)
-            let class1 = annotationSet[1].className;
-            let label1 = annotationSet[1].note.label;
-            let fakeThis = { attr: () => class1 }
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.start;
+            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.drag;
+            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.end;
 
-            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.start;
-            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.drag;
-            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation"].drag.end;
-
-            onCommentDragStart.call(fakeThis, { x: 130, y: 110 });
-            onCommentDrag.call(fakeThis, { x: 140, y: 120 });
+            onCommentDragStart({ x: 130, y: 110 }, annotationData);
+            onCommentDrag({ x: 140, y: 120 }, annotationData);
 
             // Check that the correct annotation is updating
-            annotationSet = integrationEnv.enviromentVariables.d3.fakeAnnotation.annotationData;
-            expect(annotationSet[1].dx).to.eql(20)
-            expect(annotationSet[1].dy).to.eql(20)
-            expect(annotationSet[1].note.label).to.eql(label1)
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            expect(annotationSet[1].offsetX).to.eql(20)
+            expect(annotationSet[1].offsetY).to.eql(20)
+            expect(annotationSet[1].text).to.eql(label)
 
-            onCommentDragEnd.call(fakeThis, { x: 140, y: 120 });
+            onCommentDragEnd({ x: 140, y: 120 }, annotationData);
+
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            expect(annotationSet[1].offsetX).to.eql(20)
+            expect(annotationSet[1].offsetY).to.eql(20)
+            expect(annotationSet[1].text).to.eql(label)
 
             // Check that the correct cell binding was updated
             assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);

@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
 
             // copy the dataCell to avoid modification leaks
-            let dataCell = bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell.clone();
+            let dataCell = bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell.copy();
             dataCell.offset = offset;
             bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell = dataCell;
 

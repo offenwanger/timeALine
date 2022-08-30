@@ -55,13 +55,11 @@ let DataStructs = function () {
                 this.cellBindingId,
                 this.tableId,
                 this.rowId,
-                this.timeCell.clone(),
-                this.dataCell.clone(),
+                this.timeCell.copy(),
+                this.dataCell.copy(),
                 this.linePercent,
                 this.axisBinding
             )
-            b.timeCell.id = this.timeCell.id;
-            b.dataCell.id = this.dataCell.id;
             return b;
         }
     }
@@ -215,6 +213,12 @@ let DataStructs = function () {
             } else {
                 console.error("Invalid value type! ", this.val);
             }
+        }
+
+        this.copy = function () {
+            let cell = new DataCell(this.type, this.val, this.columnId, this.offset);
+            cell.id = this.id;
+            return cell;
         }
 
         this.clone = function () {
