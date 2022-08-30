@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     dataController.setTextUpdatedCallback((cellId, text) => {
         modelController.updateText(cellId, text);
         dataTableController.updateTableData(modelController.getAllTables());
+        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
     });
     dataController.setDataDragStartCallback((cellBindingData, startPos) => {
         if (mode == MODE_PIN) {

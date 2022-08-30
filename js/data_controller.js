@@ -313,31 +313,54 @@ function AnnotationController(svg) {
 
     let mDragStartPos = null;
 
+    let mDataCache = {};
+
     function drawTimelineAnnotations(timeline, boundData) {
         draw(timeline, boundData);
     }
 
     function drawAnnotations(timelines, boundData) {
+        // clear the cache, redraw
+        mDataCache = {};
         timelines.forEach(timeline => {
             draw(timeline, boundData.filter(binding => binding.timelineId == timeline.id));
         })
     }
 
     function draw(timeline, boundData) {
-        let annotationData = [];
+        let annotationDataset = [];
         let textWidth = 200;
         let linePadding = 2;
 
-        boundData.forEach(binding => {
-            let pos = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
-            let text = binding.dataCell.getValue();
-            let offsetX = binding.dataCell.offset.x;
-            let offsetY = binding.dataCell.offset.y;
+        let timelineChanged = !mDataCache[timeline.id] || mDataCache[timeline.id].points != JSON.stringify(timeline.points);
+        if (timelineChanged) {
+            // reset the cache for this timeline (or set it in the first place)
+            mDataCache[timeline.id] = {
+                points: JSON.stringify(timeline.points),
+                bindings: {},
+                annotationData: {}
+            };
+        }
 
-            annotationData.push({ x: pos.x, y: pos.y, text, offsetX, offsetY, binding });
+        boundData.forEach(binding => {
+            let annotationData;
+            if (!mDataCache[timeline.id].bindings[binding.cellBindingId] || mDataCache[timeline.id].bindings[binding.cellBindingId] != JSON.stringify(binding)) {
+                let pos = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
+                let text = binding.dataCell.getValue();
+                let offsetX = binding.dataCell.offset.x;
+                let offsetY = binding.dataCell.offset.y;
+                annotationData = { x: pos.x, y: pos.y, text, offsetX, offsetY, binding };
+
+                mDataCache[timeline.id].bindings[binding.cellBindingId] = JSON.stringify(binding);
+                mDataCache[timeline.id].annotationData[binding.cellBindingId] = annotationData;
+            } else {
+                annotationData = mDataCache[timeline.id].annotationData[binding.cellBindingId]
+            }
+
+            annotationDataset.push(annotationData);
         })
 
-        let selection = mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id).data(annotationData);
+        let selection = mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id).data(annotationDataset);
         selection.exit().remove();
         selection.enter().append("text")
             .classed("annotation-text_" + timeline.id, true)
@@ -345,8 +368,7 @@ function AnnotationController(svg) {
         mAnnotationDisplayGroup.selectAll(".annotation-text_" + timeline.id)
             .attr("x", function (d) { return d.x + d.offsetX; })
             .attr("y", function (d) { return d.y + d.offsetY; })
-            .text(function (d) { return d.text; })
-            .call(wrapWords, textWidth);
+            .call(setText, textWidth);
 
         let horizontalLineData = []
         let connectingLineData = []
@@ -428,14 +450,13 @@ function AnnotationController(svg) {
                     .attr("height", inputbox.property("scrollHeight"))
                     .on('input', null)
                     .on('input', function (e) {
-                        console.log(d)
-                        mAnnotationTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
                         inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
                     }).on('change', function (e) {
                         inputbox
                             .style("top", "-200px")
                             .style("left", "-100px")
                     }).on('blur', function (e) {
+                        mAnnotationTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
                         inputbox
                             .style("top", "-200px")
                             .style("left", "-100px")
@@ -457,50 +478,53 @@ function AnnotationController(svg) {
             });
     }
 
-    function wrapWords(text, width) {
-        text.each(function () {
-            let text = d3.select(this);
-            let words = text.text().split(/\s+/).reverse();
-            let word;
-            let line = [];
-            let lineNumber = 1;
-            let lineHeight = 1.1; // ems
-            let x = text.attr("x");
-            let y = text.attr("y");
-            let tspan = text.text(null).append("tspan")
-                .attr("x", x)
-                .attr("y", y)
-                .attr("dy", "0em");
+    function setText(textElements, width) {
+        textElements.each(function () {
+            let textElement = d3.select(this);
+            let text = d3.select(this).datum().text;
+            let currentText = textElement.text();
 
-            while (word = words.pop()) {
-                tspan.text(word);
-                if (tspan.node().getComputedTextLength() > width) {
-                    for (let i = 0; i < word.length; i++) {
-                        tspan.text(word.substring(0, i));
-                        if (tspan.node().getComputedTextLength() > width) {
-                            temp = word.substring(0, i - 1);
-                            words.push(word.substring(i - 1));
-                            word = temp;
-                            break;
+            if (currentText.replace(/\s+/, "") != text.replace(/\s+/, "")) {
+                let words = text.split(/\s+/).reverse();
+                let word;
+                let line = [];
+                let lineNumber = 1;
+                let lineHeight = 1.1; // ems
+                let tspan = textElement.text(null).append("tspan")
+                    .attr("dy", "0em");
+
+                while (word = words.pop()) {
+                    tspan.text(word);
+                    if (tspan.node().getComputedTextLength() > width) {
+                        for (let i = 0; i < word.length; i++) {
+                            tspan.text(word.substring(0, i));
+                            if (tspan.node().getComputedTextLength() > width) {
+                                temp = word.substring(0, i - 1);
+                                words.push(word.substring(i - 1));
+                                word = temp;
+                                break;
+                            }
                         }
                     }
-                }
 
-                line.push(word);
-                tspan.text(line.join(" "));
-                if (tspan.node().getComputedTextLength() > width) {
-                    line.pop();
+                    line.push(word);
                     tspan.text(line.join(" "));
-                    line = [word];
-                    tspan = text.append("tspan")
-                        .attr("x", x)
-                        .attr("y", y)
-                        .attr("dy", lineNumber * lineHeight + "em")
-                        .text(word);
-                    lineNumber++;
+                    if (tspan.node().getComputedTextLength() > width) {
+                        line.pop();
+                        tspan.text(line.join(" "));
+                        line = [word];
+                        tspan = textElement.append("tspan")
+                            .attr("dy", lineNumber * lineHeight + "em")
+                            .text(word);
+                        lineNumber++;
 
+                    }
                 }
             }
+
+            textElement.selectAll("tspan")
+                .attr("x", textElement.attr("x"))
+                .attr("y", textElement.attr("y"));
         });
     }
 
