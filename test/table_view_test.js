@@ -20,7 +20,7 @@ describe('Test TableViewer', function () {
     describe('intialization test', function () {
         it('should intialize', function () {
             let controller = getTableViewController();
-            controller.addTable(TestUtils.makeTestTable(3, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(3, 3));
         });
     })
 
@@ -40,7 +40,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addTable(TestUtils.makeTestTable(rowCount, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
             integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([1], 4)
 
             assert.equal(callbackCalled, true);
@@ -62,7 +62,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addTable(TestUtils.makeTestTable(rowCount, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3], 1)
 
@@ -85,7 +85,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addTable(TestUtils.makeTestTable(rowCount, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([0, 1], 3)
 
@@ -108,7 +108,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addTable(TestUtils.makeTestTable(rowCount, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3, 4], 1);
 
@@ -133,7 +133,7 @@ describe('Test TableViewer', function () {
 
             let controller = getTableViewController();
 
-            controller.addTable(TestUtils.makeTestTable(rowCount, 3));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
 
@@ -215,7 +215,7 @@ describe('Test TableViewer', function () {
             table.dataRows[3].dataCells[0].val = "2022-02-04"
             table.dataRows[4].dataCells[0].val = "7"
             table.dataRows[5].dataCells[0].val = "10"
-            controller.addTable(table);
+            controller.addOrUpdateTables(table);
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -254,7 +254,7 @@ describe('Test TableViewer', function () {
 
             let rowCount = 6;
             let colCount = 5;
-            controller.addTable(TestUtils.makeTestTable(rowCount, colCount));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, colCount));
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -281,7 +281,7 @@ describe('Test TableViewer', function () {
 
             let rowCount = 6;
             let colCount = 5;
-            controller.addTable(TestUtils.makeTestTable(rowCount, colCount));
+            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, colCount));
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
