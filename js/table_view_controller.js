@@ -10,13 +10,22 @@ function DataTableController() {
     let mLastSort = -1;
 
     let hotTables = {};
+    let mDataTables = {};
 
     let mHighlightCells = [];
+
+    function redrawAllTables(allTables) {
+        $("#table-list").empty();
+        hotTables = {};
+        mDataTables = {};
+        updateTableData(allTables);
+    }
 
     function updateTableData(tables) {
         tables.forEach(table => {
             if (table.id in hotTables) {
                 hotTables[table.id].loadData(getTextArray(table));
+                mDataTables[table.id] = table;
             } else {
                 addTable(table);
             }
@@ -24,6 +33,9 @@ function DataTableController() {
     }
 
     function addTable(table) {
+        let tableId = table.id;
+        mDataTables[tableId] = table;
+
         table.dataColumns.sort((a, b) => a.index - b.index)
         let colHeader = table.dataColumns.map(col => col.name)
 
@@ -81,11 +93,10 @@ function DataTableController() {
 
                 for (let col = startCol; col <= endCol; col++) {
                     for (let row = startRow; row <= endRow; row++) {
-                        let tableId = table.id;
                         // TODO: verify datarow is actually found;
-                        let dataRow = table.dataRows.find(r => r.index == row);
+                        let dataRow = mDataTables[tableId].dataRows.find(r => r.index == row);
                         let rowId = dataRow.id;
-                        let columnId = table.dataColumns.find(c => c.index == col).id;
+                        let columnId = mDataTables[tableId].dataColumns.find(c => c.index == col).id;
                         let cellId = dataRow.getCell(columnId).id;
                         data.push(new DataStructs.CellBinding(tableId, rowId, columnId, cellId));
                     }
@@ -98,8 +109,8 @@ function DataTableController() {
         function highlightRender(instance, td, row, col, prop, value, cellProperties) {
             Handsontable.renderers.TextRenderer.apply(this, arguments);
 
-            let columnId = table.dataColumns.find(col => col.index == prop).id;
-            let cell = table.dataRows.find(r => r.index == row).getCell(columnId);
+            let columnId = mDataTables[tableId].dataColumns.find(col => col.index == prop).id;
+            let cell = mDataTables[tableId].dataRows.find(r => r.index == row).getCell(columnId);
             if (mHighlightCells.length > 0 && !mHighlightCells.includes(cell.id)) {
                 td.style.filter = 'brightness(85%) contrast(0.85) opacity(0.5)';
             }
@@ -115,47 +126,47 @@ function DataTableController() {
             if (changes) {
                 let updatedCells = [];
                 changes.forEach(([row, prop, oldValue, newValue]) => {
-                    let columnId = table.dataColumns.find(col => col.index == prop).id;
-                    let cell = table.dataRows.find(r => r.index == row).getCell(columnId);
+                    let columnId = mDataTables[tableId].dataColumns.find(col => col.index == prop).id;
+                    let cell = mDataTables[tableId].dataRows.find(r => r.index == row).getCell(columnId);
                     cell.val = newValue;
                     updatedCells.push(cell.id);
                 });
 
-                mTableUpdatedCallback(table, TableChange.UPDATE_CELLS, updatedCells);
+                mTableUpdatedCallback(mDataTables[tableId], TableChange.UPDATE_CELLS, updatedCells);
             }
         }
 
         function afterCreateRow(startIndex, numberOfRows) {
-            table.dataRows.forEach(row => {
+            mDataTables[tableId].dataRows.forEach(row => {
                 if (row.index >= startIndex) row.index += numberOfRows;
             })
 
             let newRows = [];
             for (let i = 0; i < numberOfRows; i++) {
                 let newRow = new DataStructs.DataRow();
-                table.dataColumns.forEach(column => newRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", column.id)));
+                mDataTables[tableId].dataColumns.forEach(column => newRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", column.id)));
                 newRow.index = startIndex + i;
-                table.dataRows.push(newRow);
+                mDataTables[tableId].dataRows.push(newRow);
                 newRows.push(newRow.id);
             }
 
-            mTableUpdatedCallback(table, TableChange.CREATE_ROWS, newRows);
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_ROWS, newRows);
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getTextArray(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(mDataTables[tableId])), 0);
         }
 
         function afterRemoveRow(index, amount) {
-            let removedRows = table.dataRows.filter(row => row.index >= index && row.index < index + amount).map(row => row.id);
+            let removedRows = mDataTables[tableId].dataRows.filter(row => row.index >= index && row.index < index + amount).map(row => row.id);
 
-            table.dataRows = table.dataRows.filter(row => row.index < index || row.index >= index + amount);
+            mDataTables[tableId].dataRows = mDataTables[tableId].dataRows.filter(row => row.index < index || row.index >= index + amount);
 
-            table.dataRows.forEach(row => {
+            mDataTables[tableId].dataRows.forEach(row => {
                 if (row.index > index) row.index -= amount;
             });
 
-            mTableUpdatedCallback(table, TableChange.DELETE_ROWS, removedRows);
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.DELETE_ROWS, removedRows);
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getTextArray(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(mDataTables[tableId])), 0);
         }
 
         function afterRowMove(movedRows, finalIndex) {
@@ -164,7 +175,7 @@ function DataTableController() {
             let startIndex = Math.min(...movedRows);
             let endIndex = Math.max(...movedRows);
             let numberOfRows = endIndex - startIndex + 1;
-            table.dataRows.forEach(row => {
+            mDataTables[tableId].dataRows.forEach(row => {
                 if (row.index >= startIndex && row.index <= endIndex) {
                     row.index = row.index - startIndex + finalIndex;
                 } else if (row.index < startIndex && row.index >= finalIndex) {
@@ -174,50 +185,50 @@ function DataTableController() {
                 }
             })
 
-            mTableUpdatedCallback(table, TableChange.REORDER_ROWS);
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.REORDER_ROWS);
             // For some reason handsontable objects to being updated in this function, so just make it async.
-            setTimeout(() => hot.loadData(getTextArray(table)), 0);
+            setTimeout(() => hot.loadData(getTextArray(mDataTables[tableId])), 0);
         }
 
         function afterCreateCol(startIndex, numberOfCols) {
-            table.dataColumns.forEach(col => {
+            mDataTables[tableId].dataColumns.forEach(col => {
                 if (col.index >= startIndex) col.index += numberOfCols;
             })
 
             let newCols = [];
             for (let i = 0; i < numberOfCols; i++) {
                 let newCol = new DataStructs.DataColumn("", startIndex + i);
-                table.dataRows.forEach(row => row.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newCol.id)));
-                table.dataColumns.push(newCol);
+                mDataTables[tableId].dataRows.forEach(row => row.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newCol.id)));
+                mDataTables[tableId].dataColumns.push(newCol);
                 newCols.push(newCol.id);
             }
 
-            mTableUpdatedCallback(table, TableChange.CREATE_COLUMNS, newCols)
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_COLUMNS, newCols)
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.loadData(getTextArray(table));
-                table.dataColumns.sort((a, b) => a.index - b.index)
-                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+                hot.loadData(getTextArray(mDataTables[tableId]));
+                mDataTables[tableId].dataColumns.sort((a, b) => a.index - b.index)
+                hot.updateSettings({ colHeaders: mDataTables[tableId].dataColumns.map(col => col.name) });
             }, 0);
         }
 
         function afterRemoveCol(index, amount) {
-            let removedColumns = table.dataColumns.filter(col => col.index >= index && col.index < index + amount).map(col => col.id);
-            table.dataColumns = table.dataColumns.filter(col => col.index < index || col.index >= index + amount);
+            let removedColumns = mDataTables[tableId].dataColumns.filter(col => col.index >= index && col.index < index + amount).map(col => col.id);
+            mDataTables[tableId].dataColumns = mDataTables[tableId].dataColumns.filter(col => col.index < index || col.index >= index + amount);
 
-            table.dataColumns.forEach(col => {
+            mDataTables[tableId].dataColumns.forEach(col => {
                 if (col.index > index) col.index -= amount;
             })
 
-            table.dataRows.forEach(row => {
+            mDataTables[tableId].dataRows.forEach(row => {
                 row.dataCells = row.dataCells.filter(cell => !removedColumns.includes(cell.columnId));
             });
 
-            mTableUpdatedCallback(table, TableChange.DELETE_COLUMNS, removedColumns)
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.DELETE_COLUMNS, removedColumns)
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
-                hot.loadData(getTextArray(table));
+                hot.updateSettings({ colHeaders: mDataTables[tableId].dataColumns.map(col => col.name) });
+                hot.loadData(getTextArray(mDataTables[tableId]));
             }, 0);
         }
 
@@ -227,7 +238,7 @@ function DataTableController() {
             let startIndex = Math.min(...movedColumns);
             let endIndex = Math.max(...movedColumns);
             let numberOfCols = endIndex - startIndex + 1;
-            table.dataColumns.forEach(col => {
+            mDataTables[tableId].dataColumns.forEach(col => {
                 if (col.index >= startIndex && col.index <= endIndex) {
                     col.index = col.index - startIndex + finalIndex;
                 } else if (col.index < startIndex && col.index >= finalIndex) {
@@ -237,18 +248,18 @@ function DataTableController() {
                 }
             })
 
-            mTableUpdatedCallback(table, TableChange.REORDER_COLUMNS);
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.REORDER_COLUMNS);
             // For some reason handsontable objects to being updated in this function, so just make it async.
             setTimeout(() => {
-                hot.loadData(getTextArray(table));
-                table.dataColumns.sort((a, b) => a.index - b.index)
-                hot.updateSettings({ colHeaders: table.dataColumns.map(col => col.name) });
+                hot.loadData(getTextArray(mDataTables[tableId]));
+                mDataTables[tableId].dataColumns.sort((a, b) => a.index - b.index)
+                hot.updateSettings({ colHeaders: mDataTables[tableId].dataColumns.map(col => col.name) });
             }, 0);
         }
 
         function beforeColumnSort(currentSortConfig, destinationSortConfigs) {
             let columnIndex = destinationSortConfigs[0].column
-            let column = table.dataColumns[columnIndex];
+            let column = mDataTables[tableId].dataColumns[columnIndex];
             let order = 1;
 
             if (mLastSort == columnIndex) {
@@ -256,7 +267,7 @@ function DataTableController() {
                 mLastSort = -1;
             } else mLastSort = columnIndex;
 
-            table.dataRows.sort((rowA, rowB) => {
+            mDataTables[tableId].dataRows.sort((rowA, rowB) => {
                 let returnable = 0;
                 let cellA = rowA.getCell(column.id);
                 let cellB = rowB.getCell(column.id);
@@ -284,12 +295,12 @@ function DataTableController() {
                 return returnable * order;
             });
 
-            table.dataRows.forEach((row, index) => {
+            mDataTables[tableId].dataRows.forEach((row, index) => {
                 row.index = index;
             });
 
-            mTableUpdatedCallback(table, TableChange.REORDER_ROWS);
-            setTimeout(() => { hot.loadData(getTextArray(table)); }, 0);
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.REORDER_ROWS);
+            setTimeout(() => { hot.loadData(getTextArray(mDataTables[tableId])); }, 0);
 
             return false;
         }
@@ -393,6 +404,7 @@ function DataTableController() {
 
     this.addTable = addTable;
     this.updateTableData = updateTableData;
+    this.redrawAllTables = redrawAllTables;
     this.setTableUpdatedCallback = (callback) => mTableUpdatedCallback = callback;
     this.getSelectedCells = getSelectedCells;
     this.highlightCells = highlightCells;

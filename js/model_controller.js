@@ -2,16 +2,23 @@ function ModelController() {
     let mTimelines = [];
     let mDataTables = [];
 
+    let mUndoStack = [];
+    let mRedoStack = [];
+
     function newTimeline(points) {
+        undoStackPush();
+
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
-        let timeline = new DataStructs.Timeline(points);
+        let timeline = new DataStructs.Timeline(points.map(p => Object.assign({}, p)));
         mTimelines.push(timeline);
 
         return timeline;
     }
 
     function extendTimeline(timelineId, points, extendStart) {
+        undoStackPush();
+
         let timeline = getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.points);
 
@@ -38,6 +45,8 @@ function ModelController() {
     }
 
     function mergeTimeline(timelineIdStart, timelineIdEnd, points) {
+        undoStackPush();
+
         let startTimeline = getTimelineById(timelineIdStart);
         let endTimeline = getTimelineById(timelineIdEnd);
 
@@ -112,10 +121,14 @@ function ModelController() {
     }
 
     function deleteTimeline(timelineId) {
+        undoStackPush();
+
         mTimelines = mTimelines.filter(t => t.id != timelineId);
     }
 
     function breakTimeline(timelineId, segments) {
+        undoStackPush();
+
         if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
         let timeline = getTimelineById(timelineId);
@@ -221,6 +234,8 @@ function ModelController() {
     //// end Break Utils ////
 
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
+        undoStackPush();
+
         let timeline = getTimelineById(timelineId);
 
         timeline.points = PathMath.mergeSegments(newSegments);
@@ -257,6 +272,8 @@ function ModelController() {
     }
 
     function addBoundTextRow(text, timeBinding, timelineId) {
+        undoStackPush();
+
         if (mDataTables.length == 0) {
             let newTable = new DataStructs.DataTable([
                 new DataStructs.DataColumn("Time", 0),
@@ -288,6 +305,8 @@ function ModelController() {
     }
 
     function addOrUpdateWarpBinding(timelineId, alteredBindingData) {
+        undoStackPush();
+
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
 
         let timeline = getTimelineById(timelineId);
@@ -309,6 +328,8 @@ function ModelController() {
     }
 
     function addTimeRow(time) {
+        undoStackPush();
+
         if ((typeof time == "number" && isNaN(time))) throw new Error("Invalid time!")
 
         if (mDataTables.length == 0) {
@@ -337,11 +358,15 @@ function ModelController() {
     }
 
     function updateText(cellId, text) {
+        undoStackPush();
+
         let cell = getCellById(cellId);
         cell.val = text;
     }
 
     function updateTextOffset(cellId, offset) {
+        undoStackPush();
+
         let cell = getCellById(cellId);
         cell.offset = offset;
     }
@@ -359,11 +384,15 @@ function ModelController() {
     }
 
     function addTable(table) {
+        undoStackPush();
+
         // TODO validate table.
-        mDataTables.push(table);
+        mDataTables.push(table.copy());
     }
 
     function addTableFromCSV(array2d) {
+        undoStackPush();
+
         // TODO validate array
 
         let table = new DataStructs.DataTable();
@@ -400,6 +429,11 @@ function ModelController() {
     }
 
     function tableUpdated(table, change, changeData) {
+        undoStackPush();
+
+        // sanitize the table to prevent data leaks
+        table = table.copy();
+
         let index = mDataTables.findIndex(t => t.id == table.id);
         mDataTables[index] = table;
 
@@ -455,6 +489,8 @@ function ModelController() {
     //// end of table Update Util functions ////
 
     function bindCells(lineId, cellBindings) {
+        undoStackPush();
+
         let timeline = getTimelineById(lineId);
         let filteredBindings = cellBindings.filter(binding => binding.columnId != getTimeColumn(binding.tableId).id);
         timeline.cellBindings.push(...filteredBindings);
@@ -493,6 +529,8 @@ function ModelController() {
     }
 
     function updateAxisDist(axisId, oneOrTwo, dist) {
+        undoStackPush();
+
         let axis = getAxisById(axisId);
 
         if (!axis) throw Error("Invalid axis id: " + axisId);
@@ -639,7 +677,7 @@ function ModelController() {
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
             let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
-            if (!row) { console.error("Invalid cell binding! No row!"); return; }
+            if (!row) { breakhere; console.error("Invalid cell binding! No row!"); return; }
 
             let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
             if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
@@ -868,10 +906,48 @@ function ModelController() {
     }
 
     function setModelFromObject(obj) {
+        undoStackPush();
+
         mTimelines = [];
         mDataTables = [];
         obj.timelines.forEach(timeline => mTimelines.push(DataStructs.Timeline.fromObject(timeline)))
         obj.dataTables.forEach(table => mDataTables.push(DataStructs.DataTable.fromObject(table)))
+    }
+
+    function undo() {
+        if (mUndoStack.length == 0) return false;
+        mRedoStack.push({
+            mTimelines: mTimelines.map(t => t.copy()),
+            mDataTables: mDataTables.map(t => t.copy())
+        });
+
+        let data = mUndoStack.pop();
+        mTimelines = data.mTimelines;
+        mDataTables = data.mDataTables;
+
+        return true;
+    }
+
+    function redo() {
+        if (mRedoStack.length == 0) return false;
+        mUndoStack.push({
+            mTimelines: mTimelines.map(t => t.copy()),
+            mDataTables: mDataTables.map(t => t.copy())
+        });
+
+        let data = mRedoStack.pop();
+        mTimelines = data.mTimelines;
+        mDataTables = data.mDataTables;
+
+        return true;
+    }
+
+    function undoStackPush() {
+        mRedoStack = [];
+        mUndoStack.push({
+            mTimelines: mTimelines.map(t => t.copy()),
+            mDataTables: mDataTables.map(t => t.copy())
+        });
     }
 
     /****
@@ -913,14 +989,22 @@ function ModelController() {
     this.breakTimeline = breakTimeline;
     this.updateTimelinePoints = updateTimelinePoints;
 
-    this.getTimelineById = getTimelineById;
-    this.getAllTimelines = () => [...mTimelines];
+    this.getTimelineById = function (id) {
+        let timeline = getTimelineById(id);
+        return timeline ? timeline.copy() : timeline;
+    }
+
+    this.getAllTimelines = function () {
+        return mTimelines.map(t => t.copy());
+    };
 
     this.addTable = addTable;
     this.addTableFromCSV = addTableFromCSV;
-    this.getAllTables = () => [...mDataTables];
     this.tableUpdated = tableUpdated;
     this.addTimeRow = addTimeRow
+    this.getAllTables = function () {
+        return mDataTables.map(t => t.copy());
+    };
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
@@ -942,6 +1026,15 @@ function ModelController() {
     this.mapTimeToLinePercent = mapTimeToLinePercent;
     this.hasTimeMapping = hasTimeMapping;
 
-    this.getModel = () => { return { timelines: mTimelines, dataTables: mDataTables }; };
+    this.getModel = function () {
+        return {
+            timelines: mTimelines.map(t => t.copy()),
+            dataTables: mDataTables.map(t => t.copy())
+        };
+    };
+
     this.setModelFromObject = setModelFromObject;
+
+    this.undo = undo;
+    this.redo = redo;
 }

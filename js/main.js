@@ -371,6 +371,36 @@ document.addEventListener('DOMContentLoaded', function (e) {
         });
     })
 
+    $("#undo-button").on("click", () => {
+        // get rid of this eventually
+        let tlIds = modelController.getAllTimelines().map(t => t.id);
+
+        let undone = modelController.undo();
+        if (undone) {
+            // get rid of this eventually
+            timeWarpController.removeTimeControls(tlIds);
+            // this because we don't have a good structure for deleting removed tables, etc.
+            dataTableController.redrawAllTables(modelController.getAllTables());
+
+            updateAllControls();
+        };
+    })
+
+    $("#redo-button").on("click", () => {
+        // get rid of this eventually
+        let tlIds = modelController.getAllTimelines().map(t => t.id);
+
+        let redone = modelController.redo();
+        if (redone) {
+            // get rid of this eventually
+            timeWarpController.removeTimeControls(tlIds);
+            // this because we don't have a good structure for deleting removed tables, etc.
+            dataTableController.redrawAllTables(modelController.getAllTables());
+
+            updateAllControls();
+        }
+    })
+
     $("#datasheet-toggle-button").on("click", () => {
         if (dataTableController.isOpen()) {
             dataTableController.closeTableView();

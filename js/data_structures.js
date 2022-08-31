@@ -11,7 +11,18 @@ let DataStructs = function () {
         this.cellBindings = [];
         this.warpBindings = [];
         this.axisBindings = [];
+
+        this.copy = function () {
+            let timeline = new Timeline();
+            timeline.id = this.id;
+            timeline.points = this.points.map(p => Object.assign({}, p));
+            timeline.cellBindings = this.cellBindings.map(b => b.copy());
+            timeline.warpBindings = this.warpBindings.map(b => b.copy());
+            timeline.axisBindings = this.axisBindings.map(b => b.copy());
+            return timeline;
+        }
     }
+
     Timeline.fromObject = function (obj) {
         let timeline = new Timeline(obj.points);
         timeline.id = obj.id;
@@ -30,6 +41,12 @@ let DataStructs = function () {
 
         this.clone = function () {
             return new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
+        }
+
+        this.copy = function () {
+            let binding = new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
+            binding.id = this.id;
+            return binding;
         }
     }
     CellBinding.fromObject = function (obj) {
@@ -74,6 +91,12 @@ let DataStructs = function () {
         this.clone = function () {
             return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
         };
+
+        this.copy = function () {
+            let binding = new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
+            binding.id = this.id;
+            return binding;
+        }
     }
     WarpBinding.fromObject = function (obj) {
         let binding = new WarpBinding(obj.tableId, obj.rowId, obj.linePercent, obj.isValid);
@@ -109,6 +132,17 @@ let DataStructs = function () {
             newAxis.linePercent = this.linePercent;
             return newAxis;
         }
+
+        this.copy = function () {
+            let binding = new AxisBinding(this.columnId);
+            binding.id = this.id;
+            binding.val1 = this.val1;
+            binding.dist1 = this.dist1;
+            binding.val2 = this.val2;
+            binding.dist2 = this.dist2;
+            binding.linePercent = this.linePercent;
+            return binding;
+        }
     }
     AxisBinding.fromObject = function (obj) {
         let binding = new AxisBinding(obj.columnId);
@@ -128,6 +162,14 @@ let DataStructs = function () {
 
         this.getRow = (rowId) => this.dataRows.find(row => row.id == rowId);
         this.getColumn = (colId) => this.dataColumns.find(col => col.id == colId)
+
+        this.copy = function () {
+            let table = new DataTable();
+            table.id = this.id;
+            table.dataRows = this.dataRows.map(r => r.copy());
+            table.dataColumns = this.dataColumns.map(c => c.copy());
+            return table;
+        }
     }
     DataTable.fromObject = function (obj) {
         let table = new DataTable();
@@ -141,6 +183,12 @@ let DataStructs = function () {
         this.id = getUniqueId();
         this.name = name;
         this.index = index;
+
+        this.copy = function () {
+            let col = new DataColumn(this.name, this.index);
+            col.id = this.id;
+            return col;
+        }
     }
     DataColumn.fromObject = function (obj) {
         let column = new DataColumn(obj.name, obj.index);
@@ -153,6 +201,14 @@ let DataStructs = function () {
         this.index = -1;
         this.dataCells = [];
         this.getCell = (columnId) => this.dataCells.find(cell => cell.columnId == columnId);
+
+        this.copy = function () {
+            let row = new DataRow();
+            row.id = this.id;
+            row.index = this.index;
+            row.dataCells = this.dataCells.map(c => c.copy());
+            return row;
+        }
     }
     DataRow.fromObject = function (obj) {
         let row = new DataRow();
@@ -216,6 +272,7 @@ let DataStructs = function () {
         }
 
         this.copy = function () {
+            // TODO: Make sure that val get copied properly. We'll worry about it later.
             let cell = new DataCell(this.type, this.val, this.columnId, this.offset);
             cell.id = this.id;
             return cell;

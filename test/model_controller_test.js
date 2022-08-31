@@ -604,6 +604,109 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getAllTimelines()[0].axisBindings[0].val2, 7);
         });
     })
+
+    describe('undo/redo tests', function () {
+        it('should add, undo, redo, then erase without error', function () {
+            let timeline = modelController.newTimeline([
+                { x: 0, y: 0 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }]);
+
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            let table = TestUtils.makeTestTable(3, 3);
+            table.dataRows[0].dataCells[0].val = "0.25";
+            table.dataRows[0].dataCells[1].val = "text1";
+            table.dataRows[1].dataCells[0].val = "0.75";
+            table.dataRows[1].dataCells[1].val = "text1";
+            modelController.addTable(table);
+
+            modelController.bindCells(timeline.id, [
+                new DataStructs.CellBinding(table.id, table.dataRows[0].id, table.dataColumns[1].id, table.dataRows[0].dataCells[1].id),
+                new DataStructs.CellBinding(table.id, table.dataRows[1].id, table.dataColumns[1].id, table.dataRows[1].dataCells[1].id),
+            ])
+
+            assert.equal(modelController.getAllCellBindingData().length, 2);
+
+            modelController.undo();
+            // cells are gone but line and table is still there
+            assert.equal(modelController.getAllCellBindingData().length, 0);
+            assert.equal(modelController.getAllTables().length, 1);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.undo();
+            // table is gone
+            assert.equal(modelController.getAllCellBindingData().length, 0);
+            assert.equal(modelController.getAllTables().length, 0);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.undo();
+            //everything is gone
+            assert.equal(modelController.getAllCellBindingData().length, 0);
+            assert.equal(modelController.getAllTables().length, 0);
+            assert.equal(modelController.getAllTimelines().length, 0);
+
+            modelController.redo();
+            // line is back
+            assert.equal(modelController.getAllCellBindingData().length, 0);
+            assert.equal(modelController.getAllTables().length, 0);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.redo();
+            // table is back
+            assert.equal(modelController.getAllCellBindingData().length, 0);
+            assert.equal(modelController.getAllTables().length, 1);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.redo();
+            // binding is back
+            assert.equal(modelController.getAllCellBindingData().length, 2);
+            assert.equal(modelController.getAllTables().length, 1);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.breakTimeline(modelController.getAllTimelines()[0].id, [
+                {
+                    label: SEGMENT_LABELS.UNAFFECTED,
+                    points: [{ x: 0, y: 0 },
+                    { x: 5, y: 0 },
+                    { x: 10, y: 0 },
+                    { x: 14, y: 0 },]
+                },
+                {
+                    label: SEGMENT_LABELS.DELETED,
+                    points: [
+                        { x: 14, y: 0 },
+                        { x: 15, y: 0 },
+                        { x: 16, y: 0 }]
+                },
+                {
+                    label: SEGMENT_LABELS.UNAFFECTED,
+                    points: [
+                        { x: 16, y: 0 },
+                        { x: 20, y: 0 }]
+                },
+            ]);
+
+            assert.equal(modelController.getAllTimelines().length, 2);
+            assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[1].cellBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[1].warpBindings.length, 1);
+
+            modelController.undo();
+            assert.equal(modelController.getAllCellBindingData().length, 2);
+            assert.equal(modelController.getAllTimelines().length, 1);
+
+            modelController.redo();
+            assert.equal(modelController.getAllTimelines().length, 2);
+            assert.equal(modelController.getAllTimelines()[0].cellBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[1].cellBindings.length, 1);
+            assert.equal(modelController.getAllTimelines()[1].warpBindings.length, 1);
+        });
+    });
 });
 
 
