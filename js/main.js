@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelController.addBoundTextRow(time.toString(), time, timelineId);
 
             dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
-            dataTableController.updateTableData(modelController.getAllTables());
+            dataTableController.addOrUpdateTables(modelController.getAllTables());
         } else if (mode == MODE_LINK) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
             dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
             let tableRowData = modelController.addTimeRow(time);
-            dataTableController.updateTableData(modelController.getAllTables());
+            dataTableController.addOrUpdateTables(modelController.getAllTables());
 
             let warpBindingData = new DataStructs.WarpBindingData(timelineId, null,
                 tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let dataController = new DataViewController(svg);
     dataController.setTextUpdatedCallback((cellId, text) => {
         modelController.updateText(cellId, text);
-        dataTableController.updateTableData(modelController.getAllTables());
+        dataTableController.addOrUpdateTables(modelController.getAllTables());
         dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
     });
     dataController.setDataDragStartCallback((cellBindingData, startPos) => {
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         dragController.linesUpdated(modelController.getAllTimelines());
         ironController.linesUpdated(modelController.getAllTimelines());
 
-        dataTableController.updateTableData(modelController.getAllTables());
+        dataTableController.addOrUpdateTables(modelController.getAllTables());
 
         dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
 
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         modelController.addTable(newTable);
-        dataTableController.addTable(newTable);
+        dataTableController.addOrUpdateTables(newTable);
     })
 
     $("#load-datasheet-button").on("click", () => {
