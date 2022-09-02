@@ -12,32 +12,32 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_EYEDROPPER = "eyedropper";
     const MODE_LINK = "link";
 
-    let svg = d3.select('#svg_container').append('svg')
+    let mMode = MODE_DEFAULT;
+    let mDraggingValue = null;
+    let mSvg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight - 50);
 
-    let mMouseDropShadow = new MouseDropShadow(svg);
+    let mMouseDropShadow = new MouseDropShadow(mSvg);
 
-    let modelController = new ModelController();
+    let mModelController = new ModelController();
 
-    let mDraggingValue = null;
-
-    let lineViewController = new LineViewController(svg);
+    let mLineViewController = new LineViewController(mSvg);
     // Note that both click and drag get called, ensure code doesn't overlap. 
-    lineViewController.setLineClickCallback((timelineId, linePoint) => {
-        if (mode == MODE_COMMENT) {
-            let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
-            let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
+    mLineViewController.setLineClickCallback((timelineId, linePoint) => {
+        if (mMode == MODE_COMMENT) {
+            let type = mModelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
+            let time = mModelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
-            modelController.addBoundTextRow(time.toString(), time, timelineId);
+            mModelController.addBoundTextRow(time.toString(), time, timelineId);
 
-            dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
-            dataTableController.addOrUpdateTables(modelController.getAllTables());
-        } else if (mode == MODE_LINK) {
-            modelController.bindCells(timelineId, dataTableController.getSelectedCells());
-            dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
-        } else if (mode == MODE_SCISSORS) {
-            let timeline = modelController.getTimelineById(timelineId);
+            mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
+            mDataTableController.addOrUpdateTables(mModelController.getAllTables());
+        } else if (mMode == MODE_LINK) {
+            mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
+            mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
+        } else if (mMode == MODE_SCISSORS) {
+            let timeline = mModelController.getTimelineById(timelineId);
             let points1 = [];
             let points2 = timeline.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
 
@@ -57,87 +57,87 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 { label: SEGMENT_LABELS.UNAFFECTED, points: points2 }
             ]
 
-            modelController.breakTimeline(timelineId, segments);
+            mModelController.breakTimeline(timelineId, segments);
 
-            timeWarpController.removeTimeControls([timelineId]);
+            mTimeWarpController.removeTimeControls([timelineId]);
             updateAllControls();
         }
     })
 
-    lineViewController.setLineDragStartCallback((timelineId, mousePoint, linePoint) => {
-        if (mode == MODE_PIN) {
-            let type = modelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
-            let time = modelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
+    mLineViewController.setLineDragStartCallback((timelineId, mousePoint, linePoint) => {
+        if (mMode == MODE_PIN) {
+            let type = mModelController.hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
+            let time = mModelController.mapLinePercentToTime(timelineId, type, linePoint.percent);
 
-            let tableRowData = modelController.addTimeRow(time);
-            dataTableController.addOrUpdateTables(modelController.getAllTables());
+            let tableRowData = mModelController.addTimeRow(time);
+            mDataTableController.addOrUpdateTables(mModelController.getAllTables());
 
             let warpBindingData = new DataStructs.WarpBindingData(timelineId, null,
                 tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
                 linePoint.percent);
-            timeWarpController.pinDragStart(timelineId, warpBindingData);
+            mTimeWarpController.pinDragStart(timelineId, warpBindingData);
         }
     })
-    lineViewController.setLineDragCallback((timelineId, mousePoint, linePoint) => {
-        if (mode == MODE_PIN) {
-            timeWarpController.pinDrag(timelineId, linePoint.percent);
+    mLineViewController.setLineDragCallback((timelineId, mousePoint, linePoint) => {
+        if (mMode == MODE_PIN) {
+            mTimeWarpController.pinDrag(timelineId, linePoint.percent);
         }
     })
-    lineViewController.setLineDragEndCallback((timelineId, mousePoint, linePoint) => {
-        if (mode == MODE_PIN) {
-            timeWarpController.pinDragEnd(timelineId, linePoint.percent);
+    mLineViewController.setLineDragEndCallback((timelineId, mousePoint, linePoint) => {
+        if (mMode == MODE_PIN) {
+            mTimeWarpController.pinDragEnd(timelineId, linePoint.percent);
         }
     })
 
-    lineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
+    mLineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
         lineViewControllerShowTime(timelineId, mouseCoords);
-        dataTableController.highlightCells(modelController.getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+        mDataTableController.highlightCells(mModelController.getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
     })
 
-    lineViewController.setMouseMoveCallback(lineViewControllerShowTime);
+    mLineViewController.setMouseMoveCallback(lineViewControllerShowTime);
 
     function lineViewControllerShowTime(timelineId, mouseCoords) {
-        let timeline = modelController.getTimelineById(timelineId);
+        let timeline = mModelController.getTimelineById(timelineId);
         let pointOnLine = PathMath.getClosestPointOnPath(mouseCoords, timeline.points);
         try {
             let time;
-            if (modelController.hasTimeMapping(timelineId)) {
-                time = modelController.mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, pointOnLine.percent).toString();
+            if (mModelController.hasTimeMapping(timelineId)) {
+                time = mModelController.mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, pointOnLine.percent).toString();
             } else {
-                time = "" + Math.round(modelController.mapLinePercentToTime(timelineId, DataTypes.NUM, pointOnLine.percent) * 100) / 100;
+                time = "" + Math.round(mModelController.mapLinePercentToTime(timelineId, DataTypes.NUM, pointOnLine.percent) * 100) / 100;
             }
             ToolTip.show(time, mouseCoords)
             mMouseDropShadow.show(pointOnLine, mouseCoords)
         } catch (e) { console.error(e.stack); }
     }
 
-    lineViewController.setMouseOutCallback((timelineId, mouseCoords) => {
+    mLineViewController.setMouseOutCallback((timelineId, mouseCoords) => {
         ToolTip.hide();
         mMouseDropShadow.hide();
-        dataTableController.highlightCells([]);
+        mDataTableController.highlightCells([]);
     })
 
-    let timeWarpController = new TimeWarpController(svg);
-    timeWarpController.setUpdateWarpBindingCallback((timelineId, warpBindingData) => {
-        modelController.addOrUpdateWarpBinding(timelineId, warpBindingData);
+    let mTimeWarpController = new TimeWarpController(mSvg);
+    mTimeWarpController.setUpdateWarpBindingCallback((timelineId, warpBindingData) => {
+        mModelController.addOrUpdateWarpBinding(timelineId, warpBindingData);
 
-        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
-        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
+        mTimeWarpController.addOrUpdateTimeControls(mModelController.getAllTimelines(), mModelController.getAllWarpBindingData());
+        mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
     })
 
-    let dataController = new DataViewController(svg);
-    dataController.setTextUpdatedCallback((cellId, text) => {
-        modelController.updateText(cellId, text);
-        dataTableController.addOrUpdateTables(modelController.getAllTables());
-        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
+    let mDataController = new DataViewController(mSvg);
+    mDataController.setTextUpdatedCallback((cellId, text) => {
+        mModelController.updateText(cellId, text);
+        mDataTableController.addOrUpdateTables(mModelController.getAllTables());
+        mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
     });
-    dataController.setDataDragStartCallback((cellBindingData, startPos) => {
-        if (mode == MODE_PIN) {
-            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+    mDataController.setDataDragStartCallback((cellBindingData, startPos) => {
+        if (mMode == MODE_PIN) {
+            let timeline = mModelController.getTimelineById(cellBindingData.timelineId);
             let linePoint = PathMath.getClosestPointOnPath(startPos, timeline.points);
 
             // check if there is a warp binding for this row
-            let warpBindingData = modelController.getWarpBindingData(cellBindingData.timelineId);
+            let warpBindingData = mModelController.getWarpBindingData(cellBindingData.timelineId);
             mDraggingValue = {};
             // copy to avoid data leaks
             mDraggingValue.cellBindingData = cellBindingData.copy();
@@ -152,19 +152,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     linePoint.percent);
             }
 
-            timeWarpController.pinDragStart(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding);
+            mTimeWarpController.pinDragStart(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding);
             mDraggingValue.cellBindingData.linePercent = linePoint.percent;
-            dataController.drawTimelineData(
-                modelController.getTimelineById(mDraggingValue.cellBindingData.timelineId),
+            mDataController.drawTimelineData(
+                mModelController.getTimelineById(mDraggingValue.cellBindingData.timelineId),
                 [mDraggingValue.cellBindingData]);
         }
     });
-    dataController.setDataDragCallback((cellBindingData, startPos, mousePos) => {
-        if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+    mDataController.setDataDragCallback((cellBindingData, startPos, mousePos) => {
+        if ((mMode == MODE_COMMENT || mMode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, mousePos)) return;
 
-            let bindingData = modelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+            let bindingData = mModelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
 
             // copy the dataCell to avoid modification leaks
@@ -172,13 +172,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             dataCell.offset = offset;
             bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell = dataCell;
 
-            dataController.drawTimelineData(modelController.getTimelineById(cellBindingData.timelineId), bindingData);
-        } else if (mode == MODE_PIN) {
-            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+            mDataController.drawTimelineData(mModelController.getTimelineById(cellBindingData.timelineId), bindingData);
+        } else if (mMode == MODE_PIN) {
+            let timeline = mModelController.getTimelineById(cellBindingData.timelineId);
             let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
 
             mDraggingValue.binding.linePercent = linePoint.percent;
-            timeWarpController.pinDrag(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+            mTimeWarpController.pinDrag(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
 
             let cellBData = mDraggingValue.cellBindingData;
             if (cellBData.dataCell.getType() == DataTypes.TEXT) {
@@ -186,92 +186,92 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 cellBData.dataCell.offset = MathUtil.addAToB(cellBData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
             }
             cellBData.linePercent = linePoint.percent;
-            dataController.drawTimelineData(timeline, [cellBData]);
+            mDataController.drawTimelineData(timeline, [cellBData]);
         }
     });
-    dataController.setDataDragEndCallback((cellBindingData, startPos, mousePos) => {
-        if ((mode == MODE_COMMENT || mode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
+    mDataController.setDataDragEndCallback((cellBindingData, startPos, mousePos) => {
+        if ((mMode == MODE_COMMENT || mMode == MODE_DEFAULT) && cellBindingData.dataCell.getType() == DataTypes.TEXT) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, mousePos)) return;
 
             let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
-            modelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+            mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
 
-            let bindingData = modelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+            let bindingData = mModelController.getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
 
-            dataController.drawTimelineData(modelController.getTimelineById(cellBindingData.timelineId), bindingData);
-        } else if (mode == MODE_PIN) {
-            let timeline = modelController.getTimelineById(cellBindingData.timelineId);
+            mDataController.drawTimelineData(mModelController.getTimelineById(cellBindingData.timelineId), bindingData);
+        } else if (mMode == MODE_PIN) {
+            let timeline = mModelController.getTimelineById(cellBindingData.timelineId);
             let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
 
             if (cellBindingData.dataCell.getType() == DataTypes.TEXT) {
                 let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
-                modelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+                mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
             }
 
             mDraggingValue.binding.linePercent = linePoint.percent;
             // this will trigger a warp point update, which will update everything
-            timeWarpController.pinDragEnd(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+            mTimeWarpController.pinDragEnd(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
         }
 
         mDraggingValue = null;
     });
-    dataController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
-        modelController.updateAxisDist(axisId, oneOrTwo, newDist);
-        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
+    mDataController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
+        mModelController.updateAxisDist(axisId, oneOrTwo, newDist);
+        mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
     });
-    dataController.setDataMouseOverCallback((cellBindingData, mouseCoords) => {
-        dataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
+    mDataController.setDataMouseOverCallback((cellBindingData, mouseCoords) => {
+        mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
     })
-    dataController.setDataMouseOutCallback((cellBindingData, mouseCoords) => {
-        dataTableController.highlightCells([]);
+    mDataController.setDataMouseOutCallback((cellBindingData, mouseCoords) => {
+        mDataTableController.highlightCells([]);
     })
 
 
-    let lineDrawingController = new LineDrawingController(svg);
-    lineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
+    let mLineDrawingController = new LineDrawingController(mSvg);
+    mLineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
         if (startPointLineId == null && endPointLineId == null) {
-            modelController.newTimeline(newPoints);
+            mModelController.newTimeline(newPoints);
         } else if (startPointLineId != null && endPointLineId != null) {
             // the line which has it's end point connecting to the other line goes first
             let startLineId = endPointLineId;
             let endLineId = startPointLineId;
-            let removedIds = modelController.mergeTimeline(startLineId, endLineId, newPoints);
-            timeWarpController.removeTimeControls(removedIds);
+            let removedIds = mModelController.mergeTimeline(startLineId, endLineId, newPoints);
+            mTimeWarpController.removeTimeControls(removedIds);
         } else {
-            modelController.extendTimeline(startPointLineId ? startPointLineId : endPointLineId, newPoints, startPointLineId != null);
+            mModelController.extendTimeline(startPointLineId ? startPointLineId : endPointLineId, newPoints, startPointLineId != null);
         }
 
         updateAllControls();
     });
 
 
-    let eraserController = new EraserController(svg, modelController.getAllTimelines);
-    eraserController.setEraseCallback(lineData => {
+    let mEraserController = new EraserController(mSvg, mModelController.getAllTimelines);
+    mEraserController.setEraseCallback(lineData => {
         let eraseIds = lineData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
         let breakData = lineData.filter(d => d.segments.length > 1);
 
-        eraseIds.forEach(id => modelController.deleteTimeline(id));
-        breakData.forEach(d => modelController.breakTimeline(d.id, d.segments));
+        eraseIds.forEach(id => mModelController.deleteTimeline(id));
+        breakData.forEach(d => mModelController.breakTimeline(d.id, d.segments));
 
-        timeWarpController.removeTimeControls(lineData.map(d => d.id));
+        mTimeWarpController.removeTimeControls(lineData.map(d => d.id));
         updateAllControls();
     })
 
-    let dragController = new DragController(svg);
-    dragController.setLineModifiedCallback(data => {
-        data.forEach(d => modelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
+    let mDragController = new DragController(mSvg);
+    mDragController.setLineModifiedCallback(data => {
+        data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
         updateAllControls();
     });
 
-    let ironController = new IronController(svg);
-    ironController.setLineModifiedCallback(data => {
-        data.forEach(d => modelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
+    let mIronController = new IronController(mSvg);
+    mIronController.setLineModifiedCallback(data => {
+        data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
         updateAllControls();
     });
 
-    let dataTableController = new DataTableController();
-    dataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
+    let mDataTableController = new DataTableController();
+    mDataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
         let left = $('.drawer-content-wrapper')[0].getBoundingClientRect().left;
 
         if (data) {
@@ -280,11 +280,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             $('#link-button-div').show();
         } else {
             $('#link-button-div').hide();
-            if (mode == MODE_LINK) clearMode();
+            if (mMode == MODE_LINK) clearMode();
         }
     });
-    dataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
-        modelController.tableUpdated(table, changeType, changeData);
+    mDataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
+        mModelController.tableUpdated(table, changeType, changeData);
 
         // Could do some more checks to avoid expensive redraws
         if (changeType == TableChange.DELETE_ROWS ||
@@ -293,120 +293,125 @@ document.addEventListener('DOMContentLoaded', function (e) {
             updateAllControls();
         }
     });
+    
+    let mDrawerController = new DrawerController("#data-drawer");
+    mDrawerController.setOnDrawerClosed(() => {
+        mDataTableController.deselectCells();
+    });
 
     function updateAllControls() {
-        lineViewController.linesUpdated(modelController.getAllTimelines());
-        lineDrawingController.linesUpdated(modelController.getAllTimelines());
-        dragController.linesUpdated(modelController.getAllTimelines());
-        ironController.linesUpdated(modelController.getAllTimelines());
+        mLineViewController.linesUpdated(mModelController.getAllTimelines());
+        mLineDrawingController.linesUpdated(mModelController.getAllTimelines());
+        mDragController.linesUpdated(mModelController.getAllTimelines());
+        mIronController.linesUpdated(mModelController.getAllTimelines());
 
-        dataTableController.addOrUpdateTables(modelController.getAllTables());
+        mDataTableController.addOrUpdateTables(mModelController.getAllTables());
 
-        dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
+        mDataController.drawData(mModelController.getAllTimelines(), mModelController.getAllCellBindingData());
 
-        timeWarpController.addOrUpdateTimeControls(modelController.getAllTimelines(), modelController.getAllWarpBindingData());
+        mTimeWarpController.addOrUpdateTimeControls(mModelController.getAllTimelines(), mModelController.getAllWarpBindingData());
     }
 
 
     $("#line-drawing-button").on("click", () => {
-        if (mode == MODE_LINE_DRAWING) {
+        if (mMode == MODE_LINE_DRAWING) {
             setDefaultMode()
         } else {
             clearMode()
-            lineDrawingController.setActive(true);
-            mode = MODE_LINE_DRAWING;
-            showIndicator('#line-drawing-button', '#line-drawing-mode-indicator');
+            mLineDrawingController.setActive(true);
+            mMode = MODE_LINE_DRAWING;
+            showIndicator('#line-drawing-button', '#line-drawing-mMode-indicator');
         }
     })
 
     $("#eraser-button").on("click", () => {
-        if (mode == MODE_ERASER) {
+        if (mMode == MODE_ERASER) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_ERASER;
-            eraserController.setActive(true);
-            showIndicator('#eraser-button', '#eraser-mode-indicator');
+            mMode = MODE_ERASER;
+            mEraserController.setActive(true);
+            showIndicator('#eraser-button', '#eraser-mMode-indicator');
         }
     })
 
     $("#drag-button").on("click", () => {
-        if (mode == MODE_DRAG) {
+        if (mMode == MODE_DRAG) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_DRAG;
-            dragController.setActive(true);
-            showIndicator('#drag-button', '#drag-mode-indicator');
+            mMode = MODE_DRAG;
+            mDragController.setActive(true);
+            showIndicator('#drag-button', '#drag-mMode-indicator');
         }
     })
 
     $("#iron-button").on("click", () => {
-        if (mode == MODE_IRON) {
+        if (mMode == MODE_IRON) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_IRON;
-            ironController.setActive(true);
-            showIndicator('#iron-button', '#iron-mode-indicator');
+            mMode = MODE_IRON;
+            mIronController.setActive(true);
+            showIndicator('#iron-button', '#iron-mMode-indicator');
         }
     })
 
     $("#scissors-button").on("click", () => {
-        if (mode == MODE_SCISSORS) {
+        if (mMode == MODE_SCISSORS) {
             setDefaultMode()
         } else {
             clearMode()
-            lineViewController.setActive(true);
-            mode = MODE_SCISSORS;
-            showIndicator('#scissors-button', '#scissors-mode-indicator');
+            mLineViewController.setActive(true);
+            mMode = MODE_SCISSORS;
+            showIndicator('#scissors-button', '#scissors-mMode-indicator');
         }
     })
 
     $("#comment-button").on("click", () => {
-        if (mode == MODE_COMMENT) {
+        if (mMode == MODE_COMMENT) {
             setDefaultMode()
         } else {
             clearMode()
-            lineViewController.setActive(true);
-            mode = MODE_COMMENT;
-            showIndicator('#comment-button', '#comment-mode-indicator');
+            mLineViewController.setActive(true);
+            mMode = MODE_COMMENT;
+            showIndicator('#comment-button', '#comment-mMode-indicator');
         }
     })
 
     $("#pin-button").on("click", () => {
-        if (mode == MODE_PIN) {
+        if (mMode == MODE_PIN) {
             setDefaultMode()
         } else {
             clearMode()
-            lineViewController.setActive(true);
-            timeWarpController.setActive(true);
-            mode = MODE_PIN;
-            showIndicator('#pin-button', '#pin-mode-indicator');
+            mLineViewController.setActive(true);
+            mTimeWarpController.setActive(true);
+            mMode = MODE_PIN;
+            showIndicator('#pin-button', '#pin-mMode-indicator');
         }
     })
 
     $("#download-button").on("click", () => {
-        FileHandler.downloadJSON(modelController.getModel());
+        FileHandler.downloadJSON(mModelController.getModel());
     })
 
     $("#upload-button").on("click", () => {
         FileHandler.getJSONModel().then(result => {
-            modelController.setModelFromObject(result);
+            mModelController.setModelFromObject(result);
             updateAllControls();
         });
     })
 
     $("#undo-button").on("click", () => {
         // get rid of this eventually
-        let tlIds = modelController.getAllTimelines().map(t => t.id);
+        let tlIds = mModelController.getAllTimelines().map(t => t.id);
 
-        let undone = modelController.undo();
+        let undone = mModelController.undo();
         if (undone) {
             // get rid of this eventually
-            timeWarpController.removeTimeControls(tlIds);
+            mTimeWarpController.removeTimeControls(tlIds);
             // this because we don't have a good structure for deleting removed tables, etc.
-            dataTableController.redrawAllTables(modelController.getAllTables());
+            mDataTableController.redrawAllTables(mModelController.getAllTables());
 
             updateAllControls();
         };
@@ -414,24 +419,24 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#redo-button").on("click", () => {
         // get rid of this eventually
-        let tlIds = modelController.getAllTimelines().map(t => t.id);
+        let tlIds = mModelController.getAllTimelines().map(t => t.id);
 
-        let redone = modelController.redo();
+        let redone = mModelController.redo();
         if (redone) {
             // get rid of this eventually
-            timeWarpController.removeTimeControls(tlIds);
+            mTimeWarpController.removeTimeControls(tlIds);
             // this because we don't have a good structure for deleting removed tables, etc.
-            dataTableController.redrawAllTables(modelController.getAllTables());
+            mDataTableController.redrawAllTables(mModelController.getAllTables());
 
             updateAllControls();
         }
     })
 
     $("#datasheet-toggle-button").on("click", () => {
-        if (dataTableController.isOpen()) {
-            dataTableController.closeTableView();
+        if (mDrawerController.isOpen()) {
+            mDrawerController.closeDrawer();
         } else {
-            dataTableController.openTableView();
+            mDrawerController.openDrawer();
         }
 
         return;
@@ -469,22 +474,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
 
     $("#color-button").on("click", () => {
-        if (mode == MODE_COLOR) {
+        if (mMode == MODE_COLOR) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_COLOR;
-            showIndicator('#color-button', '#color-mode-indicator');
+            mMode = MODE_COLOR;
+            showIndicator('#color-button', '#color-mMode-indicator');
         }
     })
 
     $("#eyedropper-button").on("click", () => {
-        if (mode == MODE_EYEDROPPER) {
+        if (mMode == MODE_EYEDROPPER) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_EYEDROPPER;
-            showIndicator('#eyedropper-button', '#eyedropper-mode-indicator');
+            mMode = MODE_EYEDROPPER;
+            showIndicator('#eyedropper-button', '#eyedropper-mMode-indicator');
         }
     })
 
@@ -504,57 +509,57 @@ document.addEventListener('DOMContentLoaded', function (e) {
             newTable.dataRows.push(dataRow)
         }
 
-        modelController.addTable(newTable);
-        dataTableController.addOrUpdateTables(newTable);
+        mModelController.addTable(newTable);
+        mDataTableController.addOrUpdateTables(newTable);
     })
 
     $("#load-datasheet-button").on("click", () => {
         FileHandler.getCSVDataFile().then(result => {
             // TODO figure out if there's a header row
-            modelController.newTable(result.data);
+            mModelController.newTable(result.data);
         });
     })
 
     $("#link-button").on('click', () => {
-        if (mode == MODE_LINK) {
+        if (mMode == MODE_LINK) {
             setDefaultMode()
         } else {
             clearMode()
-            mode = MODE_LINK;
-            lineViewController.setActive(true);
-            showIndicator('#link-button', '#link-mode-indicator');
+            mMode = MODE_LINK;
+            mLineViewController.setActive(true);
+            showIndicator('#link-button', '#link-mMode-indicator');
         }
     })
 
 
     function showIndicator(imgButtonId, modeIndicatorId) {
         $(imgButtonId).css('opacity', '0.3');
-        $('#mode-indicator-div img').hide();
+        $('#mMode-indicator-div img').hide();
         $(modeIndicatorId).show();
-        $('#mode-indicator-div').show();
+        $('#mMode-indicator-div').show();
     }
 
     function setDefaultMode() {
         clearMode();
 
         // set active those things with default mouseovers, etc. 
-        lineViewController.setActive(true);
+        mLineViewController.setActive(true);
 
-        mode = MODE_DEFAULT;
+        mMode = MODE_DEFAULT;
     }
 
     function clearMode() {
-        lineViewController.setActive(false);
-        lineDrawingController.setActive(false);
-        eraserController.setActive(false);
-        dragController.setActive(false);
-        ironController.setActive(false);
-        timeWarpController.setActive(false);
+        mLineViewController.setActive(false);
+        mLineDrawingController.setActive(false);
+        mEraserController.setActive(false);
+        mDragController.setActive(false);
+        mIronController.setActive(false);
+        mTimeWarpController.setActive(false);
         $('.tool-button').css('opacity', '');
-        $('#mode-indicator-div img').hide();
-        $('#mode-indicator-div').hide();
+        $('#mMode-indicator-div img').hide();
+        $('#mMode-indicator-div').hide();
 
-        mode = MODE_NONE;
+        mMode = MODE_NONE;
     }
 
     function setColor(color) {
@@ -596,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     $(document).on('mousemove', function (e) {
-        $('#mode-indicator-div').css({
+        $('#mMode-indicator-div').css({
             left: e.pageX + 10,
             top: e.pageY + 10
         });
