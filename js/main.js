@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mLineDrawingController.setActive(true);
             mMode = MODE_LINE_DRAWING;
-            showIndicator('#line-drawing-button', '#line-drawing-mMode-indicator');
+            showIndicator('#line-drawing-button', '#line-drawing-mode-indicator');
         }
     })
 
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mMode = MODE_ERASER;
             mEraserController.setActive(true);
-            showIndicator('#eraser-button', '#eraser-mMode-indicator');
+            showIndicator('#eraser-button', '#eraser-mode-indicator');
         }
     })
 
@@ -342,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mMode = MODE_DRAG;
             mDragController.setActive(true);
-            showIndicator('#drag-button', '#drag-mMode-indicator');
+            showIndicator('#drag-button', '#drag-mode-indicator');
         }
     })
 
@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mMode = MODE_IRON;
             mIronController.setActive(true);
-            showIndicator('#iron-button', '#iron-mMode-indicator');
+            showIndicator('#iron-button', '#iron-mode-indicator');
         }
     })
 
@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mLineViewController.setActive(true);
             mMode = MODE_SCISSORS;
-            showIndicator('#scissors-button', '#scissors-mMode-indicator');
+            showIndicator('#scissors-button', '#scissors-mode-indicator');
         }
     })
 
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mLineViewController.setActive(true);
             mMode = MODE_COMMENT;
-            showIndicator('#comment-button', '#comment-mMode-indicator');
+            showIndicator('#comment-button', '#comment-mode-indicator');
         }
     })
 
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mLineViewController.setActive(true);
             mTimeWarpController.setActive(true);
             mMode = MODE_PIN;
-            showIndicator('#pin-button', '#pin-mMode-indicator');
+            showIndicator('#pin-button', '#pin-mode-indicator');
         }
     })
 
@@ -479,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mMode = MODE_COLOR;
-            showIndicator('#color-button', '#color-mMode-indicator');
+            showIndicator('#color-button', '#color-mode-indicator');
         }
     })
 
@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mMode = MODE_EYEDROPPER;
-            showIndicator('#eyedropper-button', '#eyedropper-mMode-indicator');
+            showIndicator('#eyedropper-button', '#eyedropper-mode-indicator');
         }
     })
 
@@ -527,16 +527,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mMode = MODE_LINK;
             mLineViewController.setActive(true);
-            showIndicator('#link-button', '#link-mMode-indicator');
+            showIndicator('#link-button', '#link-mode-indicator');
         }
     })
 
 
     function showIndicator(imgButtonId, modeIndicatorId) {
         $(imgButtonId).css('opacity', '0.3');
-        $('#mMode-indicator-div img').hide();
+        $('#mode-indicator-div img').hide();
         $(modeIndicatorId).show();
-        $('#mMode-indicator-div').show();
+        $('#mode-indicator-div').show();
     }
 
     function setDefaultMode() {
@@ -556,8 +556,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mIronController.setActive(false);
         mTimeWarpController.setActive(false);
         $('.tool-button').css('opacity', '');
-        $('#mMode-indicator-div img').hide();
-        $('#mMode-indicator-div').hide();
+        $('#mode-indicator-div img').hide();
+        $('#mode-indicator-div').hide();
 
         mMode = MODE_NONE;
     }
@@ -601,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     $(document).on('mousemove', function (e) {
-        $('#mMode-indicator-div').css({
+        $('#mode-indicator-div').css({
             left: e.pageX + 10,
             top: e.pageY + 10
         });
