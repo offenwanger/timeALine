@@ -36,6 +36,31 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mode == MODE_LINK) {
             modelController.bindCells(timelineId, dataTableController.getSelectedCells());
             dataController.drawData(modelController.getAllTimelines(), modelController.getAllCellBindingData());
+        } else if (mode == MODE_SCISSORS) {
+            let timeline = modelController.getTimelineById(timelineId);
+            let points1 = [];
+            let points2 = timeline.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
+
+
+            for (let i = 0; i < timeline.points.length; i++) {
+                points1.push(points2.shift());
+                if (PathMath.getPathLength(points1) > linePoint.length) {
+                    points2.unshift(points1.pop());
+                    points1.push({ x: linePoint.x, y: linePoint.y });
+                    points2.unshift({ x: linePoint.x, y: linePoint.y });
+                    break;
+                } 
+            }
+
+            let segments = [
+                { label: SEGMENT_LABELS.UNAFFECTED, points: points1 },
+                { label: SEGMENT_LABELS.UNAFFECTED, points: points2 }
+            ]
+
+            modelController.breakTimeline(timelineId, segments);
+
+            timeWarpController.removeTimeControls([timelineId]);
+            updateAllControls();
         }
     })
 
@@ -332,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             setDefaultMode()
         } else {
             clearMode()
+            lineViewController.setActive(true);
             mode = MODE_SCISSORS;
             showIndicator('#scissors-button', '#scissors-mode-indicator');
         }
@@ -575,6 +601,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             top: e.pageY + 10
         });
     });
+
+    /** useful test and development function: */
+    // $(document).on('pointerover pointerenter pointerdown pointermove pointerup pointercancel pointerout pointerleave gotpointercapture lostpointercapture abort afterprint animationend animationiteration animationstart beforeprint beforeunload blur canplay canplaythrough change click contextmenu copy cut dblclick drag dragend dragenter dragleave dragover dragstart drop durationchange ended error focus focusin focusout fullscreenchange fullscreenerror hashchange input invalid keydown keypress keyup load loadeddata loadedmetadata loadstart message mousedown mouseenter mouseleave mousemove mouseover mouseout mouseup mousewheel offline online open pagehide pageshow paste pause play playing popstate progress ratechange resize reset scroll search seeked seeking select show stalled storage submit suspend timeupdate toggle touchcancel touchend touchmove touchstart transitionend unload volumechange waiting wheel', function (e) {
+    //     console.log(e.type)
+    // });
 
     setDefaultMode();
 });
