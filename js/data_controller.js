@@ -322,9 +322,7 @@ function AnnotationController(svg) {
     function drawAnnotations(timelines, boundData) {
         // clear the cache, redraw
         mDataCache = {};
-        if(timelines.length == 0) {
-            mAnnotationDisplayGroup.selectAll("*").remove();
-        }
+        mAnnotationDisplayGroup.selectAll("*").remove();
 
         timelines.forEach(timeline => {
             draw(timeline, boundData.filter(binding => binding.timelineId == timeline.id));
