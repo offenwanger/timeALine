@@ -15,7 +15,9 @@ let DataStructs = function () {
         this.copy = function () {
             let timeline = new Timeline();
             timeline.id = this.id;
-            timeline.points = this.points.map(p => Object.assign({}, p));
+            // sometimes the x, y, points are not nessisarily plain objects (i.e. SVP point)
+            // TODO: Should maybe make my own point object...
+            timeline.points = this.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
             timeline.cellBindings = this.cellBindings.map(b => b.copy());
             timeline.warpBindings = this.warpBindings.map(b => b.copy());
             timeline.axisBindings = this.axisBindings.map(b => b.copy());
