@@ -101,6 +101,7 @@ before(function () {
         }
 
         this.svg = Object.assign({}, this.mockSvg);
+        this.lensSVG = Object.assign({}, this.mockSvg);
 
 
         this.line = function () {
@@ -118,6 +119,7 @@ before(function () {
                 // it's one of those cases where we are selected an obj
                 return selection;
             } else if (selection == '#svg_container') return this.svg;
+            else if (selection == '#lens-view') return this.lensSVG;
             else return selection;
         };
         this.selectAll = function (selector) {
@@ -149,6 +151,8 @@ before(function () {
             this.hide = function () { return this };
             this.show = function () { return this };
             this.html = function (html) { if (html) this.html = html; return this.html; };
+            this.width = function () { return 100 };
+            this.height = function () { return 100 };
         };
 
         function fakeJquery(selector) {
@@ -222,6 +226,7 @@ before(function () {
         canvasImage: Array(500).fill().map(() => Array(500).fill().map(() => { return { data: [0, 0, 0, 0] }; })),
         createElement: function (name) {
             if (name == 'canvas') return Object.assign({ height: 500, width: 500, canvasImage: this.canvasImage }, mockCanvas);
+            if (name == 'a') return { click: () => { } };
         }
     };
 
@@ -281,9 +286,12 @@ before(function () {
         let drag_controller = rewire('../js/drag_controller.js');
         let iron_controller = rewire('../js/iron_controller.js');
         let line_drawing_controller = rewire('../js/line_drawing_controller.js');
+        let drawer_controller = rewire('../js/drawer_controller.js');
+        let lens_controller = rewire('../js/lens_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
         let time_warp_controller = rewire('../js/time_warp_controller.js');
         let data_controller = rewire('../js/data_controller.js');
+        let file_handling = rewire('../js/file_handling.js');
 
         let utility = rewire('../js/utility.js');
 
@@ -311,8 +319,24 @@ before(function () {
             $: fakeJqueryFactory(),
             handsontables: [],
             Handsontable: returnable.snagTable(MockHandsontable),
-            window: { innerWidth: 500, innerHeight: 500, createObjectURL: () => { } },
-            Blob: function () { },
+            window: {
+                innerWidth: 500,
+                innerHeight: 500,
+                createObjectURL: () => { },
+                showOpenFilePicker: async function () {
+                    return [{
+                        getFile: async function () {
+                            return {
+                                text: async function () {
+                                    return returnable.enviromentVariables.window.fileText
+                                }
+                            }
+                        }
+                    }]
+                }
+            },
+            Blob: function () { this.init = arguments },
+            URL: { objectUrls: [], createObjectURL: function (object) { this.objectUrls.push(object); return "thisistotallyanObjectURL"; } },
             img: {},
             Image: function () { returnable.enviromentVariables.img = this },
             DataStructs: data_structures.__get__("DataStructs"),
@@ -323,6 +347,8 @@ before(function () {
             AnnotationController: data_controller.__get__("AnnotationController"),
             BrushController: brush_controller.__get__("BrushController"),
             LineDrawingController: line_drawing_controller.__get__("LineDrawingController"),
+            DrawerController: drawer_controller.__get__("DrawerController"),
+            LensController: lens_controller.__get__("LensController"),
             EraserController: eraser_controller.__get__("EraserController"),
             DragController: drag_controller.__get__("DragController"),
             IronController: iron_controller.__get__("IronController"),
@@ -333,12 +359,17 @@ before(function () {
             TimeBindingUtil: utility.__get__("TimeBindingUtil"),
             WarpBindingUtil: utility.__get__("WarpBindingUtil"),
             ToolTip: utility.__get__("ToolTip"),
+            FileHandler: file_handling.__get__("FileHandler"),
         };
         returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
 
+        file_handling.__set__(returnable.enviromentVariables);
         main.__set__(returnable.enviromentVariables);
+        // needs DataStructs to be set. 
+        let utility_data_structures = rewire('../js/utility_data_structures.js');
 
         function setVariables() {
+            file_handling.__set__(returnable.enviromentVariables);
             main.__set__(returnable.enviromentVariables);
         }
         returnable.setVariables = setVariables;

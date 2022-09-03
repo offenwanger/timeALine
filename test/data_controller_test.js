@@ -85,8 +85,8 @@ describe('Integration Test DataController', function () {
                 { x: 90, y: 102 },
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
@@ -99,7 +99,7 @@ describe('Integration Test DataController', function () {
             expect(annotationSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
             expect(annotationSet.map(r => Math.round(r.y)).sort()).to.eql([100, 102, 105]);
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
         });
 
         it('should move a comment', function () {
@@ -113,15 +113,15 @@ describe('Integration Test DataController', function () {
                 { x: 90, y: 102 },
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 40, y: 103 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
             expect(annotationSet[1].offsetX).to.eql(10)
             expect(annotationSet[1].offsetY).to.eql(10)
@@ -149,9 +149,9 @@ describe('Integration Test DataController', function () {
             expect(annotationSet[1].text).to.eql(label)
 
             // Check that the correct cell binding was updated
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
-            expect(integrationEnv.ModelController.getAllCellBindingData()[1].dataCell.offset).to.eql({ x: 20, y: 20 });
+            expect(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].dataCell.offset).to.eql({ x: 20, y: 20 });
         });
     })
 
@@ -161,7 +161,7 @@ describe('Integration Test DataController', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
                 [0, 0, "", "5"], [0, 1, "", "15"],
@@ -169,26 +169,26 @@ describe('Integration Test DataController', function () {
             ])
 
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 3)
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 3)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             // won't bind the two time cols.
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 15);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 15);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 25);
         });
 
         it('should update the axis', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
                 [0, 0, "", "5"], [0, 1, "", "15"],
@@ -196,12 +196,12 @@ describe('Integration Test DataController', function () {
             ])
 
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 3)
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 3)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-control-circle'];
             assert.equal(axisControlCircles.innerData.length, 2);
@@ -212,7 +212,7 @@ describe('Integration Test DataController', function () {
             axisControlCircles.drag.drag.call(fakeCircle, { x: 0, y: 50 }, data)
             axisControlCircles.drag.end.call(fakeCircle, { x: 0, y: 50 }, data)
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].axisBinding.dist1, 40);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].axisBinding.dist1, 40);
         });
     })
 });

@@ -20,6 +20,7 @@
     <script src="js/constants.js" charset="utf-8"></script>
     <script src="js/utility.js" charset="utf-8"></script>
     <script src="js/data_structures.js" charset="utf-8"></script>
+    <script src="js/utility_data_structures.js" charset="utf-8"></script>
     <script src="js/file_handling.js" charset="utf-8"></script>
     <script src="js/drawer_controller.js" charset="utf-8"></script>
     <script src="js/table_view_controller.js" charset="utf-8"></script>
@@ -32,17 +33,18 @@
     <script src="js/line_view_controller.js" charset="utf-8"></script>
     <script src="js/time_warp_controller.js" charset="utf-8"></script>
     <script src="js/data_controller.js" charset="utf-8"></script>
+    <script src="js/lens_controller.js" charset="utf-8"></script>
     <script src="js/main.js" charset="utf-8"></script>
 </head>
 
 <body>
     <input id="line-drawing-button" class="tool-button canvas-button" type="image" src="img/time_pencil_button.png" />
-    <input id="eraser-button" class="tool-button canvas-button" type="image" src="img/eraser_button.png" />
     <input id="drag-button" class="tool-button canvas-button" type="image" src="img/drag_button.png" />
     <input id="iron-button" class="tool-button canvas-button" type="image" src="img/iron_button.png" />
     <input id="scissors-button" class="tool-button canvas-button" type="image" src="img/scissors_button.png" />
     <input id="comment-button" class="tool-button canvas-button" type="image" src="img/text_button.png" />
     <input id="pin-button" class="tool-button canvas-button" type="image" src="img/pin_button.png" />
+    <input id="lens-button" class="tool-button canvas-button" type="image" src="img/lens_button.png" />
     <input id="download-button" class="tool-button canvas-button" type="image" src="img/download_button.png" />
     <input id="upload-button" class="tool-button canvas-button" type="image" src="img/upload_button.png" />
     <input id="undo-button" class="tool-button canvas-button" type="image" src="img/undo_button.png" />
@@ -55,8 +57,12 @@
             <div class="drawer-side-menu">
                 <input id="datasheet-toggle-button" class="shared-button" type="image"
                     src="img/datasheet_drawer_toggle.png" />
+                <input id="color-brush-button" class="tool-button shared-button" type="image"
+                    src="img/color_brush_button.png" />
+                <input id="eraser-button" class="tool-button shared-button" type="image" src="img/eraser_button.png" />
+                <input id="color-bucket-button" class="tool-button shared-button" type="image"
+                    src="img/color_bucket_button.png" />
                 <input id="color-picker-button" class="shared-button" type="image" src="img/color_set.png" />
-                <input id="color-button" class="tool-button shared-button" type="image" src="img/color_button.png" />
                 <input id="eyedropper-button" class="tool-button shared-button" type="image"
                     src="img/eye_dropper.png" />
             </div>
@@ -71,6 +77,9 @@
                     <button class="close-button drawer-close" data-drawer-close aria-label="Close Drawer"></button>
                 </div>
                 <div class="drawer-content" id="table-list">
+                </div>
+                <div class="drawer-content" id="lens-view">
+
                 </div>
             </div>
         </div>
@@ -88,6 +97,7 @@
         <img id="scissors-mode-indicator" class="mode-indicator" src="img/scissors_button.png" height="30px" />
         <img id="comment-mode-indicator" class="mode-indicator" src="img/text_button.png" height="30px" />
         <img id="pin-mode-indicator" class="mode-indicator" src="img/pin_button.png" height="30px" />
+        <img id="lens-mode-indicator" class="mode-indicator" src="img/lens_button.png" height="30px" />
         <img id="color-mode-indicator" class="mode-indicator" src="img/color_button.png" height="30px" />
         <img id="eyedropper-mode-indicator" class="mode-indicator" src="img/eye_dropper.png" height="30px" />
         <img id="link-mode-indicator" class="mode-indicator" src="img/link_button.png" height="30px" />

@@ -134,6 +134,14 @@ let PathMath = function () {
         return path.getTotalLength();
     }
 
+    function equalsPath(path1, path2) {
+        if (path1.length != path2.length) return false;
+        for (let i = 0; i < path1.length; i++) {
+            if (path1[i].x != path2[i].x || path1[i].y != path2[i].y) return false;
+        }
+        return true;
+    }
+
     function getClosestPointOnPath(point, points) {
         if (!Array.isArray(points)) throw new Error("Bad point array: " + points);
 
@@ -337,6 +345,7 @@ let PathMath = function () {
         getPathD,
         getPath,
         getPathLength,
+        equalsPath,
         getPositionForPercent,
         getNormalForPercent,
         getPositionForPercentAndDist,

@@ -74,3 +74,12 @@
     -webkit-transform: translateX(0);
     transform: translateX(0);
 }
+
+.drawer-button {
+    max-height: 30px;
+}
+
+#lens-view {
+    box-shadow: 0 2px 6px #777;
+    max-height: 230px;
+}

@@ -25,7 +25,7 @@ describe('Test Main - Integration Test', function () {
 
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
 
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
@@ -45,8 +45,8 @@ describe('Test Main - Integration Test', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 5)
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 5)
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [
                 [0, 0, 0, 2],
@@ -54,14 +54,14 @@ describe('Test Main - Integration Test', function () {
             ];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             // won't bind the two time cols.
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 3);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 10);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 20);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 10);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 20);
         });
 
         it('draw data points for linked cells', function () {
@@ -70,7 +70,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
             integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 5);
 
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
@@ -90,19 +90,19 @@ describe('Test Main - Integration Test', function () {
                 { x: 100, y: 100 },
                 { x: 150, y: 100 },
                 { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 7, 2]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
             // check that all 8 data cells were bound, with one axis for each column
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].cellBindings.length, 16);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].axisBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 16);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 2);
 
             // check that the comments were drawn in the correct places
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + integrationEnv.ModelController.getAllTimelines()[0].id].innerData;
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
             assert.equal(annotationSet.length, 9)
             expect(annotationSet.map(a => {
                 return {
@@ -188,19 +188,19 @@ describe('Test Main - Integration Test', function () {
 
             // draw a line
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             // add a warp binding at 40%, and drag to 20%
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 120, y: 110 }], timelineId, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.2);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
 
             // check that a table row was created with a time
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.4);
             // check that row is displaying
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][0], "0.4");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][1], "");
@@ -222,10 +222,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet[1].y, 100);
 
             // check that two table rows were created
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[1].dataCells[1].val, "0.4");
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[2].dataCells[1].val, "1");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[1].dataCells[1].val, "0.4");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[2].dataCells[1].val, "1");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data.length, 3);
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][0], "0.4");
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][1], "0.4");
@@ -233,11 +233,11 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][1], "1");
 
             // check that the annotation was bound to the line
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].timeCell.getValue(), 0.4);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[0].dataCell.getValue(), "0.4");
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[1].timeCell.getValue(), 1);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData()[1].dataCell.getValue(), "1");
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].dataCell.getValue(), "0.4");
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].timeCell.getValue(), 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].dataCell.getValue(), "1");
 
 
             // move the warp binding
@@ -249,9 +249,9 @@ describe('Test Main - Integration Test', function () {
             dragStart({ x: 120, y: 100 }, d);
             drag({ x: 150, y: 110 }, d);
             dragEnd({ x: 150, y: 110 }, d);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
 
             // check that comments moved
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -265,22 +265,22 @@ describe('Test Main - Integration Test', function () {
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
             IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[1].linePercent, 0.7);
-            expect(integrationEnv.ModelController.getAllWarpBindingData()[1].timeCell.getValue()).to.be.closeTo(0.7, 0.0000001);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].linePercent, 0.7);
+            expect(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].timeCell.getValue()).to.be.closeTo(0.7, 0.0000001);
 
             // update the time cells
             // check the table is what we expect it to be
             expect(integrationEnv.enviromentVariables.handsontables[0].init.data).to.eql([['0.4', ''], ['0.4', '0.4'], ['1', '1'], ['0.7', '']])
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([[0, 0, "0.4", "0.2"]])
 
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
 
             // check the the comment moved
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -300,8 +300,8 @@ describe('Test Main - Integration Test', function () {
 
             // draw a line
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -309,11 +309,11 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickLine({ x: 200, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 120, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
             // check that three table rows were created
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // get the drag functions
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -325,7 +325,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
 
             // drag the comment
             onCommentDragStart({ x: 130, y: 110 }, annotationSet[2]);
@@ -333,15 +333,15 @@ describe('Test Main - Integration Test', function () {
             onCommentDragEnd({ x: 140, y: 130 }, annotationSet[2]);
 
             // check that there are still three table rows
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // check that a binding was created for the annotation row
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].rowId, annotationSet[2].binding.rowId);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].linePercent, 0.4);
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].rowId, annotationSet[2].binding.rowId);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
 
             // check that the comment is where it's expect to be
             assert.equal(annotationSet[2].x, 140);
@@ -355,8 +355,8 @@ describe('Test Main - Integration Test', function () {
 
             // draw a line
             IntegrationUtils.drawLine([{ x: 100, y: 200 }, { x: 150, y: 150 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -364,11 +364,11 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickLine({ x: 200, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 120, y: 180 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
             // check that three table rows were created
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // get the drag functions
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -383,7 +383,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getAllWarpBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
 
             // drag the comment
             onCommentDragStart({ x: 130, y: 190 }, annotationSet[2]);
@@ -391,8 +391,8 @@ describe('Test Main - Integration Test', function () {
             onCommentDragEnd({ x: 150, y: 170 }, annotationSet[2]);
 
             // check that there are still three table rows
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // check that the offset is what it's expect to be
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -407,15 +407,15 @@ describe('Test Main - Integration Test', function () {
         it('should correctly add end warp points', function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 0, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 100, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 5, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 50, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 95, y: 10 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 0, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 5, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 50, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 95, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.erase([
@@ -424,16 +424,16 @@ describe('Test Main - Integration Test', function () {
                 { x: 70, y: 100 },
                 { x: 70, y: 10 }], 10, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 3);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[1].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[2].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[2].warpBindings.length, 1);
 
-            let id1 = integrationEnv.ModelController.getAllTimelines()[0].id;
-            let id2 = integrationEnv.ModelController.getAllTimelines()[1].id;
-            let id3 = integrationEnv.ModelController.getAllTimelines()[2].id;
+            let id1 = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            let id2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
+            let id3 = integrationEnv.ModelController.getModel().getAllTimelines()[2].id;
 
-            let warpBindingData = integrationEnv.ModelController.getAllWarpBindingData();
+            let warpBindingData = integrationEnv.ModelController.getModel().getAllWarpBindingData();
             expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.05, 0.50, 0.95]);
             expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id3]);
             expect(warpBindingData.map(wbd => Math.round(wbd.linePercent * 100) / 100)).to.eql([0.25, 0.5, 0.75]);
@@ -453,12 +453,12 @@ describe('Test Main - Integration Test', function () {
                 { x: 10, y: 105 }
             ];
             IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
             integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 3);
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
 
             integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
@@ -473,17 +473,17 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 5, 2]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 12);
-            expect(integrationEnv.ModelController.getAllCellBindingData().map(cbd => Math.round(cbd.linePercent * 100) / 100).sort())
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 12);
+            expect(integrationEnv.ModelController.getModel().getAllCellBindingData().map(cbd => Math.round(cbd.linePercent * 100) / 100).sort())
                 .to.eql([0, 0, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
 
             // this erases a chunk between .26 and .32 percent of the line
             IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 10);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);
         })
     })
     describe('Data Highlight test', function () {
@@ -501,7 +501,7 @@ describe('Test Main - Integration Test', function () {
                 { x: 10, y: 105 }
             ];
             IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
@@ -518,14 +518,14 @@ describe('Test Main - Integration Test', function () {
 
             integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 3, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 4);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
-            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getAllTimelines()[0].id);
+            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
             timeLineTargets.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
 
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
             let renderer = integrationEnv.enviromentVariables.handsontables[0].init.cells().renderer;
 

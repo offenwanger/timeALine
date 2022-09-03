@@ -233,8 +233,8 @@ describe('Integration Test IronController', function () {
                 { x: 150, y: 100 },
             ];
             IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
-            let beforePoints = integrationEnv.ModelController.getAllTimelines()[0].points;
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            let beforePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
             assert.equal(beforePoints.length, 6, "line not drawn");
 
             let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
@@ -247,8 +247,8 @@ describe('Integration Test IronController', function () {
             ironEnd({ x: 300, y: 320 });
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
 
-            expect(integrationEnv.ModelController.getAllTimelines()[0].points).to.not.eql(beforePoints);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].points.length, 7);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].points).to.not.eql(beforePoints);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 7);
         });
     })
 });

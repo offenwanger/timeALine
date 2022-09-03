@@ -1,6 +1,5 @@
 function ModelController() {
-    let mTimelines = [];
-    let mDataTables = [];
+    let mModel = new DataStructs.DataModel();
 
     let mUndoStack = [];
     let mRedoStack = [];
@@ -11,7 +10,7 @@ function ModelController() {
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
         let timeline = new DataStructs.Timeline(points.map(p => Object.assign({}, p)));
-        mTimelines.push(timeline);
+        mModel.getAllTimelines().push(timeline);
 
         return timeline;
     }
@@ -19,7 +18,7 @@ function ModelController() {
     function extendTimeline(timelineId, points, extendStart) {
         undoStackPush();
 
-        let timeline = getTimelineById(timelineId);
+        let timeline = mModel.getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.points);
 
         // knock off the first point cuz it's probably pretty close. 
@@ -47,8 +46,8 @@ function ModelController() {
     function mergeTimeline(timelineIdStart, timelineIdEnd, points) {
         undoStackPush();
 
-        let startTimeline = getTimelineById(timelineIdStart);
-        let endTimeline = getTimelineById(timelineIdEnd);
+        let startTimeline = mModel.getTimelineById(timelineIdStart);
+        let endTimeline = mModel.getTimelineById(timelineIdEnd);
 
         let originalStartLength = PathMath.getPathLength(startTimeline.points);
         let originalEndLength = PathMath.getPathLength(endTimeline.points);
@@ -63,8 +62,8 @@ function ModelController() {
         let newTimeline = new DataStructs.Timeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
 
-        mTimelines = mTimelines.filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd);
-        mTimelines.push(newTimeline);
+        mModel.setTimelines(mModel.getAllTimelines().filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd));
+        mModel.getAllTimelines().push(newTimeline);
 
         // Update warp binding line percents
         let conversionRatio = originalStartLength / newLength;
@@ -81,7 +80,7 @@ function ModelController() {
         newTimeline.warpBindings = startTimeline.warpBindings.concat(endTimeline.warpBindings);
         newTimeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; })
         let bindingCheck = newTimeline.warpBindings.map(b => {
-            let timeCell = getTableById(b.tableId).getRow(b.rowId).getCell(getTimeColumn(b.tableId).id);
+            let timeCell = mModel.getTableById(b.tableId).getRow(b.rowId).getCell(mModel.getTimeColumnByTableId(b.tableId).id);
             return {
                 rowId: b.rowId,
                 val: timeCell.getValue(),
@@ -123,7 +122,7 @@ function ModelController() {
     function deleteTimeline(timelineId) {
         undoStackPush();
 
-        mTimelines = mTimelines.filter(t => t.id != timelineId);
+        mModel.setTimelines(mModel.getAllTimelines().filter(t => t.id != timelineId));
     }
 
     function breakTimeline(timelineId, segments) {
@@ -131,7 +130,7 @@ function ModelController() {
 
         if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
-        let timeline = getTimelineById(timelineId);
+        let timeline = mModel.getTimelineById(timelineId);
 
         // assign the segments their correct line percents:
         let totalLength = PathMath.getPathLength(timeline.points);
@@ -151,7 +150,7 @@ function ModelController() {
 
         // split up the warp bindings into their proper segments
         segments.forEach(s => s.warpBindingsData = []);
-        let warpBindingData = getWarpBindingData(timeline.id);
+        let warpBindingData = mModel.getWarpBindingData(timeline.id);
         warpBindingData.forEach(binding => {
             let segment = segments.find(s => s.startPercent <= binding.linePercent &&
                 binding.linePercent <= s.endPercent);
@@ -161,7 +160,7 @@ function ModelController() {
 
         // split up the cell bindings into their proper segments
         segments.forEach(s => s.cellBindingsData = []);
-        let cellBindingData = getCellBindingData(timeline.id);
+        let cellBindingData = mModel.getCellBindingData(timeline.id);
         cellBindingData.forEach(binding => {
             let segment = segments.find(s => s.startPercent <= binding.linePercent &&
                 binding.linePercent <= s.endPercent);
@@ -194,8 +193,8 @@ function ModelController() {
             return newTimeline;
         })
 
-        mTimelines = mTimelines.filter(t => t.id != timelineId);
-        mTimelines.push(...newTimelines);
+        mModel.setTimelines(mModel.getAllTimelines().filter(t => t.id != timelineId));
+        mModel.getAllTimelines().push(...newTimelines);
     }
 
     //// Break Utils ////
@@ -236,7 +235,7 @@ function ModelController() {
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
         undoStackPush();
 
-        let timeline = getTimelineById(timelineId);
+        let timeline = mModel.getTimelineById(timelineId);
 
         timeline.points = PathMath.mergeSegments(newSegments);
 
@@ -274,34 +273,34 @@ function ModelController() {
     function addBoundTextRow(text, timeBinding, timelineId) {
         undoStackPush();
 
-        if (mDataTables.length == 0) {
+        if (mModel.getAllTables().length == 0) {
             let newTable = new DataStructs.DataTable([
                 new DataStructs.DataColumn("Time", 0),
                 new DataStructs.DataColumn("", 1),
             ]);
-            mDataTables.push(newTable);
+            mModel.getAllTables().push(newTable);
         }
 
         let newRow = new DataStructs.DataRow();
-        newRow.index = mDataTables[0].dataRows.length;
-        mDataTables[0].dataRows.push(newRow);
+        newRow.index = mModel.getAllTables()[0].dataRows.length;
+        mModel.getAllTables()[0].dataRows.push(newRow);
 
-        let timeColId = mDataTables[0].dataColumns.find(col => col.index == 0).id;
+        let timeColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 0).id;
         let timeCell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, timeBinding, timeColId)
         newRow.dataCells.push(timeCell);
 
-        let nextColId = mDataTables[0].dataColumns.find(col => col.index == 1).id;
+        let nextColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 1).id;
         let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId, { x: 10, y: 10 })
         newRow.dataCells.push(textCell);
 
-        for (let i = 2; i < mDataTables[0].dataColumns.length; i++) {
-            let colId = mDataTables[0].dataColumns.find(col => col.index == i).id;
+        for (let i = 2; i < mModel.getAllTables()[0].dataColumns.length; i++) {
+            let colId = mModel.getAllTables()[0].dataColumns.find(col => col.index == i).id;
             let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
             newRow.dataCells.push(cell);
         }
 
-        let newBinding = new DataStructs.CellBinding(mDataTables[0].id, newRow.id, nextColId, textCell.id);
-        getTimelineById(timelineId).cellBindings.push(newBinding);
+        let newBinding = new DataStructs.CellBinding(mModel.getAllTables()[0].id, newRow.id, nextColId, textCell.id);
+        mModel.getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
     function addOrUpdateWarpBinding(timelineId, alteredBindingData) {
@@ -309,11 +308,11 @@ function ModelController() {
 
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
 
-        let timeline = getTimelineById(timelineId);
+        let timeline = mModel.getTimelineById(timelineId);
 
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        let warpBindingData = getAllWarpBindingData().filter(wbd => wbd.timelineId == timelineId);
+        let warpBindingData = mModel.getAllWarpBindingData().filter(wbd => wbd.timelineId == timelineId);
         let validIds = WarpBindingUtil.filterValidWarpBindingIds(warpBindingData, alteredBindingData);
         timeline.warpBindings = timeline.warpBindings.filter(wb => validIds.includes(wb.id));
         if (!alteredBindingData.warpBindingId) {
@@ -332,62 +331,50 @@ function ModelController() {
 
         if ((typeof time == "number" && isNaN(time))) throw new Error("Invalid time!")
 
-        if (mDataTables.length == 0) {
+        if (mModel.getAllTables().length == 0) {
             let newTable = new DataStructs.DataTable([
                 new DataStructs.DataColumn("Time", 0),
                 new DataStructs.DataColumn("", 1),
             ]);
-            mDataTables.push(newTable);
+            mModel.getAllTables().push(newTable);
         }
 
         let newRow = new DataStructs.DataRow();
-        newRow.index = mDataTables[0].dataRows.length;
-        mDataTables[0].dataRows.push(newRow);
+        newRow.index = mModel.getAllTables()[0].dataRows.length;
+        mModel.getAllTables()[0].dataRows.push(newRow);
 
-        let timeColId = mDataTables[0].dataColumns.find(col => col.index == 0).id;
+        let timeColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 0).id;
         let timeCell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, time, timeColId)
         newRow.dataCells.push(timeCell);
 
-        for (let i = 1; i < mDataTables[0].dataColumns.length; i++) {
-            let colId = mDataTables[0].dataColumns.find(col => col.index == i).id;
+        for (let i = 1; i < mModel.getAllTables()[0].dataColumns.length; i++) {
+            let colId = mModel.getAllTables()[0].dataColumns.find(col => col.index == i).id;
             let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
             newRow.dataCells.push(cell);
         }
 
-        return { tableId: mDataTables[0].id, rowId: newRow.id, timeCell };
+        return { tableId: mModel.getAllTables()[0].id, rowId: newRow.id, timeCell };
     }
 
     function updateText(cellId, text) {
         undoStackPush();
 
-        let cell = getCellById(cellId);
+        let cell = mModel.getCellById(cellId);
         cell.val = text;
     }
 
     function updateTextOffset(cellId, offset) {
         undoStackPush();
 
-        let cell = getCellById(cellId);
+        let cell = mModel.getCellById(cellId);
         cell.offset = offset;
-    }
-
-    function getCellById(cellId) {
-        return mDataTables.map(t => t.dataRows.map(r => r.dataCells)).flat(3).find(cell => cell.id == cellId);
-    }
-
-    function getTimelineById(id) {
-        return mTimelines.find(t => t.id == id);
-    }
-
-    function getTableById(id) {
-        return mDataTables.find(t => t.id == id);
     }
 
     function addTable(table) {
         undoStackPush();
 
         // TODO validate table.
-        mDataTables.push(table.copy());
+        mModel.getAllTables().push(table.copy());
     }
 
     function addTableFromCSV(array2d) {
@@ -434,11 +421,11 @@ function ModelController() {
         // sanitize the table to prevent data leaks
         table = table.copy();
 
-        let index = mDataTables.findIndex(t => t.id == table.id);
-        mDataTables[index] = table;
+        let index = mModel.getAllTables().findIndex(t => t.id == table.id);
+        mModel.getAllTables()[index] = table;
 
         if (change == TableChange.DELETE_ROWS) {
-            mTimelines.forEach(timeLine => {
+            mModel.getAllTimelines().forEach(timeLine => {
                 let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.rowId));
                 if (deleteBindings) {
                     // delete cell bindings for those rows
@@ -447,7 +434,7 @@ function ModelController() {
                 }
             })
         } else if (change == TableChange.DELETE_COLUMNS) {
-            mTimelines.forEach(timeLine => {
+            mModel.getAllTimelines().forEach(timeLine => {
                 let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.columnId));
                 if (deleteBindings) {
                     // delete cell bindings for those columns
@@ -457,7 +444,7 @@ function ModelController() {
                 }
             })
         } else if (change == TableChange.UPDATE_CELLS) {
-            mTimelines.forEach(timeLine => {
+            mModel.getAllTimelines().forEach(timeLine => {
                 let wasChanged = timeLine.cellBindings.some(b => changeData.includes(b.cellId));
                 if (wasChanged) {
                     updateAndDeleteAxis(timeLine);
@@ -470,7 +457,7 @@ function ModelController() {
     function updateAndDeleteAxis(timeLine) {
         // update axis
         let deleteAxis = [];
-        let bindingAndCells = timeLine.cellBindings.map(cb => { return { binding: cb, cell: getCellFromBinding(cb).cell }; });
+        let bindingAndCells = timeLine.cellBindings.map(cb => { return { binding: cb, cell: mModel.getCellsFromBinding(cb).cell }; });
         timeLine.axisBindings.forEach(axis => {
             let cells = bindingAndCells.filter(bAndC => bAndC.binding.columnId == axis.columnId && bAndC.cell.getType() == DataTypes.NUM);
             if (cells.length > 1) {
@@ -491,8 +478,8 @@ function ModelController() {
     function bindCells(lineId, cellBindings) {
         undoStackPush();
 
-        let timeline = getTimelineById(lineId);
-        let filteredBindings = cellBindings.filter(binding => binding.columnId != getTimeColumn(binding.tableId).id);
+        let timeline = mModel.getTimelineById(lineId);
+        let filteredBindings = cellBindings.filter(binding => binding.columnId != mModel.getTimeColumnByTableId(binding.tableId).id);
         timeline.cellBindings.push(...filteredBindings);
         // clear out duplicates
         timeline.cellBindings = DataUtil.getUniqueList(timeline.cellBindings, "cellId");
@@ -503,7 +490,7 @@ function ModelController() {
         let columnsIds = DataUtil.getUniqueList(timeline.cellBindings.map(c => c.columnId));
         columnsIds.forEach(columnId => {
             let tableId = timeline.cellBindings.find(binding => binding.columnId == columnId).tableId;
-            let table = getTableById(tableId);
+            let table = mModel.getTableById(tableId);
             let rowIds = timeline.cellBindings.filter(binding => binding.columnId == columnId).map(b => b.rowId);
             let rows = rowIds.map(rowId => table.getRow(rowId));
             let cells = rows.map(row => row.getCell(columnId));
@@ -531,7 +518,7 @@ function ModelController() {
     function updateAxisDist(axisId, oneOrTwo, dist) {
         undoStackPush();
 
-        let axis = getAxisById(axisId);
+        let axis = mModel.getAxisById(axisId);
 
         if (!axis) throw Error("Invalid axis id: " + axisId);
         if (oneOrTwo == 1) {
@@ -541,441 +528,44 @@ function ModelController() {
         }
     }
 
-    function getAxisById(axisId) {
-        return mTimelines.map(t => t.axisBindings).flat().find(b => b.id == axisId);
-    }
-
-    function getCellFromBinding(binding) {
-        let table = getTableById(binding.tableId);
-        let timeColId = table.dataColumns.find(col => col.index == 0).id;
-        let row = table.getRow(binding.rowId);
-        let cell = row.getCell(binding.columnId);
-        let timeCell = row.getCell(timeColId);
-
-        return {
-            timeCell,
-            cell,
-        }
-    }
-
-    function mapTimeToLinePercent(timelineId, type, timeVal) {
-        if (type == DataTypes.TEXT) {
-            let bindingArray = getAllWarpBindingData().filter(wbd => wbd.timeCell.getType() == DataTypes.TEXT);
-            let binding = bindingArray.find(b => DataUtil.AEqualsB(b.timeCell.getValue(), timeVal, type));
-            return binding ? binding.linePercent : 0;
-        }
-
-        if (type != DataTypes.TIME_BINDING && type != DataTypes.NUM) throw new Error("Unhandled type: " + type);
-
-        let { start, end } = inferEndPoints(timelineId, type);
-        let bindingArray = getBindingArray(timelineId, type);
-
-        if (DataUtil.AGreaterThanB(start, timeVal, type)) {
-            return 0;
-        } else if (DataUtil.AGreaterThanB(timeVal, end, type)) {
-            return 1;
-        } else if (bindingArray.length == 0) {
-            return DataUtil.percentBetween(start, end, timeVal, type);
-        } else {
-            return mapBindingArrayInterval(bindingArray, timeVal,
-                "time", type,
-                "linePercent", DataTypes.NUM);
-        }
-
-    }
-
-    function mapLinePercentToTime(timelineId, type, linePercent) {
-        // can only be done if there are at least two reference points, or is num. 
-        if (type != DataTypes.TIME_BINDING && type != DataTypes.NUM) throw new DataTypeError("Unhandled type: " + type);
-        if (type == DataTypes.TIME_BINDING && !hasTimeMapping(timelineId)) throw new ModelStateError("Insufficient data to get time of type: " + type);
-
-        let bindingArray = getBindingArray(timelineId, type);
-
-        if (bindingArray.length == 0) {
-            let { start, end } = inferEndPoints(timelineId, type);
-            let timeAlongLine = DataUtil.subtractAFromB(start, end, type) * linePercent;
-            return DataUtil.incrementAByB(start, timeAlongLine, type);
-        } else {
-            return mapBindingArrayInterval(bindingArray, linePercent, "linePercent", DataTypes.NUM, "time", type);
-        }
-    }
-
-    function getBindingArray(timelineId, type) {
-        let { start, end } = inferEndPoints(timelineId, type);
-        let bindingArray = getAllWarpBindingData().filter(b =>
-            b.timelineId == timelineId && b.timeCell.getType() == type);
-        bindingArray.sort((a, b) => DataUtil.AGreaterThanB(a.timeCell.getValue(), b.timeCell.getValue(), type) ? 1 : -1);
-        bindingArray = bindingArray.map(b => { return { linePercent: b.linePercent, time: b.timeCell.getValue() } })
-
-        if (bindingArray.length > 0) {
-            // add caps
-            if (bindingArray[0].linePercent > 0) {
-                bindingArray.push({ linePercent: 0, time: start });
-            }
-            if (bindingArray[bindingArray.length - 1].linePercent < 1) {
-                bindingArray.push({ linePercent: 1, time: end });
-            }
-        }
-        bindingArray.sort((a, b) => a.linePercent - b.linePercent);
-
-        return bindingArray;
-    }
-
-    function mapBindingArrayInterval(bindingArray, value, fromKey, fromType, toKey, toType) {
-        if (bindingArray.length < 2) throw new ModelStateError("Insufficent bindings for mapping!");
-        if (DataUtil.AGreaterThanB(bindingArray[0][fromKey], value, fromType)) throw new Error("Value is outside binding range! Value:" + value + " Lower bound: " + bindingArray[0][fromKey]);
-        if (DataUtil.AGreaterThanB(value, bindingArray[bindingArray.length - 1][fromKey], fromType)) throw new Error("Value is outside binding range! Value:" + value + " Upper bound: " + bindingArray[0][fromKey]);
-
-        // find the correct interval
-        for (let i = 1; i < bindingArray.length; i++) {
-            let bindingFromVal = bindingArray[i][fromKey];
-            let prevBindingFromVal = bindingArray[i - 1][fromKey];
-
-            let isBetween = DataUtil.AGreaterThanB(bindingFromVal, value, fromType) &&
-                DataUtil.AGreaterThanB(value, prevBindingFromVal, fromType);
-            isBetween = isBetween || DataUtil.AEqualsB(value, bindingFromVal, fromType) ||
-                DataUtil.AEqualsB(value, prevBindingFromVal, fromType);
-
-            if (isBetween) {
-                let bindingToVal = bindingArray[i][toKey];
-                let prevBindingToVal = bindingArray[i - 1][toKey];
-
-                let fromPercentBetween = DataUtil.percentBetween(prevBindingFromVal, bindingFromVal, value, fromType);
-                let toDiff = DataUtil.subtractAFromB(prevBindingToVal, bindingToVal, toType);
-
-                return DataUtil.incrementAByB(prevBindingToVal, fromPercentBetween * toDiff, toType);
-            }
-        }
-
-        console.error("Unhandle mapping edge case!", value, fromKey, fromType, toKey, toType, bindingArray);
-        return 0;
-
-    }
-
-    function getWarpBindingData(timelineId) {
-        let returnable = [];
-        let timeline = getTimelineById(timelineId);
-        timeline.warpBindings.forEach(warpBinding => {
-            let row = getTableRow(warpBinding.tableId, warpBinding.rowId);
-            if (!row) { console.error("Invalid warp binding! No row!"); return; }
-
-            let timeCell = row.getCell(getTimeColumn(warpBinding.tableId).id);
-            if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
-
-            returnable.push(new DataStructs.WarpBindingData(timeline.id, warpBinding.id,
-                warpBinding.tableId, warpBinding.rowId, timeCell, warpBinding.linePercent));
-        })
-        return returnable;
-    }
-
-    function getAllWarpBindingData() {
-        return mTimelines.map(timeline => getWarpBindingData(timeline.id)).flat();
-    }
-
-    function getCellBindingData(timelineId) {
-        let timeline = getTimelineById(timelineId);
-        let returnable = [];
-        timeline.cellBindings.forEach(cellBinding => {
-            let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
-            if (!row) { breakhere; console.error("Invalid cell binding! No row!"); return; }
-
-            let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
-            if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
-
-            let dataCell = row.getCell(cellBinding.columnId);
-            if (!dataCell) { console.error("Failed to get cell for column"); return; }
-            if (dataCell.id != cellBinding.cellId) throw new ModelStateError("Got the wrong cell!");
-
-            let linePercent;
-            // first check if there's a warp binding for this row
-            if (timeline.warpBindings.find(b => b.rowId == row.id)) {
-                linePercent = timeline.warpBindings.find(b => b.rowId == row.id).linePercent;
-            } else if (timeCell.getType() == DataTypes.TEXT) {
-                linePercent = 0;
-            } else {
-                try {
-                    linePercent = mapTimeToLinePercent(timeline.id, timeCell.getType(), timeCell.getValue());
-                } catch (e) {
-                    if (e.name == "ModelStateError" && timeline.cellBindings.length == 1 && timeCell.getType() == DataTypes.TIME_BINDING) {
-                        linePercent = 0;
-                    } else {
-                        console.error(e);
-                        return;
-                    }
-                }
-            }
-            let axis = timeline.axisBindings.find(a => a.columnId == cellBinding.columnId);
-
-            returnable.push(new DataStructs.CellBindingData(
-                timeline.id,
-                cellBinding.id,
-                cellBinding.tableId,
-                cellBinding.rowId,
-                timeCell,
-                dataCell,
-                linePercent,
-                axis ? axis : null));
-        })
-        return returnable;
-    }
-
-    function getAllCellBindingData() {
-        return mTimelines.map(timeline => getCellBindingData(timeline.id)).flat();
-    }
-
     /****
      * Utility
      */
 
-    function getTableRow(tableId, rowId) {
-        return getTableById(tableId).getRow(rowId);
-    }
-
-    function getTimeColumn(tableId) {
-        return getTableById(tableId).dataColumns.find(col => col.index == 0);
-    }
-
-    function inferEndPoints(timelineId, type) {
-        let timeline = getTimelineById(timelineId);
-        if (!timeline) throw new Error("Invalid timeline id: " + timelineId)
-
-        let warpBindingsData = getAllWarpBindingData().filter(b =>
-            b.timelineId == timelineId && b.timeCell.getType() == type);
-        warpBindingsData.sort((a, b) => DataUtil.AGreaterThanB(a.timeCell.getValue(), b.timeCell.getValue(), type) ? 1 : -1);
-
-
-        let boundCellData = getBoundTimeValues(timelineId, type);
-        let warpBindingValues = warpBindingsData.map(wbd => wbd.timeCell.getValue());
-        boundCellData = boundCellData.filter(b => !warpBindingValues.includes(b));
-
-        function inferStart(firstVal, nextVal, firstPercent, nextPercent) {
-            let ratio = DataUtil.subtractAFromB(firstVal, nextVal, type) / (nextPercent - firstPercent)
-            let timeVal = ratio * firstPercent;
-            return DataUtil.incrementAByB(firstVal, -timeVal, type);
-        }
-
-        function inferEnd(lastVal, prevVal, lastPercent, prevPercent) {
-            let ratio = DataUtil.subtractAFromB(prevVal, lastVal, type) / (lastPercent - prevPercent)
-            let timeVal = ratio * (1 - lastPercent);
-            return DataUtil.incrementAByB(lastVal, timeVal, type);
-        }
-
-        // handle the one or less reference points edge cases
-        if (boundCellData.length + warpBindingsData.length < 2) {
-            if (type != DataTypes.NUM) throw new ModelStateError("Not enough data to caluclate end points!");
-
-            if (boundCellData.length == 0 && warpBindingsData.length == 0) {
-                // if there are utterly no references
-                return { start: 0, end: 1 }
-            } if (boundCellData.length == 1 && warpBindingsData.length == 0) {
-                // if there is one data reference
-                let val = boundCellData[0];
-                if (val > 0) {
-                    return { start: 0, end: val }
-                } else {
-                    return { start: val, end: 1 }
-                }
-            } else if (boundCellData.length == 0 && warpBindingsData.length == 1) {
-                let val = warpBindingsData[0].timeCell.getValue();
-                if (warpBindingsData[0].linePercent <= 0.0001) {
-                    return { start: warpBindingsData[0].timeCell.getValue(), end: warpBindingsData[0].timeCell.getValue() + 1 }
-                } else if (warpBindingsData[0].linePercent >= 0.999) {
-                    return { start: warpBindingsData[0].timeCell.getValue() - 1, end: warpBindingsData[0].timeCell.getValue() }
-                } else if (val > 0) {
-                    return { start: 0, end: inferEnd(val, 0, warpBindingsData[0].linePercent, 0) }
-                } else if (val < 0) {
-                    return { start: inferStart(val, 1, warpBindingsData[0].linePercent, 1), end: 1 }
-                } else throw new Error("Code should be unreachable!");
-            } else throw new Error("Code should be unreachable!");
-        }
-
-        // infer the start and end (or just use the bound data)
-        let start, end;
-        if (boundCellData.length > 0 &&
-            (warpBindingsData.length == 0 || DataUtil.AGreaterThanB(warpBindingsData[0].timeCell.getValue(), boundCellData[0], type))) {
-            // the lowest point is bound data, all good. 
-            start = boundCellData[0];
-        } else if (warpBindingsData[0].linePercent <= 0.001) {
-            start = warpBindingsData[0].timeCell.getValue();
-        } else {
-            // we need to infer the lowest point. It wasn't boundCellData, so there must be a warpBinding
-            let firstVal = warpBindingsData[0].timeCell.getValue();
-            let firstPercent = warpBindingsData[0].linePercent;
-            if (warpBindingsData.length >= 2) {
-                // if there is another warp binding, we use it as it will either be the closet point 
-                // or determining the position of the closest point. 
-                let nextVal = warpBindingsData[1].timeCell.getValue();
-                let nextPercent = warpBindingsData[1].linePercent;
-                start = inferStart(firstVal, nextVal, firstPercent, nextPercent);
-            } else {
-                // there must be at least one cell after this, and the last of the cells will be the end point, use that.
-                start = inferStart(firstVal, boundCellData[boundCellData.length - 1], warpBindingsData[0].linePercent, 1);
-            }
-
-        }
-
-        if (boundCellData.length > 0 &&
-            (warpBindingsData.length == 0 ||
-                DataUtil.AGreaterThanB(
-                    boundCellData[boundCellData.length - 1],
-                    warpBindingsData[warpBindingsData.length - 1].timeCell.getValue(),
-                    type))) {
-            // the highest point is bound data, all good. 
-            end = boundCellData[boundCellData.length - 1];
-        } else if (warpBindingsData[warpBindingsData.length - 1].linePercent >= 0.999) {
-            end = warpBindingsData[warpBindingsData.length - 1].timeCell.getValue();
-        } else {
-            // we need to infer the highest point. It wasn't boundCellData, so there must be a warpBinding
-            let lastVal = warpBindingsData[warpBindingsData.length - 1].timeCell.getValue();
-            let lastPercent = warpBindingsData[warpBindingsData.length - 1].linePercent;
-            if (warpBindingsData.length >= 2) {
-                // if there is another warp binding, we use it as it will either be the closet point 
-                // or determining the position of the closest point. 
-                let prevVal = warpBindingsData[warpBindingsData.length - 2].timeCell.getValue();
-                let prevPercent = warpBindingsData[warpBindingsData.length - 2].linePercent;
-                end = inferEnd(lastVal, prevVal, lastPercent, prevPercent);
-            } else {
-                // there must be at least one cell before this, and the first of the cells will be the start point, use that.
-                end = inferEnd(lastVal, boundCellData[0], lastPercent, 0);
-            }
-        }
-
-        return { start, end }
-    }
-
-    function getMaxBoundTime(timelineId, type) {
-        let values = getTimelineById(timelineId).cellBindings
-            .map(b => getCellFromBinding(b).timeCell)
-            .filter(timeCell => timeCell.getType() == type)
-            .map(timeCell => timeCell.getValue());
-        if (values.length == 0) {
-            return null;
-        } else if (values.length == 1) {
-            return values[0]
-        } else if (type == DataTypes.NUM) {
-            return Math.max(...values);
-        } else if (type == DataTypes.TIME_BINDING) {
-            return values.reduce((max, val) => TimeBindingUtil.AGreaterThanB(val, max) ? val : max);
-        } else { console.error("cannot get max of " + type) };
-    }
-
-    function getMinBoundTime(timelineId, type) {
-        let values = getTimelineById(timelineId).cellBindings
-            .map(b => getCellFromBinding(b).timeCell)
-            .filter(timeCell => timeCell.getType() == type)
-            .map(timeCell => timeCell.getValue());
-        if (values.length == 0) {
-            return null;
-        } else if (values.length == 1) {
-            return values[0]
-        } else if (type == DataTypes.NUM) {
-            return Math.min(...values);
-        } else if (type == DataTypes.TIME_BINDING) {
-            return values.reduce((min, val) => TimeBindingUtil.AGreaterThanB(val, min) ? min : val);
-        } else { console.error("cannot get max of " + type) };
-    }
-
-    function hasTimeMapping(timelineId) {
-        let warpBindingsData = getTimelineById(timelineId).warpBindings
-            .filter(b => b.isValid)
-            .map(b => {
-                let cell = getTableRow(b.tableId, b.rowId).getCell(getTimeColumn(b.tableId).id)
-                return { linePercent: b.linePercent, val: cell.getValue(), type: cell.getType() }
-            })
-            .filter(result => result.type == DataTypes.TIME_BINDING);
-        // if we have two warp bindings, there's enough data
-        if (warpBindingsData.length >= 2) return true;
-
-        let max = getMaxBoundTime(timelineId, DataTypes.TIME_BINDING);
-        let min = getMinBoundTime(timelineId, DataTypes.TIME_BINDING);
-
-        // if we have no values, we do not have enough data.
-        if (max == null) return false;
-
-        // if we have two values, there's enough data
-        if (!TimeBindingUtil.AEqualsB(max, min)) return true;
-
-        // if we have only have one value, and no warp bindings, there is not enough data
-        if (warpBindingsData.length == 0) return false;
-
-        // if we have one warp and one data piece that are different, there is enough data
-        if (!TimeBindingUtil.AEqualsB(warpBindingsData[0].val, min)) return true;
-
-        // otherwise there isn't.
-        return false;
-    }
-
     function setModelFromObject(obj) {
         undoStackPush();
 
-        mTimelines = [];
-        mDataTables = [];
-        obj.timelines.forEach(timeline => mTimelines.push(DataStructs.Timeline.fromObject(timeline)))
-        obj.dataTables.forEach(table => mDataTables.push(DataStructs.DataTable.fromObject(table)))
+        mModel = new DataStructs.DataModel();
+        obj.timelines.forEach(timeline => mModel.getAllTimelines().push(DataStructs.Timeline.fromObject(timeline)))
+        obj.dataTables.forEach(table => mModel.getAllTables().push(DataStructs.DataTable.fromObject(table)))
+    }
+
+    function getModelAsObject() {
+        return {
+            timelines: mModel.getAllTimelines(),
+            dataTables: mModel.getAllTables()
+        }
     }
 
     function undo() {
         if (mUndoStack.length == 0) return false;
-        mRedoStack.push({
-            mTimelines: mTimelines.map(t => t.copy()),
-            mDataTables: mDataTables.map(t => t.copy())
-        });
-
-        let data = mUndoStack.pop();
-        mTimelines = data.mTimelines;
-        mDataTables = data.mDataTables;
+        // throws away our currently version, but will hide annoying errors for a bit...
+        mRedoStack.push(mModel.copy());
+        mModel = mUndoStack.pop();
 
         return true;
     }
 
     function redo() {
         if (mRedoStack.length == 0) return false;
-        mUndoStack.push({
-            mTimelines: mTimelines.map(t => t.copy()),
-            mDataTables: mDataTables.map(t => t.copy())
-        });
-
-        let data = mRedoStack.pop();
-        mTimelines = data.mTimelines;
-        mDataTables = data.mDataTables;
-
+        mUndoStack.push(mModel.copy());
+        mModel = mRedoStack.pop();
         return true;
     }
 
     function undoStackPush() {
         mRedoStack = [];
-        mUndoStack.push({
-            mTimelines: mTimelines.map(t => t.copy()),
-            mDataTables: mDataTables.map(t => t.copy())
-        });
-    }
-
-    /****
-     * Utility
-     */
-
-    function getBoundTimeValues(timelineId, timeType) {
-        let timeline = getTimelineById(timelineId);
-        if (!timeline) throw new Error("Bad timelineId: " + timelineId);
-
-        let returnable = [];
-        timeline.cellBindings.forEach(cellBinding => {
-            let row = getTableRow(cellBinding.tableId, cellBinding.rowId);
-            if (!row) { console.error("Invalid warp binding! No row!"); return; }
-
-            let timeCell = row.getCell(getTimeColumn(cellBinding.tableId).id);
-            if (!timeCell) { console.error("Bad table state! Failed to get time cell"); return; }
-
-            if (timeCell.getType() == timeType) {
-                returnable.push(timeCell.getValue());
-            }
-        })
-
-        if (timeType == DataTypes.NUM || timeType == DataTypes.TIME_BINDING) {
-            returnable.sort((a, b) => DataUtil.AGreaterThanB(a, b, timeType) ? 1 : -1);
-        }
-
-        return returnable;
+        mUndoStack.push(mModel.copy());
     }
 
     /****
@@ -989,22 +579,10 @@ function ModelController() {
     this.breakTimeline = breakTimeline;
     this.updateTimelinePoints = updateTimelinePoints;
 
-    this.getTimelineById = function (id) {
-        let timeline = getTimelineById(id);
-        return timeline ? timeline.copy() : timeline;
-    }
-
-    this.getAllTimelines = function () {
-        return mTimelines.map(t => t.copy());
-    };
-
     this.addTable = addTable;
     this.addTableFromCSV = addTableFromCSV;
     this.tableUpdated = tableUpdated;
     this.addTimeRow = addTimeRow
-    this.getAllTables = function () {
-        return mDataTables.map(t => t.copy());
-    };
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
@@ -1017,23 +595,10 @@ function ModelController() {
 
     this.addOrUpdateWarpBinding = addOrUpdateWarpBinding;
 
-    this.getWarpBindingData = getWarpBindingData;
-    this.getAllWarpBindingData = getAllWarpBindingData;
-    this.getCellBindingData = getCellBindingData;
-    this.getAllCellBindingData = getAllCellBindingData;
-
-    this.mapLinePercentToTime = mapLinePercentToTime;
-    this.mapTimeToLinePercent = mapTimeToLinePercent;
-    this.hasTimeMapping = hasTimeMapping;
-
-    this.getModel = function () {
-        return {
-            timelines: mTimelines.map(t => t.copy()),
-            dataTables: mDataTables.map(t => t.copy())
-        };
-    };
+    this.getModel = () => mModel.copy();
 
     this.setModelFromObject = setModelFromObject;
+    this.getModelAsObject = getModelAsObject;
 
     this.undo = undo;
     this.redo = redo;

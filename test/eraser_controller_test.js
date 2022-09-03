@@ -236,17 +236,17 @@ describe('Integration Test EraserController', function () {
                 { x: 10, y: 105 }
             ];
             IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
         });
 
         it('should erase whole line', function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }, { x: 120, y: 80 }], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.erase([
                 { x: 100, y: 100 },
@@ -254,7 +254,7 @@ describe('Integration Test EraserController', function () {
                 { x: 120, y: 90 },
                 { x: 120, y: 80 }], 10, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
         });
     })
 });

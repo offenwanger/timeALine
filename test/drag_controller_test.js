@@ -344,7 +344,7 @@ describe('Integration Test DragController', function () {
                 { x: 100, y: 100 },
                 { x: 200, y: 200 }
             ], integrationEnv.enviromentVariables);
-            assert.equal(integrationEnv.ModelController.getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             let data = integrationEnv.enviromentVariables.d3.selectors['.start-point'].innerData;
             assert.equal(data.length, 1, "data not set");
@@ -359,7 +359,7 @@ describe('Integration Test DragController', function () {
             dragEnd({ x: 150, y: 200 }, data[0]);
             IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
 
-            let linePoints = integrationEnv.ModelController.getAllTimelines()[0].points;
+            let linePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
             expect(linePoints[0]).to.eql({ x: 150, y: 200 });
             expect(linePoints[linePoints.length - 1]).to.eql({ x: 250, y: 300 });
         });

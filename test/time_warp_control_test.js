@@ -67,38 +67,38 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv.enviromentVariables);
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.dragLine([{ x: 150, y: 102 }], integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.dragLine([{ x: 125, y: 101 }], integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 150, y: 102 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 125, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
 
-            expect(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
         });
 
         it('should create and update a pin on drag', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.dragLine([{ x: 150, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv.enviromentVariables);
 
             // the timeline has the point set
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
 
             // the table was created and a row added
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // no data was bound
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
 
             // the tick was drawn
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
@@ -111,12 +111,12 @@ describe('Integration Test TimeWarpController', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
-            let timelineId = integrationEnv.ModelController.getAllTimelines()[0].id;
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
-            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getAllTimelines()[0].id);
+            let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
 
             let onLineDragStart = timeLineTargets.drag.start;
             let onLineDrag = timeLineTargets.drag.drag;
@@ -125,9 +125,9 @@ describe('Integration Test TimeWarpController', function () {
             onLineDragStart({ x: 150, y: 110 }, data)
 
             // the table was created and a row added
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // the tick was drawn
             assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId], "warp ticks were not set")
@@ -138,7 +138,7 @@ describe('Integration Test TimeWarpController', function () {
             assert.equal(bindingTickData.color, DataTypesColor[DataTypes.NUM], "color was not set properly");
 
             // the timeline not been updated yet
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
 
             onLineDrag({ x: 125, y: 110 }, data);
 
@@ -151,22 +151,22 @@ describe('Integration Test TimeWarpController', function () {
             expect(bindingTickData.position).to.eql({ x: 125, y: 100 });
 
             // the timeline not been updated yet
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
 
             onLineDragEnd({ x: 125, y: 110 }, data);
 
             // the timeline has been updated
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
 
             // the table was created and a row added
-            assert.equal(integrationEnv.ModelController.getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows.length, 1);
-            assert.equal(integrationEnv.ModelController.getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].val, "0.5");
 
             // no data was bound
-            assert.equal(integrationEnv.ModelController.getAllCellBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
         });
     })
 });

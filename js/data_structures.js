@@ -57,32 +57,6 @@ let DataStructs = function () {
         return binding;
     }
 
-    function CellBindingData(timelineId, cellBindingId, tableId, rowId, timeCell, dataCell, linePercent, axisBinding = null) {
-        this.timelineId = timelineId;
-        this.cellBindingId = cellBindingId;
-        this.tableId = tableId;
-        this.rowId = rowId;
-        this.timeCell = timeCell;
-        this.dataCell = dataCell;
-        this.linePercent = linePercent;
-        this.axisBinding = axisBinding;
-
-        // copy replicates the data without creating new objects.
-        this.copy = function () {
-            let b = new CellBindingData(
-                this.timelineId,
-                this.cellBindingId,
-                this.tableId,
-                this.rowId,
-                this.timeCell.copy(),
-                this.dataCell.copy(),
-                this.linePercent,
-                this.axisBinding
-            )
-            return b;
-        }
-    }
-
     function WarpBinding(tableId, rowId, linePercent, isValid = true) {
         this.id = getUniqueId();
         this.tableId = tableId;
@@ -104,15 +78,6 @@ let DataStructs = function () {
         let binding = new WarpBinding(obj.tableId, obj.rowId, obj.linePercent, obj.isValid);
         binding.id = obj.id;
         return binding;
-    }
-
-    function WarpBindingData(timelineId, warpBindingId, tableId, rowId, timeCell, linePercent) {
-        this.timelineId = timelineId;
-        this.warpBindingId = warpBindingId;
-        this.tableId = tableId;
-        this.rowId = rowId;
-        this.timeCell = timeCell;
-        this.linePercent = linePercent;
     }
 
     // These are only for number sets now, but if we get 
@@ -336,9 +301,6 @@ let DataStructs = function () {
         DataRow,
         DataCell,
         TimeBinding,
-        // utility data structs
-        CellBindingData,
-        WarpBindingData,
     }
 }();
 
