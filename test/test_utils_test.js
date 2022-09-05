@@ -23,7 +23,12 @@ before(function () {
                     return this;
                 } else return this.attrs[name];
             },
-            node: function () { return { outerHTML: "" }; },
+            node: function () {
+                return {
+                    outerHTML: "",
+                    getBoundingClientRect: () => { return { x: 0, y: 0 } },
+                };
+            },
         };
 
         function MockElement() {
@@ -84,11 +89,13 @@ before(function () {
             this.remove = () => { };
             this.innerData = null;
             this.data = function (data) { this.innerData = data; return this; };
+            this.datum = function (data) { if (data) { this.innerData = data; return this; } else return this.innerData };
             this.exit = function () { return this; };
             this.enter = function () { return this; };
             this.node = function () {
                 let node = Object.assign({}, fakeSVGPath);
                 node.d = this.attrs.d;
+                node.getBoundingClientRect = () => { return { x: 0, y: 0 } };
                 return node;
             };
             this.each = function (func) { };
@@ -269,10 +276,13 @@ before(function () {
 
         if (global.d3) throw new Error("Context leaks!")
 
+        returnable.documentCallbacks = [];
         global.document = Object.assign({
             addEventListener: function (event, callback) {
                 if (event == "DOMContentLoaded") {
                     returnable.mainInit = callback;
+                } else {
+                    returnable.documentCallbacks.push({ event, callback });
                 }
             }
         }, TestUtils.fakeDocument);
@@ -282,12 +292,14 @@ before(function () {
         let table_view_controller = rewire('../js/table_view_controller.js');
         let model_controller = rewire('../js/model_controller.js');
         let brush_controller = rewire('../js/brush_controller.js');
+        let color_brush_controller = rewire('../js/color_brush_controller.js');
         let eraser_controller = rewire('../js/eraser_controller.js');
         let drag_controller = rewire('../js/drag_controller.js');
         let iron_controller = rewire('../js/iron_controller.js');
         let line_drawing_controller = rewire('../js/line_drawing_controller.js');
         let drawer_controller = rewire('../js/drawer_controller.js');
         let lens_controller = rewire('../js/lens_controller.js');
+        let stroke_controller = rewire('../js/stroke_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
         let time_warp_controller = rewire('../js/time_warp_controller.js');
         let data_controller = rewire('../js/data_controller.js');
@@ -346,9 +358,11 @@ before(function () {
             DataViewController: data_controller.__get__("DataViewController"),
             AnnotationController: data_controller.__get__("AnnotationController"),
             BrushController: brush_controller.__get__("BrushController"),
+            ColorBrushController: color_brush_controller.__get__("ColorBrushController"),
             LineDrawingController: line_drawing_controller.__get__("LineDrawingController"),
             DrawerController: drawer_controller.__get__("DrawerController"),
             LensController: lens_controller.__get__("LensController"),
+            StrokeController: stroke_controller.__get__("StrokeController"),
             EraserController: eraser_controller.__get__("EraserController"),
             DragController: drag_controller.__get__("DragController"),
             IronController: iron_controller.__get__("IronController"),
@@ -421,6 +435,31 @@ before(function () {
         onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 });
 
         clickButton("#line-drawing-button", enviromentVariables.$);
+    }
+
+    function drawLensColorLine(points, integrationEnv) {
+        let enviromentVariables = integrationEnv.enviromentVariables;
+        assert('#color-drawing-g' in enviromentVariables.d3.selectors, "Color Drawing G not created!");
+        let colorDrawingG = enviromentVariables.d3.selectors['#color-drawing-g'];
+        let drawingRect = colorDrawingG.children.find(c => c.type == 'rect');
+
+        let onDragStart = drawingRect.eventCallbacks.pointerdown;
+        let onDrag = drawingRect.eventCallbacks.pointermove;
+        let onDragEnd = integrationEnv.documentCallbacks.filter(c => c.event == "pointerup").map(c => c.callback);
+
+        assert(onDragStart, "drawing DragStart not set");
+        assert(onDrag, "drawing Drag not set");
+        assert(onDragEnd, "drawing DragEnd not set");
+
+        clickButton("#color-brush-button", enviromentVariables.$);
+
+        onDragStart()
+        points.forEach(point => {
+            onDrag(point);
+        })
+        onDragEnd.forEach(callback => callback());
+
+        clickButton("#color-brush-button", enviromentVariables.$);
     }
 
     function clickButton(buttonId, fakeJQ) {
@@ -499,6 +538,7 @@ before(function () {
 
     IntegrationUtils = {
         drawLine,
+        drawLensColorLine,
         clickButton,
         clickLine,
         dragLine,

@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_COMMENT = "comment";
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
-    const MODE_COLOR = "color";
+    const MODE_COLOR_BRUSH = "colorBrush";
     const MODE_EYEDROPPER = "eyedropper";
+    const MODE_PAN = "pan";
     const MODE_LINK = "link";
 
     let mMode = MODE_DEFAULT;
@@ -125,6 +126,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let mLensController = new LensController(mLensSvg);
+
+    let mStrokeController = new StrokeController(mSvg);
 
     let mTimeWarpController = new TimeWarpController(mSvg);
     mTimeWarpController.setUpdateWarpBindingCallback((timelineId, warpBindingData) => {
@@ -254,6 +257,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
         updateAllControls();
     });
 
+    let mColorBrushController = new ColorBrushController(mSvg);
+    mColorBrushController.setDrawFinishedCallback((points, color) => {
+
+    })
+
+    let mLensColorBrushController = new ColorBrushController(mLensSvg);
+    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
+        let timelineId = mLensController.getCurrentTimelineId();
+        if (timelineId) {
+            let mappedPoints = mLensController.mapPointsToCurrentTimeline(points)
+            mModelController.addTimelineStroke(timelineId, mappedPoints, color);
+            modelUpdated();
+        }
+    })
 
     let mEraserController = new EraserController(mSvg, () => { return mModelController.getModel().getAllTimelines(); });
     mEraserController.setEraseCallback(lineData => {
@@ -314,11 +331,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDragController.linesUpdated(mModelController.getModel().getAllTimelines());
         mIronController.linesUpdated(mModelController.getModel().getAllTimelines());
 
+        mLensController.updateModel(mModelController.getModel());
+        mStrokeController.updateModel(mModelController.getModel());
+
         mDataTableController.addOrUpdateTables(mModelController.getModel().getAllTables());
 
         mDataController.drawData(mModelController.getModel().getAllTimelines(), mModelController.getModel().getAllCellBindingData());
 
         mTimeWarpController.addOrUpdateTimeControls(mModelController.getModel().getAllTimelines(), mModelController.getModel().getAllWarpBindingData());
+    }
+
+    function modelUpdated() {
+        mLensController.updateModel(mModelController.getModel());
+        mStrokeController.updateModel(mModelController.getModel());
     }
 
 
@@ -417,7 +442,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#upload-button").on("click", () => {
         FileHandler.getJSONModel().then(result => {
-            console.log("here")
             mModelController.setModelFromObject(result);
             updateAllControls();
         }).catch(err => {
@@ -496,13 +520,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
 
-    $("#color-button").on("click", () => {
-        if (mMode == MODE_COLOR) {
+    $("#color-brush-button").on("click", () => {
+        if (mMode == MODE_COLOR_BRUSH) {
             setDefaultMode()
         } else {
             clearMode()
-            mMode = MODE_COLOR;
-            showIndicator('#color-button', '#color-mode-indicator');
+            mMode = MODE_COLOR_BRUSH;
+            mColorBrushController.setActive(true);
+            mLensColorBrushController.setActive(true);
+            showIndicator('#color-brush-button', '#color-brush-mode-indicator');
         }
     })
 
@@ -516,6 +542,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
+    $("#panning-button").on("click", () => {
+        if (mMode == MODE_PAN) {
+            setDefaultMode()
+        } else {
+            clearMode()
+            mMode = MODE_PAN;
+            mLensController.setPanActive(true);
+            showIndicator('#panning-button', '#panning-mode-indicator');
+        }
+    })
 
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([
@@ -578,6 +614,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDragController.setActive(false);
         mIronController.setActive(false);
         mTimeWarpController.setActive(false);
+        mColorBrushController.setActive(false);
+        mLensColorBrushController.setActive(false);
+        mLensController.resetMode();
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
@@ -590,7 +629,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#color-picker-input').css('background-color', color);
         $('#color-picker-button').css('background-color', color);
         $('#color-bucket-button').css('background-color', color);
+        $('#color-bucket-mode-indicator').css('background-color', color);
         $('#color-brush-button').css('background-color', color);
+        $('#color-brush-mode-indicator').css('background-color', color);
+        mColorBrushController.setColor(color)
+        mLensColorBrushController.setColor(color)
         $.farbtastic('#color-picker-wrapper').setColor(color);
     }
 

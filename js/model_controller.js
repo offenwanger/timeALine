@@ -370,6 +370,10 @@ function ModelController() {
         cell.offset = offset;
     }
 
+    function addTimelineStroke(timelineId, points, color) {
+        mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color));
+    }
+
     function addTable(table) {
         undoStackPush();
 
@@ -588,6 +592,8 @@ function ModelController() {
     this.addBoundTextRow = addBoundTextRow;
     this.updateText = updateText;
     this.updateTextOffset = updateTextOffset;
+
+    this.addTimelineStroke = addTimelineStroke;
 
     this.bindCells = bindCells;
 

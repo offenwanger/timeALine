@@ -11,6 +11,7 @@ let DataStructs = function () {
         this.cellBindings = [];
         this.warpBindings = [];
         this.axisBindings = [];
+        this.annotationStrokes = [];
 
         this.copy = function () {
             let timeline = new Timeline();
@@ -21,6 +22,7 @@ let DataStructs = function () {
             timeline.cellBindings = this.cellBindings.map(b => b.copy());
             timeline.warpBindings = this.warpBindings.map(b => b.copy());
             timeline.axisBindings = this.axisBindings.map(b => b.copy());
+            timeline.annotationStrokes = this.annotationStrokes.map(b => b.copy());
             return timeline;
         }
     }
@@ -31,6 +33,7 @@ let DataStructs = function () {
         obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
         obj.warpBindings.forEach(b => timeline.warpBindings.push(WarpBinding.fromObject(b)));
         obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
+        obj.annotationStrokes.forEach(b => timeline.annotationStrokes.push(AxisBinding.fromObject(b)));
         return timeline;
     }
 
@@ -291,6 +294,47 @@ let DataStructs = function () {
         }
     }
 
+    function Stroke(points, color) {
+        if (!Array.isArray(points)) throw new Error("Invalid stroke array: " + points);
+
+        this.id = getUniqueId();
+        this.points = points;
+        this.color = color;
+
+        this.copy = function () {
+            let stroke = new Stroke(this.points.map(p => p.copy()), this.color);
+            stroke.id = this.id;
+            return stroke;
+        }
+
+        this.equals = function (otherStroke) {
+            if (this.id != otherStroke.id) return false;
+            if (this.points.length != otherStroke.points.length) return false;
+            if (this.color != otherStroke.color) return false;
+            for (let i = 0; i < this.points.length; i++) {
+                if (this.points[i].linePercent != otherStroke.points[i].linePercent) return false;
+                if (this.points[i].lineDist != otherStroke.points[i].lineDist) return false;
+            }
+            return true;
+        }
+    }
+    Stroke.fromObject = function (obj) {
+        let stroke = new Stroke(obj.points.map(p => StrokePoint.fromObject(p)), obj.color);
+        stroke.id = obj.id;
+        return stroke;
+    }
+
+    function StrokePoint(linePercent, lineDist) {
+        this.linePercent = linePercent;
+        this.lineDist = lineDist;
+        this.copy = function () {
+            return new StrokePoint(this.linePercent, this.lineDist);
+        }
+    }
+    StrokePoint.fromObject = function (obj) {
+        return new StrokePoint(obj.linePercent, obj.lineDist);
+    }
+
     return {
         Timeline,
         CellBinding,
@@ -301,6 +345,8 @@ let DataStructs = function () {
         DataRow,
         DataCell,
         TimeBinding,
+        Stroke,
+        StrokePoint,
     }
 }();
 
