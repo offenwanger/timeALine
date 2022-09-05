@@ -33,7 +33,7 @@ let DataStructs = function () {
         obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
         obj.warpBindings.forEach(b => timeline.warpBindings.push(WarpBinding.fromObject(b)));
         obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
-        obj.annotationStrokes.forEach(b => timeline.annotationStrokes.push(AxisBinding.fromObject(b)));
+        obj.annotationStrokes ? obj.annotationStrokes.forEach(b => timeline.annotationStrokes.push(Stroke.fromObject(b))) : "";
         return timeline;
     }
 
