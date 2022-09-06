@@ -371,6 +371,8 @@ function ModelController() {
     }
 
     function addTimelineStroke(timelineId, points, color) {
+        undoStackPush();
+
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color));
     }
 

@@ -471,6 +471,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         FileHandler.getJSONModel().then(result => {
             mModelController.setModelFromObject(result);
             updateAllControls();
+            modelUpdated();
         }).catch(err => {
             console.error("Error while getting file: " + err)
         });
@@ -488,6 +489,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDataTableController.redrawAllTables(mModelController.getModel().getAllTables());
 
             updateAllControls();
+            modelUpdated();
         };
     })
 
@@ -503,6 +505,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDataTableController.redrawAllTables(mModelController.getModel().getAllTables());
 
             updateAllControls();
+            modelUpdated();
         }
     })
 
@@ -597,12 +600,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         mModelController.addTable(newTable);
         mDataTableController.addOrUpdateTables(newTable);
+        modelUpdated();
     })
 
     $("#load-datasheet-button").on("click", () => {
         FileHandler.getCSVDataFile().then(result => {
             // TODO figure out if there's a header row
             mModelController.newTable(result.data);
+            modelUpdated();
         });
     })
 
