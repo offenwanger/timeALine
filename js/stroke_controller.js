@@ -1,6 +1,6 @@
 function StrokeController(svg) {
     let mModel = new DataStructs.DataModel();
-    let strokeData = {}
+    let mStrokesData = {}
 
     let mStrokeGroup = svg.append('g')
         .attr("id", 'stroke-view-g');
@@ -17,13 +17,13 @@ function StrokeController(svg) {
             }
         });
 
-        let oldStrokeData = strokeData;
+        let oldStrokeData = mStrokesData;
         let oldStrokes = oldModel.getAllTimelines().reduce((arr, t) => {
             arr.push(...t.annotationStrokes);
             return arr;
         }, []);
 
-        strokeData = {}
+        mStrokesData = {}
 
         mModel.getAllTimelines().forEach(timeline => {
             timeline.annotationStrokes.forEach(stroke => {
@@ -36,9 +36,9 @@ function StrokeController(svg) {
                 }
 
                 if (recalc) {
-                    strokeData[stroke.id] = calculateStrokeData(timeline.points, stroke);
+                    mStrokesData[stroke.id] = calculateStrokeData(timeline.points, stroke);
                 } else {
-                    strokeData[stroke.id] = oldStrokeData[stroke.id];
+                    mStrokesData[stroke.id] = oldStrokeData[stroke.id];
                 }
             })
         });
@@ -55,7 +55,7 @@ function StrokeController(svg) {
     }
 
     function drawStrokes() {
-        let selection = mStrokeGroup.selectAll(".annotation-stroke").data(Object.values(strokeData));
+        let selection = mStrokeGroup.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
         selection.exit().remove();
         selection.enter().append("path")
             .classed("annotation-stroke", true)

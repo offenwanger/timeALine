@@ -8,6 +8,8 @@ function LensController(svg) {
     let mModel;
     let mTimelineId;
 
+    let mStrokesData = {}
+
     let viewG = svg.append("g")
         .attr("id", "lens-main-view-g");
     setPan(0, 0);
@@ -61,7 +63,12 @@ function LensController(svg) {
         } else {
             if (mTimelineId != timelineId) {
                 mTimelineId = timelineId;
-                completeRedraw();
+
+                let timeline = mModel.getTimelineById(mTimelineId);
+                mLineLength = PathMath.getPathLength(timeline.points);
+                redrawLine(mLineLength);
+
+                redrawStrokes(mModel, null, true);
             }
 
             setPan(-(percent * mLineLength - svg.attr("width") / 2), svg.attr("height") / 2);
@@ -83,37 +90,14 @@ function LensController(svg) {
         let oldTimeline = oldModel.getTimelineById(mTimelineId);
         let timeline = mModel.getTimelineById(mTimelineId);
 
-        if (!PathMath.equalsPath(oldTimeline.points, timeline.points)) {
-            completeRedraw();
-        } else if (true /*warp bindings have changed*/) {
-            redrawWarpBindings();
-            redrawDataPoints();
-            redrawAnnotations();
-            redrawStrokes();
-        } else {
-            if (true /*annotations changed*/) {
-
-            }
-
-            if (true /*data points changed*/) {
-
-            }
-
-            if (true /*strokes changed*/) {
-
-            }
+        let pathChanged = !PathMath.equalsPath(oldTimeline.points, timeline.points);
+        if (pathChanged) {
+            let timeline = mModel.getTimelineById(mTimelineId);
+            mLineLength = PathMath.getPathLength(timeline.points);
+            redrawLine(mLineLength);
         }
-    }
 
-    function completeRedraw() {
-        let timeline = mModel.getTimelineById(mTimelineId);
-        mLineLength = PathMath.getPathLength(timeline.points);
-
-        redrawLine(mLineLength);
-        redrawWarpBindings();
-        redrawDataPoints();
-        redrawAnnotations();
-        redrawStrokes();
+        redrawStrokes(model, oldModel, pathChanged);
     }
 
     function redrawLine(lineLength) {
@@ -160,13 +144,52 @@ function LensController(svg) {
 
     }
 
-    function redrawStrokes() {
-        // draw any strokes where part of the stroke in in the visible area
+    function redrawStrokes(newModel, oldModel, redrawEverything) {
+        let oldStrokeData = mStrokesData;
+        let oldStrokes = redrawEverything ? null : oldModel.getTimelineById(mTimelineId).annotationStrokes;
 
+        mStrokesData = {}
+
+        let timeline = newModel.getTimelineById(mTimelineId);
+        timeline.annotationStrokes.forEach(stroke => {
+            let recalc = true;
+            if (!redrawEverything) {
+                let oldStroke = oldStrokes.find(s => s.id == stroke.id);
+                if (oldStroke && oldStroke.equals(stroke)) {
+                    recalc = false
+                }
+            }
+
+            if (recalc) {
+                mStrokesData[stroke.id] = calculateStrokeData(stroke);
+            } else {
+                mStrokesData[stroke.id] = oldStrokeData[stroke.id];
+            }
+        });
+
+        let selection = mStrokesG.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
+        selection.exit().remove();
+        selection.enter().append("path")
+            .classed("annotation-stroke", true)
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+            .attr('fill', 'none')
+            .attr("stroke", d => d.color)
+            .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
     function eraseStrokes() {
 
     }
+
+    function calculateStrokeData(stroke) {
+        let projectedPoints = stroke.points.map(point => {
+            return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], point.linePercent, point.lineDist);
+        })
+
+        return { color: stroke.color, projectedPoints };
+    }
+
 
     function setPanActive(active) {
         if (active) {
@@ -189,7 +212,7 @@ function LensController(svg) {
     function mapPointsToCurrentTimeline(points) {
         // TODO: account for rotation        
         return points.map(p => {
-            return new DataStructs.StrokePoint((p.x - viewG.datum().x) / mLineLength, /*not sure about this*/ viewG.datum().y - p.y)
+            return new DataStructs.StrokePoint((p.x - viewG.datum().x) / mLineLength, viewG.datum().y - p.y)
         })
     }
 
