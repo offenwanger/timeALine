@@ -10,14 +10,14 @@ function LensController(svg) {
 
     let mStrokesData = {}
 
-    let viewG = svg.append("g")
+    let viewGroup = svg.append("g")
         .attr("id", "lens-main-view-g");
     setPan(0, 0);
 
-    let mLineG = viewG.append("g").attr("id", "lens-line-g");
-    let mAnnotationG = viewG.append("g").attr("id", "lens-annotations-g");
-    let mPointsG = viewG.append("g").attr("id", "lens-points-g");
-    let mStrokesG = viewG.append("g").attr("id", "lens-strokes-g");
+    let mLineG = viewGroup.append("g").attr("id", "lens-line-g");
+    let mAnnotationGroup = viewGroup.append("g").attr("id", "lens-annotations-g");
+    let mPointsGroup = viewGroup.append("g").attr("id", "lens-points-g");
+    let mStrokeGroup = viewGroup.append("g").attr("id", "lens-strokes-g");
 
     let mPanning = false;
 
@@ -37,7 +37,7 @@ function LensController(svg) {
         })
         .on("pointermove", function (event) {
             if (mMode == MODE_PAN && mPanning) {
-                let currData = viewG.datum();
+                let currData = viewGroup.datum();
                 setPan(currData.x + event.movementX, currData.y + event.movementY);
             }
         })
@@ -76,7 +76,7 @@ function LensController(svg) {
     }
 
     function setPan(x, y) {
-        viewG.datum({ x, y })
+        viewGroup.datum({ x, y })
             .attr("transform", d => "translate(" + d.x + "," + d.y + ")");
     }
 
@@ -106,7 +106,7 @@ function LensController(svg) {
             .attr("id", "lens-line")
             // TODO: switch this out for a chosen color at some point
             .attr("stroke", "steelblue")
-            .attr("stroke-width", 5)
+            .attr("stroke-width", 1.5)
             .attr("x1", 0)
             .attr("y1", 0)
             .attr("y2", 0);
@@ -167,14 +167,18 @@ function LensController(svg) {
             }
         });
 
-        let selection = mStrokesG.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
-        selection.exit().remove();
-        selection.enter().append("path")
+
+        let selection = mStrokeGroup.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
+        selection.exit()
+            .remove();
+        selection.enter()
+            .append("path")
             .classed("annotation-stroke", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
             .attr('fill', 'none')
+        mStrokeGroup.selectAll(".annotation-stroke")
             .attr("stroke", d => d.color)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
@@ -212,7 +216,7 @@ function LensController(svg) {
     function mapPointsToCurrentTimeline(points) {
         // TODO: account for rotation        
         return points.map(p => {
-            return new DataStructs.StrokePoint((p.x - viewG.datum().x) / mLineLength, viewG.datum().y - p.y)
+            return new DataStructs.StrokePoint((p.x - viewGroup.datum().x) / mLineLength, viewGroup.datum().y - p.y)
         })
     }
 
