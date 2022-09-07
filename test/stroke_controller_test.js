@@ -34,8 +34,9 @@ describe('Integration Test StrokeController', function () {
 
             IntegrationUtils.drawLensColorLine(squiggle, integrationEnv);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-stroke"].innerData.length, 1);
-            expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-stroke"].innerData[0].projectedPoints)
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
                 .to.eql([{ x: 205, y: 150 },
                 { x: 210, y: 160 },
                 { x: 215, y: 150 },
@@ -46,7 +47,8 @@ describe('Integration Test StrokeController', function () {
             IntegrationUtils.drawLensColorLine([{ x: 10, y: 100 }, { x: 34, y: 110 }], integrationEnv);
             IntegrationUtils.drawLensColorLine([{ x: 130, y: 100 }, { x: 324, y: 110 }], integrationEnv);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-stroke"].innerData.length, 3);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 3);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
         });
     })
 });

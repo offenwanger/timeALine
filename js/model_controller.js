@@ -175,6 +175,40 @@ function ModelController() {
                 ...getBreakWarpBindings(segment.cellBindingsData, segment.warpBindingsData, DataTypes.TIME_BINDING, segment.startPercent, segment.endPercent)];
         })
 
+        segments.forEach(s => s.annotationStrokes = []);
+        timeline.annotationStrokes.forEach(stroke => {
+            segments.forEach(segment => {
+                let currSet = [];
+                stroke.points.forEach(point => {
+                    if (point.linePercent >= segment.startPercent && point.linePercent <= segment.endPercent) {
+                        currSet.push(point);
+                    } else if (currSet.length > 0) {
+                        // we were in the segment but then we left
+                        if (currSet.length > 1) {
+                            // only push a stroke if it has more than one point
+                            segment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                        }
+                        currSet = [];
+                    }
+                })
+                // if we finished inside the segment, push the last stroke
+                if (currSet.length > 1) {
+                    segment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                }
+            })
+        });
+
+        segments.forEach(segment => {
+            // map the strokes to the new line percents.
+            segment.annotationStrokes.forEach(segmentStroke => {
+                segmentStroke.points = segmentStroke.points.map(p => {
+                    let point = p.copy();
+                    point.linePercent = (point.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                    return point;
+                });
+            });
+        })
+
         // create the new timelines
         let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
             let newTimeline = new DataStructs.Timeline(segment.points);
@@ -189,6 +223,8 @@ function ModelController() {
 
             let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData.filter(cbd => cbd.dataCell.getType() == DataTypes.NUM).map(cbd => cbd.dataCell.columnId));
             newTimeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
+
+            newTimeline.annotationStrokes = segment.annotationStrokes;
 
             return newTimeline;
         })

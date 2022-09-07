@@ -257,4 +257,176 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
         });
     })
+
+    describe('erase line with strokes test', function () {
+        it('should break strokes into two', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+
+            let squiggle = [
+                { x: 10, y: 100 },
+                { x: 20, y: 110 },
+                { x: 70, y: 100 },
+                { x: 80, y: 110 },
+                { x: 90, y: 102 },
+                { x: 95, y: 110 }
+            ];
+
+            IntegrationUtils.drawLensColorLine(squiggle, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 110, y: 150 },
+                    { x: 120, y: 160 },
+                    { x: 170, y: 150 },
+                    { x: 180, y: 160 },
+                    { x: 190, y: 152 },
+                    { x: 195, y: 160 }
+                ]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
+        });
+
+        it('should break strokes into three', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 400, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+
+            let squiggle = [
+                { x: 10, y: 100 },
+                { x: 20, y: 110 },
+                { x: 70, y: 100 },
+                { x: 80, y: 110 },
+                { x: 90, y: 102 },
+                { x: 100, y: 110 },
+                { x: 110, y: 100 },
+                { x: 120, y: 110 },
+                { x: 170, y: 100 },
+                { x: 180, y: 110 },
+                { x: 190, y: 102 },
+                { x: 195, y: 110 }
+            ];
+
+            IntegrationUtils.drawLensColorLine(squiggle, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 110, y: 150 },
+                    { x: 120, y: 160 },
+                    { x: 170, y: 150 },
+                    { x: 180, y: 160 },
+                    { x: 190, y: 152 },
+                    { x: 200, y: 160 },
+                    { x: 210, y: 150 },
+                    { x: 220, y: 160 },
+                    { x: 270, y: 150 },
+                    { x: 280, y: 160 },
+                    { x: 290, y: 152 },
+                    { x: 295, y: 160 }
+                ]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+
+            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
+                .to.eql([
+                    [[0.25, 0.5]],
+                    [[0.12, 0.25, 0.37, 0.50, 0.62, 0.75]],
+                    [[0.07, 0.14, 0.21, 0.25]]
+                ]);
+        });
+
+
+        it('should break strokes into six', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv.enviromentVariables);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+
+            let squiggle = [
+                { x: 20, y: 100 },
+                { x: 80, y: 110 },
+                { x: 120, y: 110 },
+                { x: 130, y: 102 },
+                { x: 170, y: 102 },
+                { x: 190, y: 110 },
+                { x: 190, y: 100 },
+                { x: 170, y: 102 },
+                { x: 130, y: 102 },
+                { x: 120, y: 100 },
+                { x: 80, y: 102 },
+                { x: 20, y: 110 },
+            ];
+
+            IntegrationUtils.drawLensColorLine(squiggle, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 120, y: 150 },
+                    { x: 180, y: 160 },
+                    { x: 220, y: 160 },
+                    { x: 230, y: 152 },
+                    { x: 270, y: 152 },
+                    { x: 290, y: 160 },
+                    { x: 290, y: 150 },
+                    { x: 270, y: 152 },
+                    { x: 230, y: 152 },
+                    { x: 220, y: 150 },
+                    { x: 180, y: 152 },
+                    { x: 120, y: 160 }
+                ]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+
+            IntegrationUtils.erase([{ x: 190, y: 100 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
+
+            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv.enviromentVariables);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 5);
+
+            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
+                .to.eql([
+                    [[0.25, 1], [1, 0.25]],
+                    [[0.5, 0.75], [0.75, 0.5]],
+                    [[0.25, 0.75, 0.75, 0.25]]
+                ]);
+        });
+    });
 });

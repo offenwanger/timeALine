@@ -87,8 +87,22 @@ function LensController(svg) {
 
         if (!mTimelineId) return;
 
-        let oldTimeline = oldModel.getTimelineById(mTimelineId);
         let timeline = mModel.getTimelineById(mTimelineId);
+
+        if (!timeline) {
+            // timeline got erased
+
+            eraseLine();
+            eraseWarpBindings();
+            eraseDataPoints();
+            eraseAnnotations();
+            eraseStrokes();
+
+            setPan(0, 0);
+            return;
+        }
+
+        let oldTimeline = oldModel.getTimelineById(mTimelineId);
 
         let pathChanged = !PathMath.equalsPath(oldTimeline.points, timeline.points);
         if (pathChanged) {
@@ -168,17 +182,17 @@ function LensController(svg) {
         });
 
 
-        let selection = mStrokeGroup.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
+        let selection = mStrokeGroup.selectAll(".lens-annotation-stroke").data(Object.values(mStrokesData));
         selection.exit()
             .remove();
         selection.enter()
             .append("path")
-            .classed("annotation-stroke", true)
+            .classed("lens-annotation-stroke", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
             .attr('fill', 'none')
-        mStrokeGroup.selectAll(".annotation-stroke")
+        mStrokeGroup.selectAll(".lens-annotation-stroke")
             .attr("stroke", d => d.color)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }

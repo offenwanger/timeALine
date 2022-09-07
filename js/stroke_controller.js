@@ -55,17 +55,17 @@ function StrokeController(svg) {
     }
 
     function drawStrokes() {
-        let selection = mStrokeGroup.selectAll(".annotation-stroke").data(Object.values(mStrokesData));
+        let selection = mStrokeGroup.selectAll(".canvas-annotation-stroke").data(Object.values(mStrokesData));
         selection.exit()
             .remove();
         selection.enter()
             .append("path")
-            .classed("annotation-stroke", true)
+            .classed("canvas-annotation-stroke", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
             .attr('fill', 'none')
-        mStrokeGroup.selectAll(".annotation-stroke")
+        mStrokeGroup.selectAll(".canvas-annotation-stroke")
             .attr("stroke", d => d.color)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
