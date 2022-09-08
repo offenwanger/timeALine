@@ -197,7 +197,7 @@ function LensController(svg) {
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
     function eraseStrokes() {
-
+        mStrokeGroup.selectAll(".lens-annotation-stroke").remove();
     }
 
     function calculateStrokeData(stroke) {
