@@ -67,11 +67,31 @@ function ModelController() {
 
         // Update warp binding line percents
         let conversionRatio = originalStartLength / newLength;
+        let diff = newLength - originalEndLength;
+
+        startTimeline.annotationStrokes.forEach(stroke => {
+            let newStoke = new DataStructs.Stroke([], stroke.color);
+            newStoke.points = stroke.points.map(p => {
+                let point = p.copy();
+                point.linePercent = p.linePercent * conversionRatio;
+                return point;
+            })
+            newTimeline.annotationStrokes.push(newStoke);
+        })
+        endTimeline.annotationStrokes.forEach(stroke => {
+            let newStoke = new DataStructs.Stroke([], stroke.color);
+            newStoke.points = stroke.points.map(p => {
+                let point = p.copy();
+                point.linePercent = ((p.linePercent * originalEndLength) + diff) / newLength;
+                return point;
+            })
+            newTimeline.annotationStrokes.push(newStoke);
+        })
+
         startTimeline.warpBindings.forEach(binding => {
             binding.linePercent *= conversionRatio;
         });
 
-        let diff = newLength - originalEndLength;
         endTimeline.warpBindings.forEach(binding => {
             let originalLengthAlongLine = binding.linePercent * originalEndLength;
             binding.linePercent = (originalLengthAlongLine + diff) / newLength;
