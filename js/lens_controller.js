@@ -4,10 +4,13 @@ function LensController(svg) {
 
     let mSvg = svg;
 
+    let mPanCallback = () => { };
+
     let mMode = MODE_DEFAULT;
     let mModel;
     let mTimelineId;
 
+    let mLineLength;
     let mStrokesData = {}
 
     let viewGroup = svg.append("g")
@@ -43,11 +46,10 @@ function LensController(svg) {
         })
         .on("pointerup", function (event) {
             // TODO: Should check if this is indeed all fingers off
+            let currData = viewGroup.datum();
+            mPanCallback(mTimelineId, (mSvg.attr("width") / 2 - currData.x) / mLineLength, -(mSvg.attr("height") / 2) + currData.y)
             mPanning = false;
         });
-
-    // efficiency variable
-    let mLineLength;
 
     function focus(timelineId, percent) {
         if (!timelineId) {
@@ -241,5 +243,6 @@ function LensController(svg) {
     this.mapPointsToCurrentTimeline = mapPointsToCurrentTimeline;
 
     this.setPanActive = setPanActive;
+    this.setPanCallback = (callback) => mPanCallback = callback;
     this.resetMode = resetMode;
 }
