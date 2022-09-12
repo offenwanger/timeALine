@@ -26,38 +26,43 @@ describe('Test IronController', function () {
     describe('iron line tests', function () {
         it('should start iron without error', function () {
             let ironController = getIronController();
-            ironController.linesUpdated([{
-                id: "id1", points: [
-                    { x: 0, y: 0 },
-                    { x: 10, y: 15 },
-                    { x: 5, y: 20 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 15, y: 10 },
-                    { x: 15, y: 15 }]
-            }])
+            ironController.updateModel({
+                getAllTimelines: () => [{
+                    id: "id1", points: [
+                        { x: 0, y: 0 },
+                        { x: 10, y: 15 },
+                        { x: 5, y: 20 }]
+                }, {
+                    id: "id2", points: [
+                        { x: 10, y: 10 },
+                        { x: 15, y: 10 },
+                        { x: 15, y: 15 }]
+                }]
+            })
             ironController.setActive(true);
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
             ironStart({ x: 10, y: 10 });
         })
 
         it('should iron start of line without error', function () {
             let ironController = getIronController();
-            ironController.linesUpdated([{
-                id: "id1", points: [
-                    { x: -10, y: -10 },
-                    { x: -10, y: -15 },
-                    { x: -5, y: -20 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 12, y: 10 },
-                    { x: 14, y: 14 },
-                    { x: 20, y: 20 },
-                    { x: 30, y: 30 }]
-            }]);
+
+            ironController.updateModel({
+                getAllTimelines: () => [{
+                    id: "id1", points: [
+                        { x: -10, y: -10 },
+                        { x: -10, y: -15 },
+                        { x: -5, y: -20 }]
+                }, {
+                    id: "id2", points: [
+                        { x: 10, y: 10 },
+                        { x: 12, y: 10 },
+                        { x: 14, y: 14 },
+                        { x: 20, y: 20 },
+                        { x: 30, y: 30 }]
+                }]
+            });
             ironController.setActive(true);
 
             let called = false;
@@ -77,32 +82,34 @@ describe('Test IronController', function () {
                 called = true;
             });
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let iron = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let ironEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
 
             ironStart({ x: 10, y: 10 });
             iron({ x: 15, y: 15 });
-            ironEnd({ x: 15, y: 15 });
+            IntegrationUtils.pointerUp({ x: 15, y: 15 }, integrationEnv);
 
             assert.equal(called, true);
         });
 
         it('should iron end of line without error', function () {
             let ironController = getIronController();
-            ironController.linesUpdated([{
-                id: "id1", points: [
-                    { x: 40, y: 40 },
-                    { x: 60, y: 60 },
-                    { x: 78, y: 78 },
-                    { x: 80, y: 78 },
-                    { x: 80, y: 80 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 20, y: 20 },
-                    { x: 30, y: 30 }]
-            }]);
+
+            ironController.updateModel({
+                getAllTimelines: () => [{
+                    id: "id1", points: [
+                        { x: 40, y: 40 },
+                        { x: 60, y: 60 },
+                        { x: 78, y: 78 },
+                        { x: 80, y: 78 },
+                        { x: 80, y: 80 }]
+                }, {
+                    id: "id2", points: [
+                        { x: 10, y: 10 },
+                        { x: 20, y: 20 },
+                        { x: 30, y: 30 }]
+                }]
+            });
             ironController.setActive(true);
             let called = false;
             ironController.setLineModifiedCallback((result) => {
@@ -120,31 +127,33 @@ describe('Test IronController', function () {
                 expect(result[0].newSegments[1].points[0]).to.eql(result[0].newSegments[0].points[result[0].newSegments[0].points.length - 1]);
                 called = true;
             });
-
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let iron = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let ironEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
 
             ironStart({ x: 80, y: 80 });
             iron({ x: 75, y: 80 });
-            ironEnd({ x: 75, y: 80 });
+            IntegrationUtils.pointerUp({ x: 75, y: 80 }, integrationEnv);
 
             assert.equal(called, true);
         });
 
         it('should iron points in middle of line', function () {
             let ironController = getIronController();
-            ironController.linesUpdated([{
-                id: "1654867647735_5", points: [
-                    { x: 121, y: 306 },
-                    { x: 170, y: 313 },
-                    { x: 220, y: 316 },
-                    { x: 265, y: 320 },
-                    { x: 320, y: 323 },
-                    { x: 369, y: 319 },
-                    { x: 419, y: 311 },
-                    { x: 468, y: 305 }]
-            }]);
+
+            ironController.updateModel({
+                getAllTimelines: () => [{
+                    id: "1654867647735_5", points: [
+                        { x: 121, y: 306 },
+                        { x: 170, y: 313 },
+                        { x: 220, y: 316 },
+                        { x: 265, y: 320 },
+                        { x: 320, y: 323 },
+                        { x: 369, y: 319 },
+                        { x: 419, y: 311 },
+                        { x: 468, y: 305 }]
+                }]
+            });
             ironController.setActive(true);
             let called = false;
             ironController.setLineModifiedCallback((result) => {
@@ -163,26 +172,28 @@ describe('Test IronController', function () {
                 called = true;
             })
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let iron = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let ironEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
 
             ironStart({ x: 270, y: 320 });
             iron({ x: 280, y: 320 });
-            ironEnd({ x: 300, y: 320 });
+            IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
 
             assert.equal(called, true);
         });
 
         it('should create appropriate new points for ironing a section with no points', function () {
             let ironController = getIronController();
-            ironController.linesUpdated([{
-                id: "1654867647735_5", points: [
-                    { x: 0, y: 40 },
-                    { x: 0, y: 0 },
-                    { x: 40, y: 40 },
-                    { x: 40, y: 0 }]
-            }]);
+
+            ironController.updateModel({
+                getAllTimelines: () => [{
+                    id: "1654867647735_5", points: [
+                        { x: 0, y: 40 },
+                        { x: 0, y: 0 },
+                        { x: 40, y: 40 },
+                        { x: 40, y: 0 }]
+                }]
+            });
             ironController.setActive(true);
             let called = false;
             ironController.setLineModifiedCallback((result) => {
@@ -202,12 +213,11 @@ describe('Test IronController', function () {
                 called = true;
             })
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let ironEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
 
             let clickPoint = { x: 21, y: 19 };
             ironStart(clickPoint);
-            ironEnd(clickPoint);
+            IntegrationUtils.pointerUp(clickPoint, integrationEnv);
 
             assert.equal(called, true);
         });
@@ -232,19 +242,18 @@ describe('Integration Test IronController', function () {
                 { x: 125, y: 200 },
                 { x: 150, y: 100 },
             ];
-            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine(longerLine, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
             let beforePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
             assert.equal(beforePoints.length, 6, "line not drawn");
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let iron = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let ironEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
 
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
             ironStart({ x: 125, y: 200 });
             iron({ x: 150, y: 200 });
-            ironEnd({ x: 300, y: 320 });
+            IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].points).to.not.eql(beforePoints);

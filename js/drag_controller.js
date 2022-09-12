@@ -6,90 +6,11 @@ function DragController(svg) {
     let mLineModifiedCallback = () => { };
 
     let mBrushController = BrushController.getInstance(svg);
-    mBrushController.addDragStartCallback(brushDragStart);
-    mBrushController.addDragCallback(onDrag);
-    mBrushController.addDragEndCallback(onDragEnd);
-
-    let mDragGroup = svg.append('g')
-        .attr("id", 'drag-g')
-        .style("visibility", 'hidden');
-
-    let mCover = mDragGroup.append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('width', svg.attr('width'))
-        .attr('height', svg.attr('height'))
-        .attr('fill', 'white')
-        .attr('opacity', '0.8')
-        .style("visibility", 'hidden');
-
-    let mLinesGroup = mDragGroup.append('g');
-    let mPointsGroup = mDragGroup.append('g');
-
-    let mMovingLines = []
-    let mDragStartPos = null
-
-    function linesUpdated(lines) {
-        mLines = lines;
-
-        let startPointData = lines.map(line => {
-            return { id: line.id, point: line.points[0], points: line.points };
-        })
-        let endPointsData = lines.map(line => {
-            return { id: line.id, point: line.points[line.points.length - 1], points: line.points };
-        })
-
-        let startPoints = mPointsGroup.selectAll('.start-point').data(startPointData);
-        startPoints.exit().remove();
-        startPoints.enter().append("circle")
-            .classed("start-point", true)
-            .attr('id', d => "start-point_" + d.id)
-            .attr('r', DRAG_POINT_RADIUS)
-            .attr('cursor', 'pointer')
-            .attr('fill', '#b51d1c')
-            .attr("stroke", "black")
-            .call(d3.drag()
-                .on('start', startNodeDragStart)
-                .on('drag', function (e) { onDrag({ x: e.x, y: e.y }) })
-                .on('end', function (e) { onDragEnd({ x: e.x, y: e.y }) }));
-        mPointsGroup.selectAll('.start-point')
-            .attr('cx', (d) => d.point.x)
-            .attr('cy', (d) => d.point.y)
-
-        let endPoints = mPointsGroup.selectAll('.end-point').data(endPointsData);
-        endPoints.exit().remove();
-        endPoints.enter().append("circle")
-            .classed("end-point", true)
-            .attr('id', d => "end-point_" + d.id)
-            .attr('r', DRAG_POINT_RADIUS)
-            .attr('cursor', 'pointer')
-            .attr('fill', '#1c1db5')
-            .attr("stroke", "black")
-            .call(d3.drag()
-                .on('start', onRotatePointDragStart)
-                .on('drag', onRotatePointDrag)
-                .on('end', onRotatePointDragEnd));
-        mPointsGroup.selectAll('.end-point')
-            .attr('cx', (d) => d.point.x)
-            .attr('cy', (d) => d.point.y);
-    }
-
-
-    function startNodeDragStart(e, d) {
-        mDragStartPos = { x: e.x, y: e.y };
-        mMovingLines = [{
-            id: d.id,
-            oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
-            newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: [...d.points] }]
-        }];
-        mCover.style("visibility", '');
-        mPointsGroup.style("visibility", 'hidden');
-    }
-
-    function brushDragStart(coords, brushRadius) {
+    mBrushController.addDragStartCallback((coords, brushRadius) => {
         if (mActive) {
-
+            mDragging = true;
             mDragStartPos = coords;
+
             mLines.forEach(line => {
                 let closestPoint = PathMath.getClosestPointOnPath(coords, line.points);
                 if (MathUtil.distanceFromAToB(closestPoint, coords) < brushRadius) {
@@ -110,15 +31,107 @@ function DragController(svg) {
                 mPointsGroup.style("visibility", 'hidden');
             }
         }
+    });
+    mBrushController.addDragCallback((coords, brushRadius) => {
+        onDrag(coords);
+    });
+    mBrushController.addDragEndCallback((coords, brushRadius) => {
+        onDragEnd(coords);
+    });
+
+    let mDragGroup = svg.append('g')
+        .attr("id", 'drag-g')
+        .style("visibility", 'hidden');
+
+    let mCover = mDragGroup.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', svg.attr('width'))
+        .attr('height', svg.attr('height'))
+        .attr('fill', 'white')
+        .attr('opacity', '0.8')
+        .style("visibility", 'hidden');
+
+    let mLinesGroup = mDragGroup.append('g');
+    let mPointsGroup = mDragGroup.append('g');
+
+    let mMovingLines = []
+    let mDragging = false;
+    let mDraggingRotation = false;
+    let mDragStartPos = null;
+
+    // put this on document to capture releases outside the window
+    $(document).on('pointermove', function (e) {
+        e = e.originalEvent;
+        onDrag({ x: e.x, y: e.y })
+        onRotatePointDrag(e);
+    });
+    $(document).on("pointerup", function (e) {
+        e = e.originalEvent;
+        onDragEnd({ x: e.x, y: e.y })
+        onRotatePointDragEnd(e);
+    });
+
+    function updateModel(model) {
+        mLines = model.getAllTimelines();
+
+        let startPointData = mLines.map(line => {
+            return { id: line.id, point: line.points[0], points: line.points };
+        })
+        let endPointsData = mLines.map(line => {
+            return { id: line.id, point: line.points[line.points.length - 1], points: line.points };
+        })
+
+        let startPoints = mPointsGroup.selectAll('.start-point').data(startPointData);
+        startPoints.exit().remove();
+        startPoints.enter().append("circle")
+            .classed("start-point", true)
+            .attr('id', d => "start-point_" + d.id)
+            .attr('r', DRAG_POINT_RADIUS)
+            .attr('cursor', 'pointer')
+            .attr('fill', '#b51d1c')
+            .attr("stroke", "black")
+            .on('pointerdown', startNodeDragStart)
+        mPointsGroup.selectAll('.start-point')
+            .attr('cx', (d) => d.point.x)
+            .attr('cy', (d) => d.point.y)
+
+        let endPoints = mPointsGroup.selectAll('.end-point').data(endPointsData);
+        endPoints.exit().remove();
+        endPoints.enter().append("circle")
+            .classed("end-point", true)
+            .attr('id', d => "end-point_" + d.id)
+            .attr('r', DRAG_POINT_RADIUS)
+            .attr('cursor', 'pointer')
+            .attr('fill', '#1c1db5')
+            .attr("stroke", "black")
+            .on('pointerdown', onRotatePointDragStart)
+        mPointsGroup.selectAll('.end-point')
+            .attr('cx', (d) => d.point.x)
+            .attr('cy', (d) => d.point.y);
+    }
+
+
+    function startNodeDragStart(e, d) {
+        if (mActive) {
+            mDragging = true;
+            mDragStartPos = { x: e.x, y: e.y };
+            mMovingLines = [{
+                id: d.id,
+                oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
+                newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: [...d.points] }]
+            }];
+            mCover.style("visibility", '');
+            mPointsGroup.style("visibility", 'hidden');
+        }
     }
 
     function onDrag(coords) {
-        if (mActive) {
+        if (mActive && mDragging) {
             let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
             let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
 
             drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
-
         }
     }
 
@@ -138,7 +151,8 @@ function DragController(svg) {
     }
 
     function onDragEnd(coords) {
-        if (mActive) {
+        if (mActive && mDragging) {
+            mDragging = false;
             let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
             let result = mMovingLines.map(line => {
                 return {
@@ -159,38 +173,46 @@ function DragController(svg) {
     }
 
     function onRotatePointDragStart(e, d) {
-        mDragStartPos = { x: e.x, y: e.y };
-        mMovingLines = [{
-            id: d.id,
-            oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
-            percentDistMapping: pointsToPercentDistMapping(d.points),
-        }];
-        mCover.style("visibility", '');
-        mPointsGroup.style("visibility", 'hidden');
+        if (mActive) {
+            mDraggingRotation = true;
+            mDragStartPos = { x: e.x, y: e.y };
+            mMovingLines = [{
+                id: d.id,
+                oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
+                percentDistMapping: pointsToPercentDistMapping(d.points),
+            }];
+            mCover.style("visibility", '');
+            mPointsGroup.style("visibility", 'hidden');
+        }
     }
 
     function onRotatePointDrag(e) {
-        let coords = { x: e.x, y: e.y };
-        let lineStart = mMovingLines[0].oldSegments[0].points[0];
-        let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
+        if (mActive && mDraggingRotation) {
+            let coords = { x: e.x, y: e.y };
+            let lineStart = mMovingLines[0].oldSegments[0].points[0];
+            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
 
-        drawLines([points]);
+            drawLines([points]);
+        }
     }
 
     function onRotatePointDragEnd(e, d) {
-        let coords = { x: e.x, y: e.y };
-        let lineStart = mMovingLines[0].oldSegments[0].points[0];
-        let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
+        if (mActive && mDraggingRotation) {
+            mDraggingRotation = false;
+            
+            let coords = { x: e.x, y: e.y };
+            let lineStart = mMovingLines[0].oldSegments[0].points[0];
+            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
 
-        let result = mMovingLines.map(line => {
-            return {
-                id: line.id,
-                oldSegments: line.oldSegments,
-                newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: points }]
-            }
-        });
-        mLineModifiedCallback(result);
-
+            let result = mMovingLines.map(line => {
+                return {
+                    id: line.id,
+                    oldSegments: line.oldSegments,
+                    newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: points }]
+                }
+            });
+            mLineModifiedCallback(result);
+        }
         // reset
         mMovingLines = []
         mDragStartPos = null
@@ -269,6 +291,6 @@ function DragController(svg) {
         mBrushController.setActive(active)
     };
 
-    this.linesUpdated = linesUpdated;
+    this.updateModel = updateModel;
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
 }

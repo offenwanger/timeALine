@@ -9,6 +9,10 @@ function DataTableController() {
 
     let mHighlightCells = [];
 
+    function updateModel(model) {
+        redrawAllTables(model.getAllTables());
+    }
+
     function redrawAllTables(allTables) {
         $("#table-list").empty();
         mHoTables = {};
@@ -386,6 +390,8 @@ function DataTableController() {
         // TODO: Actaully validate the data.
         return false;
     }
+
+    this.updateModel = updateModel;
 
     this.redrawAllTables = redrawAllTables;
     this.addOrUpdateTables = addOrUpdateTables;

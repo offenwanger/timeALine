@@ -47,7 +47,7 @@ describe('Test EraserController', function () {
             }]);
             eraserController.setActive(true);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
             eraserStart({ x: 10, y: 10 });
         })
 
@@ -78,9 +78,9 @@ describe('Test EraserController', function () {
 
             colorSquare(0, 0, 20, 20);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let eraser = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
+            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
 
             eraserStart({ x: 10, y: 10 });
             eraser({ x: 15, y: 15 });
@@ -118,9 +118,9 @@ describe('Test EraserController', function () {
 
             colorSquare(65, 70, 90, 90);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let eraser = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
+            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
 
             eraserStart({ x: 80, y: 80 });
             eraser({ x: 75, y: 80 });
@@ -156,9 +156,9 @@ describe('Test EraserController', function () {
 
             colorSquare(390, 283, 430, 323);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let eraser = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
+            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
+            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
 
             eraserStart({ x: 420, y: 313 });
             eraser({ x: 410, y: 303 });
@@ -198,12 +198,10 @@ describe('Test EraserController', function () {
 
             colorSquare(13, 13, 28, 28);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-            let eraserEnd = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
-
+            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
             let clickPoint = { x: 21, y: 19 };
             eraserStart(clickPoint);
-            eraserEnd(clickPoint);
+            IntegrationUtils.pointerUp(clickPoint, integrationEnv);
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
             integrationEnv.enviromentVariables.img.onload();
@@ -235,24 +233,24 @@ describe('Integration Test EraserController', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }
             ];
-            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine(longerLine, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
         });
 
         it('should erase whole line', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }, { x: 120, y: 80 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }, { x: 120, y: 80 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.erase([
                 { x: 100, y: 100 },
                 { x: 110, y: 100 },
                 { x: 120, y: 90 },
-                { x: 120, y: 80 }], 10, integrationEnv.enviromentVariables);
+                { x: 120, y: 80 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
         });
@@ -261,7 +259,7 @@ describe('Integration Test EraserController', function () {
     describe('erase line with strokes test', function () {
         it('should break strokes into two', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
@@ -293,7 +291,7 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
 
@@ -302,7 +300,7 @@ describe('Integration Test EraserController', function () {
 
         it('should break strokes into three', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 400, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 400, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
@@ -346,11 +344,11 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
 
-            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
 
@@ -366,7 +364,7 @@ describe('Integration Test EraserController', function () {
 
         it('should break strokes into six', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
@@ -411,12 +409,12 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
 
-            IntegrationUtils.erase([{ x: 190, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 190, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
 
-            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 5);

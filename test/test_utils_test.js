@@ -142,7 +142,8 @@ before(function () {
     function fakeJqueryFactory() {
         let selectors = { "#tooltip-div": new MockJqueryElement() };
 
-        function MockJqueryElement() {
+        function MockJqueryElement(selector) {
+            this.selector = selector;
             this.find = function () { return this };
             this.eventCallbacks = {};
             this.on = function (event, func) {
@@ -150,6 +151,7 @@ before(function () {
                 return this;
             };
             this.append = function () { return this };
+            this.empty = function () { };
             this.get = function () { return this };
             this.val = function () { return "" };
             this.farbtastic = function () { return this };
@@ -163,7 +165,11 @@ before(function () {
         };
 
         function fakeJquery(selector) {
-            if (!selectors[selector]) selectors[selector] = new MockJqueryElement();
+            if (typeof selector === 'object' && selector.isDocument) {
+                return global.document;
+            } else if (!selectors[selector]) {
+                selectors[selector] = new MockJqueryElement(selector)
+            };
             return selectors[selector];
         };
         fakeJquery.MockJqueryElement = MockJqueryElement;
@@ -223,6 +229,7 @@ before(function () {
 
 
     let fakeDocument = {
+        isDocument: true,
         createElementNS: (ns, item) => {
             if (item == "path") {
                 return Object.assign({}, fakeSVGPath);
@@ -284,6 +291,9 @@ before(function () {
                 } else {
                     returnable.documentCallbacks.push({ event, callback });
                 }
+            },
+            on: function (event, callback) {
+                returnable.documentCallbacks.push({ event, callback });
             }
         }, TestUtils.fakeDocument);
 
@@ -302,7 +312,8 @@ before(function () {
         let stroke_controller = rewire('../js/stroke_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
         let time_warp_controller = rewire('../js/time_warp_controller.js');
-        let data_controller = rewire('../js/data_controller.js');
+        let data_point_controller = rewire('../js/data_point_controller.js');
+        let text_controller = rewire('../js/text_controller.js');
         let file_handling = rewire('../js/file_handling.js');
 
         let utility = rewire('../js/utility.js');
@@ -355,8 +366,8 @@ before(function () {
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
             TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
-            DataViewController: data_controller.__get__("DataViewController"),
-            AnnotationController: data_controller.__get__("AnnotationController"),
+            TextController: text_controller.__get__("TextController"),
+            DataPointController: data_point_controller.__get__("DataPointController"),
             BrushController: brush_controller.__get__("BrushController"),
             ColorBrushController: color_brush_controller.__get__("ColorBrushController"),
             LineDrawingController: line_drawing_controller.__get__("LineDrawingController"),
@@ -415,55 +426,54 @@ before(function () {
         getIntegrationEnviroment,
     }
 
-    function drawLine(points, enviromentVariables) {
-        assert('#line-drawing-g' in enviromentVariables.d3.selectors, "Line Drawing G not created!");
-        let lineDrawingG = enviromentVariables.d3.selectors['#line-drawing-g'];
+    function drawLine(points, integrationEnv) {
+        assert('#line-drawing-g' in integrationEnv.enviromentVariables.d3.selectors, "Line Drawing G not created!");
+        let lineDrawingG = integrationEnv.enviromentVariables.d3.selectors['#line-drawing-g'];
         let drawingRect = lineDrawingG.children.find(c => c.type == 'rect');
-        let onLineDragStart = drawingRect.drag.start;
-        let onLineDrag = drawingRect.drag.drag;
-        let onLineDragEnd = drawingRect.drag.end;
+        let onLineDragStart = drawingRect.eventCallbacks.pointerdown;
         assert(onLineDragStart, "drawing DragStart not set");
-        assert(onLineDrag, "drawing Drag not set");
-        assert(onLineDragEnd, "drawing DragEnd not set");
 
-        clickButton("#line-drawing-button", enviromentVariables.$);
+        clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
         onLineDragStart()
         points.forEach(point => {
-            onLineDrag(point);
+            pointerMove(point, integrationEnv);
         })
-        onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 });
+        pointerUp(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, integrationEnv);
 
-        clickButton("#line-drawing-button", enviromentVariables.$);
+        clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
     }
 
     function drawLensColorLine(points, integrationEnv) {
-        let enviromentVariables = integrationEnv.enviromentVariables;
-        assert('#color-drawing-g' in enviromentVariables.d3.selectors, "Color Drawing G not created!");
-        let colorDrawingG = enviromentVariables.d3.selectors['#color-drawing-g'];
+        assert('#color-drawing-g' in integrationEnv.enviromentVariables.d3.selectors, "Color Drawing G not created!");
+        let colorDrawingG = integrationEnv.enviromentVariables.d3.selectors['#color-drawing-g'];
         let drawingRect = colorDrawingG.children.find(c => c.type == 'rect');
 
-        let onDragStart = drawingRect.eventCallbacks.pointerdown;
-        let onDrag = drawingRect.eventCallbacks.pointermove;
+        clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
 
-        assert(onDragStart, "drawing DragStart not set");
-        assert(onDrag, "drawing Drag not set");
-
-        clickButton("#color-brush-button", enviromentVariables.$);
-
-        onDragStart()
+        drawingRect.eventCallbacks.pointerdown()
         points.forEach(point => {
-            onDrag(point);
+            pointerMove(point, integrationEnv);
         })
         pointerUp(points[points.length - 1], integrationEnv);
 
-        clickButton("#color-brush-button", enviromentVariables.$);
+        clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
     }
 
     function pointerUp(eventparams, integrationEnv) {
         integrationEnv.documentCallbacks
             .filter(c => c.event == "pointerup")
-            .map(c => c.callback).forEach(callback => callback(eventparams));
+            .map(c => c.callback).forEach(callback => callback({originalEvent:eventparams}));
+    }
+
+    function pointerMove(eventparams, integrationEnv) {
+        integrationEnv.documentCallbacks
+            .filter(c => c.event == "pointermove")
+            .map(c => c.callback).forEach(callback => callback({originalEvent:eventparams}));
+    }
+
+    function getLastHoTable(integrationEnv) {
+        return integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
     }
 
     function clickButton(buttonId, fakeJQ) {
@@ -479,27 +489,22 @@ before(function () {
         timeLineTargets.eventCallbacks['click'](coords, data);
     }
 
-    function dragLine(points, lineId, enviromentVariables) {
-        assert('.timelineTarget' in enviromentVariables.d3.selectors, "No timeline targets!");
-        let timeLineTargets = enviromentVariables.d3.selectors['.timelineTarget'];
+    function dragLine(points, lineId, integrationEnv) {
+        assert('.timelineTarget' in integrationEnv.enviromentVariables.d3.selectors, "No timeline targets!");
+        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
         let data = timeLineTargets.innerData.find(d => d.id == lineId);
 
-        let onLineDragStart = timeLineTargets.drag.start;
-        let onLineDrag = timeLineTargets.drag.drag;
-        let onLineDragEnd = timeLineTargets.drag.end;
-
+        let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;
         assert(onLineDragStart, "line DragStart not set");
-        assert(onLineDrag, "line Drag not set");
-        assert(onLineDragEnd, "line DragEnd not set");
 
         onLineDragStart(points.length > 0 ? points[0] : { x: 0, y: 0 }, data)
         points.forEach(point => {
-            onLineDrag(point, data);
+            pointerMove(point, integrationEnv);
         })
-        onLineDragEnd(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, data);
+        pointerUp(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, integrationEnv);
     }
 
-    function erase(points, radius, enviromentVariables) {
+    function erase(points, radius, integrationEnv) {
         colorSquare = function (x1, y1, x2, y2, val) {
             for (let i = x1; i < x2; i++) {
                 for (let j = y1; j < y2; j++) {
@@ -516,20 +521,18 @@ before(function () {
             1
         ))
 
-        clickButton("#eraser-button", enviromentVariables.$);
+        clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
 
-        let eraserStart = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.start;
-        let eraser = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.drag;
-        let eraserEnd = enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').drag.end;
+        let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
 
         eraserStart(points[0]);
-        points.forEach(point => eraser(point))
-        eraserEnd(points[points.length - 1]);
+        points.forEach(point => pointerMove(point, integrationEnv))
+        pointerUp(points[points.length - 1], integrationEnv);
 
-        assert.isNotNull(enviromentVariables.img.onload);
-        enviromentVariables.img.onload();
+        assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+        integrationEnv.enviromentVariables.img.onload();
 
-        clickButton("#eraser-button", enviromentVariables.$);
+        clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
 
         points.forEach(point => colorSquare(
             point.x - radius,
@@ -544,6 +547,8 @@ before(function () {
         drawLine,
         drawLensColorLine,
         pointerUp,
+        pointerMove,
+        getLastHoTable,
         clickButton,
         clickLine,
         dragLine,

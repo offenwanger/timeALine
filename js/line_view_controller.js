@@ -13,7 +13,25 @@ function LineViewController(svg) {
     let mTargetGroup = svg.append('g')
         .attr("id", 'line-view-target-g');
 
-    function linesUpdated(linePaths) {
+    let mDragging = false;
+    let mDraggingData = null;
+
+    $(document).on("pointermove", function (e) {
+        e = e.originalEvent;
+        if (mDragging && mActive) {
+            onDrag('drag', e, mDraggingData);
+        }
+    });
+    $(document).on("pointerup", function (e) {
+        e = e.originalEvent;
+        if (mDragging && mActive) {
+            mDragging = false;
+            onDrag('end', e, mDraggingData);
+        }
+    });
+
+    function updateModel(model) {
+        let linePaths = model.getAllTimelines();
         let paths = mLineGroup.selectAll('.timelinePath').data(linePaths.map(path => path.points));
         paths.enter().append('path')
             .classed('timelinePath', true)
@@ -69,10 +87,14 @@ function LineViewController(svg) {
                     mMouseOutCallback(d.id, mouseCoords)
                 }
             })
-            .call(d3.drag()
-                .on('start', function (e, d) { onDrag('start', e, d); })
-                .on('drag', function (e, d) { onDrag('drag', e, d); })
-                .on('end', function (e, d) { onDrag('end', e, d); }));
+            .on('pointerdown', function (e, d) {
+                if (mActive) {
+                    mDragging = true;
+                    mDraggingData = d;
+                    onDrag('start', e, d);
+                }
+            })
+
         targets.exit().remove();
         mTargetGroup.selectAll('.timelineTarget').attr('d', (path) => PathMath.getPathD(path.points));
     }
@@ -106,7 +128,7 @@ function LineViewController(svg) {
         callback(d.id, { x: e.x, y: e.y }, PathMath.getClosestPointOnPath({ x: e.x, y: e.y }, d.points));
     }
 
-    this.linesUpdated = linesUpdated;
+    this.updateModel = updateModel;
     this.setActive = setActive;
     this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;

@@ -15,7 +15,7 @@ describe('Integration Test StrokeController', function () {
     describe('lens stroke draw and display', function () {
         it('should show a stroke drawn in lens in the canvas', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);

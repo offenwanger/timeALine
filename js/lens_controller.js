@@ -38,18 +38,20 @@ function LensController(svg) {
                 mPanning = true;
             }
         })
-        .on("pointermove", function (event) {
-            if (mMode == MODE_PAN && mPanning) {
-                let currData = viewGroup.datum();
-                setPan(currData.x + event.movementX, currData.y + event.movementY);
-            }
-        })
-        .on("pointerup", function (event) {
-            // TODO: Should check if this is indeed all fingers off
+
+    $(document).on("pointermove", function (event) {
+        event = event.originalEvent;
+        if (mMode == MODE_PAN && mPanning) {
             let currData = viewGroup.datum();
-            mPanCallback(mTimelineId, (mSvg.attr("width") / 2 - currData.x) / mLineLength, -(mSvg.attr("height") / 2) + currData.y)
-            mPanning = false;
-        });
+            setPan(currData.x + event.movementX, currData.y + event.movementY);
+        }
+    });
+    $(document).on("pointerup", function () {
+        // TODO: Should check if this is indeed all fingers off
+        let currData = viewGroup.datum();
+        mPanCallback(mTimelineId, (mSvg.attr("width") / 2 - currData.x) / mLineLength, -(mSvg.attr("height") / 2) + currData.y)
+        mPanning = false;
+    });
 
     function focus(timelineId, percent) {
         if (!timelineId) {

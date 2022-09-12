@@ -23,16 +23,34 @@ function TimeWarpController(svg) {
         .style('visibility', "hidden")
 
     // put this on document to capture releases outside the window
-    document.addEventListener("pointerup", function (event) {
+    $(document).on('pointermove', (e) => {
+        e = e.originalEvent;
+        if (mActive && mDragging) {
+            let dragPoint = { x: e.x, y: e.y };
+            let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[mDraggingBinding.timelineId]).percent;
+            pinDrag(mDraggingBinding.timelineId, linePercent);
+        }
+    });
+    $(document).on("pointerup", function (e) {
+        e = e.originalEvent;
         if (mActive && mDragging) {
             mDragging = false;
 
-            let dragPoint = { x: event.x, y: event.y };
+            let dragPoint = { x: e.x, y: e.y };
             let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[mDraggingBinding.timelineId]).percent;
             pinDragEnd(mDraggingBinding.timelineId, linePercent);
         }
     });
 
+    function updateModel(model) {
+        mLinePoints = {};
+        mBindings = []
+        mTailGroup.selectAll('*').remove();
+        mWarpTickGroup.selectAll('*').remove();
+        mWarpTickTargetGroup.selectAll('*').remove();
+        
+        addOrUpdateTimeControls(model.getAllTimelines(), model.getAllWarpBindingData());
+    }
 
     function addOrUpdateTimeControls(timelines, warpBindingData) {
         mBindings = warpBindingData;
@@ -160,13 +178,6 @@ function TimeWarpController(svg) {
                     pinDragStart(d.binding.timelineId, d.binding);
                 }
             })
-            .on('pointermove', (event, d) => {
-                if (mActive && mDragging) {
-                    let dragPoint = { x: event.x, y: event.y };
-                    let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[d.binding.timelineId]).percent;
-                    pinDrag(d.binding.timelineId, linePercent);
-                }
-            })
             .on("mouseover", (event, d) => {
                 //TODO Highlight the time cell
                 ToolTip.show(d.binding.timeCell.toString(), d.position)
@@ -242,6 +253,8 @@ function TimeWarpController(svg) {
             mWarpTickTargetGroup.style('visibility', "hidden");
         }
     };
+
+    this.updateModel = updateModel;
 
     this.addOrUpdateTimeControls = addOrUpdateTimeControls;
     this.removeTimeControls = removeTimeControls;

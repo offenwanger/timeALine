@@ -34,15 +34,16 @@ function ColorBrushController(svg) {
                 mDragging = true;
             }
         })
-        .on("pointermove", function (event) {
-            if (mActive && mDragging) {
-                mDraggedPoints.push(localMouseCoords({ x: event.x, y: event.y }));
-                mColorLine.attr('d', PathMath.getPathD(mDraggedPoints));
-            }
-        })
 
     // put this on document to capture releases outside the window
-    document.addEventListener("pointerup", function (event) {
+    $(document).on("pointermove", function (event) {
+        event = event.originalEvent;
+        if (mActive && mDragging) {
+            mDraggedPoints.push(localMouseCoords({ x: event.x, y: event.y }));
+            mColorLine.attr('d', PathMath.getPathD(mDraggedPoints));
+        }
+    });
+    $(document).on("pointerup", function () {
         if (mActive && mDragging && mDraggedPoints.length > 1) {
             let result = [...mDraggedPoints]
             mDrawFinishedCallback(result, mColor);
@@ -51,7 +52,7 @@ function ColorBrushController(svg) {
         mDragging = false;
         mDraggedPoints = [];
         mColorLine.attr('d', PathMath.getPathD([]));
-    });
+    })
 
     function setActive(active) {
         if (active && !mActive) {

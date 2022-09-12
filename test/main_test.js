@@ -26,9 +26,9 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "timeCell"],
                 [0, 1, "", "10"],
                 [1, 1, "", "20"],
@@ -43,12 +43,12 @@ describe('Test Main - Integration Test', function () {
                 { x: 150, y: 102 },
                 { x: 90, y: 102 },
                 { x: 40, y: 103 },
-                { x: 10, y: 105 }], integrationEnv.enviromentVariables);
+                { x: 10, y: 105 }], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 5)
 
-            integrationEnv.enviromentVariables.handsontables[0].selected = [
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [
                 [0, 0, 0, 2],
                 [0, 0, 1, 1]
             ];
@@ -68,12 +68,12 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 5);
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 5);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
 
                 [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
@@ -89,10 +89,10 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.drawLine([
                 { x: 100, y: 100 },
                 { x: 150, y: 100 },
-                { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+                { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
 
-            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 7, 2]];
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 7, 2]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
@@ -187,13 +187,13 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
 
             // draw a line
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
             // add a warp binding at 40%, and drag to 20%
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 120, y: 110 }], timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 120, y: 110 }], timelineId, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.2);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
@@ -202,8 +202,8 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.4);
             // check that row is displaying
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][0], "0.4");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[0][1], "");
+            assert.equal(IntegrationUtils.getLastHoTable(integrationEnv).init.data[0][0], "0.4");
+            assert.equal(IntegrationUtils.getLastHoTable(integrationEnv).init.data[0][1], "");
 
             // add a comment
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -226,11 +226,12 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[1].dataCells[1].val, "0.4");
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[2].dataCells[1].val, "1");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data.length, 3);
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][0], "0.4");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[1][1], "0.4");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][0], "1");
-            assert.equal(integrationEnv.enviromentVariables.handsontables[0].init.data[2][1], "1");
+            let lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
+            assert.equal(lastCreatedTable.init.data.length, 3);
+            assert.equal(lastCreatedTable.init.data[1][0], "0.4");
+            assert.equal(lastCreatedTable.init.data[1][1], "0.4");
+            assert.equal(lastCreatedTable.init.data[2][0], "1");
+            assert.equal(lastCreatedTable.init.data[2][1], "1");
 
             // check that the annotation was bound to the line
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
@@ -244,7 +245,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             let d = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].innerData[0];
             let dragStart = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].eventCallbacks.pointerdown;
-            let drag = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].eventCallbacks.pointermove;
+            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
 
             dragStart({ x: 120, y: 100 }, d);
             drag({ x: 150, y: 110 }, d);
@@ -265,19 +266,20 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet[1].text, "1");
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
-            IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].linePercent, 0.7);
             expect(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].timeCell.getValue()).to.be.closeTo(0.7, 0.0000001);
 
             // update the time cells
             // check the table is what we expect it to be
-            expect(integrationEnv.enviromentVariables.handsontables[0].init.data).to.eql([['0.4', ''], ['0.4', '0.4'], ['1', '1'], ['0.7', '']])
+            lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
+            expect(lastCreatedTable.init.data).to.eql([['0.4', ''], ['0.4', '0.4'], ['1', '1'], ['0.7', '']])
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([[0, 0, "0.4", "0.2"]])
+            lastCreatedTable.init.afterChange([[0, 0, "0.4", "0.2"]])
 
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
@@ -300,7 +302,7 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
 
             // draw a line
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
@@ -318,9 +320,6 @@ describe('Test Main - Integration Test', function () {
 
             // get the drag functions
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.start;
-            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.drag;
-            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.end;
 
             // go to pin mode
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
@@ -329,9 +328,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
 
             // drag the comment
-            onCommentDragStart({ x: 130, y: 110 }, annotationSet[2]);
-            onCommentDrag({ x: 140, y: 130 }, annotationSet[2]);
-            onCommentDragEnd({ x: 140, y: 130 }, annotationSet[2]);
+            integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId]
+                .eventCallbacks.pointerdown({ x: 130, y: 110 }, annotationSet[2]);
+            IntegrationUtils.pointerMove({ x: 140, y: 130 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 140, y: 130 }, integrationEnv);
 
             // check that there are still three table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
@@ -355,7 +355,7 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
 
             // draw a line
-            IntegrationUtils.drawLine([{ x: 100, y: 200 }, { x: 150, y: 150 }, { x: 200, y: 100 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 100, y: 200 }, { x: 150, y: 150 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
 
@@ -376,9 +376,7 @@ describe('Test Main - Integration Test', function () {
             expect(annotationSet[2].offsetX).to.be.closeTo(10, 0.1);
             expect(annotationSet[2].offsetY).to.be.closeTo(10, 0.1);
 
-            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.start;
-            let onCommentDrag = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.drag;
-            let onCommentDragEnd = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].drag.end;
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].eventCallbacks.pointerdown;
 
             // go to pin mode
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
@@ -388,8 +386,8 @@ describe('Test Main - Integration Test', function () {
 
             // drag the comment
             onCommentDragStart({ x: 130, y: 190 }, annotationSet[2]);
-            onCommentDrag({ x: 150, y: 170 }, annotationSet[2]);
-            onCommentDragEnd({ x: 150, y: 170 }, annotationSet[2]);
+            IntegrationUtils.pointerMove({ x: 150, y: 170 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 150, y: 170 }, integrationEnv);
 
             // check that there are still three table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
@@ -407,7 +405,7 @@ describe('Test Main - Integration Test', function () {
     describe('Data linking - eraser test', function () {
         it('should correctly add end warp points', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // add a few comments
@@ -423,7 +421,7 @@ describe('Test Main - Integration Test', function () {
                 { x: 30, y: 10 },
                 { x: 30, y: 100 },
                 { x: 70, y: 100 },
-                { x: 70, y: 10 }], 10, integrationEnv.enviromentVariables);
+                { x: 70, y: 10 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
@@ -453,16 +451,16 @@ describe('Test Main - Integration Test', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }
             ];
-            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine(longerLine, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 3);
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 3);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
+            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
                 [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
                 [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
@@ -471,7 +469,7 @@ describe('Test Main - Integration Test', function () {
                 [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
             ])
 
-            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 5, 2]];
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 5, 2]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
@@ -481,7 +479,7 @@ describe('Test Main - Integration Test', function () {
                 .to.eql([0, 0, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
 
             // this erases a chunk between .26 and .32 percent of the line
-            IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv.enviromentVariables);
+            IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);
@@ -501,14 +499,14 @@ describe('Test Main - Integration Test', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }
             ];
-            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine(longerLine, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.handsontables[0].init.afterCreateRow(0, 3);
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 3);
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
                 [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
                 [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
@@ -517,7 +515,7 @@ describe('Test Main - Integration Test', function () {
                 [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
             ])
 
-            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 3, 1]];
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 3, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
@@ -527,8 +525,8 @@ describe('Test Main - Integration Test', function () {
             timeLineTargets.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.enviromentVariables.handsontables.length, 1);
-            let renderer = integrationEnv.enviromentVariables.handsontables[0].init.cells().renderer;
+            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
+            let renderer = IntegrationUtils.getLastHoTable(integrationEnv).init.cells().renderer;
 
             //check bound time rows
             for (let i = 0; i < 4; i++) {

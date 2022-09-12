@@ -151,6 +151,6 @@ function IronController(svg) {
         mBrushController.setActive(active)
     };
 
-    this.linesUpdated = (lines) => mLines = lines;
+    this.updateModel = (model) => mLines = model.getAllTimelines();
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
 }

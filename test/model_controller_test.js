@@ -727,18 +727,18 @@ describe('Integration Test ModelController', function () {
                 { x: 100, y: 100 },
                 { x: 125, y: 200 },
                 { x: 150, y: 100 },
-            ], integrationEnv.enviromentVariables);
+            ], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
 
             IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            integrationEnv.enviromentVariables.handsontables[0].init.afterChange([
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "July 1 2022"], [0, 1, "", "Text1"],
                 [1, 0, "", "July 11 2022"], [1, 1, "", "Text2"],
                 [2, 0, "", "July 21 2022"], [2, 1, "", "Text3"],
             ]);
-            integrationEnv.enviromentVariables.handsontables[0].selected = [[0, 0, 2, 1]];
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 2, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);

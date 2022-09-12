@@ -15,7 +15,7 @@ describe('Integration Test LineDrawingController', function () {
         it('should draw a line', function () {
             integrationEnv.mainInit();
 
-            IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 1, y: 15 }], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 11, y: 10 }, { x: 1, y: 15 }], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 2)
@@ -29,12 +29,12 @@ describe('Integration Test LineDrawingController', function () {
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }
             ];
-            IntegrationUtils.drawLine(longerLine, integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine(longerLine, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].points.length, 5)
 
-            IntegrationUtils.drawLine([], integrationEnv.enviromentVariables);
+            IntegrationUtils.drawLine([], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
         });

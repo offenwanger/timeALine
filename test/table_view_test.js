@@ -41,7 +41,7 @@ describe('Test TableViewer', function () {
             });
 
             controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
-            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([1], 4)
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([1], 4)
 
             assert.equal(callbackCalled, true);
         });
@@ -64,7 +64,7 @@ describe('Test TableViewer', function () {
 
             controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3], 1)
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([3], 1)
 
             assert.equal(callbackCalled, true);
         });
@@ -87,7 +87,7 @@ describe('Test TableViewer', function () {
 
             controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([0, 1], 3)
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([0, 1], 3)
 
             assert.equal(callbackCalled, true);
         })
@@ -110,7 +110,7 @@ describe('Test TableViewer', function () {
 
             controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
 
-            integrationEnv.enviromentVariables.handsontables[0].init.afterRowMove([3, 4], 1);
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([3, 4], 1);
 
             assert.equal(callbackCalled, true);
         })
@@ -143,7 +143,7 @@ describe('Test TableViewer', function () {
                 callbackCalled++;
             });
 
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
@@ -154,7 +154,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
@@ -165,7 +165,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
@@ -176,7 +176,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 1 }])
 
             controller.setTableUpdatedCallback((table) => {
@@ -187,7 +187,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 1 }])
 
             assert.equal(callbackCalled, doneCalls);
@@ -225,7 +225,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 0 }])
 
             controller.setTableUpdatedCallback((table) => {
@@ -236,7 +236,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 beforeColumnSort([], [{ column: 0 }])
 
             assert.equal(callbackCalled, doneCalls);
@@ -266,7 +266,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 afterRemoveCol(1, 2)
 
             assert.equal(callbackCalled, true);
@@ -292,7 +292,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            integrationEnv.enviromentVariables.handsontables[0].init.
+            IntegrationUtils.getLastHoTable(integrationEnv).init.
                 afterChange([[0, 3, "oldValue", "newValue"]])
 
             assert.equal(callbackCalled, true);

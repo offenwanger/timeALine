@@ -10,6 +10,8 @@ function BrushController(svg) {
     let mDragCallbacks = [];
     let mDragEndCallbacks = [];
 
+    let mDragging = false;
+
     let mBrushGroup = svg.append('g')
         .attr("id", 'brush-g')
         .style("visibility", 'hidden');
@@ -21,23 +23,12 @@ function BrushController(svg) {
         .attr('width', svg.attr('width'))
         .attr('fill', 'white')
         .attr('opacity', '0')
-        .call(d3.drag()
-            .on('start', function (e) {
-                if (mActive) {
-                    mDragStartCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
-                }
-            })
-            .on('drag', function (e) {
-                if (!mFreeze) updateCircle({ x: e.x, y: e.y });
-                if (mActive) {
-                    mDragCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
-                }
-            })
-            .on('end', function (e) {
-                if (mActive) {
-                    mDragEndCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
-                }
-            }))
+        .on('pointerdown', function (e) {
+            if (mActive) {
+                mDragging = true;
+                mDragStartCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
+            }
+        })
         .on("mousemove", (e) => {
             if (!mFreeze) updateCircle({ x: d3.pointer(e)[0], y: d3.pointer(e)[1] });
         })
@@ -45,6 +36,22 @@ function BrushController(svg) {
             mBrushSize = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushSize + e.wheelDelta / 50));
             mBrush.attr("r", mBrushSize);
         });
+
+    // put this on document to capture releases outside the window
+    $(document).on('pointermove', function (e) {
+        e = e.originalEvent;
+        if (!mFreeze) updateCircle({ x: e.x, y: e.y });
+        if (mActive && mDragging) {
+            mDragCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
+        }
+    });
+    $(document).on("pointerup", function (e) {
+        e = e.originalEvent;
+        if (mActive && mDragging) {
+            mDragging = false;
+            mDragEndCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
+        }
+    })
 
     function updateCircle(coords) {
         mBrush.attr("cx", coords.x);
