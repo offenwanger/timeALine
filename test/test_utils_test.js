@@ -445,11 +445,9 @@ before(function () {
 
         let onDragStart = drawingRect.eventCallbacks.pointerdown;
         let onDrag = drawingRect.eventCallbacks.pointermove;
-        let onDragEnd = integrationEnv.documentCallbacks.filter(c => c.event == "pointerup").map(c => c.callback);
 
         assert(onDragStart, "drawing DragStart not set");
         assert(onDrag, "drawing Drag not set");
-        assert(onDragEnd, "drawing DragEnd not set");
 
         clickButton("#color-brush-button", enviromentVariables.$);
 
@@ -457,9 +455,15 @@ before(function () {
         points.forEach(point => {
             onDrag(point);
         })
-        onDragEnd.forEach(callback => callback());
+        pointerUp(points[points.length - 1], integrationEnv);
 
         clickButton("#color-brush-button", enviromentVariables.$);
+    }
+
+    function pointerUp(eventparams, integrationEnv) {
+        integrationEnv.documentCallbacks
+            .filter(c => c.event == "pointerup")
+            .map(c => c.callback).forEach(callback => callback(eventparams));
     }
 
     function clickButton(buttonId, fakeJQ) {
@@ -539,6 +543,7 @@ before(function () {
     IntegrationUtils = {
         drawLine,
         drawLensColorLine,
+        pointerUp,
         clickButton,
         clickLine,
         dragLine,

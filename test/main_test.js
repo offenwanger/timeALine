@@ -243,12 +243,13 @@ describe('Test Main - Integration Test', function () {
             // move the warp binding
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             let d = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].innerData[0];
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.start;
-            let drag = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.drag;
-            let dragEnd = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].drag.end;
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].eventCallbacks.pointerdown;
+            let drag = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].eventCallbacks.pointermove;
+
             dragStart({ x: 120, y: 100 }, d);
             drag({ x: 150, y: 110 }, d);
-            dragEnd({ x: 150, y: 110 }, d);
+            IntegrationUtils.pointerUp({ x: 150, y: 110 }, integrationEnv)
+
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
