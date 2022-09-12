@@ -597,8 +597,22 @@ function ModelController() {
     function setModelFromObject(obj) {
         undoStackPush();
 
+        // TODO: Do complete model validation.
+
         mModel = new DataStructs.DataModel();
-        obj.timelines.forEach(timeline => mModel.getAllTimelines().push(DataStructs.Timeline.fromObject(timeline)))
+        obj.timelines.forEach(timeline => {
+            let cleanedPoints = timeline.points.filter(p => {
+                if (isNaN(p.x) || isNaN(p.y)) return false;
+                else return true;
+            });
+            if (cleanedPoints.length != timeline.points.length) {
+                // flag it but carry on with the filtered list.
+                console.error("Invalid points in loaded timeline!", timeline.points);
+                return;
+            }
+
+            mModel.getAllTimelines().push(DataStructs.Timeline.fromObject(timeline))
+        })
         obj.dataTables.forEach(table => mModel.getAllTables().push(DataStructs.DataTable.fromObject(table)))
     }
 
