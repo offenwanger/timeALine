@@ -34,7 +34,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].points.length, 5)
 
-            IntegrationUtils.drawLine([], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 0, y: 0 }], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
         });

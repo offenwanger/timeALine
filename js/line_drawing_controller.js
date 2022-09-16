@@ -1,4 +1,4 @@
-function LineDrawingController(svg) {
+function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     const EXTENSION_POINT_RADIUS = 5;
     const LINE_RESOLUTION = 50;
 
@@ -12,39 +12,36 @@ function LineDrawingController(svg) {
     let mStartPoints = []
     let mEndPoints = []
 
-    let mLineDrawingGroup = svg.append('g')
+    let mLineDrawingGroup = interactionLayer.append('g')
         .attr("id", 'line-drawing-g')
         .style("visibility", 'hidden');
 
-    mLineDrawingGroup.append('rect')
+    let mCover = overlayLayer.append('rect')
+        .attr("id", "timeline-drawing-cover")
         .attr('x', 0)
         .attr('y', 0)
-        .attr('width', svg.attr('width'))
-        .attr('height', svg.attr('height'))
         .attr('fill', 'white')
-        .attr('opacity', '0.2')
-        .on('pointerdown', function (e) {
-            if (mActive) {
-                mDragging = true;
-            }
-        });
+        .attr('opacity', '0.5');
 
-    $(document).on("pointermove", function (e) {
-        e = e.originalEvent;
+    function onPointerDown(coords) {
+        if (mActive) {
+            mDragging = true;
+        }
+    }
+
+    function onPointerMove(coords) {
         if (mActive && mDragging) {
-            mDraggedPoints.push({ x: e.x, y: e.y });
+            mDraggedPoints.push(coords);
             mDrawingLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        // TODO: Should check if this is indeed all fingers off
+    }
 
+    function onPointerUp(coords) {
         if (mDragging && mDraggedPoints.length > 1) {
             mDragging = false;
 
             if (mActive) {
-                let mousePoint = { x: e.x, y: e.y };
+                let mousePoint = coords;
                 let dragEndPoint = null;
                 if (!mDragStartParams.startPoint) {
                     let minCircle = mStartPoints.reduce((min, curr) => {
@@ -103,7 +100,7 @@ function LineDrawingController(svg) {
             mPointsGroup.selectAll('.start-point').style("visibility", "");
             mPointsGroup.selectAll('.end-point').style("visibility", "");
         }
-    });
+    }
 
     let mDrawingLine = mLineDrawingGroup.append('path')
         .attr('fill', 'none')
@@ -179,13 +176,20 @@ function LineDrawingController(svg) {
         if (active && !mActive) {
             mActive = true;
             mLineDrawingGroup.style('visibility', "");
+            mCover.style('visibility', "")
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height)
         } else if (!active && mActive) {
             mActive = false;
             mLineDrawingGroup.style('visibility', "hidden");
+            mCover.style('visibility', "hidden");
         }
     }
 
     this.updateModel = updateModel;
     this.setActive = setActive;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
+    this.onPointerDown = onPointerDown;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

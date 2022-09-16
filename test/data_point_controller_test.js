@@ -9,7 +9,8 @@ describe('Test DataPointController', function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         getDataPointController = function () {
             let DataPointController = integrationEnv.enviromentVariables.DataPointController;
-            return new DataPointController(integrationEnv.enviromentVariables.d3.svg);
+            let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
+            return new DataPointController(new mockElement(), new mockElement(), new mockElement());
         }
     });
 
@@ -82,7 +83,7 @@ describe('Integration Test DataPointController', function () {
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
 
-            let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-control-circle'];
+            let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-target-circle'];
             assert.equal(axisControlCircles.innerData.length, 2);
 
             let data = axisControlCircles.innerData.find(d => d.ctrl == 1);

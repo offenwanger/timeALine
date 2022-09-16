@@ -1,7 +1,11 @@
 
-function TextController(svg) {
-    let mDisplayGroup = svg.append('g')
+function TextController(vizLayer, overlayLayer, interactionLayer) {
+    const TEXT_WIDTH = 200;
+
+    let mDisplayGroup = vizLayer.append('g')
         .attr("id", 'annotation-display-g');
+    let mInteractionGroup = interactionLayer.append('g')
+        .attr("id", 'annotation-interaction-g');
 
     let mTextUpdatedCallback = () => { };
 
@@ -17,24 +21,6 @@ function TextController(svg) {
 
     let mDataCache = {};
 
-    // put this on document to capture releases outside the window
-    $(document).on('pointermove', function (e) {
-        e = e.originalEvent;
-        if (mDragging) {
-            mDragCallback(mDragBinding, mDragStartPos, { x: e.x, y: e.y });
-        }
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        if (mDragging) {
-            mDragging = false;
-            mDragEndCallback(mDragBinding, mDragStartPos, { x: e.x, y: e.y });
-
-            mDragStartPos = null;
-            mDragBinding = null;
-        }
-    });
-
     function updateModel(model) {
         drawAnnotations(
             model.getAllTimelines(),
@@ -49,6 +35,7 @@ function TextController(svg) {
         // clear the cache, redraw
         mDataCache = {};
         mDisplayGroup.selectAll("*").remove();
+        mInteractionGroup.selectAll("*").remove();
 
         timelines.forEach(timeline => {
             draw(timeline, boundData.filter(binding => binding.timelineId == timeline.id));
@@ -57,7 +44,6 @@ function TextController(svg) {
 
     function draw(timeline, boundData) {
         let annotationDataset = [];
-        let textWidth = 200;
         let linePadding = 2;
 
         let timelineChanged = !mDataCache[timeline.id] || mDataCache[timeline.id].points != JSON.stringify(timeline.points);
@@ -96,32 +82,44 @@ function TextController(svg) {
         mDisplayGroup.selectAll(".annotation-text_" + timeline.id)
             .attr("x", function (d) { return d.x + d.offsetX; })
             .attr("y", function (d) { return d.y + d.offsetY; })
-            .call(setText, textWidth);
+            .call(setText, TEXT_WIDTH);
 
         let horizontalLineData = []
         let connectingLineData = []
-        mDisplayGroup.selectAll(".annotation-text_" + timeline.id).each(function (d) {
-            let boundingBox = this.getBBox();
-            let x1 = boundingBox.x;
-            let x2 = boundingBox.x + boundingBox.width;
-            let y1 = boundingBox.y;
-            let y2 = boundingBox.y + boundingBox.height;
-            let closeY, closeX;
-            if (Math.abs(d.y - y1) < Math.abs(d.y - y2)) {
-                closeY = y1 - linePadding;
-            } else {
-                closeY = y2 + linePadding;
-            }
+        let interactionTargetData = []
+        mDisplayGroup.selectAll(".annotation-text_" + timeline.id)
+            .each(function (d) {
+                let boundingBox = this.getBBox();
+                let x1 = boundingBox.x;
+                let x2 = boundingBox.x + boundingBox.width;
+                let y1 = boundingBox.y;
+                let y2 = boundingBox.y + boundingBox.height;
+                let closeY, closeX;
+                if (Math.abs(d.y - y1) < Math.abs(d.y - y2)) {
+                    closeY = y1 - linePadding;
+                } else {
+                    closeY = y2 + linePadding;
+                }
 
-            if (Math.abs(d.x - x1) < Math.abs(d.x - x2)) {
-                closeX = x1 - linePadding;
-            } else {
-                closeX = x2 + linePadding;
-            }
+                if (Math.abs(d.x - x1) < Math.abs(d.x - x2)) {
+                    closeX = x1 - linePadding;
+                } else {
+                    closeX = x2 + linePadding;
+                }
 
-            horizontalLineData.push({ x1: x1 - linePadding, x2: x2 + linePadding, y: closeY });
-            connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY });
-        })
+                horizontalLineData.push({ x1: x1 - linePadding, x2: x2 + linePadding, y: closeY });
+                connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY });
+                interactionTargetData.push(Object.assign({
+                    binding: d.binding,
+                    text: d.text,
+                    x: boundingBox.x,
+                    y: boundingBox.y,
+                    width: boundingBox.width,
+                    height: boundingBox.height
+                }));
+            })
+
+        setupInteractionTargets(timeline, interactionTargetData);
 
         let horizontalLines = mDisplayGroup.selectAll('.horizontal-line_' + timeline.id).data(horizontalLineData);
         horizontalLines.exit().remove();
@@ -151,15 +149,21 @@ function TextController(svg) {
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
             .attr('y2', function (d) { return d.y2 });
+    }
 
-        // Set interaction events
-        mDisplayGroup.selectAll(".annotation-text_" + timeline.id)
+    function setupInteractionTargets(timeline, interactionTargetData) {
+        let interactionTargets = mInteractionGroup.selectAll('.text-interaction-target_' + timeline.id)
+            .data(interactionTargetData);
+        interactionTargets.exit().remove();
+        interactionTargets.enter()
+            .append('rect')
+            .classed('text-interaction-target_' + timeline.id, true)
+            .attr('fill', 'white')
+            .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
-                mDragStartPos = { x: e.x, y: e.y };
+                mDragStartPos = mDragStartCallback(d.binding, e);
                 mDragging = true;
                 mDragBinding = d.binding;
-
-                mDragStartCallback(d.binding, mDragStartPos);
             })
             .on('dblclick', function (e, d) {
                 let position = d3.select(this).node().getBoundingClientRect();
@@ -174,29 +178,49 @@ function TextController(svg) {
                         inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
                     }).on('change', function (e) {
                         inputbox
-                            .style("top", "-200px")
-                            .style("left", "-100px")
+                            .style("top", "-400px")
+                            .style("left", "-200px")
                     }).on('blur', function (e) {
                         mTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
                         inputbox
-                            .style("top", "-200px")
-                            .style("left", "-100px")
+                            .style("top", "-400px")
+                            .style("left", "-200px")
                     });
 
                 inputbox.property("value", d.text);
                 inputbox.style("height", inputbox.property("scrollHeight") + "px");
-                inputbox.style("width", textWidth + "px");
+                inputbox.style("width", TEXT_WIDTH + "px");
 
                 inputbox.node().focus();
             })
             .on('mouseover', function (e, d) {
-                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mMouseOverCallback(d.binding, mouseCoords);
+                mMouseOverCallback(d.binding, e);
             })
             .on('mouseout', function (e, d) {
-                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mMouseOutCallback(d.binding, mouseCoords);
+                mMouseOutCallback(d.binding, e);
             });
+
+        mInteractionGroup.selectAll('.text-interaction-target_' + timeline.id)
+            .attr("x", d => d.x)
+            .attr("y", d => d.y)
+            .attr("height", d => d.height)
+            .attr("width", d => d.width);
+    }
+
+    function onPointerMove(coords) {
+        if (mDragging) {
+            mDragCallback(mDragBinding, mDragStartPos, coords);
+        }
+    }
+
+    function onPointerUp(coords) {
+        if (mDragging) {
+            mDragging = false;
+            mDragEndCallback(mDragBinding, mDragStartPos, coords);
+
+            mDragStartPos = null;
+            mDragBinding = null;
+        }
     }
 
     function setText(textElements, width) {
@@ -258,4 +282,7 @@ function TextController(svg) {
     this.setDragEndCallback = (callback) => mDragEndCallback = callback;
     this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
     this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
+
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

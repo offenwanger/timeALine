@@ -1,13 +1,36 @@
-function DragController(svg) {
+function DragController(vizLayer, overlayLayer, interactionLayer) {
     const DRAG_POINT_RADIUS = 5;
 
     let mActive = false;
     let mLines = [];
     let mLineModifiedCallback = () => { };
+    let mDragStartCallback = (timelineId, e) => { return { x: e.x, y: e.y } }
 
-    let mBrushController = BrushController.getInstance(svg);
-    mBrushController.addDragStartCallback((coords, brushRadius) => {
+    let mBrushController = BrushController.getInstance(vizLayer, overlayLayer, interactionLayer);
+    let mDragGroup = interactionLayer.append('g')
+        .attr("id", 'drag-g')
+        .style("visibility", 'hidden');
+
+    let mCover = overlayLayer.append('rect')
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('width', overlayLayer.node().getBBox().width)
+        .attr('height', overlayLayer.node().getBBox().height)
+        .attr('fill', 'white')
+        .attr('opacity', '0.8')
+        .style("visibility", 'hidden');
+
+    let mLinesGroup = mDragGroup.append('g');
+    let mPointsGroup = mDragGroup.append('g');
+
+    let mMovingLines = []
+    let mDragging = false;
+    let mDraggingRotation = false;
+    let mDragStartPos = null;
+
+    function onPointerDown(coords) {
         if (mActive) {
+            let brushRadius = mBrushController.getBrushRadius();
             mDragging = true;
             mDragStartPos = coords;
 
@@ -27,50 +50,68 @@ function DragController(svg) {
             });
 
             if (mMovingLines.length > 0) {
-                mCover.style("visibility", '');
+                mCover.style("visibility", '')
+                    .attr('width', overlayLayer.node().getBBox().width)
+                    .attr('height', overlayLayer.node().getBBox().height);
                 mPointsGroup.style("visibility", 'hidden');
             }
         }
-    });
-    mBrushController.addDragCallback((coords, brushRadius) => {
-        onDrag(coords);
-    });
-    mBrushController.addDragEndCallback((coords, brushRadius) => {
-        onDragEnd(coords);
-    });
+    }
 
-    let mDragGroup = svg.append('g')
-        .attr("id", 'drag-g')
-        .style("visibility", 'hidden');
+    function onPointerMove(coords) {
+        if (mActive && mDragging) {
+            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
+            let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
 
-    let mCover = mDragGroup.append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('width', svg.attr('width'))
-        .attr('height', svg.attr('height'))
-        .attr('fill', 'white')
-        .attr('opacity', '0.8')
-        .style("visibility", 'hidden');
+            drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
+        }
 
-    let mLinesGroup = mDragGroup.append('g');
-    let mPointsGroup = mDragGroup.append('g');
+        if (mActive && mDraggingRotation) {
+            let lineStart = mMovingLines[0].oldSegments[0].points[0];
+            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
 
-    let mMovingLines = []
-    let mDragging = false;
-    let mDraggingRotation = false;
-    let mDragStartPos = null;
+            drawLines([points]);
+        }
+    }
 
-    // put this on document to capture releases outside the window
-    $(document).on('pointermove', function (e) {
-        e = e.originalEvent;
-        onDrag({ x: e.x, y: e.y })
-        onRotatePointDrag(e);
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        onDragEnd({ x: e.x, y: e.y })
-        onRotatePointDragEnd(e);
-    });
+    function onPointerUp(coords) {
+        if (mActive && mDragging) {
+            mDragging = false;
+            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
+            let result = mMovingLines.map(line => {
+                return {
+                    id: line.id,
+                    oldSegments: line.oldSegments,
+                    newSegments: moveSegments(line.newSegments, diff)
+                }
+            });
+            mLineModifiedCallback(result);
+        }
+
+        if (mActive && mDraggingRotation) {
+            mDraggingRotation = false;
+
+            let lineStart = mMovingLines[0].oldSegments[0].points[0];
+            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
+
+            let result = mMovingLines.map(line => {
+                return {
+                    id: line.id,
+                    oldSegments: line.oldSegments,
+                    newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: points }]
+                }
+            });
+            mLineModifiedCallback(result);
+        }
+
+        // reset
+        mMovingLines = []
+        mDragStartPos = null
+        drawLines([]);
+        mCover.style("visibility", 'hidden');
+        mPointsGroup.style("visibility", '');
+    }
+
 
     function updateModel(model) {
         mLines = model.getAllTimelines();
@@ -115,7 +156,7 @@ function DragController(svg) {
     function startNodeDragStart(e, d) {
         if (mActive) {
             mDragging = true;
-            mDragStartPos = { x: e.x, y: e.y };
+            mDragStartPos = mDragStartCallback(d.id, e);
             mMovingLines = [{
                 id: d.id,
                 oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
@@ -123,15 +164,6 @@ function DragController(svg) {
             }];
             mCover.style("visibility", '');
             mPointsGroup.style("visibility", 'hidden');
-        }
-    }
-
-    function onDrag(coords) {
-        if (mActive && mDragging) {
-            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-            let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
-
-            drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
         }
     }
 
@@ -150,75 +182,20 @@ function DragController(svg) {
         return returnable;
     }
 
-    function onDragEnd(coords) {
-        if (mActive && mDragging) {
-            mDragging = false;
-            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-            let result = mMovingLines.map(line => {
-                return {
-                    id: line.id,
-                    oldSegments: line.oldSegments,
-                    newSegments: moveSegments(line.newSegments, diff)
-                }
-            });
-            mLineModifiedCallback(result);
-
-            // reset
-            mMovingLines = []
-            mDragStartPos = null
-            drawLines([]);
-            mCover.style("visibility", 'hidden');
-            mPointsGroup.style("visibility", '');
-        }
-    }
-
     function onRotatePointDragStart(e, d) {
         if (mActive) {
             mDraggingRotation = true;
-            mDragStartPos = { x: e.x, y: e.y };
+            mDragStartPos = mDragStartCallback(d.id, e);
             mMovingLines = [{
                 id: d.id,
                 oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
                 percentDistMapping: pointsToPercentDistMapping(d.points),
             }];
-            mCover.style("visibility", '');
+            mCover.style("visibility", '')
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height);
             mPointsGroup.style("visibility", 'hidden');
         }
-    }
-
-    function onRotatePointDrag(e) {
-        if (mActive && mDraggingRotation) {
-            let coords = { x: e.x, y: e.y };
-            let lineStart = mMovingLines[0].oldSegments[0].points[0];
-            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
-
-            drawLines([points]);
-        }
-    }
-
-    function onRotatePointDragEnd(e, d) {
-        if (mActive && mDraggingRotation) {
-            mDraggingRotation = false;
-            
-            let coords = { x: e.x, y: e.y };
-            let lineStart = mMovingLines[0].oldSegments[0].points[0];
-            let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
-
-            let result = mMovingLines.map(line => {
-                return {
-                    id: line.id,
-                    oldSegments: line.oldSegments,
-                    newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: points }]
-                }
-            });
-            mLineModifiedCallback(result);
-        }
-        // reset
-        mMovingLines = []
-        mDragStartPos = null
-        drawLines([]);
-        mCover.style("visibility", 'hidden');
-        mPointsGroup.style("visibility", '');
     }
 
     function pointsToPercentDistMapping(points) {
@@ -292,5 +269,10 @@ function DragController(svg) {
     };
 
     this.updateModel = updateModel;
+    this.onPointerDown = onPointerDown;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
+
+    this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
 }

@@ -1,8 +1,8 @@
-function StrokeController(svg) {
+function StrokeController(vizLayer, overlayLayer, interactionLayer) {
     let mModel = new DataStructs.DataModel();
     let mStrokesData = {}
 
-    let mStrokeGroup = svg.append('g')
+    let mStrokeGroup = vizLayer.append('g')
         .attr("id", 'stroke-view-g');
 
     function updateModel(model) {

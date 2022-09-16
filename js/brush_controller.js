@@ -1,4 +1,4 @@
-function BrushController(svg) {
+function BrushController(vizLayer, overlayLayer, interactionLayer) {
     const BRUSH_SIZE_MIN = 2;
     const BRUSH_SIZE_MAX = 800;
 
@@ -6,56 +6,23 @@ function BrushController(svg) {
     let mFreeze = false;
     let mBrushSize = 10;
 
-    let mDragStartCallbacks = [];
-    let mDragCallbacks = [];
-    let mDragEndCallbacks = [];
-
-    let mDragging = false;
-
-    let mBrushGroup = svg.append('g')
+    let mBrushGroup = interactionLayer.append('g')
         .attr("id", 'brush-g')
         .style("visibility", 'hidden');
 
-    mBrushGroup.append('rect')
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('height', svg.attr('height'))
-        .attr('width', svg.attr('width'))
-        .attr('fill', 'white')
-        .attr('opacity', '0')
-        .on('pointerdown', function (e) {
-            if (mActive) {
-                mDragging = true;
-                mDragStartCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
-            }
-        })
-        .on("mousemove", (e) => {
-            if (!mFreeze) updateCircle({ x: d3.pointer(e)[0], y: d3.pointer(e)[1] });
-        })
-        .on("wheel", function (e) {
+    $(document).on("wheel", function (e) {
+        e = e.originalEvent;
+        if (mActive) {
             mBrushSize = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushSize + e.wheelDelta / 50));
             mBrush.attr("r", mBrushSize);
-        });
-
-    // put this on document to capture releases outside the window
-    $(document).on('pointermove', function (e) {
-        e = e.originalEvent;
-        if (!mFreeze) updateCircle({ x: e.x, y: e.y });
-        if (mActive && mDragging) {
-            mDragCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
         }
     });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        if (mActive && mDragging) {
-            mDragging = false;
-            mDragEndCallbacks.forEach(callback => callback({ x: e.x, y: e.y }, mBrushSize));
-        }
-    })
 
-    function updateCircle(coords) {
-        mBrush.attr("cx", coords.x);
-        mBrush.attr("cy", coords.y);
+    function onPointerMove(coords) {
+        if (!mFreeze) {
+            mBrush.attr("cx", coords.x);
+            mBrush.attr("cy", coords.y);
+        }
     }
 
     let mBrush = mBrushGroup.append('circle')
@@ -79,15 +46,13 @@ function BrushController(svg) {
 
     this.freeze = (freeze) => mFreeze = freeze;
     this.setActive = setActive;
-    this.addDragStartCallback = (callback) => mDragStartCallbacks.push(callback);
-    this.addDragCallback = (callback) => mDragCallbacks.push(callback);
-    this.addDragEndCallback = (callback) => mDragEndCallbacks.push(callback);
-    // At some point may need callback removes as well, but the current system achitecture doesn't call for it.
+    this.onPointerMove = onPointerMove;
+    this.getBrushRadius = () => mBrushSize;
 }
 
-BrushController.getInstance = function (svg) {
+BrushController.getInstance = function (vizLayer, overlayLayer, interactionLayer) {
     if (!BrushController.instance) {
-        BrushController.instance = new BrushController(svg);
+        BrushController.instance = new BrushController(vizLayer, overlayLayer, interactionLayer);
     }
 
     return BrushController.instance;

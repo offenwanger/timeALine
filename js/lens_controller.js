@@ -1,8 +1,14 @@
-function LensController(svg) {
+function LensController(svg, externalModelController, externalModelUpdated) {
     const MODE_DEFAULT = "default";
     const MODE_PAN = "pan";
+    const MODE_COLOR_BRUSH = "colorBrush";
 
     let mSvg = svg;
+    let mModelController = externalModelController;
+    let mVizLayer = svg.append("g")
+        .attr("id", "lens-main-view-g");
+    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-canvas-interaction-layer");
+    let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
 
     let mPanCallback = () => { };
 
@@ -13,45 +19,93 @@ function LensController(svg) {
     let mLineLength;
     let mStrokesData = {}
 
-    let viewGroup = svg.append("g")
-        .attr("id", "lens-main-view-g");
-    setPan(0, 0);
+    let mViewTransform = {};
+    resetViewTransform();
 
-    let mLineG = viewGroup.append("g").attr("id", "lens-line-g");
-    let mAnnotationGroup = viewGroup.append("g").attr("id", "lens-annotations-g");
-    let mPointsGroup = viewGroup.append("g").attr("id", "lens-points-g");
-    let mStrokeGroup = viewGroup.append("g").attr("id", "lens-strokes-g");
+    let mLineG = mVizLayer.append("g").attr("id", "lens-line-g");
+    let mAnnotationGroup = mVizLayer.append("g").attr("id", "lens-annotations-g");
+    let mPointsGroup = mVizLayer.append("g").attr("id", "lens-points-g");
+    let mStrokeGroup = mVizLayer.append("g").attr("id", "lens-strokes-g");
 
     let mPanning = false;
 
-    let panCapture = svg.append('rect')
+    let mLensColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
+        if (mTimelineId) {
+            let mappedPoints = mapPointsToPercentDist(points)
+            mModelController.addTimelineStroke(mTimelineId, mappedPoints, color);
+
+            modelUpdated();
+        }
+    })
+
+    // needs to go after controllers so it's on top
+    mVizOverlayLayer.append('rect')
+        .attr('id', "lens-overlay")
         .attr('x', 0)
         .attr('y', 0)
-        .attr('height', svg.attr('height'))
-        .attr('width', svg.attr('width'))
+        .attr('height', mSvg.attr('height'))
+        .attr('width', mSvg.attr('width'))
         .attr('fill', 'white')
         .attr('opacity', '0')
-        .style('display', 'none')
-        .on("pointerdown", function (event) {
-            // TODO: Should check what's down here (i.e. many fingers? Right Click?)
+        .on('pointerdown', function (pointerEvent) {
             if (mMode == MODE_PAN) {
+                // TODO: Should check what's down here (i.e. many fingers? Right Click?)
                 mPanning = true;
             }
+
+            let coords = screenToSvgCoords({ x: pointerEvent.x, y: pointerEvent.y });
+            mLensColorBrushController.onPointerDown(coords);
         })
 
-    $(document).on("pointermove", function (event) {
-        event = event.originalEvent;
+    $(document).on("pointermove", function (e) {
+        let pointerEvent = e.originalEvent;
         if (mMode == MODE_PAN && mPanning) {
-            let currData = viewGroup.datum();
-            setPan(currData.x + event.movementX, currData.y + event.movementY);
+            mViewTransform.x = mViewTransform.x + pointerEvent.movementX
+            mViewTransform.y = mViewTransform.y + pointerEvent.movementY
+            setViewToTransform();
         }
+
+        // these do their own active checking
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        mLensColorBrushController.onPointerMove(coords)
     });
-    $(document).on("pointerup", function () {
+    $(document).on("pointerup", function (e) {
+        let pointerEvent = e.originalEvent;
+
         // TODO: Should check if this is indeed all fingers off
-        let currData = viewGroup.datum();
-        mPanCallback(mTimelineId, (mSvg.attr("width") / 2 - currData.x) / mLineLength, -(mSvg.attr("height") / 2) + currData.y)
-        mPanning = false;
+
+        if (mPanning) {
+            mPanCallback(
+                mTimelineId,
+                (mSvg.attr('width') / 2 - mViewTransform.x) / mLineLength,
+                -(mSvg.attr('height') / 2) + mViewTransform.y);
+            mPanning = false;
+        }
+
+        // these do their own active checking
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        mLensColorBrushController.onPointerUp(coords)
     });
+
+
+    function screenToSvgCoords(coords) {
+        let svgElementCoords = svg.node().getBoundingClientRect();
+        let x = coords.x - svgElementCoords.x - mViewTransform.x;
+        let y = coords.y - svgElementCoords.y - mViewTransform.y;
+        return { x, y };
+    }
+
+    function svgCoordsToScreenCoords(coords) {
+        let svgElementCoords = svg.node().getBoundingClientRect();
+        let x = coords.x + svgElementCoords.x + mViewTransform.x;
+        let y = coords.y + svgElementCoords.y + mViewTransform.y;
+        return { x, y };
+    }
+
+    function modelUpdated() {
+        externalModelUpdated();
+    }
 
     function focus(timelineId, percent) {
         if (!timelineId) {
@@ -63,7 +117,7 @@ function LensController(svg) {
             eraseAnnotations();
             eraseStrokes();
 
-            setPan(0, 0);
+            resetViewTransform()
         } else {
             if (mTimelineId != timelineId) {
                 mTimelineId = timelineId;
@@ -75,13 +129,22 @@ function LensController(svg) {
                 redrawStrokes(mModel, null, true);
             }
 
-            setPan(-(percent * mLineLength - svg.attr("width") / 2), svg.attr("height") / 2);
+            mViewTransform.x = -(percent * mLineLength - svg.attr('width') / 2);
+            mViewTransform.y = svg.attr('height') / 2;
+            setViewToTransform();
         }
     }
 
-    function setPan(x, y) {
-        viewGroup.datum({ x, y })
-            .attr("transform", d => "translate(" + d.x + "," + d.y + ")");
+    function resetViewTransform() {
+        mViewTransform.x = 0;
+        mViewTransform.y = 0;
+        mViewTransform.rotation = 0;
+        setViewToTransform();
+    }
+
+    function setViewToTransform() {
+        mVizLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
+        mInteractionLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
     }
 
     // redraws everything. 
@@ -102,7 +165,7 @@ function LensController(svg) {
             eraseAnnotations();
             eraseStrokes();
 
-            setPan(0, 0);
+            resetViewTransform();
             return;
         }
 
@@ -217,24 +280,33 @@ function LensController(svg) {
         if (active) {
             resetMode();
             mMode = MODE_PAN;
-            panCapture.style('display', '');
         } else if (mMode == MODE_PAN) {
             // only set to default if we were in pan mode.
             resetMode();
         }
     }
 
+    function setColorBrushActive(active) {
+        if (active) {
+            resetMode();
+            mMode = MODE_COLOR_BRUSH;
+            mLensColorBrushController.setActive(active);
+        } else if (mMode == MODE_COLOR_BRUSH) {
+            // only set to default if we were brush mode.
+            resetMode();
+        }
+    }
+
     function resetMode() {
-        if (mMode == MODE_PAN) {
-            panCapture.style('display', 'none');
+        if (mMode == MODE_COLOR_BRUSH) {
+            mLensColorBrushController.setActive(false);
         }
         mMode = MODE_DEFAULT;
     }
 
-    function mapPointsToCurrentTimeline(points) {
-        // TODO: account for rotation        
+    function mapPointsToPercentDist(points) {
         return points.map(p => {
-            return new DataStructs.StrokePoint((p.x - viewGroup.datum().x) / mLineLength, viewGroup.datum().y - p.y)
+            return new DataStructs.StrokePoint(p.x / mLineLength, -p.y)
         })
     }
 
@@ -242,9 +314,12 @@ function LensController(svg) {
     this.updateModel = updateModel;
 
     this.getCurrentTimelineId = () => mTimelineId;
-    this.mapPointsToCurrentTimeline = mapPointsToCurrentTimeline;
 
     this.setPanActive = setPanActive;
-    this.setPanCallback = (callback) => mPanCallback = callback;
+    this.setColorBrushActive = setColorBrushActive;
     this.resetMode = resetMode;
+
+    this.setColor = (color) => mLensColorBrushController.setColor(color);
+
+    this.setPanCallback = (callback) => mPanCallback = callback;
 }

@@ -1,36 +1,34 @@
-function IronController(svg) {
+function IronController(vizLayer, overlayLayer, interactionLayer) {
     const MIN_RESOLUTION = 2;
 
     let mActive = false;
     let mLines = [];
     let mLineModifiedCallback = () => { };
 
-    let mIronGroup = svg.append('g')
+    let mDragging = false;
+
+    let mIronGroup = interactionLayer.append('g')
         .attr("id", 'iron-g')
         .style("visibility", 'hidden');
+    let mLinesGroup = mIronGroup.append('g');
 
-    let mCover = mIronGroup.append('rect')
+    let mCover = overlayLayer.append('rect')
         .attr('x', 0)
         .attr('y', 0)
-        .attr('width', svg.attr('width'))
-        .attr('height', svg.attr('height'))
         .attr('fill', 'white')
         .attr('opacity', '0.8')
         .style("visibility", 'hidden');
 
-    let mLinesGroup = mIronGroup.append('g');
-
     let mMovingLines = [];
     let mStartPosition = null;
-    let mBrushController = BrushController.getInstance(svg);
-    mBrushController.addDragStartCallback(dragStart);
-    mBrushController.addDragCallback(drag);
-    mBrushController.addDragEndCallback(dragEnd);
+    let mBrushController = BrushController.getInstance(vizLayer, overlayLayer, interactionLayer);
 
-
-    function dragStart(coords, radius) {
+    function onPointerDown(coords) {
         if (mActive) {
+            mDragging = true;
             mStartPosition = coords;
+            
+            let radius = mBrushController.getBrushRadius();
             mLines.forEach(line => {
                 let oldSegments = PathMath.segmentPath(line.points, true,
                     (point) => MathUtil.distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
@@ -44,14 +42,16 @@ function IronController(svg) {
             })
 
             mBrushController.freeze(true);
-            mCover.style("visibility", '');
+            mCover.style("visibility", '')
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height)
 
-            drag(coords, radius);
+            onPointerMove(coords);
         }
     }
 
-    function drag(coords) {
-        if (mActive) {
+    function onPointerMove(coords) {
+        if (mActive && mDragging) {
             let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
             let drawingLines = [];
             mMovingLines.forEach(line => {
@@ -62,9 +62,11 @@ function IronController(svg) {
         }
     }
 
-    function dragEnd(coords, radius) {
-        if (mActive) {
-            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - radius)
+    function onPointerUp(coords) {
+        if (mActive && mDragging) {
+            mDragging = false;
+            let radius = mBrushController.getBrushRadius();
+            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20);
             let result = mMovingLines.map(line => {
                 return {
                     id: line.id,
@@ -141,7 +143,9 @@ function IronController(svg) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mIronGroup.style('visibility', "");
+            mIronGroup.style('visibility', "")
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height)
         } else if (!active && mActive) {
             mActive = false;
             mIronGroup.style('visibility', "hidden");
@@ -153,4 +157,7 @@ function IronController(svg) {
 
     this.updateModel = (model) => mLines = model.getAllTimelines();
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
+    this.onPointerDown = onPointerDown;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

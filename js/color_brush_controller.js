@@ -1,6 +1,4 @@
-function ColorBrushController(svg) {
-    let mSvg = svg;
-
+function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     let mActive = false;
     let mColor = 'black';
 
@@ -9,7 +7,7 @@ function ColorBrushController(svg) {
 
     let mDrawFinishedCallback = () => { };
 
-    let mDrawingGroup = svg.append('g')
+    let mDrawingGroup = interactionLayer.append('g')
         .attr("id", 'color-drawing-g')
         .style("visibility", 'hidden');
 
@@ -21,29 +19,27 @@ function ColorBrushController(svg) {
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5)
 
-    mDrawingGroup.append('rect')
+    let mCover = overlayLayer.append('rect')
+        .attr('id', "color-brush-cover")
         .attr('x', 0)
         .attr('y', 0)
-        .attr('width', svg.attr('width'))
-        .attr('height', svg.attr('height'))
         .attr('fill', 'white')
-        .attr('opacity', '0.2')
-        .on("pointerdown", function (event) {
-            // TODO: Should check what's down here (i.e. many fingers? Right Click?)
-            if (mActive) {
-                mDragging = true;
-            }
-        })
+        .attr('opacity', '0.2');
 
-    // put this on document to capture releases outside the window
-    $(document).on("pointermove", function (event) {
-        event = event.originalEvent;
+    function onPointerDown(coords) {
+        if (mActive) {
+            mDragging = true;
+        }
+    }
+
+    function onPointerMove(coords) {
         if (mActive && mDragging) {
-            mDraggedPoints.push(localMouseCoords({ x: event.x, y: event.y }));
+            mDraggedPoints.push(coords);
             mColorLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
-    });
-    $(document).on("pointerup", function () {
+    }
+
+    function onPointerUp(coords) {
         if (mActive && mDragging && mDraggedPoints.length > 1) {
             let result = [...mDraggedPoints]
             mDrawFinishedCallback(result, mColor);
@@ -52,15 +48,19 @@ function ColorBrushController(svg) {
         mDragging = false;
         mDraggedPoints = [];
         mColorLine.attr('d', PathMath.getPathD([]));
-    })
+    }
 
     function setActive(active) {
         if (active && !mActive) {
             mActive = true;
             mDrawingGroup.style('visibility', "");
+            mCover.style("visibility", '')
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height);
         } else if (!active && mActive) {
             mActive = false;
             mDrawingGroup.style('visibility', "hidden");
+            mCover.style('visibility', "hidden");
         }
     }
 
@@ -69,12 +69,11 @@ function ColorBrushController(svg) {
         mColorLine.attr('stroke', mColor);
     }
 
-    function localMouseCoords(coords) {
-        var offset = mSvg.node().getBoundingClientRect();
-        return { x: coords.x - offset.x, y: coords.y - offset.y };
-    }
-
     this.setActive = setActive;
     this.setColor = setColor;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
+
+    this.onPointerDown = onPointerDown;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

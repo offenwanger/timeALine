@@ -1,5 +1,5 @@
-function LineViewController(svg) {
-    let mActive;
+function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
+    let mActive = false;
     let mLineClickedCallback = () => { };
     let mLineDragStartCallback = () => { };
     let mLineDragCallback = () => { };
@@ -8,27 +8,14 @@ function LineViewController(svg) {
     let mMouseOutCallback = () => { };
     let mMouseMoveCallback = () => { };
 
-    let mLineGroup = svg.append('g')
+    let mLineGroup = mVizLayer.append('g')
         .attr("id", 'line-view-g');
-    let mTargetGroup = svg.append('g')
-        .attr("id", 'line-view-target-g');
+    let mTargetGroup = mInteractionLayer.append('g')
+        .attr("id", 'line-view-target-g')
+        .style('visibility', "hidden");
 
     let mDragging = false;
     let mDraggingData = null;
-
-    $(document).on("pointermove", function (e) {
-        e = e.originalEvent;
-        if (mDragging && mActive) {
-            onDrag('drag', e, mDraggingData);
-        }
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        if (mDragging && mActive) {
-            mDragging = false;
-            onDrag('end', e, mDraggingData);
-        }
-    });
 
     function updateModel(model) {
         let linePaths = model.getAllTimelines();
@@ -91,7 +78,7 @@ function LineViewController(svg) {
                 if (mActive) {
                     mDragging = true;
                     mDraggingData = d;
-                    onDrag('start', e, d);
+                    mLineDragStartCallback(d.id, e);
                 }
             })
 
@@ -111,21 +98,18 @@ function LineViewController(svg) {
         mActive = active;
     };
 
-    function onDrag(drag, e, d) {
-        let callback;
-        switch (drag) {
-            case 'start':
-                callback = mLineDragStartCallback;
-                break;
-            case 'drag':
-                callback = mLineDragCallback;
-                break;
-            case 'end':
-                callback = mLineDragEndCallback;
-                break;
-        }
 
-        callback(d.id, { x: e.x, y: e.y }, PathMath.getClosestPointOnPath({ x: e.x, y: e.y }, d.points));
+    function onPointerMove(coords) {
+        if (mDragging && mActive) {
+            mLineDragCallback(mDraggingData.id, PathMath.getClosestPointOnPath(coords, mDraggingData.points));
+        }
+    }
+
+    function onPointerUp(coords) {
+        if (mDragging && mActive) {
+            mDragging = false;
+            mLineDragEndCallback(mDraggingData.id, PathMath.getClosestPointOnPath(coords, mDraggingData.points));
+        }
     }
 
     this.updateModel = updateModel;
@@ -137,4 +121,7 @@ function LineViewController(svg) {
     this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
     this.setMouseMoveCallback = (callback) => mMouseMoveCallback = callback;
     this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
+
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

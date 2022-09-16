@@ -1,4 +1,4 @@
-function DataPointController(svg) {
+function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     const TAIL_POINT_COUNT = 20;
 
     let mAxisUpdatedCallback = () => { };
@@ -16,68 +16,15 @@ function DataPointController(svg) {
     let mAxisDragging = false;
     let mAxisDraggingData = null;
 
-    let mDataPointGroup = svg.append('g')
+    let mDataPointGroup = vizLayer.append('g')
         .attr("id", 'data-point-display-g');
-    let mAxisGroup = svg.append('g')
+    let mAxisGroup = vizLayer.append('g')
         .attr("id", 'data-axis-display-g');
 
-    // put this on document to capture releases outside the window
-    $(document).on('pointermove', function (e) {
-        e = e.originalEvent;
-
-        if (mPointDragging) {
-            mDragCallback(mPointDraggingBinding, mDragStartPos, { x: e.x, y: e.y });
-        }
-
-        if (mAxisDragging) {
-            let dragPoint = { x: e.x, y: e.y };
-
-            let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.basePose;
-
-            let newPosition = MathUtil.projectPointOntoVector(dragPoint, normal, origin);
-
-            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cx", newPosition.x);
-            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cy", newPosition.y);
-
-            let line = mAxisGroup.select("#axis-line_" + mAxisDraggingData.axisId);
-            if (mAxisDraggingData.ctrl == 1) {
-                line.attr('x1', newPosition.x)
-                    .attr('y1', newPosition.y);
-            } else {
-                line.attr('x2', newPosition.x)
-                    .attr('y2', newPosition.y);
-            }
-        }
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        if (mPointDragging) {
-            mPointDragging = false;
-
-            mDragEndCallback(mPointDraggingBinding, mDragStartPos, { x: e.x, y: e.y });
-
-            // cleanup
-            mPointDraggingBinding = null;
-            mDragStartPos = null;
-        } else if (mAxisDragging) {
-            mAxisDragging = false;
-
-            let dragPoint = { x: e.x, y: e.y };
-
-            let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.basePose;
-
-            let newPosition = MathUtil.projectPointOntoVector(dragPoint, normal, origin);
-            let dist = MathUtil.distanceFromAToB(origin, newPosition);
-            dist = newPosition.neg ? -1 * dist : dist;
-            mAxisUpdatedCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist);
-
-            // cleanup
-            mAxisDraggingData = null;
-            mDragStartPos = null;
-        }
-    });
+    let mDataPointTargetGroup = interactionLayer.append('g')
+        .attr("id", 'data-point-target-g');
+    let mAxisTargetGroup = interactionLayer.append('g')
+        .attr("id", 'data-axis-target-g');
 
     function updateModel(model) {
         let timelines = model.getAllTimelines();
@@ -94,34 +41,31 @@ function DataPointController(svg) {
 
     function drawPoints(timelines, boundData) {
         let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timelineId == t.id))).flat();
-        let points = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
-        setupCircles(points)
-    }
-
-    function drawTimelinePointSet(timeline, boundData) {
-        let drawingData = getTimelineDrawingData(timeline, boundData);
-
-        let setsIds = DataUtil.getUniqueList(boundData.map(boundData.columnId));
-        setsIds.forEach(setId => {
-            let setData = drawingData.filter(drawingData.binding.columnId == setId);
-            let points = mDataPointGroup.selectAll('.data-display-point-set_' + setId).data(setData);
-            setupCircles(points)
-        });
-    }
-
-    function setupCircles(selection) {
+        let selection = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
         selection.exit().remove();
         selection.enter()
             .append('circle')
             .classed('data-display-point', true)
-            // ERROR: TODO: Fix this, it's not calling a function here. 
-            .classed(d => { return 'data-display-point-set_' + d.binding.columnId; }, true)
             .attr('r', 3.0)
             .attr('stroke', 'black')
-            .on('pointerdown', function (e, d) {
+
+        mDataPointGroup.selectAll('.data-display-point')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y })
+            .attr('fill', function (d) { return d.color })
+            .style('opacity', function (d) { return d.opacity });
+
+        let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point').data(drawingData);
+        targetSelection.exit().remove();
+        targetSelection.enter()
+            .append('circle')
+            .classed('data-target-point', true)
+            .attr('r', 6.0)
+            .attr('fill', "black")
+            .attr('opacity', 0)
+            .on('pointerdown', function (d) {
                 mPointDraggingBinding = d.binding;
-                mDragStartPos = { x: e.x, y: e.y };
-                mDragStartCallback(mPointDraggingBinding, mDragStartPos);
+                mDragStartPos = mDragStartCallback(mPointDraggingBinding, e);
             })
             .on('mouseover', (e, d) => {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
@@ -132,11 +76,9 @@ function DataPointController(svg) {
                 mMouseOutCallback(d.binding, mouseCoords);
             });
 
-        mDataPointGroup.selectAll('.data-display-point')
+        mDataPointTargetGroup.selectAll('.data-target-point')
             .attr('cx', function (d) { return d.x })
-            .attr('cy', function (d) { return d.y })
-            .attr('fill', function (d) { return d.color })
-            .style('opacity', function (d) { return d.opacity });
+            .attr('cy', function (d) { return d.y });
     }
 
     //// point draw utility ////
@@ -217,7 +159,6 @@ function DataPointController(svg) {
         controlLabels.enter()
             .append('text')
             .classed('axis-control-label', true)
-            .attr('id', function (d) { return "axis-control_" + d.axisId + "_" + d.ctrl })
             .attr('text-anchor', 'left')
             .style('font-size', '16px');
 
@@ -231,22 +172,82 @@ function DataPointController(svg) {
         controls.enter()
             .append('circle')
             .classed("axis-control-circle", true)
-            .attr('r', 3.5)
-            .attr('cursor', 'pointer')
-            .on('pointerdown', (e, d) => {
-                mAxisDraggingData = d;
-                mDragStartPos = { x: e.x, y: e.y };
-                mAxisDragging = true;
-            })
+            .attr('id', function (d) { return "axis-control_" + d.axisId + "_" + d.ctrl })
+            .attr('r', 3.5);
 
         mAxisGroup.selectAll('.axis-control-circle')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y });
+
+        let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
+        controlTargets.exit().remove();
+        controlTargets.enter()
+            .append('circle')
+            .classed("axis-target-circle", true)
+            .attr('r', 6)
+            .attr('opacity', 0)
+            .attr('cursor', 'pointer')
+            .on('pointerdown', (e, d) => {
+                mAxisDraggingData = d;
+                mAxisDragging = true;
+            })
+
+        mAxisTargetGroup.selectAll('.axis-target-circle')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y });
+    }
+
+    function onPointerMove(coords) {
+        if (mPointDragging) {
+            mDragCallback(mPointDraggingBinding, mDragStartPos, coords);
+        }
+
+        if (mAxisDragging) {
+            let normal = mAxisDraggingData.normal;
+            let origin = mAxisDraggingData.basePose;
+
+            let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
+            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cx", newPosition.x);
+            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cy", newPosition.y);
+
+            let line = mAxisGroup.select("#axis-line_" + mAxisDraggingData.axisId);
+            if (mAxisDraggingData.ctrl == 1) {
+                line.attr('x1', newPosition.x)
+                    .attr('y1', newPosition.y);
+            } else {
+                line.attr('x2', newPosition.x)
+                    .attr('y2', newPosition.y);
+            }
+        }
+    }
+
+    function onPointerUp(coords) {
+        if (mPointDragging) {
+            mPointDragging = false;
+
+            mDragEndCallback(mPointDraggingBinding, mDragStartPos, coords);
+
+            // cleanup
+            mPointDraggingBinding = null;
+            mDragStartPos = null;
+        } else if (mAxisDragging) {
+            mAxisDragging = false;
+
+            let normal = mAxisDraggingData.normal;
+            let origin = mAxisDraggingData.basePose;
+
+            let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
+            let dist = MathUtil.distanceFromAToB(origin, newPosition);
+            dist = newPosition.neg ? -1 * dist : dist;
+            mAxisUpdatedCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist);
+
+            // cleanup
+            mAxisDraggingData = null;
+        }
     }
 
     this.updateModel = updateModel;
     this.drawPoints = drawPoints;
-    this.drawTimelinePointSet = drawTimelinePointSet;
     this.drawAxes = drawAxes;
     this.setAxisUpdatedCallback = (callback) => mAxisUpdatedCallback = callback;
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
@@ -254,4 +255,7 @@ function DataPointController(svg) {
     this.setDragEndCallback = (callback) => mDragEndCallback = callback
     this.setMouseOverCallback = (callback) => { mMouseOverCallback = callback; };
     this.setMouseOutCallback = (callback) => { mMouseOutCallback = callback; };
+
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

@@ -20,16 +20,28 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight - 50);
 
+    let mVizLayer = mSvg.append("g").attr("id", "main-viz-layer");
+    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-canvas-interaction-layer");
+    let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
+
     let mLensSvg = d3.select('#lens-view').append('svg')
         .attr('width', $("#lens-view").width())
         .attr('height', $("#lens-view").height());
 
-    let mMouseDropShadow = new MouseDropShadow(mSvg);
-    let mLineHighlight = new LineHighlight(mSvg);
+
+    let mMouseDropShadow = new MouseDropShadow(mVizLayer);
+    let mLineHighlight = new LineHighlight(mVizLayer);
 
     let mModelController = new ModelController();
 
-    let mLineViewController = new LineViewController(mSvg);
+    let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
+    mLensController.setPanCallback((timelineId, centerPercent, centerHeight) => {
+        if (timelineId && mModelController.getModel().getTimelineById(timelineId)) {
+            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, centerPercent, mLensSvg.attr("width"));
+        }
+    })
+
+    let mLineViewController = new LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     // Note that both click and drag get called, ensure code doesn't overlap. 
     mLineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mMode == MODE_COMMENT) {
@@ -73,8 +85,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
-    mLineViewController.setLineDragStartCallback((timelineId, mousePoint, linePoint) => {
+    mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
         if (mMode == MODE_PIN) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            if (!timeline) {
+                console.error("Bad timeline id! " + timelineId);
+                return;
+            }
+
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+
             let type = mModelController.getModel().hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
             let time = mModelController.getModel().mapLinePercentToTime(timelineId, type, linePoint.percent);
 
@@ -87,12 +108,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mTimeWarpController.pinDragStart(timelineId, warpBindingData);
         }
     })
-    mLineViewController.setLineDragCallback((timelineId, mousePoint, linePoint) => {
+    mLineViewController.setLineDragCallback((timelineId, linePoint) => {
         if (mMode == MODE_PIN) {
             mTimeWarpController.pinDrag(timelineId, linePoint.percent);
         }
     })
-    mLineViewController.setLineDragEndCallback((timelineId, mousePoint, linePoint) => {
+    mLineViewController.setLineDragEndCallback((timelineId, linePoint) => {
         if (mMode == MODE_PIN) {
             mTimeWarpController.pinDragEnd(timelineId, linePoint.percent);
             modelUpdated();
@@ -127,44 +148,39 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDataTableController.highlightCells([]);
     })
 
-    let mLensController = new LensController(mLensSvg);
-    mLensController.setPanCallback((timelineId, centerPercent, centerHeight) => {
-        if (timelineId && mModelController.getModel().getTimelineById(timelineId)) {
-            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, centerPercent, mLensSvg.attr("width"));
-        }
-    })
+    let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
-    let mStrokeController = new StrokeController(mSvg);
-
-    let mTimeWarpController = new TimeWarpController(mSvg);
+    let mTimeWarpController = new TimeWarpController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mTimeWarpController.setUpdateWarpBindingCallback((timelineId, warpBindingData) => {
         mModelController.addOrUpdateWarpBinding(timelineId, warpBindingData);
 
         modelUpdated();
     })
 
-    let mTextController = new TextController(mSvg);
+    let mTextController = new TextController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mTextController.setTextUpdatedCallback((cellId, text) => {
         mModelController.updateText(cellId, text);
-
         modelUpdated();
     });
-    mTextController.setMouseOverCallback((cellBindingData, mouseCoords) => {
+    mTextController.setMouseOverCallback((cellBindingData) => {
         mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
     })
-    mTextController.setMouseOutCallback((cellBindingData, mouseCoords) => {
+    mTextController.setMouseOutCallback((cellBindingData) => {
         mDataTableController.highlightCells([]);
     })
-    mTextController.setDragStartCallback((cellBindingData, startPos) => {
+    mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
         if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
-            let linePoint = PathMath.getClosestPointOnPath(startPos, timeline.points);
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             // check if there is a warp binding for this row
             let warpBindingData = mModelController.getModel().getWarpBindingData(cellBindingData.timelineId);
             mDraggingValue = {};
             // copy to avoid data leaks
             mDraggingValue.cellBindingData = cellBindingData.copy();
+            mDraggingValue.cellBindingData.dataCell.offset = MathUtil.subtractAFromB(linePoint, coords);
 
             mDraggingValue.binding = warpBindingData.find(wbd => wbd.rowId == cellBindingData.rowId);
             if (mDraggingValue.binding) {
@@ -182,14 +198,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 mModelController.getModel().getTimelineById(mDraggingValue.cellBindingData.timelineId),
                 [mDraggingValue.cellBindingData]);
         }
+
+        return coords;
     });
-    mTextController.setDragCallback((cellBindingData, startPos, mousePos) => {
+    mTextController.setDragCallback((cellBindingData, startPos, coords) => {
         if (mMode == MODE_COMMENT || mMode == MODE_DEFAULT) {
             // if we didn't actually move, don't do anything.
-            if (MathUtil.pointsEqual(startPos, mousePos)) return;
+            if (MathUtil.pointsEqual(startPos, coords)) return;
 
             let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
-            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
+            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, coords));
 
             // copy the dataCell to avoid modification leaks
             let dataCell = bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell.copy();
@@ -201,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 bindingData);
         } else if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
-            let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             mDraggingValue.binding.linePercent = linePoint.percent;
             mTimeWarpController.pinDrag(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
@@ -209,26 +227,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let cellBData = mDraggingValue.cellBindingData;
             if (cellBData.dataCell.getType() == DataTypes.TEXT) {
                 cellBData = cellBData.copy();
-                cellBData.dataCell.offset = MathUtil.addAToB(cellBData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+                cellBData.dataCell.offset = MathUtil.subtractAFromB(linePoint, coords);
             }
             cellBData.linePercent = linePoint.percent;
             mTextController.drawTimelineAnnotations(timeline, [cellBData]);
         }
     });
-    mTextController.setDragEndCallback((cellBindingData, startPos, mousePos) => {
+    mTextController.setDragEndCallback((cellBindingData, startPos, coords) => {
         if (mMode == MODE_COMMENT || mMode == MODE_DEFAULT) {
             // if we didn't actually move, don't do anything.
-            if (MathUtil.pointsEqual(startPos, mousePos)) return;
+            if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, mousePos));
+            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, coords));
             mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
 
             modelUpdated();
         } else if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
-            let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
-            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+            let offset = MathUtil.subtractAFromB(linePoint, coords);
             mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
 
             mDraggingValue.binding.linePercent = linePoint.percent;
@@ -241,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDraggingValue = null;
     });
 
-    let mDataPointController = new DataPointController(mSvg);
+    let mDataPointController = new DataPointController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mDataPointController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
         mModelController.updateAxisDist(axisId, oneOrTwo, newDist);
 
@@ -253,10 +271,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mDataPointController.setMouseOutCallback((cellBindingData, mouseCoords) => {
         mDataTableController.highlightCells([]);
     })
-    mDataPointController.setDragStartCallback((cellBindingData, startPos) => {
+    mDataPointController.setDragStartCallback((cellBindingData, pointerEvent) => {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
         if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
-            let linePoint = PathMath.getClosestPointOnPath(startPos, timeline.points);
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             // check if there is a warp binding for this row
             let warpBindingData = mModelController.getModel().getWarpBindingData(cellBindingData.timelineId);
@@ -280,6 +300,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 mModelController.getModel().getTimelineById(mDraggingValue.cellBindingData.timelineId),
                 [mDraggingValue.cellBindingData]);
         }
+
+        return coords;
     });
     mDataPointController.setDragCallback((cellBindingData, startPos, mousePos) => {
         if (mMode == MODE_PIN) {
@@ -319,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
 
-    let mLineDrawingController = new LineDrawingController(mSvg);
+    let mLineDrawingController = new LineDrawingController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
         if (startPointLineId == null && endPointLineId == null) {
             mModelController.newTimeline(newPoints);
@@ -339,25 +361,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
 
-    let mColorBrushController = new ColorBrushController(mSvg);
+    let mColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mColorBrushController.setDrawFinishedCallback((points, color) => {
         // TODO: Add new stroke
 
         modelUpdated();
     })
 
-    let mLensColorBrushController = new ColorBrushController(mLensSvg);
-    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
-        let timelineId = mLensController.getCurrentTimelineId();
-        if (timelineId) {
-            let mappedPoints = mLensController.mapPointsToCurrentTimeline(points)
-            mModelController.addTimelineStroke(timelineId, mappedPoints, color);
-
-            modelUpdated();
-        }
-    })
-
-    let mEraserController = new EraserController(mSvg, () => { return mModelController.getModel().getAllTimelines(); });
+    let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer, () => { return mModelController.getModel().getAllTimelines(); });
     mEraserController.setEraseCallback(lineData => {
         let eraseIds = lineData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
         let breakData = lineData.filter(d => d.segments.length > 1);
@@ -368,14 +379,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     })
 
-    let mDragController = new DragController(mSvg);
+    let mDragController = new DragController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mDragController.setDragStartCallback((timelineId, pointerEvent) => {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        return coords;
+    });
     mDragController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
         modelUpdated();
     });
 
-    let mIronController = new IronController(mSvg);
+    let mIronController = new IronController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mIronController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
@@ -410,6 +425,66 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         }
     });
+
+    let mBrushController = BrushController.getInstance(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+
+    mVizOverlayLayer.append('rect')
+        .attr('id', "main-viz-overlay")
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('height', mSvg.attr('height'))
+        .attr('width', mSvg.attr('width'))
+        .attr('fill', 'white')
+        .attr('opacity', '0')
+        .on('pointerdown', function (pointerEvent) {
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
+            mColorBrushController.onPointerDown(coords);
+            mLineDrawingController.onPointerDown(coords);
+            mDragController.onPointerDown(coords);
+            mEraserController.onPointerDown(coords);
+            mIronController.onPointerDown(coords);
+        })
+
+    $(document).on('pointermove', function (e) {
+        let pointerEvent = e.originalEvent;
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
+        mColorBrushController.onPointerMove(coords);
+        mLineViewController.onPointerMove(coords);
+        mLineDrawingController.onPointerMove(coords);
+        mBrushController.onPointerMove(coords);
+        mDragController.onPointerMove(coords);
+        mEraserController.onPointerMove(coords);
+        mTimeWarpController.onPointerMove(coords);
+        mTextController.onPointerMove(coords);
+        mDataPointController.onPointerMove(coords);
+        mIronController.onPointerMove(coords);
+    });
+
+    $(document).on("pointerup", function (e) {
+        let pointerEvent = e.originalEvent;
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
+        mColorBrushController.onPointerUp(coords);
+        mLineViewController.onPointerUp(coords);
+        mLineDrawingController.onPointerUp(coords);
+        mDragController.onPointerUp(coords);
+        mEraserController.onPointerUp(coords);
+        mTimeWarpController.onPointerUp(coords);
+        mTextController.onPointerUp(coords);
+        mDataPointController.onPointerUp(coords);
+        mIronController.onPointerUp(coords);
+    });
+
+    function screenToSvgCoords(screenCoords) {
+        let svgViewportPos = mSvg.node().getBoundingClientRect();
+        return { x: screenCoords.x - svgViewportPos.x, y: screenCoords.y - svgViewportPos.y };
+    }
+
+    function svgCoordsToScreen() {
+
+    }
 
     let mDrawerController = new DrawerController("#data-drawer");
     mDrawerController.setOnDrawerClosed(() => {
@@ -594,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mMode = MODE_COLOR_BRUSH;
             mColorBrushController.setActive(true);
-            mLensColorBrushController.setActive(true);
+            mLensController.setColorBrushActive(true);
             showIndicator('#color-brush-button', '#color-brush-mode-indicator');
         }
     })
@@ -684,7 +759,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mIronController.setActive(false);
         mTimeWarpController.setActive(false);
         mColorBrushController.setActive(false);
-        mLensColorBrushController.setActive(false);
         mLensController.resetMode();
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
@@ -702,12 +776,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#color-brush-button').css('background-color', color);
         $('#color-brush-mode-indicator').css('background-color', color);
         mColorBrushController.setColor(color)
-        mLensColorBrushController.setColor(color)
+        mLensController.setColor(color)
         $.farbtastic('#color-picker-wrapper').setColor(color);
     }
 
-    function MouseDropShadow(svg) {
-        let shadow = svg.append('g')
+    function MouseDropShadow(parent) {
+        let shadow = parent.append('g')
             .attr("id", "mouse-drop-shadow");
 
         shadow.append('circle')
@@ -737,8 +811,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         this.hide();
     }
 
-    function LineHighlight(svg) {
-        let mHighlight = svg.append('path')
+    function LineHighlight(parent) {
+        let mHighlight = parent.append('path')
             .attr("id", "highlight-path")
             .attr('stroke', "blue")
             .attr('fill', "none")

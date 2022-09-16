@@ -1,13 +1,14 @@
-function EraserController(svg, getAllLinePaths) {
+function EraserController(vizLayer, overlayLayer, interactionLayer, getAllLinePaths) {
     let mActive = false;
+    let mDragging = false;
+    let mBrushSize = 0;
     let mDraggedPoints = [];
-    let mBoundingBox = null;
 
     let mEraseCallback = () => { };
 
     let mExternalCallGetAllLinePaths = getAllLinePaths;
 
-    let mEraserGroup = svg.append('g')
+    let mEraserGroup = interactionLayer.append('g')
         .attr("id", 'eraser-g')
         .style("visibility", 'hidden');
 
@@ -17,41 +18,44 @@ function EraserController(svg, getAllLinePaths) {
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round');
 
-    let mBrushController = BrushController.getInstance(svg);
-    mBrushController.addDragStartCallback((coords, brushRadius) => {
+    let mBrushController = BrushController.getInstance(vizLayer, overlayLayer, interactionLayer);
+
+    function onPointerDown(coords) {
         if (mActive) {
-            mBoundingBox = {
-                xMin: coords.x - brushRadius,
-                xMax: coords.x + brushRadius,
-                yMin: coords.y - brushRadius,
-                yMax: coords.y + brushRadius
-            }
-            mEraserLine.attr('stroke-width', brushRadius * 2);
+            mBrushSize = mBrushController.getBrushRadius();
+            mDragging = true;
+            mEraserLine.attr('stroke-width', mBrushSize * 2);
         }
-    });
+    }
 
-    mBrushController.addDragCallback((coords, brushRadius) => {
-        if (mActive) {
-            mBoundingBox.xMin = Math.min(mBoundingBox.xMin, coords.x - brushRadius)
-            mBoundingBox.xMax = Math.max(mBoundingBox.xMax, coords.x + brushRadius)
-            mBoundingBox.yMin = Math.min(mBoundingBox.yMin, coords.y - brushRadius)
-            mBoundingBox.yMax = Math.max(mBoundingBox.yMax, coords.y + brushRadius)
-
+    function onPointerMove(coords) {
+        if (mActive && mDragging) {
             mDraggedPoints.push(coords);
             mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
-    })
+    }
 
-    mBrushController.addDragEndCallback(() => {
-        if (mActive) {
-            let width = svg.attr('width');
-            let height = svg.attr('height');
+    function onPointerUp() {
+        if (mActive && mDragging) {
+            mDragging = false;
 
+            let eraserOutline = mEraserGroup.node().getBBox();
+            // eraser outline only takes the path coords into account, not the width
+            let canvasWidth = eraserOutline.width + mBrushSize * 2;
+            let canvasHeight = eraserOutline.width + mBrushSize * 2;
+            let canvasX = eraserOutline.x - mBrushSize;
+            let canvasY = eraserOutline.y - mBrushSize;
+
+            // raterize erase shape
             let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
-                .attr('width', width)
-                .attr('height', height)
+                .attr('width', canvasWidth)
+                .attr('height', canvasHeight)
                 // this is required for unknown reasons
                 .attr("xmlns", "http://www.w3.org/2000/svg");
+
+            mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints.map(p => {
+                return { x: p.x - canvasX, y: p.y - canvasY };
+            })));
             exportSVG.append(() => mEraserLine.clone().node());
             exportSVG = exportSVG.node();
 
@@ -63,17 +67,24 @@ function EraserController(svg, getAllLinePaths) {
             let image = new Image();
             image.onload = () => {
                 let canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
                 let context = canvas.getContext('2d');
-                context.drawImage(image, 0, 0, width, height);
+                context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
 
-                let mask = new CanvasMask(canvas);
+                let mask = new CanvasMask(canvas, canvasX, canvasY, canvasWidth, canvasHeight);
                 let linePaths = mExternalCallGetAllLinePaths();
 
                 let checkedPaths = linePaths.filter(p => {
                     for (let i = 0; i < p.points.length - 1; i++) {
-                        if (crossesBoundingBox(p.points[i], p.points[i + 1], mBoundingBox)) return true;
+                        if (crossesBoundingBox(p.points[i], p.points[i + 1], {
+                            xMin: canvasX,
+                            xMax: canvasX + canvasWidth,
+                            yMin: canvasY,
+                            yMax: canvasY + canvasHeight
+                        })) {
+                            return true;
+                        }
                     }
                     return false;
                 })
@@ -95,11 +106,10 @@ function EraserController(svg, getAllLinePaths) {
                 // reset
                 mDraggedPoints = [];
                 mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
-                mBoundingBox = null;
             };
             image.src = blobURL;
         }
-    })
+    }
 
     function crossesBoundingBox(point1, point2, boundingBox) {
         if (point1.x <= boundingBox.xMax && point1.x >= boundingBox.xMin
@@ -131,12 +141,14 @@ function EraserController(svg, getAllLinePaths) {
         }
     };
 
-    function CanvasMask(canvas) {
-        this.canvas = canvas;
+    function CanvasMask(canvas, x, y, width, height) {
+        let mX = x;
+        let mY = y;
         let mContext = canvas.getContext("2d");
 
         this.isCovered = function (coords) {
-            return mContext.getImageData(Math.round(coords.x), Math.round(coords.y), 1, 1).data[3] > 0;
+            if (coords.x < x || coords.y < y || coords.x > x + width || coords.y > y + height) return false;
+            return mContext.getImageData(Math.round(coords.x - mX), Math.round(coords.y - mY), 1, 1).data[3] > 0;
         }
     }
 
@@ -154,4 +166,7 @@ function EraserController(svg, getAllLinePaths) {
     };
 
     this.setEraseCallback = (callback) => mEraseCallback = callback;
+    this.onPointerDown = onPointerDown;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

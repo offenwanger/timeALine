@@ -33,8 +33,8 @@ before(function () {
 
         function MockElement() {
             this.attrs = {};
-            this.attr = function (name, val = null) {
-                if (val != null) {
+            this.attr = function (name, val = "not set value") {
+                if (val != "not set value") {
                     this.attrs[name] = val;
                     if (name == "id" && selectors) { selectors["#" + val] = this; }
                     return this;
@@ -96,10 +96,16 @@ before(function () {
                 let node = Object.assign({}, fakeSVGPath);
                 node.d = this.attrs.d;
                 node.getBoundingClientRect = () => { return { x: 0, y: 0 } };
+                node.getBBox = () => { return { x: 0, y: 0, width: 500, height: 500 } };
                 return node;
             };
-            this.each = function (func) { };
+            this.each = function (func) {
+                if (this.innerData) {
+                    this.innerData.forEach(d => func.call({ getBBox: () => { return { x: d.x, y: d.y, height: 10, width: 10 } } }, d));
+                }
+            };
             this.text = function () { return this; };
+            this.clone = function () { return this; };
         };
         this.mockElement = MockElement;
 
@@ -223,6 +229,7 @@ before(function () {
                 return d[d.length - 1]
             }
 
+            console.error("should be unreachable", d, length)
             throw new Error("should be unreachable");
         }
     };
@@ -234,20 +241,37 @@ before(function () {
             if (item == "path") {
                 return Object.assign({}, fakeSVGPath);
             } else if (item == "svg") {
-                return Object.assign({}, new fakeD3().mockSvg);
+                return {
+                    attr: function (name, val) { this[name] = val; return this; },
+                    append: function (appendeeFunc) { this.outerHTML = appendeeFunc(); },
+                    node: function () { return this; },
+                }
             }
         },
-        canvasImage: Array(500).fill().map(() => Array(500).fill().map(() => { return { data: [0, 0, 0, 0] }; })),
         createElement: function (name) {
-            if (name == 'canvas') return Object.assign({ height: 500, width: 500, canvasImage: this.canvasImage }, mockCanvas);
+            if (name == 'canvas') return Object.assign({}, mockCanvas);
             if (name == 'a') return { click: () => { } };
         }
     };
 
     let mockCanvas = {
         getContext: function () { return this; },
-        drawImage: function () { },
-        getImageData: function (x, y, height, width) { return this.canvasImage[x][y]; },
+        drawImage: function (image) {
+            this.blob = image;
+            this.eraserPath = this.blob.src.init[0][0].d;
+        },
+        getImageData: function (x, y, pixelsX, pixelsY) {
+            // this will need to be piped if we want to test alternatives
+            let brushSize = 10;
+            if (this.eraserPath.some(point => {
+                if (x >= point.x - brushSize && x <= point.x + brushSize && y >= point.y - brushSize && y <= point.y + brushSize) return true;
+                else return false;
+            })) {
+                return { data: [1, 1, 1, 1] }
+            } else {
+                return { data: [0, 0, 0, 0] };
+            }
+        },
     }
 
     function makeTestTable(height, width) {
@@ -345,7 +369,7 @@ before(function () {
             window: {
                 innerWidth: 500,
                 innerHeight: 500,
-                createObjectURL: () => { },
+                createObjectURL: (item) => item,
                 showOpenFilePicker: async function () {
                     return [{
                         getFile: async function () {
@@ -361,7 +385,12 @@ before(function () {
             Blob: function () { this.init = arguments },
             URL: { objectUrls: [], createObjectURL: function (object) { this.objectUrls.push(object); return "thisistotallyanObjectURL"; } },
             img: {},
-            Image: function () { returnable.enviromentVariables.img = this },
+            Image: function () {
+                returnable.enviromentVariables.img = this;
+                this.getSrc = function () { return this.src; }
+                // gets set after creation
+                this.onload = null;
+            },
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
@@ -427,15 +456,9 @@ before(function () {
     }
 
     function drawLine(points, integrationEnv) {
-        assert('#line-drawing-g' in integrationEnv.enviromentVariables.d3.selectors, "Line Drawing G not created!");
-        let lineDrawingG = integrationEnv.enviromentVariables.d3.selectors['#line-drawing-g'];
-        let drawingRect = lineDrawingG.children.find(c => c.type == 'rect');
-        let onLineDragStart = drawingRect.eventCallbacks.pointerdown;
-        assert(onLineDragStart, "drawing DragStart not set");
-
         clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
-        onLineDragStart()
+        mainPointerDown(points[0], integrationEnv)
         points.forEach(point => {
             pointerMove(point, integrationEnv);
         })
@@ -445,13 +468,9 @@ before(function () {
     }
 
     function drawLensColorLine(points, integrationEnv) {
-        assert('#color-drawing-g' in integrationEnv.enviromentVariables.d3.selectors, "Color Drawing G not created!");
-        let colorDrawingG = integrationEnv.enviromentVariables.d3.selectors['#color-drawing-g'];
-        let drawingRect = colorDrawingG.children.find(c => c.type == 'rect');
-
         clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
 
-        drawingRect.eventCallbacks.pointerdown()
+        integrationEnv.enviromentVariables.d3.selectors['#lens-overlay'].eventCallbacks.pointerdown(points[0]);
         points.forEach(point => {
             pointerMove(point, integrationEnv);
         })
@@ -460,16 +479,22 @@ before(function () {
         clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
     }
 
-    function pointerUp(eventparams, integrationEnv) {
-        integrationEnv.documentCallbacks
-            .filter(c => c.event == "pointerup")
-            .map(c => c.callback).forEach(callback => callback({originalEvent:eventparams}));
+    function mainPointerDown(coords, integrationEnv) {
+        let onLineDragStart = integrationEnv.enviromentVariables.d3.selectors['#main-viz-overlay'].eventCallbacks.pointerdown;
+        assert(onLineDragStart, "DragStart not set");
+        onLineDragStart({ clientX: coords.x, clientY: coords.y })
     }
 
-    function pointerMove(eventparams, integrationEnv) {
+    function pointerUp(coords, integrationEnv) {
+        integrationEnv.documentCallbacks
+            .filter(c => c.event == "pointerup")
+            .map(c => c.callback).forEach(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
+    }
+
+    function pointerMove(coords, integrationEnv) {
         integrationEnv.documentCallbacks
             .filter(c => c.event == "pointermove")
-            .map(c => c.callback).forEach(callback => callback({originalEvent:eventparams}));
+            .map(c => c.callback).forEach(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
     }
 
     function getLastHoTable(integrationEnv) {
@@ -497,7 +522,7 @@ before(function () {
         let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;
         assert(onLineDragStart, "line DragStart not set");
 
-        onLineDragStart(points.length > 0 ? points[0] : { x: 0, y: 0 }, data)
+        onLineDragStart(points.length > 0 ? { clientX: points[0].x, clientY: points[0].y } : { clientX: 0, clientY: 0 }, data)
         points.forEach(point => {
             pointerMove(point, integrationEnv);
         })
@@ -523,9 +548,7 @@ before(function () {
 
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
 
-        let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-
-        eraserStart(points[0]);
+        mainPointerDown(points[0], integrationEnv);
         points.forEach(point => pointerMove(point, integrationEnv))
         pointerUp(points[points.length - 1], integrationEnv);
 
@@ -546,6 +569,7 @@ before(function () {
     IntegrationUtils = {
         drawLine,
         drawLensColorLine,
+        mainPointerDown,
         pointerUp,
         pointerMove,
         getLastHoTable,

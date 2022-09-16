@@ -9,7 +9,8 @@ describe('Test IronController', function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         getIronController = function (externalCall) {
             let IronController = integrationEnv.enviromentVariables.IronController;
-            return new IronController(integrationEnv.enviromentVariables.d3.svg, externalCall);
+            let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
+            return new IronController(new mockElement(), new mockElement(), new mockElement(), externalCall);
         }
     });
 
@@ -41,8 +42,7 @@ describe('Test IronController', function () {
             })
             ironController.setActive(true);
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            ironStart({ x: 10, y: 10 });
+            ironController.onPointerDown({ x: 10, y: 10 });
         })
 
         it('should iron start of line without error', function () {
@@ -82,12 +82,9 @@ describe('Test IronController', function () {
                 called = true;
             });
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-
-            ironStart({ x: 10, y: 10 });
-            iron({ x: 15, y: 15 });
-            IntegrationUtils.pointerUp({ x: 15, y: 15 }, integrationEnv);
+            ironController.onPointerDown({ x: 10, y: 10 });
+            ironController.onPointerMove({ x: 15, y: 15 });
+            ironController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
@@ -127,13 +124,10 @@ describe('Test IronController', function () {
                 expect(result[0].newSegments[1].points[0]).to.eql(result[0].newSegments[0].points[result[0].newSegments[0].points.length - 1]);
                 called = true;
             });
-            
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
 
-            ironStart({ x: 80, y: 80 });
-            iron({ x: 75, y: 80 });
-            IntegrationUtils.pointerUp({ x: 75, y: 80 }, integrationEnv);
+            ironController.onPointerDown({ x: 80, y: 80 });
+            ironController.onPointerMove({ x: 75, y: 80 });
+            ironController.onPointerUp({ x: 75, y: 80 }, integrationEnv);
 
             assert.equal(called, true);
         });
@@ -172,12 +166,9 @@ describe('Test IronController', function () {
                 called = true;
             })
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-
-            ironStart({ x: 270, y: 320 });
-            iron({ x: 280, y: 320 });
-            IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
+            ironController.onPointerDown({ x: 270, y: 320 });
+            ironController.onPointerMove({ x: 280, y: 320 });
+            ironController.onPointerUp({ x: 300, y: 320 }, integrationEnv);
 
             assert.equal(called, true);
         });
@@ -213,11 +204,10 @@ describe('Test IronController', function () {
                 called = true;
             })
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-
             let clickPoint = { x: 21, y: 19 };
-            ironStart(clickPoint);
-            IntegrationUtils.pointerUp(clickPoint, integrationEnv);
+
+            ironController.onPointerDown(clickPoint);
+            ironController.onPointerUp(clickPoint, integrationEnv);
 
             assert.equal(called, true);
         });
@@ -247,12 +237,9 @@ describe('Integration Test IronController', function () {
             let beforePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
             assert.equal(beforePoints.length, 6, "line not drawn");
 
-            let ironStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let iron = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
-            ironStart({ x: 125, y: 200 });
-            iron({ x: 150, y: 200 });
+            IntegrationUtils.mainPointerDown({ x: 125, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 150, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
 

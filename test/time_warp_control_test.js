@@ -119,7 +119,7 @@ describe('Integration Test TimeWarpController', function () {
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
 
             let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;
-            onLineDragStart({ x: 150, y: 110 }, data)
+            onLineDragStart({ clientX: 150, clientY: 110 }, data)
 
             // the table was created and a row added
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);

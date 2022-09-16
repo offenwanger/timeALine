@@ -318,8 +318,6 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
-            // get the drag functions
-            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
 
             // go to pin mode
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
@@ -328,17 +326,19 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
 
             // drag the comment
-            integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId]
-                .eventCallbacks.pointerdown({ x: 130, y: 110 }, annotationSet[2]);
-            IntegrationUtils.pointerMove({ x: 140, y: 130 }, integrationEnv);
-            IntegrationUtils.pointerUp({ x: 140, y: 130 }, integrationEnv);
+            let targetData = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId]
+                .eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, targetData[2]);
+            IntegrationUtils.pointerMove({ x: 130, y: 130 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 140, y: 150 }, integrationEnv);
 
             // check that there are still three table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // check that a binding was created for the annotation row
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(annotationSet[2].binding.cellBindingId, targetData[2].binding.cellBindingId);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].rowId, annotationSet[2].binding.rowId);
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.4);
@@ -347,8 +347,8 @@ describe('Test Main - Integration Test', function () {
             // check that the comment is where it's expect to be
             assert.equal(annotationSet[2].x, 140);
             assert.equal(annotationSet[2].y, 100);
-            assert.equal(annotationSet[2].offsetX, 10);
-            assert.equal(annotationSet[2].offsetY, 40, "offset not updated");
+            assert.equal(annotationSet[2].offsetX, 0);
+            assert.equal(annotationSet[2].offsetY, 50, "offset not updated");
         });
 
         it('should set the offset correctly for dragged comment creating warp point', function () {
@@ -376,7 +376,6 @@ describe('Test Main - Integration Test', function () {
             expect(annotationSet[2].offsetX).to.be.closeTo(10, 0.1);
             expect(annotationSet[2].offsetY).to.be.closeTo(10, 0.1);
 
-            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].eventCallbacks.pointerdown;
 
             // go to pin mode
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
@@ -385,9 +384,11 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
 
             // drag the comment
-            onCommentDragStart({ x: 130, y: 190 }, annotationSet[2]);
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].eventCallbacks.pointerdown;
+            let targetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            onCommentDragStart({ clientX: 130, clientY: 190 }, targetSet[2]);
             IntegrationUtils.pointerMove({ x: 150, y: 170 }, integrationEnv);
-            IntegrationUtils.pointerUp({ x: 150, y: 170 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 160, y: 180 }, integrationEnv);
 
             // check that there are still three table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
@@ -435,7 +436,7 @@ describe('Test Main - Integration Test', function () {
             let warpBindingData = integrationEnv.ModelController.getModel().getAllWarpBindingData();
             expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.05, 0.50, 0.95]);
             expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id3]);
-            expect(warpBindingData.map(wbd => Math.round(wbd.linePercent * 100) / 100)).to.eql([0.25, 0.5, 0.75]);
+            expect(warpBindingData.map(wbd => Math.round(wbd.linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
         });
 
         it('should eliminate and split cell bindings', function () {
@@ -571,7 +572,7 @@ describe('Test Main - Integration Test', function () {
                 should.not.exist(td.style.filter)
             }
 
-            let cirleData = integrationEnv.enviromentVariables.d3.selectors['.data-display-point'];
+            let cirleData = integrationEnv.enviromentVariables.d3.selectors['.data-target-point'];
             data = cirleData.innerData[1];
             cirleData.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
             // all data showing again

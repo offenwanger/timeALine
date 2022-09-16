@@ -9,7 +9,8 @@ describe('Test DragController', function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         getDragController = function () {
             let DragController = integrationEnv.enviromentVariables.DragController;
-            return new DragController(integrationEnv.enviromentVariables.d3.svg);
+            let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
+            return new DragController(new mockElement(), new mockElement(), new mockElement());
         }
     });
 
@@ -41,8 +42,7 @@ describe('Test DragController', function () {
             })
             dragController.setActive(true);
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            dragStart({ x: 10, y: 10 });
+            dragController.onPointerDown({ x: 10, y: 10 });
         })
 
         it('should drag start of line without error', function () {
@@ -69,13 +69,9 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
-
-            dragStart({ x: 10, y: 10 });
-            drag({ x: 15, y: 15 });
-            dragEnd({ x: 15, y: 15 });
+            dragController.onPointerDown({ x: 10, y: 10 });
+            dragController.onPointerMove({ x: 15, y: 15 });
+            dragController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
@@ -103,13 +99,10 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
 
-            dragStart({ x: -5, y: -28 });
-            drag({ x: 5, y: -8 });
-            dragEnd({ x: 5, y: -10 });
+            dragController.onPointerDown({ x: -5, y: -28 });
+            dragController.onPointerMove({ x: 5, y: -8 });
+            dragController.onPointerUp({ x: 5, y: -10 });
 
             assert.equal(called, true);
         });
@@ -147,13 +140,9 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
-
-            dragStart({ x: 420, y: 313 });
-            drag({ x: 100, y: 100 });
-            dragEnd({ x: 15, y: 15 });
+            dragController.onPointerDown({ x: 420, y: 313 });
+            dragController.onPointerMove({ x: 100, y: 100 });
+            dragController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
@@ -187,12 +176,9 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
-
             let clickPoint = { x: 21, y: 19 };
-            dragStart(clickPoint);
-            dragEnd(clickPoint);
+            dragController.onPointerDown(clickPoint);
+            dragController.onPointerUp(clickPoint);
 
             assert.equal(called, true);
         });
@@ -230,12 +216,9 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
-
             let clickPoint = { x: 21, y: 19 };
-            dragStart(clickPoint);
-            dragEnd(clickPoint);
+            dragController.onPointerDown(clickPoint);
+            dragController.onPointerUp(clickPoint);
 
             assert.equal(called, true);
         });
@@ -278,13 +261,9 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
-            let dragEnd = (point) => { IntegrationUtils.pointerUp(point, integrationEnv) };
-
-            dragStart({ x: 378, y: 265 });
-            drag({ x: 178, y: 65 });
-            dragEnd({ x: 178, y: 65 });
+            dragController.onPointerDown({ x: 378, y: 265 });
+            dragController.onPointerMove({ x: 178, y: 65 });
+            dragController.onPointerUp({ x: 178, y: 65 });
 
             assert.equal(called, true);
         });
@@ -331,9 +310,9 @@ describe('Test DragController', function () {
             })
 
             let endPoint = integrationEnv.enviromentVariables.d3.selectors['.end-point'];
-            endPoint.eventCallbacks.pointerdown({ x: 10, y: 10 }, lineData);
-            IntegrationUtils.pointerMove({ x: 20, y: -20 }, integrationEnv);
-            IntegrationUtils.pointerUp({ x: 20, y: -20 }, integrationEnv);
+            endPoint.eventCallbacks.pointerdown({ clientX: 10, clientY: 10 }, lineData);
+            dragController.onPointerMove({ x: 20, y: -20 });
+            dragController.onPointerUp({ x: 20, y: -20 });
 
             assert.equal(called, true);
         });
@@ -365,7 +344,7 @@ describe('Integration Test DragController', function () {
             let dragStart = integrationEnv.enviromentVariables.d3.selectors['.start-point'].eventCallbacks.pointerdown;
 
             IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
-            dragStart({ x: 100, y: 100 }, data[0]);
+            dragStart({ clientX: 100, clientY: 100 }, data[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 200 }, integrationEnv);
             IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);

@@ -10,7 +10,8 @@ describe('Test TextController', function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         getTextController = function () {
             let TextController = integrationEnv.enviromentVariables.TextController;
-            return new TextController(integrationEnv.enviromentVariables.d3.svg);
+            let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
+            return new TextController(new mockElement(), new mockElement(), new mockElement());
         }
     });
 
@@ -128,8 +129,9 @@ describe('Integration Test TextController', function () {
             let annotationData = textSet[1]
             let label = annotationData.text;
 
-            integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].
-                eventCallbacks.pointerdown({ x: 130, y: 110 }, annotationData);
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+                eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, textTargetSet[1]);
             IntegrationUtils.pointerMove({ x: 140, y: 120 }, integrationEnv);
 
             // Check that the correct annotation is updating

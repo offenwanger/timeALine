@@ -22,33 +22,13 @@ function TimeWarpController(svg) {
         .attr("id", 'tick-target-g')
         .style('visibility', "hidden")
 
-    // put this on document to capture releases outside the window
-    $(document).on('pointermove', (e) => {
-        e = e.originalEvent;
-        if (mActive && mDragging) {
-            let dragPoint = { x: e.x, y: e.y };
-            let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[mDraggingBinding.timelineId]).percent;
-            pinDrag(mDraggingBinding.timelineId, linePercent);
-        }
-    });
-    $(document).on("pointerup", function (e) {
-        e = e.originalEvent;
-        if (mActive && mDragging) {
-            mDragging = false;
-
-            let dragPoint = { x: e.x, y: e.y };
-            let linePercent = PathMath.getClosestPointOnPath(dragPoint, mLinePoints[mDraggingBinding.timelineId]).percent;
-            pinDragEnd(mDraggingBinding.timelineId, linePercent);
-        }
-    });
-
     function updateModel(model) {
         mLinePoints = {};
         mBindings = []
         mTailGroup.selectAll('*').remove();
         mWarpTickGroup.selectAll('*').remove();
         mWarpTickTargetGroup.selectAll('*').remove();
-        
+
         addOrUpdateTimeControls(model.getAllTimelines(), model.getAllWarpBindingData());
     }
 
@@ -187,6 +167,23 @@ function TimeWarpController(svg) {
             });
     }
 
+
+    function onPointerMove(coords) {
+        if (mActive && mDragging) {
+            let linePercent = PathMath.getClosestPointOnPath(coords, mLinePoints[mDraggingBinding.timelineId]).percent;
+            pinDrag(mDraggingBinding.timelineId, linePercent);
+        }
+    }
+
+    function onPointerUp(coords) {
+        if (mActive && mDragging) {
+            mDragging = false;
+
+            let linePercent = PathMath.getClosestPointOnPath(coords, mLinePoints[mDraggingBinding.timelineId]).percent;
+            pinDragEnd(mDraggingBinding.timelineId, linePercent);
+        }
+    }
+
     function pinDragStart(timelineId, warpBinding) {
         if (mActive) {
             mDraggingBinding = warpBinding;
@@ -263,5 +260,8 @@ function TimeWarpController(svg) {
     this.pinDragStart = pinDragStart;
     this.pinDrag = pinDrag;
     this.pinDragEnd = pinDragEnd;
+
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }
 

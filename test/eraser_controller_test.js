@@ -5,20 +5,12 @@ let expect = chai.expect;
 describe('Test EraserController', function () {
     let integrationEnv;
     let getEraserController;
-    let colorSquare;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         getEraserController = function (externalCall) {
             let EraserController = integrationEnv.enviromentVariables.EraserController;
-            return new EraserController(integrationEnv.enviromentVariables.d3.svg, externalCall);
-        }
-
-        colorSquare = function (x1, y1, x2, y2) {
-            for (let i = x1; i < x2; i++) {
-                for (let j = y1; j < y2; j++) {
-                    global.document.canvasImage[i][j].data = [0, 0, 0, 1];
-                }
-            }
+            let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
+            return new EraserController(new mockElement(), new mockElement(), new mockElement(), externalCall);
         }
     });
 
@@ -34,7 +26,7 @@ describe('Test EraserController', function () {
 
     describe('erase line tests', function () {
         it('should start erase without error', function () {
-            let eraserController = getEraserController(() => [{
+            let getTimelines = () => [{
                 id: "id1", points: [
                     { x: 0, y: 0 },
                     { x: 10, y: 15 },
@@ -44,15 +36,15 @@ describe('Test EraserController', function () {
                     { x: 10, y: 10 },
                     { x: 15, y: 10 },
                     { x: 15, y: 15 }]
-            }]);
+            }]
+            let eraserController = getEraserController(getTimelines);
             eraserController.setActive(true);
 
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            eraserStart({ x: 10, y: 10 });
+            eraserController.onPointerDown({ x: 10, y: 10 });
         })
 
         it('should erase start of line without error', function () {
-            let eraserController = getEraserController(() => [{
+            let getTimelines = () => [{
                 id: "id1", points: [
                     { x: -10, y: -10 },
                     { x: -10, y: -15 },
@@ -62,7 +54,8 @@ describe('Test EraserController', function () {
                     { x: 10, y: 10 },
                     { x: 20, y: 20 },
                     { x: 30, y: 30 }]
-            }]);
+            }];
+            let eraserController = getEraserController(getTimelines);
             eraserController.setActive(true);
 
             let called = false;
@@ -72,19 +65,13 @@ describe('Test EraserController', function () {
                 assert.equal(result[0].segments[0].label, SEGMENT_LABELS.DELETED)
                 assert.equal(result[0].segments[0].points[0].x, 10)
                 assert.equal(result[0].segments[1].label, SEGMENT_LABELS.UNAFFECTED)
-                assert.equal(Math.round(result[0].segments[1].points[0].x), 20)
+                assert.equal(Math.round(result[0].segments[1].points[0].x), 26)
                 called = true;
             });
 
-            colorSquare(0, 0, 20, 20);
-
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
-
-            eraserStart({ x: 10, y: 10 });
-            eraser({ x: 15, y: 15 });
-            eraserEnd({ x: 15, y: 15 });
+            eraserController.onPointerDown({ x: 10, y: 10 });
+            eraserController.onPointerMove({ x: 15, y: 15 });
+            eraserController.onPointerUp({ x: 15, y: 15 });
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
             integrationEnv.enviromentVariables.img.onload();
@@ -116,15 +103,9 @@ describe('Test EraserController', function () {
                 called = true;
             });
 
-            colorSquare(65, 70, 90, 90);
-
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
-
-            eraserStart({ x: 80, y: 80 });
-            eraser({ x: 75, y: 80 });
-            eraserEnd({ x: 75, y: 80 });
+            eraserController.onPointerDown({ x: 80, y: 80 });
+            eraserController.onPointerMove({ x: 75, y: 80 });
+            eraserController.onPointerUp({ x: 75, y: 80 });
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
             integrationEnv.enviromentVariables.img.onload();
@@ -154,15 +135,9 @@ describe('Test EraserController', function () {
                 called = true;
             })
 
-            colorSquare(390, 283, 430, 323);
-
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
-            let eraser = (point) => {IntegrationUtils.pointerMove(point, integrationEnv)};
-            let eraserEnd = (point) => {IntegrationUtils.pointerUp(point, integrationEnv)};
-
-            eraserStart({ x: 420, y: 313 });
-            eraser({ x: 410, y: 303 });
-            eraserEnd({ x: 400, y: 293 });
+            eraserController.onPointerDown({ x: 420, y: 313 });
+            eraserController.onPointerMove({ x: 410, y: 303 });
+            eraserController.onPointerUp({ x: 400, y: 293 });
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
             integrationEnv.enviromentVariables.img.onload();
@@ -171,14 +146,16 @@ describe('Test EraserController', function () {
         });
 
         it('should create appropriate new points for erasing section with no points', function () {
-            let eraserController = getEraserController(() => [{
+            let getTimelines = () => [{
                 id: "1654867647735_5", points: [
                     { x: 0, y: 40 },
                     { x: 0, y: 0 },
                     { x: 40, y: 40 },
                     { x: 40, y: 0 }]
-            }]);
+            }];
+            let eraserController = getEraserController(getTimelines);
             eraserController.setActive(true);
+
             let called = false;
             eraserController.setEraseCallback((result) => {
                 assert.equal(result.length, 1);
@@ -187,21 +164,19 @@ describe('Test EraserController', function () {
                 assert.equal(result[0].segments[1].points.length, 2);
                 assert.equal(result[0].segments[2].points.length, 3);
 
-                expect(result[0].segments[1].points[0].x).to.be.closeTo(12.7, .1);
-                expect(result[0].segments[1].points[0].y).to.be.closeTo(12.7, .1);
+                expect(result[0].segments[1].points[0].x).to.be.closeTo(10.6, .1);
+                expect(result[0].segments[1].points[0].y).to.be.closeTo(10.6, .1);
 
-                expect(result[0].segments[1].points[1].x).to.be.closeTo(27.5, .1);
-                expect(result[0].segments[1].points[1].y).to.be.closeTo(27.5, .1);
+                expect(result[0].segments[1].points[1].x).to.be.closeTo(29.7, .1);
+                expect(result[0].segments[1].points[1].y).to.be.closeTo(29.7, .1);
 
                 called = true;
             })
 
-            colorSquare(13, 13, 28, 28);
-
-            let eraserStart = integrationEnv.enviromentVariables.d3.selectors['#brush-g'].children.find(c => c.type == 'rect').eventCallbacks.pointerdown;
             let clickPoint = { x: 21, y: 19 };
-            eraserStart(clickPoint);
-            IntegrationUtils.pointerUp(clickPoint, integrationEnv);
+            eraserController.onPointerDown(clickPoint);
+            eraserController.onPointerMove(clickPoint);
+            eraserController.onPointerUp(clickPoint);
 
             assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
             integrationEnv.enviromentVariables.img.onload();
@@ -356,8 +331,8 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
                 .to.eql([
                     [[0.25, 0.5]],
-                    [[0.12, 0.25, 0.37, 0.50, 0.62, 0.75]],
-                    [[0.07, 0.14, 0.21, 0.25]]
+                    [[0.11, 0.24, 0.37, 0.49, 0.62, 0.75]],
+                    [[0.06, 0.14, 0.21, 0.24]]
                 ]);
         });
 
@@ -422,8 +397,8 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
                 .to.eql([
                     [[0.25, 1], [1, 0.25]],
-                    [[0.5, 0.75], [0.75, 0.5]],
-                    [[0.25, 0.75, 0.75, 0.25]]
+                    [[0.49, 0.74], [0.74, 0.49]],
+                    [[0.23, 0.74, 0.74, 0.23]]
                 ]);
         });
     });
