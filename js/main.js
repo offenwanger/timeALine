@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('width', $("#lens-view").width())
         .attr('height', $("#lens-view").height());
 
+    let mPanning = false;
+    let mViewTransform = { x: 0, y: 0, rotation: 0 };
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -437,6 +439,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('fill', 'white')
         .attr('opacity', '0')
         .on('pointerdown', function (pointerEvent) {
+            if (mMode == MODE_PAN) {
+                mPanning = true;
+            }
+
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
             mColorBrushController.onPointerDown(coords);
@@ -448,6 +454,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on('pointermove', function (e) {
         let pointerEvent = e.originalEvent;
+        if (mMode == MODE_PAN && mPanning) {
+            mViewTransform.x = mViewTransform.x + pointerEvent.movementX
+            mViewTransform.y = mViewTransform.y + pointerEvent.movementY
+            setViewToTransform();
+        }
+
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
         mColorBrushController.onPointerMove(coords);
@@ -464,6 +476,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on("pointerup", function (e) {
         let pointerEvent = e.originalEvent;
+        if (mPanning) {
+            mPanning = false;
+        }
+
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
         mColorBrushController.onPointerUp(coords);
@@ -479,11 +495,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function screenToSvgCoords(screenCoords) {
         let svgViewportPos = mSvg.node().getBoundingClientRect();
-        return { x: screenCoords.x - svgViewportPos.x, y: screenCoords.y - svgViewportPos.y };
+        return {
+            x: screenCoords.x - svgViewportPos.x - mViewTransform.x,
+            y: screenCoords.y - svgViewportPos.y - mViewTransform.y
+        };
     }
 
-    function svgCoordsToScreen() {
+    function svgCoordsToScreen(svgCoords) {
+        let svgViewportPos = mSvg.node().getBoundingClientRect();
+        return {
+            x: svgCoords.x + svgViewportPos.x + mViewTransform.x,
+            y: svgCoords.y + svgViewportPos.y + mViewTransform.y
+        };
+    }
 
+    function setViewToTransform() {
+        mVizLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
+        mInteractionLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
     }
 
     let mDrawerController = new DrawerController("#data-drawer");
