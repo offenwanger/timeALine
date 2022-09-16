@@ -103,6 +103,14 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         return { x, y };
     }
 
+    function getCurrentCenterPercent() {
+        if (!mTimelineId) {
+            return 0;
+        } else {
+            return (mSvg.attr('width') / 2 - mViewTransform.x) / mLineLength;
+        }
+    }
+
     function modelUpdated() {
         externalModelUpdated();
     }
@@ -166,6 +174,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             eraseStrokes();
 
             resetViewTransform();
+
+            mTimelineId = null;
             return;
         }
 
@@ -314,6 +324,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     this.updateModel = updateModel;
 
     this.getCurrentTimelineId = () => mTimelineId;
+    this.getCurrentCenterPercent = getCurrentCenterPercent;
 
     this.setPanActive = setPanActive;
     this.setColorBrushActive = setColorBrushActive;

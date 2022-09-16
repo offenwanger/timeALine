@@ -530,6 +530,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTimeWarpController.updateModel(mModelController.getModel());
         mLensController.updateModel(mModelController.getModel());
         mStrokeController.updateModel(mModelController.getModel());
+
+        if (mLensController.getCurrentTimelineId()) {
+            let timeline = mModelController.getModel().getTimelineById(mLensController.getCurrentTimelineId());
+            if (timeline) {
+                mLineHighlight.showAround(timeline.points, mLensController.getCurrentCenterPercent(), mLensSvg.attr("width"))
+            } else {
+                console.error("Bad state! Lens have timeline that no longer exists: " + mLensController.getCurrentTimelineId())
+            }
+        } else {
+            mLineHighlight.hide();
+        }
     }
 
 
