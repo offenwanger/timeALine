@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
     const MODE_COLOR_BRUSH = "colorBrush";
+    const MODE_COLOR_BUCKET = "bucket";
     const MODE_EYEDROPPER = "eyedropper";
     const MODE_PAN = "pan";
     const MODE_LINK = "link";
@@ -710,6 +711,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mColorBrushController.setActive(true);
             mLensController.setColorBrushActive(true);
             showIndicator('#color-brush-button', '#color-brush-mode-indicator');
+        }
+    })
+
+    $("#color-bucket-button").on("click", () => {
+        if (mMode == MODE_COLOR_BUCKET) {
+            setDefaultMode()
+        } else {
+            clearMode()
+            mMode = MODE_COLOR_BUCKET;
+            showIndicator('#color-bucket-button', '#color-bucket-mode-indicator');
         }
     })
 
