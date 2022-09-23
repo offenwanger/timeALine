@@ -35,7 +35,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .append("circle")
             .classed("pointMarkerCircle", true)
             .attr("r", "1px")
-            .attr("fill", "black")
+            .attr("fill", "#4278B0")
             .style("opacity", 0.5);
         points.exit().remove();
         mLineGroup.selectAll(".pointMarkerCircle")
