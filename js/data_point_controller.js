@@ -63,7 +63,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('r', 6.0)
             .attr('fill', "black")
             .attr('opacity', 0)
-            .on('pointerdown', function (d) {
+            .on('pointerdown', function (e, d) {
+                mPointDragging = true;
                 mPointDraggingBinding = d.binding;
                 mDragStartPos = mDragStartCallback(mPointDraggingBinding, e);
             })

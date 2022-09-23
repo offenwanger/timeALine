@@ -355,6 +355,56 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet[2].offsetY, 50, "offset not updated");
         });
 
+        it('should create a warp point for a dragged data point', function () {
+            integrationEnv.mainInit();
+
+            // draw a line
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "<text1>"],
+                ["Jan 15, 2021", "10"],
+                ["Jan 20, 2021", "<text2>"]
+            ], integrationEnv)
+
+            // check that three table rows were created
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+
+            // go to pin mode
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            // there should be no bindings yet
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+
+            // drag the point
+            let targetData = integrationEnv.enviromentVariables.d3.selectors[".data-target-point"].innerData;
+            assert.equal(targetData.length, 1);
+            assert.equal(targetData[0].x, 150);
+            assert.equal(targetData[0].y, 0);
+            integrationEnv.enviromentVariables.d3.selectors[".data-target-point"]
+                .eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, targetData[0]);
+            IntegrationUtils.pointerMove({ x: 130, y: 130 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 140, y: 150 }, integrationEnv);
+
+            // check that there are still the six table rows
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+
+            // check that a binding was created
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 15 2021").getTime());
+
+            // check that the point is where it's expect to be
+            targetData = integrationEnv.enviromentVariables.d3.selectors[".data-target-point"].innerData;
+            assert.equal(targetData.length, 1);
+            assert.equal(targetData[0].x, 140);
+            assert.equal(targetData[0].y, 0);
+        });
+
+
         it('should set the offset correctly for dragged comment creating warp point', function () {
             integrationEnv.mainInit();
 
