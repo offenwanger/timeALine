@@ -26,8 +26,8 @@ describe('Test DataStructs', function () {
             table.dataRows[3].dataCells[1].val = "19992222"
 
             let timeline = new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 20, y: 40 }, { x: 20, y: 10 }, { x: 10, y: 400 }]);
-            timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[0].id, 0.5));
-            timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[3].id, 0.5));
+            timeline.timePins.push(new DataStructs.TimePin(table.id, table.dataRows[0].id, 0.5));
+            timeline.timePins.push(new DataStructs.TimePin(table.id, table.dataRows[3].id, 0.5));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[1].id, table.dataColumns[3].id, table.dataRows[1].dataCells[3].id));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[3].id, table.dataColumns[3].id, table.dataRows[3].dataCells[3].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));
@@ -42,8 +42,8 @@ describe('Test DataStructs', function () {
             table.dataRows[3].dataCells[3].val = new Date("Jan 2, 2002");
 
             let timeline = new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 20, y: 40 }, { x: 20, y: 10 }, { x: 10, y: 400 }]);
-            timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[0].id, 0.5));
-            timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[3].id, 0.5));
+            timeline.timePins.push(new DataStructs.TimePin(table.id, table.dataRows[0].id, 0.5));
+            timeline.timePins.push(new DataStructs.TimePin(table.id, table.dataRows[3].id, 0.5));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[1].id, table.dataColumns[3].id, table.dataRows[1].dataCells[3].id));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[3].id, table.dataColumns[3].id, table.dataRows[3].dataCells[3].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));

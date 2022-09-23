@@ -27,9 +27,9 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
             if (timeCell.isValid()) {
                 linePercent = mapTimeToLinePercent(timeline.id, timeCell.getValue());
             } else {
-                let warpBinding = timeline.warpBindings.find(wb => wb.timeCellId == timeCell.id);
-                if (warpBinding) {
-                    linePercent = warpBinding.linePercent;
+                let timePin = timeline.timePins.find(pin => pin.timeCellId == timeCell.id);
+                if (timePin) {
+                    linePercent = timePin.linePercent;
                 } else {
                     console.error("Finish me! Indicate unknown mapping here");
                     linePercent = 0;
@@ -52,8 +52,8 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
         let timeline = getTimelineById(timelineId);
         if (!timeline) { console.error("Invalid timeline id!", timelineId); return 0; }
 
-        if (timeline.warpBindings.find(wb => wb.timeStamp == time)) {
-            return timeline.warpBindings.find(wb => wb.timeStamp == time).linePercent;
+        if (timeline.timePins.find(pin => pin.timeStamp == time)) {
+            return timeline.timePins.find(pin => pin.timeStamp == time).linePercent;
         }
 
         let bindingValues = getTimeBindingValues(timeline);
@@ -117,11 +117,11 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
     }
 
     function getTimeBindingValues(timeline) {
-        let bindingValues = [...timeline.warpBindings.filter(wb => wb.timeStamp)];
-        let warpBindingTimeStamps = bindingValues.map(b => b.timeStamp);
+        let bindingValues = [...timeline.timePins.filter(pin => pin.timeStamp)];
+        let timePinTimeStamps = bindingValues.map(b => b.timeStamp);
         bindingValues.push(...getBoundTimeValues(timeline.id)
             .map(val => { return { timeStamp: val } })
-            .filter(b => !warpBindingTimeStamps.includes(b.timeStamp)));
+            .filter(b => !timePinTimeStamps.includes(b.timeStamp)));
         bindingValues.sort((a, b) => a.timeStamp - b.timeStamp);
 
         return bindingValues;

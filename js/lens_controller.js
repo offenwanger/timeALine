@@ -120,7 +120,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             mTimelineId = null;
 
             eraseLine();
-            eraseWarpBindings();
+            eraseTimePins();
             eraseDataPoints();
             eraseAnnotations();
             eraseStrokes();
@@ -168,7 +168,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             // timeline got erased
 
             eraseLine();
-            eraseWarpBindings();
+            eraseTimePins();
             eraseDataPoints();
             eraseAnnotations();
             eraseStrokes();
@@ -208,11 +208,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         mLineG.select("#lens-line").remove();
     }
 
-    function redrawWarpBindings() {
+    function redrawTimePins() {
 
     }
 
-    function eraseWarpBindings() {
+    function eraseTimePins() {
 
     }
 

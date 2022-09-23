@@ -27,18 +27,18 @@ function ModelController() {
         let newPoints = extendStart ? points.concat(timeline.points) : timeline.points.concat(points);
         let newLength = PathMath.getPathLength(newPoints);
 
-        timeline.warpBindings.push(...getCapWarpBindings(timeline, extendStart));
+        timeline.timePins.push(...getCapTimePins(timeline, extendStart));
 
         timeline.points = newPoints;
         if (extendStart) {
             let diff = newLength - originalLength;
-            timeline.warpBindings.forEach(binding => {
+            timeline.timePins.forEach(binding => {
                 let originalLengthAlongLine = binding.linePercent * originalLength;
                 binding.linePercent = (originalLengthAlongLine + diff) / newLength;
             })
         } else {
             let conversionRatio = originalLength / newLength;
-            timeline.warpBindings.forEach(binding => {
+            timeline.timePins.forEach(binding => {
                 binding.linePercent *= conversionRatio;
             })
         }
@@ -94,45 +94,45 @@ function ModelController() {
         let conversionRatio = originalStartLength / newLength;
         let diff = newLength - originalEndLength;
 
-        // Update warp binding line percents
-        let warpBindings = []
-        startTimeline.warpBindings.concat(getCapWarpBindings(startTimeline, false)).forEach(binding => {
+        // Update time pin line percents
+        let timePins = []
+        startTimeline.timePins.concat(getCapTimePins(startTimeline, false)).forEach(binding => {
             let newBinding = binding.copy();
             newBinding.linePercent = binding.linePercent * conversionRatio;
-            warpBindings.push(newBinding);
+            timePins.push(newBinding);
         });
-        endTimeline.warpBindings.concat(getCapWarpBindings(endTimeline, true)).forEach(binding => {
+        endTimeline.timePins.concat(getCapTimePins(endTimeline, true)).forEach(binding => {
             let newBinding = binding.copy();
             let originalLengthAlongLine = binding.linePercent * originalEndLength;
             newBinding.linePercent = (originalLengthAlongLine + diff) / newLength;
-            warpBindings.push(newBinding);
+            timePins.push(newBinding);
         });
 
         // filter to bindings which are still valid and add them to the new line
         let timeSetBindings = []
-        warpBindings.forEach(binding => {
+        timePins.forEach(binding => {
             if (binding.timeStamp) {
                 timeSetBindings.push(binding);
             } else {
-                newTimeline.warpBindings.push(binding)
+                newTimeline.timePins.push(binding)
             }
         })
 
         if (timeSetBindings.length > 0) {
             timeSetBindings.sort((a, b) => { a.linePercent - b.linePercent; });
-            newTimeline.warpBindings.push(timeSetBindings[0])
+            newTimeline.timePins.push(timeSetBindings[0])
             for (let i = 1; i < timeSetBindings.length; i++) {
                 if (timeSetBindings[i - 1].timeStamp < timeSetBindings[i].timeStamp) {
-                    newTimeline.warpBindings.push(timeSetBindings[i])
+                    newTimeline.timePins.push(timeSetBindings[i])
                 }
             }
         }
 
         // update the annotation stroke line percents
         startTimeline.annotationStrokes.forEach(stroke => {
-            // TODO: either change strokes to use a time representation set along with the warp points
+            // TODO: either change strokes to use a time representation set along with the time pins
             // or map all the strokes to time here and back to line percents (which will have to happen
-            // every time we move a warp point...)
+            // every time we move a time pin...)
             console.error("Finish me!");
 
             let newStoke = new DataStructs.Stroke([], stroke.color);
@@ -161,9 +161,9 @@ function ModelController() {
     }
 
     /* Utility Function */
-    function getCapWarpBindings(timeline, capStart) {
+    function getCapTimePins(timeline, capStart) {
         let returnable = []
-        // before we make any changes, if needed, add a warp point so things won't move
+        // before we make any changes, if needed, add a time pin so things won't move
         let bindingValues = mModel.getTimeBindingValues(timeline);
         if (bindingValues.length > 1) {
             let capBinding = capStart ? bindingValues[0] : bindingValues[bindingValues.length - 1];
@@ -171,9 +171,9 @@ function ModelController() {
                 // it's needed
                 if (mModel.hasTimeMapping(timeline.id)) {
                     let linePercent = mModel.mapTimeToLinePercent(timeline.id, capBinding.timeStamp);
-                    let warpBinding = new DataStructs.WarpBinding(linePercent);
-                    warpBinding.timeStamp = capBinding.timeStamp;
-                    returnable.push(warpBinding);
+                    let timePin = new DataStructs.TimePin(linePercent);
+                    timePin.timeStamp = capBinding.timeStamp;
+                    returnable.push(timePin);
                 } else {
                     console.error("Bad State! Should not have multiple binding values and no mapping!")
                 }
@@ -213,15 +213,15 @@ function ModelController() {
         }
 
 
-        // split up the warp bindings into their proper segments
-        segments.forEach(s => s.warpBindings = []);
-        let warpBindingData = mModel.getTimelineById(timeline.id).warpBindings;
-        warpBindingData.forEach(binding => {
+        // split up the time pins into their proper segments
+        segments.forEach(s => s.timePins = []);
+        let timePinData = mModel.getTimelineById(timeline.id).timePins;
+        timePinData.forEach(binding => {
             let segment = segments.find(s =>
                 binding.linePercent >= s.startPercent &&
                 binding.linePercent <= s.endPercent);
             if (!segment) { console.error("Unhandled edge case!", binding.linePercent, segments); return; };
-            segment.warpBindings.push(binding);
+            segment.timePins.push(binding);
         })
 
         // split up the cell bindings into their proper segments
@@ -235,42 +235,42 @@ function ModelController() {
             segment.cellBindingsData.push(binding);
         });
 
-        // add warp bindings to ensure the data doesn't move because of being disconnected
+        // add time pins to ensure the data doesn't move because of being disconnected
         segments.forEach(segment => {
             // we only care about data with valid time cells because invalid ones are either pegged or not, 
             // and will therefore either way not be affected by the splice. 
             let validCellBindings = segment.cellBindingsData.filter(c => c.timeCell.isValid());
-            let validWarpBindings = segment.warpBindings.filter(wb => wb.timeStamp);
+            let validTimePins = segment.timePins.filter(pin => pin.timeStamp);
             if (validCellBindings.length > 0) {
                 // get the max/min data items
                 validCellBindings.sort((a, b) => a.linePercent - b.linePercent);
-                validWarpBindings.sort((a, b) => a.linePercent - b.linePercent);
+                validTimePins.sort((a, b) => a.linePercent - b.linePercent);
 
                 // if there's already a binding at the start, don't bother creating a pin, it won't move
                 if (validCellBindings[0].linePercent > segment.startPercent && (
-                    validWarpBindings.length == 0 ||
-                    validCellBindings[0].linePercent < validWarpBindings[0].linePercent)) {
-                    // create a warp binding for this item. 
-                    let warpBinding = new DataStructs.WarpBinding(validCellBindings[0].linePercent);
-                    warpBinding.timeStamp = validCellBindings[0].timeCell.getValue();
-                    segment.warpBindings.push(warpBinding);
+                    validTimePins.length == 0 ||
+                    validCellBindings[0].linePercent < validTimePins[0].linePercent)) {
+                    // create a time pin for this item. 
+                    let timePin = new DataStructs.TimePin(validCellBindings[0].linePercent);
+                    timePin.timeStamp = validCellBindings[0].timeCell.getValue();
+                    segment.timePins.push(timePin);
 
-                    // update the valid warp bindings in with the new one. 
-                    validWarpBindings = segment.warpBindings.filter(wb => wb.timeStamp);
-                    validWarpBindings.sort((a, b) => a.linePercent - b.linePercent);
+                    // update the valid time pins in with the new one. 
+                    validTimePins = segment.timePins.filter(pin => pin.timeStamp);
+                    validTimePins.sort((a, b) => a.linePercent - b.linePercent);
                 }
 
                 let lastCell = validCellBindings[validCellBindings.length - 1];
                 // if there's already a binding at the end, don't bother creating a pin, it won't move
-                // if there was only one warp binding, and we created a peg for it, this will be false because it's 
+                // if there was only one time pin, and we created a peg for it, this will be false because it's 
                 // line percent will be equal. 
                 if (lastCell.linePercent < segment.endPercent && (
-                    validWarpBindings.length == 0 ||
-                    lastCell.linePercent < validWarpBindings[validWarpBindings.length - 1].linePercent)) {
-                    // create a warp binding for this item. 
-                    let warpBinding = new DataStructs.WarpBinding(lastCell.linePercent);
-                    warpBinding.timeStamp = lastCell.timeCell.getValue();
-                    segment.warpBindings.push(warpBinding);
+                    validTimePins.length == 0 ||
+                    lastCell.linePercent < validTimePins[validTimePins.length - 1].linePercent)) {
+                    // create a time pin for this item. 
+                    let timePin = new DataStructs.TimePin(lastCell.linePercent);
+                    timePin.timeStamp = lastCell.timeCell.getValue();
+                    segment.timePins.push(timePin);
                 }
             }
         })
@@ -313,10 +313,10 @@ function ModelController() {
         let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
             let newTimeline = new DataStructs.Timeline(segment.points);
 
-            newTimeline.warpBindings = segment.warpBindings.map(wb => {
-                let warpBinding = wb.clone();
-                warpBinding.linePercent = (warpBinding.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
-                return warpBinding;
+            newTimeline.timePins = segment.timePins.map(pin => {
+                let timePin = pin.clone();
+                timePin.linePercent = (timePin.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                return timePin;
             });
 
             newTimeline.cellBindings = segment.cellBindingsData.map(b => b.cellBinding);
@@ -339,7 +339,7 @@ function ModelController() {
 
         timeline.points = PathMath.mergeSegments(newSegments);
 
-        // update the warp points
+        // update the time pins
         let newLength = PathMath.getPathLength(PathMath.mergeSegments(newSegments));
         let oldLength = PathMath.getPathLength(PathMath.mergeSegments(oldSegments));
         let cumulativeNewLength = 0;
@@ -360,7 +360,7 @@ function ModelController() {
             let newInterval = newEndPercent - newStartPercent;
             let oldInterval = oldEndPercent - oldStartPercent;
 
-            timeline.warpBindings
+            timeline.timePins
                 .filter(binding =>
                     binding.linePercent >= oldStartPercent &&
                     binding.linePercent <= oldEndPercent)
@@ -403,7 +403,7 @@ function ModelController() {
         mModel.getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
-    function updateWarpBinding(timelineId, binding) {
+    function updatePinBinding(timelineId, binding) {
         undoStackPush();
 
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
@@ -412,16 +412,16 @@ function ModelController() {
 
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        timeline.warpBindings = timeline.warpBindings.filter(wb =>
+        timeline.timePins = timeline.timePins.filter(pin =>
             // clear the binding out of the array so we can readd the new data
-            wb.id != binding.id &&
+            pin.id != binding.id &&
             // if we don't have timestamps set, we have no information to eliminate bindings on.
-            (!wb.timeStamp ||
+            (!pin.timeStamp ||
                 // otherwise make sure time and bindings both increase in the same direction
-                (wb.timeStamp < binding.timeStamp && wb.linePercent < binding.linePercent) ||
-                (wb.timeStamp > binding.timeStamp && wb.linePercent > binding.linePercent)));
+                (pin.timeStamp < binding.timeStamp && pin.linePercent < binding.linePercent) ||
+                (pin.timeStamp > binding.timeStamp && pin.linePercent > binding.linePercent)));
 
-        timeline.warpBindings.push(binding);
+        timeline.timePins.push(binding);
     }
 
     function updateText(cellId, text) {
@@ -522,7 +522,7 @@ function ModelController() {
                 let wasChanged = timeLine.cellBindings.some(b => changeData.includes(b.cellId));
                 if (wasChanged) {
                     updateTimelineAxes(timeLine);
-                    updateWarpBindingTimeStamps(timeLine);
+                    updatePinBindingTimeStamps(timeLine);
                 }
             })
         }
@@ -599,14 +599,14 @@ function ModelController() {
             }
         });
 
-        updateWarpBindingTimeStamps(timeline);
+        updatePinBindingTimeStamps(timeline);
     }
 
-    function updateWarpBindingTimeStamps(timeline) {
-        if (mModel.hasTimeMapping(timeline.id) && timeline.warpBindings.some(wb => !wb.timeStamp)) {
-            timeline.warpBindings.forEach(wb => {
-                if (!wb.timeStamp) {
-                    wb.timeStamp = mModel.mapLinePercentToTime(timeline.id, wb.linePercent);
+    function updatePinBindingTimeStamps(timeline) {
+        if (mModel.hasTimeMapping(timeline.id) && timeline.timePins.some(pin => !pin.timeStamp)) {
+            timeline.timePins.forEach(pin => {
+                if (!pin.timeStamp) {
+                    pin.timeStamp = mModel.mapLinePercentToTime(timeline.id, pin.linePercent);
                 }
             })
         }
@@ -696,7 +696,7 @@ function ModelController() {
     this.tableUpdated = tableUpdated;
 
     this.bindCells = bindCells;
-    this.updateWarpBinding = updateWarpBinding;
+    this.updatePinBinding = updatePinBinding;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;

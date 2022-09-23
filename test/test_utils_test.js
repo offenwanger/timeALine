@@ -337,7 +337,7 @@ before(function () {
         let lens_controller = rewire('../js/lens_controller.js');
         let stroke_controller = rewire('../js/stroke_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
-        let time_warp_controller = rewire('../js/time_warp_controller.js');
+        let time_pin_controller = rewire('../js/time_pin_controller.js');
         let data_point_controller = rewire('../js/data_point_controller.js');
         let text_controller = rewire('../js/text_controller.js');
         let file_handling = rewire('../js/file_handling.js');
@@ -396,7 +396,7 @@ before(function () {
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
-            TimeWarpController: time_warp_controller.__get__("TimeWarpController"),
+            TimePinController: time_pin_controller.__get__("TimePinController"),
             TextController: text_controller.__get__("TextController"),
             DataPointController: data_point_controller.__get__("DataPointController"),
             BrushController: brush_controller.__get__("BrushController"),

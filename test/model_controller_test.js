@@ -25,12 +25,12 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getModel().hasTimeMapping(timeline.id), false);
         });
 
-        it('should not have mapping with one warp binding', function () {
+        it('should not have mapping with one time pin', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
-            let warpBinding = new DataStructs.WarpBinding(0.5);
-            warpBinding.timeStamp = new Date("Jan 10, 2021").getTime();
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.5);
+            timePin.timeStamp = new Date("Jan 10, 2021").getTime();
+            modelController.updatePinBinding(timeline.id, timePin);
 
             assert.equal(modelController.getModel().hasTimeMapping(timeline.id), false);
         });
@@ -42,13 +42,13 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getModel().hasTimeMapping(timeline.id), false);
         });
 
-        it('should not have mapping with one cell binding and one warp binding that are the same', function () {
+        it('should not have mapping with one cell binding and one time pin that are the same', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
             modelController.addBoundTextRow("<text>", "Jan 10, 2022", timeline.id);
 
-            let warpBinding = new DataStructs.WarpBinding(0.5);
-            warpBinding.timeStamp = new Date("Jan 10, 2022").getTime();
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.5);
+            timePin.timeStamp = new Date("Jan 10, 2022").getTime();
+            modelController.updatePinBinding(timeline.id, timePin);
 
             assert.equal(modelController.getModel().hasTimeMapping(timeline.id), false);
         });
@@ -76,13 +76,13 @@ describe('Test ModelController', function () {
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 21, 2022").getTime())).to.be.closeTo(1, 0.0001);
         });
 
-        it('should caluclate time with one cell binding and one warp binding', function () {
+        it('should caluclate time with one cell binding and one time pin', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
             modelController.addBoundTextRow("<text>", "Jan 10, 2022", timeline.id);
 
-            let warpBinding = new DataStructs.WarpBinding(0.5);
-            warpBinding.timeStamp = new Date("Jan 20, 2022").getTime();
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.5);
+            timePin.timeStamp = new Date("Jan 20, 2022").getTime();
+            modelController.updatePinBinding(timeline.id, timePin);
 
             let percentToTime = function (percent) { return percent * (new Date("Jan 30, 2022").getTime() - new Date("Jan 10, 2022").getTime()) + new Date("Jan 10, 2022").getTime(); }
             expect(modelController.getModel().mapLinePercentToTime(timeline.id, 0)).to.be.closeTo(new Date("Jan 10, 2022").getTime(), 0.0001);
@@ -101,17 +101,17 @@ describe('Test ModelController', function () {
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Feb 10, 2022").getTime())).to.be.closeTo(1, 0.0001);
         });
 
-        it('should caluclate time with one cell binding between two warp bindings', function () {
+        it('should caluclate time with one cell binding between two time pins', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
             modelController.addBoundTextRow("<text>", "Jan 15, 2022", timeline.id);
 
-            let warpBinding = new DataStructs.WarpBinding(0.25);
-            warpBinding.timeStamp = new Date("Jan 10, 2022").getTime();
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.25);
+            timePin.timeStamp = new Date("Jan 10, 2022").getTime();
+            modelController.updatePinBinding(timeline.id, timePin);
 
-            warpBinding = new DataStructs.WarpBinding(0.75);
-            warpBinding.timeStamp = new Date("Jan 20, 2022").getTime();
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            timePin = new DataStructs.TimePin(0.75);
+            timePin.timeStamp = new Date("Jan 20, 2022").getTime();
+            modelController.updatePinBinding(timeline.id, timePin);
 
 
             expect(modelController.getModel().mapLinePercentToTime(timeline.id, 0)).to.be.closeTo(new Date("Jan 5, 2022").getTime(), 0.0001);
@@ -133,11 +133,11 @@ describe('Test ModelController', function () {
             assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
         });
 
-        it('should throw error for get time one warp binding', function () {
+        it('should throw error for get time one time pin', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            let warpBinding = new DataStructs.WarpBinding(0.3);
-            warpBinding.timeStamp = 100;
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.3);
+            timePin.timeStamp = 100;
+            modelController.updatePinBinding(timeline.id, timePin);
 
             assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
         });
@@ -159,9 +159,9 @@ describe('Test ModelController', function () {
 
             assert.equal(binding.linePercent, 0);
 
-            let warpBindingData = new DataStructs.WarpBinding(0.5);
-            warpBindingData.timeCellId = binding.timeCell.id;
-            modelController.updateWarpBinding(timeline.id, warpBindingData);
+            let timePinData = new DataStructs.TimePin(0.5);
+            timePinData.timeCellId = binding.timeCell.id;
+            modelController.updatePinBinding(timeline.id, timePinData);
             assert.equal(modelController.getModel().getAllCellBindingData().length, 1);
 
             binding = modelController.getModel().getAllCellBindingData()[0];
@@ -246,9 +246,9 @@ describe('Test ModelController', function () {
 
             assert.equal(modelController.getModel().getAllTimelines().length, 2);
             assert.equal(modelController.getModel().getAllTimelines()[0].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(modelController.getModel().getAllTimelines()[1].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[1].timePins.length, 1);
         });
     })
 
@@ -263,8 +263,8 @@ describe('Test ModelController', function () {
                 { x: 20, y: 0 }]);
             assert.equal(modelController.getModel().getAllTimelines().length, 1);
 
-            let warpBinding = new DataStructs.WarpBinding(0.75);
-            modelController.updateWarpBinding(timeline.id, warpBinding);
+            let timePin = new DataStructs.TimePin(0.75);
+            modelController.updatePinBinding(timeline.id, timePin);
 
             let oldSegments = PathMath.segmentPath(timeline.points, true, (point) => point.x > 11 ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
             let newSegments = oldSegments.map(s => { return { label: s.label, points: [...s.points] } });
@@ -274,8 +274,8 @@ describe('Test ModelController', function () {
 
             assert.equal(modelController.getModel().getAllTimelines().length, 1);
             expect(modelController.getModel().getAllTimelines()[0].points.map(p => p.y)).to.eql([0, 0, 0, 0, 0, 10, 0]);
-            assert.equal(modelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            expect(modelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent).to.be.closeTo(0.55, 0.01);
+            assert.equal(modelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            expect(modelController.getModel().getAllTimelines()[0].timePins[0].linePercent).to.be.closeTo(0.55, 0.01);
 
         });
     })
@@ -521,9 +521,9 @@ describe('Test ModelController', function () {
 
             assert.equal(modelController.getModel().getAllTimelines().length, 2);
             assert.equal(modelController.getModel().getAllTimelines()[0].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(modelController.getModel().getAllTimelines()[1].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[1].timePins.length, 1);
 
             modelController.undo();
             assert.equal(modelController.getModel().getAllCellBindingData().length, 2);
@@ -532,9 +532,9 @@ describe('Test ModelController', function () {
             modelController.redo();
             assert.equal(modelController.getModel().getAllTimelines().length, 2);
             assert.equal(modelController.getModel().getAllTimelines()[0].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(modelController.getModel().getAllTimelines()[1].cellBindings.length, 1);
-            assert.equal(modelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
+            assert.equal(modelController.getModel().getAllTimelines()[1].timePins.length, 1);
         });
     });
 });
@@ -691,12 +691,12 @@ describe('Integration Test ModelController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points), 150)
 
-            // there should be a warp point keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            // there should be a time pin keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings[0].timeStamp, new Date("Jan 10, 2021").getTime());
+                .timePins[0].timeStamp, new Date("Jan 10, 2021").getTime());
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings[0].linePercent).to.be.closeTo(0.66666, 0.0001);
+                .timePins[0].linePercent).to.be.closeTo(0.66666, 0.0001);
 
             // the data should have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
@@ -724,13 +724,13 @@ describe('Integration Test ModelController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points), 200)
 
-            // there should be another warp point keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
+            // there should be another time pin keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings[1].timeStamp, new Date("Jan 20, 2021").getTime());
+                .timePins[1].timeStamp, new Date("Jan 20, 2021").getTime());
             // and the first one should have had it's line percent updated
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings[0].linePercent).to.be.closeTo(0.5, 0.0001);
+                .timePins[0].linePercent).to.be.closeTo(0.5, 0.0001);
 
             // the data should still have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
@@ -868,15 +868,15 @@ describe('Integration Test ModelController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([50, 150]);
 
-            // there should be a warp point keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].warpBindings.length, 2);
+            // there should be a time pin keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 2);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[1]
-                .warpBindings.map(b => b.timeStamp)).to.eql([
+                .timePins.map(b => b.timeStamp)).to.eql([
                     new Date("Jan 12, 2021").getTime(),
                     new Date("Jan 13, 2021").getTime()
                 ]);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[1]
-                .warpBindings.map(b => Math.round(b.linePercent * 100) / 100)).to.eql([0.33, 0.67]);
+                .timePins.map(b => Math.round(b.linePercent * 100) / 100)).to.eql([0.33, 0.67]);
 
             selectors = integrationEnv.enviromentVariables.d3.selectors;
             assert.equal(selectors['.data-display-point'].innerData.length, 3);
@@ -906,17 +906,17 @@ describe('Integration Test ModelController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([250]);
 
-            // there should be warp points keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 4);
+            // there should be time pins keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 4);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings.map(b => b.timeStamp)).to.eql([
+                .timePins.map(b => b.timeStamp)).to.eql([
                     new Date("Jan 12, 2021").getTime(),
                     new Date("Jan 13, 2021").getTime(),
                     new Date("Jan 14, 2021").getTime(),
                     new Date("Jan 15, 2021").getTime()
                 ]);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings.map(b => Math.round(100 * b.linePercent) / 100)).to.eql([0.2, 0.4, 0.6, 0.8]);
+                .timePins.map(b => Math.round(100 * b.linePercent) / 100)).to.eql([0.2, 0.4, 0.6, 0.8]);
 
             // the data should still have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
@@ -1001,12 +1001,12 @@ describe('Integration Test ModelController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([50, 150]);
 
-            // there should be a warp point keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
+            // there should be a time pin keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 1);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[1]
-                .warpBindings[0].timeStamp).to.eql(new Date("Jan 13, 2021").getTime());
+                .timePins[0].timeStamp).to.eql(new Date("Jan 13, 2021").getTime());
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[1]
-                .warpBindings[0].linePercent).to.be.closeTo(0.33333, 0.0001);
+                .timePins[0].linePercent).to.be.closeTo(0.33333, 0.0001);
 
             selectors = integrationEnv.enviromentVariables.d3.selectors;
             assert.equal(selectors['.data-display-point'].innerData.length, 3);
@@ -1037,15 +1037,15 @@ describe('Integration Test ModelController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([250]);
 
-            // there should be warp points keeping data in place
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
+            // there should be time pins keeping data in place
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings.map(b => b.timeStamp)).to.eql([
+                .timePins.map(b => b.timeStamp)).to.eql([
                     new Date("Jan 13, 2021").getTime(),
                     new Date("Jan 16, 2021").getTime()
                 ]);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0]
-                .warpBindings.map(b => Math.round(100 * b.linePercent) / 100)).to.eql([0.2, 0.6]);
+                .timePins.map(b => Math.round(100 * b.linePercent) / 100)).to.eql([0.2, 0.6]);
 
             // the data should still have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);

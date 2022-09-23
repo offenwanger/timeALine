@@ -4,17 +4,17 @@ let assert = chai.assert;
 let expect = chai.expect;
 
 
-describe('Test TimeWarpController', function () {
+describe('Test TimePinController', function () {
     let integrationEnv;
-    let getTimeWarpController;
+    let getTimePinController;
 
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         DataStructs = integrationEnv.enviromentVariables.DataStructs;
-        getTimeWarpController =  function (externalCall) {
-            let TimeWarpController = integrationEnv.enviromentVariables.TimeWarpController;
+        getTimePinController =  function (externalCall) {
+            let TimePinController = integrationEnv.enviromentVariables.TimePinController;
             let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
-            return new TimeWarpController(new mockElement(), new mockElement(), new mockElement(), externalCall);
+            return new TimePinController(new mockElement(), new mockElement(), new mockElement(), externalCall);
         }
     });
 
@@ -25,7 +25,7 @@ describe('Test TimeWarpController', function () {
 
     describe('instantiation test', function () {
         it('should start without error', function () {
-            getTimeWarpController(() => { });
+            getTimePinController(() => { });
         })
     });
 
@@ -33,37 +33,37 @@ describe('Test TimeWarpController', function () {
         it('should add time ticks without time', function () {
             let model = new DataStructs.DataModel();
             model.getAllTimelines().push(new DataStructs.Timeline([{ x: 0, y: 0 }, { x: 10, y: 15 }, { x: 5, y: 20 }]))
-            model.getAllTimelines()[0].warpBindings.push(new DataStructs.WarpBinding(0.2), new DataStructs.WarpBinding(0.4))
+            model.getAllTimelines()[0].timePins.push(new DataStructs.TimePin(0.2), new DataStructs.TimePin(0.4))
             model.getAllTimelines().push(new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 15, y: 10 }, { x: 15, y: 15 }]))
-            model.getAllTimelines()[1].warpBindings.push(new DataStructs.WarpBinding(0.5))
+            model.getAllTimelines()[1].timePins.push(new DataStructs.TimePin(0.5))
 
-            let timeWarpController = getTimeWarpController(() => { });
-            timeWarpController.updateModel(model);
+            let timePinController = getTimePinController(() => { });
+            timePinController.updateModel(model);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
         });
 
         it('should add time ticks with time', function () {
             let model = new DataStructs.DataModel();
             model.getAllTimelines().push(new DataStructs.Timeline([{ x: 0, y: 0 }, { x: 10, y: 15 }, { x: 5, y: 20 }]))
             model.getAllTimelines().push(new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 15, y: 10 }, { x: 15, y: 15 }]))
-            model.getAllTimelines()[0].warpBindings.push(new DataStructs.WarpBinding(0.2), new DataStructs.WarpBinding(0.4))
-            model.getAllTimelines()[1].warpBindings.push(new DataStructs.WarpBinding(0.5))
-            model.getAllTimelines()[0].warpBindings[0].timeStamp = new Date("jan 2, 2022").getTime();
-            model.getAllTimelines()[0].warpBindings[1].timeCellId = "id7";
-            model.getAllTimelines()[1].warpBindings[0].timeStamp = new Date("jan 2, 2022").getTime();
+            model.getAllTimelines()[0].timePins.push(new DataStructs.TimePin(0.2), new DataStructs.TimePin(0.4))
+            model.getAllTimelines()[1].timePins.push(new DataStructs.TimePin(0.5))
+            model.getAllTimelines()[0].timePins[0].timeStamp = new Date("jan 2, 2022").getTime();
+            model.getAllTimelines()[0].timePins[1].timeCellId = "id7";
+            model.getAllTimelines()[1].timePins[0].timeStamp = new Date("jan 2, 2022").getTime();
 
-            let timeWarpController = getTimeWarpController(() => { });
-            timeWarpController.updateModel(model);
+            let timePinController = getTimePinController(() => { });
+            timePinController.updateModel(model);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
         })
     });
 });
 
-describe('Integration Test TimeWarpController', function () {
+describe('Integration Test TimePinController', function () {
     let integrationEnv;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
@@ -73,7 +73,7 @@ describe('Integration Test TimeWarpController', function () {
         integrationEnv.cleanup(done);
     });
 
-    describe('warp data tests', function () {
+    describe('pin data tests', function () {
         it('should create pins without time', function () {
             integrationEnv.mainInit();
 
@@ -84,11 +84,11 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 125, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => w.timeStamp))
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp))
                 .to.eql([null, null, null]);
         });
 
@@ -107,11 +107,11 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 125, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w =>w.timeStamp).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w =>w.timeStamp).sort())
                 .to.eql([
                     0.25*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
                     0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
@@ -129,14 +129,14 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 150, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv);
 
             // the timeline has the point set
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
 
             // no data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
 
             // the tick was drawn
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
         });
 
         it('should create and update pin on drag with data', function () {
@@ -155,16 +155,16 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 150, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv);
 
             // the timeline has the point set
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, 
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, 
                 0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // no new data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
             // the tick was drawn
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
         });
 
         it('should display a pin while dragging, but not update until done', function () {
@@ -182,33 +182,33 @@ describe('Integration Test TimeWarpController', function () {
             onLineDragStart({ clientX: 150, clientY: 110 }, data)
 
             // the tick was drawn
-            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId], "warp ticks were not set")
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
-            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId], "pin ticks were not set")
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
+            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
 
             assert(bindingTickData, "tick was not drawn");
 
             // the timeline not been updated yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             IntegrationUtils.pointerMove({ x: 125, y: 110 }, integrationEnv);
 
             // the tick was updated
-            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId], "warp ticks were not set")
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
+            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId], "pin ticks were not set")
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
 
-            bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
             expect(bindingTickData.position).to.eql({ x: 125, y: 100 });
 
             // the timeline not been updated yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             IntegrationUtils.pointerUp({ x: 125, y: 110 }, integrationEnv);
 
             // the timeline has been updated
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
 
             // no new data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
@@ -231,9 +231,9 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
             // we have three ticks in data and three drawn
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
             
-            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.warpTickTarget_' + timelineId];
+            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId];
             assert.equal(tickTargets.innerData.length, 3)
 
             // start drag
@@ -243,11 +243,11 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.pointerMove({ x: 110, y: 110 }, integrationEnv);
 
             // the timeline not been updated yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
             // but the visual has
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.warpTickTarget_' + timelineId].innerData.length, 2)
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId].innerData.length, 2)
 
-            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".warpTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
             expect(bindingTickData.position).to.eql({ x: 110, y: 100 });
 
@@ -255,9 +255,9 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.pointerUp({ x: 110, y: 110 }, integrationEnv);
 
             // the timeline has been updated
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].linePercent, 0.1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].timeStamp, 
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].linePercent, 0.1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp, 
                 0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // no new data was bound
@@ -274,12 +274,12 @@ describe('Integration Test TimeWarpController', function () {
             IntegrationUtils.dragLine([{ x: 125, y: 102 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 150, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => w.linePercent).sort())
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => w.timeStamp))
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp))
                 .to.eql([null, null, null]);
             
             IntegrationUtils.bindDataToLine(timelineId, [
@@ -289,11 +289,11 @@ describe('Integration Test TimeWarpController', function () {
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w => Math.round(w.linePercent * 100) / 100).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.map(w =>w.timeStamp).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w =>w.timeStamp).sort())
                 .to.eql([
                     0.25*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
                     0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 

@@ -9,7 +9,7 @@ let DataStructs = function () {
         this.id = getUniqueId();
         this.points = points;
         this.cellBindings = [];
-        this.warpBindings = [];
+        this.timePins = [];
         this.axisBindings = [];
         this.annotationStrokes = [];
 
@@ -20,7 +20,7 @@ let DataStructs = function () {
             // TODO: Should maybe make my own point object...
             timeline.points = this.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
             timeline.cellBindings = this.cellBindings.map(b => b.copy());
-            timeline.warpBindings = this.warpBindings.map(b => b.copy());
+            timeline.timePins = this.timePins.map(b => b.copy());
             timeline.axisBindings = this.axisBindings.map(b => b.copy());
             timeline.annotationStrokes = this.annotationStrokes.map(b => b.copy());
             return timeline;
@@ -31,7 +31,7 @@ let DataStructs = function () {
         let timeline = new Timeline(obj.points);
         timeline.id = obj.id;
         obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
-        obj.warpBindings.forEach(b => timeline.warpBindings.push(WarpBinding.fromObject(b)));
+        obj.timePins.forEach(b => timeline.timePins.push(TimePin.fromObject(b)));
         obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
         obj.annotationStrokes ? obj.annotationStrokes.forEach(b => timeline.annotationStrokes.push(Stroke.fromObject(b))) : "";
         return timeline;
@@ -42,6 +42,7 @@ let DataStructs = function () {
         this.cellId = cellId;
         // text value display offset
         this.offset = { x: 10, y: 10 };
+        this.pinId = null;
 
         this.clone = function () {
             let binding = new CellBinding(this.cellId);
@@ -64,38 +65,37 @@ let DataStructs = function () {
     }
 
     /**
-     * Warp Bindings must have a line percent, but not necessarily anything else.
+     * Time pins must have a line percent, but not necessarily anything else.
      * @param {float} linePercent 
      */
-    function WarpBinding(linePercent) {
+    function TimePin(linePercent) {
         this.id = getUniqueId();
         // Timestamp in miliseconds
         this.timeStamp = null;
-        this.timeCellId = null;
         this.linePercent = linePercent;
 
         this.clone = function () {
-            let binding = new WarpBinding(this.linePercent);
+            let binding = new TimePin(this.linePercent);
             binding.timeStamp = this.timeStamp;
             binding.timeCellId = this.timeCellId;
             return binding;
         };
 
         this.copy = function () {
-            let binding = new WarpBinding(this.linePercent);
+            let binding = new TimePin(this.linePercent);
             binding.id = this.id;
             binding.timeStamp = this.timeStamp;
             binding.timeCellId = this.timeCellId;
             return binding;
         }
     }
-    WarpBinding.fromObject = function (obj) {
-        let binding = new WarpBinding(obj.linePercent);
+    TimePin.fromObject = function (obj) {
+        let binding = new TimePin(obj.linePercent);
         binding.id = obj.id;
         binding.timeStamp = obj.timeStamp;
         binding.timeCellId = obj.timeCellId;
 
-        // for robustness in case a Date get into a warpbinding instead of a timestamp
+        // for robustness in case a Date get into a time pin instead of a timestamp
         if (typeof binding.timeStamp === 'string' || binding.timeStamp instanceof String) {
             if (!isNaN(new Date(binding.timeStamp))) {
                 binding.timeStamp = new Date(binding.timeStamp).getTime();
@@ -391,8 +391,8 @@ let DataStructs = function () {
         StrokePoint,
 
         CellBinding,
-        WarpBinding,
         AxisBinding,
+        TimePin,
     }
 }();
 

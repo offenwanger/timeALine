@@ -1,7 +1,7 @@
-function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
-    const WARP_TICK_WIDTH = 6;
-    const WARP_TICK_LENGTH = 10
-    const WARP_TICK_TARGET_SIZE = 10;
+function TimePinController(vizLayer, overlayLayer, interactionLayer) {
+    const PIN_TICK_WIDTH = 6;
+    const PIN_TICK_LENGTH = 10
+    const PIN_TICK_TARGET_SIZE = 10;
 
     let mActive = false;
 
@@ -12,14 +12,14 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
     let mDraggingBinding = null;
     let mDraggingTimeline = null;
 
-    let mUpdateWarpBindingCallback = () => { };
+    let mUpdatePinBindingCallback = () => { };
 
     let mTailGroup = vizLayer.append('g')
         .attr("id", 'tick-tail-g');
-    let mWarpTickGroup = vizLayer.append('g')
+    let mPinTickGroup = vizLayer.append('g')
         .attr("id", 'tick-g');
 
-    let mWarpTickTargetGroup = interactionLayer.append('g')
+    let mPinTickTargetGroup = interactionLayer.append('g')
         .attr("id", 'tick-target-g')
         .style('visibility', "hidden")
 
@@ -28,19 +28,19 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
         mBindings = {};
 
         mTailGroup.selectAll('*').remove();
-        mWarpTickGroup.selectAll('*').remove();
-        mWarpTickTargetGroup.selectAll('*').remove();
+        mPinTickGroup.selectAll('*').remove();
+        mPinTickTargetGroup.selectAll('*').remove();
 
         model.getAllTimelines().forEach(timeline => {
             mLinePoints[timeline.id] = timeline.points;
-            mBindings[timeline.id] = timeline.warpBindings;
+            mBindings[timeline.id] = timeline.timePins;
             drawTails(timeline.id, timeline.points);
-            drawWarpTicks(timeline.id, timeline.points, timeline.warpBindings);
+            drawPinTicks(timeline.id, timeline.points, timeline.timePins);
         });
     }
 
-    function drawWarpTicks(timelineId, linePoints, warpBindings) {
-        warpBindings.sort((a, b) => a.linePercent - b.linePercent)
+    function drawPinTicks(timelineId, linePoints, timePins) {
+        timePins.sort((a, b) => a.linePercent - b.linePercent)
 
         let path = PathMath.getPath(linePoints);
         let totalLength = path.getTotalLength();
@@ -48,7 +48,7 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
         let tickData = [];
         let tickTargetData = [];
 
-        warpBindings.forEach(binding => {
+        timePins.forEach(binding => {
             let position = path.getPointAtLength(totalLength * binding.linePercent);
 
             let degrees;
@@ -64,29 +64,29 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
             tickTargetData.push({ position, degrees, binding });
         });
 
-        let ticks = mWarpTickGroup.selectAll('.warpTick_' + timelineId).data(tickData);
+        let ticks = mPinTickGroup.selectAll('.pinTick_' + timelineId).data(tickData);
         ticks.exit().remove();
-        ticks.enter().append('line').classed('warpTick_' + timelineId, true);
-        mWarpTickGroup.selectAll('.warpTick_' + timelineId)
+        ticks.enter().append('line').classed('pinTick_' + timelineId, true);
+        mPinTickGroup.selectAll('.pinTick_' + timelineId)
             .style("stroke", "black")
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", (d) => WARP_TICK_WIDTH)
+            .style("stroke-width", (d) => PIN_TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
-            .attr("y1", (d) => d.position.y + WARP_TICK_LENGTH / 2)
+            .attr("y1", (d) => d.position.y + PIN_TICK_LENGTH / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - WARP_TICK_LENGTH / 2);
+            .attr("y2", (d) => d.position.y - PIN_TICK_LENGTH / 2);
 
-        let targets = mWarpTickTargetGroup.selectAll('.warpTickTarget_' + timelineId).data(tickTargetData);
+        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId).data(tickTargetData);
         targets.exit().remove();
         targets.enter().append('line')
-            .classed('warpTickTarget_' + timelineId, true)
+            .classed('pinTickTarget_' + timelineId, true)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
             .on('pointerdown', (event, d) => {
                 if (mActive) {
                     mDragging = true;
-                    let bindingData = Object.entries(mBindings).find(([timelineId, warpBindings]) => warpBindings.some(wb => wb.id == d.binding.id))
+                    let bindingData = Object.entries(mBindings).find(([timelineId, timePins]) => timePins.some(pin => pin.id == d.binding.id))
                     if (!bindingData) { console.error("Bad state! Timeline not found for binding!", d.binding); return; }
                     pinDragStart(bindingData[0], d.binding);
                 }
@@ -102,13 +102,13 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
                 ToolTip.hide();
             });
 
-        mWarpTickTargetGroup.selectAll('.warpTickTarget_' + timelineId)
+        mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", WARP_TICK_TARGET_SIZE + WARP_TICK_WIDTH)
+            .style("stroke-width", PIN_TICK_TARGET_SIZE + PIN_TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
-            .attr("y1", (d) => d.position.y + WARP_TICK_TARGET_SIZE + WARP_TICK_LENGTH / 2)
+            .attr("y1", (d) => d.position.y + PIN_TICK_TARGET_SIZE + PIN_TICK_LENGTH / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - WARP_TICK_TARGET_SIZE + WARP_TICK_LENGTH / 2);
+            .attr("y2", (d) => d.position.y - PIN_TICK_TARGET_SIZE + PIN_TICK_LENGTH / 2);
     }
 
     function drawTails(timelineId, linePoints) {
@@ -165,11 +165,11 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
         }
     }
 
-    function pinDragStart(timelineId, warpBinding) {
+    function pinDragStart(timelineId, timePin) {
         if (mActive) {
-            mDraggingBinding = warpBinding;
+            mDraggingBinding = timePin;
             mDraggingTimeline = timelineId;
-            pinDrag(timelineId, warpBinding.linePercent);
+            pinDrag(timelineId, timePin.linePercent);
         }
     }
 
@@ -183,19 +183,19 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
             let binding = mDraggingBinding.copy();
             binding.linePercent = linePercent;
 
-            let tempBindings = mBindings[timelineId].filter(wb =>
+            let tempBindings = mBindings[timelineId].filter(pin =>
                 // clear the binding out of the array so we can readd the new data
-                wb.id != binding.id && (
-                    !wb.timeStamp ||
+                pin.id != binding.id && (
+                    !pin.timeStamp ||
                     // otherwise make sure time and bindings both increase in the same direction
-                    (wb.timeStamp < binding.timeStamp && wb.linePercent < binding.linePercent) ||
-                    (wb.timeStamp > binding.timeStamp && wb.linePercent > binding.linePercent)));
+                    (pin.timeStamp < binding.timeStamp && pin.linePercent < binding.linePercent) ||
+                    (pin.timeStamp > binding.timeStamp && pin.linePercent > binding.linePercent)));
             tempBindings.push(binding);
 
             let linePoints = mLinePoints[timelineId];
 
             // TODO: It would be more efficient to just hide the temp deleted bindings. 
-            drawWarpTicks(timelineId, linePoints, tempBindings);
+            drawPinTicks(timelineId, linePoints, tempBindings);
         }
     }
 
@@ -209,7 +209,7 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
             let binding = mDraggingBinding.copy();
             binding.linePercent = linePercent;
 
-            mUpdateWarpBindingCallback(timelineId, binding);
+            mUpdatePinBindingCallback(timelineId, binding);
 
             mDraggingBinding = null;
         }
@@ -218,16 +218,16 @@ function TimeWarpController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mWarpTickTargetGroup.style('visibility', "");
+            mPinTickTargetGroup.style('visibility', "");
         } else if (!active && mActive) {
             mActive = false;
-            mWarpTickTargetGroup.style('visibility', "hidden");
+            mPinTickTargetGroup.style('visibility', "hidden");
         }
     };
 
     this.updateModel = updateModel;
 
-    this.setUpdateWarpBindingCallback = (callback) => mUpdateWarpBindingCallback = callback;
+    this.setUpdatePinBindingCallback = (callback) => mUpdatePinBindingCallback = callback;
 
     this.pinDragStart = pinDragStart;
     this.pinDrag = pinDrag;

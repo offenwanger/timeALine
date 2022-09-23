@@ -183,8 +183,8 @@ describe('Test Main - Integration Test', function () {
     });
 
 
-    describe('table - warp binding test', function () {
-        it('warp binding should move comment', function () {
+    describe('table - time pin test', function () {
+        it('time pin should move comment', function () {
             integrationEnv.mainInit();
 
             // draw a line, bind data
@@ -197,12 +197,12 @@ describe('Test Main - Integration Test', function () {
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
-            // add a warp binding at 40%, and drag to 20%
+            // add a time pin at 40%, and drag to 20%
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp,
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp,
                 0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // add a comment
@@ -239,16 +239,16 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].timeCell.getValue(), new Date("Jan 16, 2021").getTime());
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].dataCell.getValue(), "<text>");
 
-            // move the warp binding
+            // move the time pin
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.warpTickTarget_' + timelineId];
+            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId];
             tickTargets.eventCallbacks.pointerdown({ clientX: 150, clientY: 110 }, tickTargets.innerData[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 110 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 110 }, integrationEnv);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp,
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp,
                 0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // check that comments moved
@@ -263,9 +263,9 @@ describe('Test Main - Integration Test', function () {
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
             IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].linePercent, 0.7);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].timeStamp, new Date("Jan 17 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].linePercent, 0.7);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp, new Date("Jan 17 2021").getTime());
 
             // update the time cells
             // check the table is what we expect it to be
@@ -277,15 +277,15 @@ describe('Test Main - Integration Test', function () {
                 ['Jan 14, 2021 00:00:00', '<text>', ''],
                 ['Jan 16, 2021 00:00:00', '<text>', '']
             ])
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 14 2021").getTime());
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 14 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
 
             lastCreatedTable.init.afterChange([[3, 0, 'Jan 14, 2021 00:00:00', "Jan 12, 2021"]])
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 14 2021").getTime());
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 14 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
 
             // check the the comment moved
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -299,8 +299,8 @@ describe('Test Main - Integration Test', function () {
         });
     });
 
-    describe('Data - warp binding test', function () {
-        it('should create a warp point for a dragged comment', function () {
+    describe('Data - time pin test', function () {
+        it('should create a time pin for a dragged comment', function () {
             integrationEnv.mainInit();
 
             // draw a line
@@ -328,7 +328,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             // drag the comment
             let targetData = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
@@ -344,9 +344,9 @@ describe('Test Main - Integration Test', function () {
             // check that a binding was created for the annotation row
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
             assert.equal(annotationSet[2].binding.cellBindingId, targetData[2].binding.cellBindingId);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.4);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 12 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 12 2021").getTime());
 
             // check that the comment is where it's expect to be
             assert.equal(annotationSet[2].x, 140);
@@ -355,7 +355,7 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet[2].offsetY, 50, "offset not updated");
         });
 
-        it('should create a warp point for a dragged data point', function () {
+        it('should create a time pin for a dragged data point', function () {
             integrationEnv.mainInit();
 
             // draw a line
@@ -376,7 +376,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             // drag the point
             let targetData = integrationEnv.enviromentVariables.d3.selectors[".data-target-point"].innerData;
@@ -393,9 +393,9 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
 
             // check that a binding was created
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.4);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 15 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 15 2021").getTime());
 
             // check that the point is where it's expect to be
             targetData = integrationEnv.enviromentVariables.d3.selectors[".data-target-point"].innerData;
@@ -405,7 +405,7 @@ describe('Test Main - Integration Test', function () {
         });
 
 
-        it('should set the offset correctly for dragged comment creating warp point', function () {
+        it('should set the offset correctly for dragged comment creating time pin', function () {
             integrationEnv.mainInit();
 
             // draw a line
@@ -439,7 +439,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             // drag the comment
             let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].eventCallbacks.pointerdown;
@@ -462,7 +462,7 @@ describe('Test Main - Integration Test', function () {
     });
 
     describe('Data linking - eraser test', function () {
-        it('should correctly add end warp points', function () {
+        it('should correctly add end time pins', function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -487,17 +487,17 @@ describe('Test Main - Integration Test', function () {
                 { x: 70, y: 10 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[2].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[2].timePins.length, 1);
 
-            let warpBindings = integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.warpBindings);
-            expect(warpBindings.map(b => b[0].timeStamp)).to.eql([
+            let timePins = integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.timePins);
+            expect(timePins.map(b => b[0].timeStamp)).to.eql([
                 0.05 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
                 0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
                 0.95 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
             ]);
-            expect(warpBindings.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
+            expect(timePins.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
         });
 
         it('should eliminate and split cell bindings', function () {
