@@ -110,7 +110,13 @@ function DataTableController() {
         let newRows = [];
         for (let i = 0; i < numberOfRows; i++) {
             let newRow = new DataStructs.DataRow();
-            mDataTables[tableId].dataColumns.forEach(column => newRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", column.id)));
+            mDataTables[tableId].dataColumns.forEach(column => {
+                if (column.index == 0) {
+                    newRow.dataCells.push(new DataStructs.TimeCell("", column.id));
+                } else {
+                    newRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", column.id));
+                }
+            });
             newRow.index = startIndex + i;
             mDataTables[tableId].dataRows.push(newRow);
             newRows.push(newRow.id);
@@ -237,25 +243,39 @@ function DataTableController() {
             let returnable = 0;
             let cellA = rowA.getCell(column.id);
             let cellB = rowB.getCell(column.id);
-            let typeA = cellA.getType();
-            let typeB = cellB.getType();
 
-            if (typeA != typeB) {
-                if (typeA == DataTypes.TIME_BINDING) {
+            if ((cellA.isTimeCell && !cellB.isTimeCell) || (!cellA.isTimeCell && cellB.isTimeCell)) {
+                console.error("Bad state! TimeCell in non-time row or non-time cell in time row", cellA, cellB);
+                return 0;
+            }
+
+            if (cellA.isTimeCell) {
+                if (cellA.isValid() && cellB.isValid()) {
+                    returnable = (cellA.getValue() - cellB.getValue()) / Math.abs(cellA.getValue() - cellB.getValue());
+                } else if (cellA.isValid() && !cellB.isValid()) {
                     // a goes before b
                     returnable = -1;
-                } else if (typeB == DataTypes.TIME_BINDING) {
+                } else if (!cellA.isValid() && cellB.isValid()) {
                     // a goes after b
                     returnable = 1;
-                } else if (typeA == DataTypes.NUM) {
-                    // a goes before b
-                    returnable = -1;
-                } else if (typeB == DataTypes.NUM) {
-                    // a goes after b
-                    returnable = 1;
-                } else { console.error("Unhandled case!"); return 0; }
+                } else if (!cellA.isValid() && !cellB.isValid()) {
+                    returnable = cellA.getValue() == cellB.getValue() ? 0 : (cellA.getValue() < cellB.getValue() ? -1 : 1);
+                }
             } else {
-                returnable = DataUtil.AGreaterThanB(cellA.getValue(), cellB.getValue(), typeA) ? 1 : -1;
+                let typeA = cellA.getType();
+                let typeB = cellB.getType();
+
+                if (typeA != typeB) {
+                    if (typeA == DataTypes.NUM) {
+                        // a goes before b
+                        returnable = -1;
+                    } else if (typeB == DataTypes.NUM) {
+                        // a goes after b
+                        returnable = 1;
+                    } else { console.error("Unhandled case!"); return 0; }
+                } else {
+                    returnable = DataUtil.AGreaterThanB(cellA.getValue(), cellB.getValue(), typeA) ? 1 : -1;
+                }
             }
 
             return returnable * order;
@@ -273,6 +293,11 @@ function DataTableController() {
 
     function afterSelection(tableId) {
         let selected = mHoTables[tableId].getSelected() || [];
+        if (selected.length == 0) {
+            mSelectionCallback(null, 0, 0);
+            return;
+        }
+
         if (selected.length == 1 &&
             selected[0][0] == -1 &&
             selected[0][1] == -1 &&
@@ -351,10 +376,9 @@ function DataTableController() {
                     for (let row = startRow; row <= endRow; row++) {
                         // TODO: verify datarow is actually found;
                         let dataRow = mDataTables[tableId].dataRows.find(r => r.index == row);
-                        let rowId = dataRow.id;
                         let columnId = mDataTables[tableId].dataColumns.find(c => c.index == col).id;
                         let cellId = dataRow.getCell(columnId).id;
-                        data.push(new DataStructs.CellBinding(tableId, rowId, columnId, cellId));
+                        data.push(new DataStructs.CellBinding(cellId));
                     }
                 }
             })

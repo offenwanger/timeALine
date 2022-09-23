@@ -5,6 +5,7 @@ let rewire = require('rewire');
 
 let chai = require('chai');
 let assert = chai.assert;
+let expect = chai.expect;
 
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
@@ -283,7 +284,8 @@ before(function () {
         for (let i = 0; i < height; i++) {
             let dataRow = new DataStructs.DataRow()
             dataRow.index = i;
-            for (let j = 0; j < t.dataColumns.length; j++) {
+            dataRow.dataCells.push(new DataStructs.TimeCell("Jan " + (i + 1) + ", 2022", t.dataColumns[0].id));
+            for (let j = 1; j < t.dataColumns.length; j++) {
                 dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, i + "_" + j, t.dataColumns[j].id));
             }
             t.dataRows.push(dataRow)
@@ -410,8 +412,6 @@ before(function () {
             PathMath: utility.__get__("PathMath"),
             MathUtil: utility.__get__("MathUtil"),
             DataUtil: utility.__get__("DataUtil"),
-            TimeBindingUtil: utility.__get__("TimeBindingUtil"),
-            WarpBindingUtil: utility.__get__("WarpBindingUtil"),
             ToolTip: utility.__get__("ToolTip"),
             FileHandler: file_handling.__get__("FileHandler"),
         };
@@ -445,6 +445,20 @@ before(function () {
         return returnable;
     }
 
+    function deepEquals(obj, original) {
+        if (obj && typeof obj == 'object') {
+            Object.keys(obj).forEach(key => {
+                deepEquals(obj[key], original[key]);
+            })
+        } else if (typeof obj == 'function') {
+            assert(typeof original, 'function');
+            return;
+        } else {
+            expect(obj).to.eql(original);
+        }
+    }
+
+
     TestUtils = {
         fakeD3,
         fakeJqueryFactory,
@@ -453,6 +467,7 @@ before(function () {
         makeTestTable,
         MockHandsontable,
         getIntegrationEnviroment,
+        deepEquals,
     }
 
     function drawLine(points, integrationEnv) {
@@ -529,23 +544,32 @@ before(function () {
         pointerUp(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, integrationEnv);
     }
 
-    function erase(points, radius, integrationEnv) {
-        colorSquare = function (x1, y1, x2, y2, val) {
-            for (let i = x1; i < x2; i++) {
-                for (let j = y1; j < y2; j++) {
-                    global.document.canvasImage[i][j].data = [0, 0, 0, val];
-                }
-            }
+    function bindDataToLine(lineId, dataArray, integrationEnv) {
+        IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+        if (dataArray.length > 3) {
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, dataArray.length - 3);
+        }
+        if (dataArray[0].length > 3) {
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateCol(0, dataArray[0].length - 3);
         }
 
-        points.forEach(point => colorSquare(
-            point.x - radius,
-            point.y - radius,
-            point.x + radius,
-            point.y + radius,
-            1
-        ))
+        assert(integrationEnv.ModelController.getModel().getAllTables().length > 0);
+        assert(integrationEnv.enviromentVariables.handsontables.length > 0);
 
+        IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange(dataArray.map((row, rowIndex) => row.map((item, colIndex) => {
+            return [rowIndex, colIndex, "", "" + item];
+        })).flat())
+
+        IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, dataArray.length - 1, dataArray[0].length - 1]];
+
+        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+        IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv.enviromentVariables);
+        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+
+        assert(integrationEnv.ModelController.getModel().getAllCellBindingData().length > 0, "Nothing bound!");
+    }
+
+    function erase(points, radius, integrationEnv) {
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
 
         mainPointerDown(points[0], integrationEnv);
@@ -556,14 +580,6 @@ before(function () {
         integrationEnv.enviromentVariables.img.onload();
 
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
-
-        points.forEach(point => colorSquare(
-            point.x - radius,
-            point.y - radius,
-            point.x + radius,
-            point.y + radius,
-            0
-        ))
     }
 
     IntegrationUtils = {
@@ -575,6 +591,7 @@ before(function () {
         getLastHoTable,
         clickButton,
         clickLine,
+        bindDataToLine,
         dragLine,
         erase,
     }

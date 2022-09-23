@@ -123,31 +123,31 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
             return { id: line.id, point: line.points[line.points.length - 1], points: line.points };
         })
 
-        let startPoints = mPointsGroup.selectAll('.start-point').data(startPointData);
+        let startPoints = mPointsGroup.selectAll('.drag-start-point').data(startPointData);
         startPoints.exit().remove();
         startPoints.enter().append("circle")
-            .classed("start-point", true)
+            .classed("drag-start-point", true)
             .attr('id', d => "start-point_" + d.id)
             .attr('r', DRAG_POINT_RADIUS)
             .attr('cursor', 'pointer')
             .attr('fill', '#b51d1c')
             .attr("stroke", "black")
             .on('pointerdown', startNodeDragStart)
-        mPointsGroup.selectAll('.start-point')
+        mPointsGroup.selectAll('.drag-start-point')
             .attr('cx', (d) => d.point.x)
             .attr('cy', (d) => d.point.y)
 
-        let endPoints = mPointsGroup.selectAll('.end-point').data(endPointsData);
+        let endPoints = mPointsGroup.selectAll('.drag-end-point').data(endPointsData);
         endPoints.exit().remove();
         endPoints.enter().append("circle")
-            .classed("end-point", true)
+            .classed("drag-end-point", true)
             .attr('id', d => "end-point_" + d.id)
             .attr('r', DRAG_POINT_RADIUS)
             .attr('cursor', 'pointer')
             .attr('fill', '#1c1db5')
             .attr("stroke", "black")
             .on('pointerdown', onRotatePointDragStart)
-        mPointsGroup.selectAll('.end-point')
+        mPointsGroup.selectAll('.drag-end-point')
             .attr('cx', (d) => d.point.x)
             .attr('cy', (d) => d.point.y);
     }

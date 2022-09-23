@@ -357,110 +357,12 @@ let PathMath = function () {
     }
 }();
 
-let TimeBindingUtil = function () {
-    const TIMESTRAMP = TimeBindingTypes.TIMESTRAMP;
-
-    function AGreaterThanB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-            return a.value > b.value;
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function ALessThanB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-            return a.value > b.value;
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function AEqualsB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid Comparison between " + a.type + " and " + b.type);
-
-            return a.value == b.value;
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function timeBetweenAandB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return Math.abs(a.value - b.value);
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function subtractAFromB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return b.value - a.value;
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function percentBetweenAandB(a, b, val) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-            if (val.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + val.type);
-
-            return (val.value - a.value) / (b.value - a.value);
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function averageAandB(a, b) {
-        if (a.type == TIMESTRAMP) {
-            if (b.type != TIMESTRAMP) throw new Error("Invalid operation between ", + a.type + " and " + b.type);
-
-            return Math.floor((a.value + b.value) / 2);
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-    }
-
-    function incrementBy(time, value) {
-        time = time.clone();
-        if (time.type == TIMESTRAMP) {
-            time.value += Math.round(value);
-        } else {
-            console.error("Invalid time type: " + a.type);
-        }
-        return time;
-    }
-
-    return {
-        AGreaterThanB,
-        ALessThanB,
-        AEqualsB,
-        timeBetweenAandB,
-        subtractAFromB,
-        percentBetweenAandB,
-        averageAandB,
-        incrementBy,
-    }
-}();
-
 let DataUtil = function () {
     function inferDataAndType(cellVal) {
         if (typeof (x) === 'number') {
             return { val: cellVal, type: DataTypes.NUM }
         } else if (isNumeric(String(cellVal))) {
             return { val: parseFloat("" + cellVal), type: DataTypes.NUM }
-        } else if ((cellVal instanceof DataStructs.TimeBinding)) {
-            return { val: cellVal, type: DataTypes.TIME_BINDING }
-        } else if (isDate(String(cellVal))) {
-            return { val: getTimeBinding(String(cellVal)), type: DataTypes.TIME_BINDING }
         } else {
             return { val: String(cellVal), type: DataTypes.TEXT }
         }
@@ -469,10 +371,6 @@ let DataUtil = function () {
     function isDate(val) {
         // this is too aggressive
         return !isNaN(Date.parse(val));
-    }
-
-    function getTimeBinding(strVal) {
-        return new DataStructs.TimeBinding(TimeBindingTypes.TIMESTRAMP, Date.parse(strVal));
     }
 
     function isNumeric(val) {
@@ -504,9 +402,7 @@ let DataUtil = function () {
     }
 
     function AGreaterThanB(a, b, type) {
-        if (type == DataTypes.TIME_BINDING) {
-            return TimeBindingUtil.AGreaterThanB(a, b);
-        } else if (type == DataTypes.NUM) {
+        if (type == DataTypes.NUM) {
             return a > b;
         } else if (type == DataTypes.TEXT) {
             return String(a) > String(b);
@@ -514,17 +410,13 @@ let DataUtil = function () {
     }
 
     function subtractAFromB(a, b, type) {
-        if (type == DataTypes.TIME_BINDING) {
-            return TimeBindingUtil.subtractAFromB(a, b);
-        } else if (type == DataTypes.NUM) {
+        if (type == DataTypes.NUM) {
             return b - a;
         } else { throw new Error("Cannot calculate subtract for type: " + type); }
     }
 
     function AEqualsB(a, b, type) {
-        if (type == DataTypes.TIME_BINDING) {
-            return TimeBindingUtil.AEqualsB(a, b);
-        } else if (type == DataTypes.NUM) {
+        if (type == DataTypes.NUM) {
             // only check to 4 decimal places
             return Math.round(a * 10000) == Math.round(b * 10000);
         } else if (type == DataTypes.TEXT) {
@@ -533,20 +425,30 @@ let DataUtil = function () {
     }
 
     function incrementAByB(a, b, type) {
-        if (type == DataTypes.TIME_BINDING) {
-            return TimeBindingUtil.incrementBy(a, b);
-        } else if (type == DataTypes.NUM) {
+        if (type == DataTypes.NUM) {
             return a + b;
         } else { throw new Error("Cannot calculate increment by for type: " + type); }
     }
 
-
-    function percentBetween(a, b, v, type) {
-        if (type == DataTypes.TIME_BINDING) {
-            return TimeBindingUtil.percentBetweenAandB(a, b, v);
-        } else if (type == DataTypes.NUM) {
-            return (v - a) / (b - a);
-        } else { throw new Error("Cannot calculate percents for type: " + type); }
+    function getFormattedDate(date) {
+        if(!(date instanceof Date)) {
+            console.error("Not a date!", date);
+            return "";
+        }
+    
+        let year = date.getFullYear();
+        let month = date.toLocaleString('en-US', {month: 'short'});
+        let day = date.getDate();
+        let hour = date.getHours();
+        let min = date.getMinutes();
+        let sec = date.getSeconds();
+    
+        day = (day < 10 ? "0" : "") + day;
+        hour = (hour < 10 ? "0" : "") + hour;
+        min = (min < 10 ? "0" : "") + min;
+        sec = (sec < 10 ? "0" : "") + sec;
+    
+        return month + " " + day + ", " + year + " " +  hour + ":" + min + ":" + sec;
     }
 
 
@@ -560,36 +462,8 @@ let DataUtil = function () {
         subtractAFromB,
         AEqualsB,
         incrementAByB,
-        percentBetween,
-    }
-}();
 
-let WarpBindingUtil = function () {
-    function filterValidWarpBindingIds(warpBindingData, alteredBindingData) {
-        let alteredType = alteredBindingData.timeCell.getType();
-        let alteredValue = alteredBindingData.timeCell.getValue();
-        let alteredPercent = alteredBindingData.linePercent;
-
-        let validBindingIds = [];
-        warpBindingData.forEach(binding => {
-            if (binding.timeCell.getType() == alteredType) {
-                if (binding.warpBindingId == alteredBindingData.warpBindingId) {
-                    validBindingIds.push(binding.warpBindingId);
-                } else if (binding.linePercent > alteredPercent && DataUtil.AGreaterThanB(binding.timeCell.getValue(), alteredValue, alteredType)) {
-                    validBindingIds.push(binding.warpBindingId);
-                } else if (alteredPercent > binding.linePercent && DataUtil.AGreaterThanB(alteredValue, binding.timeCell.getValue(), alteredType)) {
-                    validBindingIds.push(binding.warpBindingId);
-                }
-            } else {
-                validBindingIds.push(binding.warpBindingId);
-            }
-        });
-
-        return validBindingIds;
-    }
-
-    return {
-        filterValidWarpBindingIds,
+        getFormattedDate
     }
 }();
 

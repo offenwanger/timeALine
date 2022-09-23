@@ -21,12 +21,13 @@ function ModelController() {
         let timeline = mModel.getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.points);
 
-        // knock off the first point cuz it's probably pretty close. 
-        //TODO: Handle this properly.
+        // knock off the first point for smoothing purposes. 
         extendStart ? points.pop() : points.unshift();
 
         let newPoints = extendStart ? points.concat(timeline.points) : timeline.points.concat(points);
         let newLength = PathMath.getPathLength(newPoints);
+
+        timeline.warpBindings.push(...getCapWarpBindings(timeline, extendStart));
 
         timeline.points = newPoints;
         if (extendStart) {
@@ -52,7 +53,7 @@ function ModelController() {
         let originalStartLength = PathMath.getPathLength(startTimeline.points);
         let originalEndLength = PathMath.getPathLength(endTimeline.points);
 
-        // knock off the end points cuz they're probably pretty close.
+        // knock off the end points for smoothing purposes.
         points.pop();
         points.unshift();
 
@@ -62,14 +63,73 @@ function ModelController() {
         let newTimeline = new DataStructs.Timeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
 
-        mModel.setTimelines(mModel.getAllTimelines().filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd));
-        mModel.getAllTimelines().push(newTimeline);
+        let numericDataCells = newTimeline.cellBindings.map(cb => mModel.getCellById(cb.cellId)).filter(cell => cell.getType() == DataTypes.NUM);
+        if (numericDataCells.length > 0) {
+            // if there is no numeric data there should be no axis, otherwise merge them
+            newTimeline.axisBindings = [...startTimeline.axisBindings];
+            endTimeline.axisBindings.forEach(axis => {
+                let otherAxis = newTimeline.axisBindings.find(ab => ab.columnId == axis.columnId);
+                if (otherAxis) {
+                    // update the data
+                    otherAxis.val1 = Math.min(...numericDataCells
+                        .filter(cell => cell.columnId == axis.columnId)
+                        .map(cell => cell.getValue()))
+                    otherAxis.dist1 = Math.min(otherAxis.dist1, axis.dist1);
 
-        // Update warp binding line percents
+                    otherAxis.val2 = Math.min(...numericDataCells
+                        .filter(cell => cell.columnId == axis.columnId)
+                        .map(cell => cell.getValue()))
+                    otherAxis.dist2 = Math.max(otherAxis.dist2, axis.dist2);
+                } else {
+                    newTimeline.axisBindings.push(axis);
+                }
+            });
+        }
+
         let conversionRatio = originalStartLength / newLength;
         let diff = newLength - originalEndLength;
 
+        // Update warp binding line percents
+        let warpBindings = []
+        startTimeline.warpBindings.concat(getCapWarpBindings(startTimeline, false)).forEach(binding => {
+            let newBinding = binding.copy();
+            newBinding.linePercent = binding.linePercent * conversionRatio;
+            warpBindings.push(newBinding);
+        });
+        endTimeline.warpBindings.concat(getCapWarpBindings(endTimeline, true)).forEach(binding => {
+            let newBinding = binding.copy();
+            let originalLengthAlongLine = binding.linePercent * originalEndLength;
+            newBinding.linePercent = (originalLengthAlongLine + diff) / newLength;
+            warpBindings.push(newBinding);
+        });
+
+        // filter to bindings which are still valid and add them to the new line
+        let timeSetBindings = []
+        warpBindings.forEach(binding => {
+            if (binding.timeStamp) {
+                timeSetBindings.push(binding);
+            } else {
+                newTimeline.warpBindings.push(binding)
+            }
+        })
+
+        if (timeSetBindings.length > 0) {
+            timeSetBindings.sort((a, b) => { a.linePercent - b.linePercent; });
+            newTimeline.warpBindings.push(timeSetBindings[0])
+            for (let i = 1; i < timeSetBindings.length; i++) {
+                if (timeSetBindings[i - 1].timeStamp < timeSetBindings[i].timeStamp) {
+                    newTimeline.warpBindings.push(timeSetBindings[i])
+                }
+            }
+        }
+
+        // update the annotation stroke line percents
         startTimeline.annotationStrokes.forEach(stroke => {
+            // TODO: either change strokes to use a time representation set along with the warp points
+            // or map all the strokes to time here and back to line percents (which will have to happen
+            // every time we move a warp point...)
+            console.error("Finish me!");
+
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
@@ -78,6 +138,7 @@ function ModelController() {
             })
             newTimeline.annotationStrokes.push(newStoke);
         })
+
         endTimeline.annotationStrokes.forEach(stroke => {
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
@@ -88,56 +149,35 @@ function ModelController() {
             newTimeline.annotationStrokes.push(newStoke);
         })
 
-        startTimeline.warpBindings.forEach(binding => {
-            binding.linePercent *= conversionRatio;
-        });
-
-        endTimeline.warpBindings.forEach(binding => {
-            let originalLengthAlongLine = binding.linePercent * originalEndLength;
-            binding.linePercent = (originalLengthAlongLine + diff) / newLength;
-        });
-
-        newTimeline.warpBindings = startTimeline.warpBindings.concat(endTimeline.warpBindings);
-        newTimeline.warpBindings.sort((a, b) => { a.linePercent - b.linePercent; })
-        let bindingCheck = newTimeline.warpBindings.map(b => {
-            let timeCell = mModel.getTableById(b.tableId).getRow(b.rowId).getCell(mModel.getTimeColumnByTableId(b.tableId).id);
-            return {
-                rowId: b.rowId,
-                val: timeCell.getValue(),
-                type: timeCell.getType(),
-                linePercent: b.linePercent
-            }
-        });
-
-        // TODO: use the utilty function
-
-        // only num and time can be invalid
-        let lastBinding;
-        let invalidWarpBindings = [];
-        // the list is sorted, so val must be in acending order or the binding isn't valid
-        bindingCheck.filter(b => b.type == DataTypes.NUM).forEach((binding) => {
-            if (lastBinding && lastBinding.val >= binding.val) {
-                invalidWarpBindings.push(binding.rowId);
-            } else {
-                lastBinding = binding;
-            }
-        })
-        lastBinding = null;
-        bindingCheck.filter(b => b.type == DataTypes.TIME_BINDING).forEach((binding) => {
-            if (lastBinding && TimeBindingUtil.AGreaterThanB(lastBinding.val, binding.val)) {
-                invalidWarpBindings.push(binding.rowId);
-            } else {
-                lastBinding = binding;
-            }
-        })
-        newTimeline.warpBindings.forEach(binding => {
-            if (invalidWarpBindings.includes(binding.rowId)) {
-                binding.isValid = false;
-            }
-        })
+        mModel.setTimelines(mModel.getAllTimelines().filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd));
+        mModel.getAllTimelines().push(newTimeline);
 
         return [timelineIdStart, timelineIdEnd];
     }
+
+    /* Utility Function */
+    function getCapWarpBindings(timeline, capStart) {
+        let returnable = []
+        // before we make any changes, if needed, add a warp point so things won't move
+        let bindingValues = mModel.getTimeBindingValues(timeline);
+        if (bindingValues.length > 1) {
+            let capBinding = capStart ? bindingValues[0] : bindingValues[bindingValues.length - 1];
+            if (isNaN(capBinding.linePercent)) {
+                // it's needed
+                if (mModel.hasTimeMapping(timeline.id)) {
+                    let linePercent = mModel.mapTimeToLinePercent(timeline.id, capBinding.timeStamp);
+                    let warpBinding = new DataStructs.WarpBinding(linePercent);
+                    warpBinding.timeStamp = capBinding.timeStamp;
+                    returnable.push(warpBinding);
+                } else {
+                    console.error("Bad State! Should not have multiple binding values and no mapping!")
+                }
+            }
+        }
+
+        return returnable;
+    }
+    /* End Utiltiy Function */
 
     function deleteTimeline(timelineId) {
         undoStackPush();
@@ -169,20 +209,22 @@ function ModelController() {
 
 
         // split up the warp bindings into their proper segments
-        segments.forEach(s => s.warpBindingsData = []);
-        let warpBindingData = mModel.getWarpBindingData(timeline.id);
+        segments.forEach(s => s.warpBindings = []);
+        let warpBindingData = mModel.getTimelineById(timeline.id).warpBindings;
         warpBindingData.forEach(binding => {
-            let segment = segments.find(s => s.startPercent <= binding.linePercent &&
+            let segment = segments.find(s =>
+                binding.linePercent >= s.startPercent &&
                 binding.linePercent <= s.endPercent);
-            if (!segment) { console.error("Something wierd here."); return; };
-            segment.warpBindingsData.push(binding);
+            if (!segment) { console.error("Unhandled edge case!", binding.linePercent, segments); return; };
+            segment.warpBindings.push(binding);
         })
 
         // split up the cell bindings into their proper segments
         segments.forEach(s => s.cellBindingsData = []);
         let cellBindingData = mModel.getCellBindingData(timeline.id);
         cellBindingData.forEach(binding => {
-            let segment = segments.find(s => s.startPercent <= binding.linePercent &&
+            let segment = segments.find(s =>
+                binding.linePercent >= s.startPercent &&
                 binding.linePercent <= s.endPercent);
             if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent: " + binding.linePercent); return; };
             segment.cellBindingsData.push(binding);
@@ -190,9 +232,42 @@ function ModelController() {
 
         // add warp bindings to ensure the data doesn't move because of being disconnected
         segments.forEach(segment => {
-            segment.warpBindings = [
-                ...getBreakWarpBindings(segment.cellBindingsData, segment.warpBindingsData, DataTypes.NUM, segment.startPercent, segment.endPercent),
-                ...getBreakWarpBindings(segment.cellBindingsData, segment.warpBindingsData, DataTypes.TIME_BINDING, segment.startPercent, segment.endPercent)];
+            // we only care about data with valid time cells because invalid ones are either pegged or not, 
+            // and will therefore either way not be affected by the splice. 
+            let validCellBindings = segment.cellBindingsData.filter(c => c.timeCell.isValid());
+            let validWarpBindings = segment.warpBindings.filter(wb => wb.timeStamp);
+            if (validCellBindings.length > 0) {
+                // get the max/min data items
+                validCellBindings.sort((a, b) => a.linePercent - b.linePercent);
+                validWarpBindings.sort((a, b) => a.linePercent - b.linePercent);
+
+                // if there's already a binding at the start, don't bother creating a pin, it won't move
+                if (validCellBindings[0].linePercent > segment.startPercent && (
+                    validWarpBindings.length == 0 ||
+                    validCellBindings[0].linePercent < validWarpBindings[0].linePercent)) {
+                    // create a warp binding for this item. 
+                    let warpBinding = new DataStructs.WarpBinding(validCellBindings[0].linePercent);
+                    warpBinding.timeStamp = validCellBindings[0].timeCell.getValue();
+                    segment.warpBindings.push(warpBinding);
+
+                    // update the valid warp bindings in with the new one. 
+                    validWarpBindings = segment.warpBindings.filter(wb => wb.timeStamp);
+                    validWarpBindings.sort((a, b) => a.linePercent - b.linePercent);
+                }
+
+                let lastCell = validCellBindings[validCellBindings.length - 1];
+                // if there's already a binding at the end, don't bother creating a pin, it won't move
+                // if there was only one warp binding, and we created a peg for it, this will be false because it's 
+                // line percent will be equal. 
+                if (lastCell.linePercent < segment.endPercent && (
+                    validWarpBindings.length == 0 ||
+                    lastCell.linePercent < validWarpBindings[validWarpBindings.length - 1].linePercent)) {
+                    // create a warp binding for this item. 
+                    let warpBinding = new DataStructs.WarpBinding(lastCell.linePercent);
+                    warpBinding.timeStamp = lastCell.timeCell.getValue();
+                    segment.warpBindings.push(warpBinding);
+                }
+            }
         })
 
         segments.forEach(s => s.annotationStrokes = []);
@@ -233,14 +308,13 @@ function ModelController() {
         let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
             let newTimeline = new DataStructs.Timeline(segment.points);
 
-            newTimeline.warpBindings = segment.warpBindingsData.map(wbd => {
-                let warpBinding = timeline.warpBindings.find(b => b.id == wbd.warpBindingId).clone();
+            newTimeline.warpBindings = segment.warpBindings.map(wb => {
+                let warpBinding = wb.clone();
                 warpBinding.linePercent = (warpBinding.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
                 return warpBinding;
-            }).concat(segment.warpBindings);
+            });
 
-            newTimeline.cellBindings = segment.cellBindingsData.map(b => timeline.cellBindings.find(cb => cb.id == b.cellBindingId));
-
+            newTimeline.cellBindings = segment.cellBindingsData.map(b => b.cellBinding);
             let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData.filter(cbd => cbd.dataCell.getType() == DataTypes.NUM).map(cbd => cbd.dataCell.columnId));
             newTimeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
 
@@ -252,41 +326,6 @@ function ModelController() {
         mModel.setTimelines(mModel.getAllTimelines().filter(t => t.id != timelineId));
         mModel.getAllTimelines().push(...newTimelines);
     }
-
-    //// Break Utils ////
-    function getBreakWarpBindings(cellbindingData, warpBindingData, type, startPercent, endPercent) {
-        let returnable = [];
-
-        let typeData = cellbindingData.filter(c => c.timeCell.getType() == type);
-        if (typeData.length > 0) {
-            // could either use line percent or value as they should both sequentially increase, line percent is easier
-            let arrmax = function (prev, current) { return (prev.linePercent > current.linePercent) ? prev : current };
-            let arrmin = function (prev, current) { return (prev.linePercent < current.linePercent) ? prev : current };
-
-            let maxTypeData = typeData.reduce(arrmax);
-            let minTypeData = typeData.reduce(arrmin);
-
-            let typeWarpPoints = warpBindingData.filter(wbd => wbd.timeCell.getType() == type)
-            let maxTypeWarp = typeWarpPoints.length > 0 ? typeWarpPoints.reduce(arrmax) : null;
-            let minTypeWarp = typeWarpPoints.length > 0 ? typeWarpPoints.reduce(arrmin) : null;
-
-            if (endPercent < 1 && (!maxTypeWarp || maxTypeData.linePercent > maxTypeWarp.linePercent)) {
-                let linePercent = (maxTypeData.linePercent - startPercent) / (endPercent - startPercent);
-                let binding = new DataStructs.WarpBinding(maxTypeData.tableId, maxTypeData.rowId, linePercent, true);
-                returnable.push(binding);
-            }
-
-            // If we're not the first segment, and there is no warp points, or we're before the first one, and if we haven't already added a warp point for this data point
-            if (startPercent > 0 && (!minTypeWarp || minTypeData.linePercent < minTypeWarp.linePercent) && returnable.length < typeData.length) {
-                let linePercent = (minTypeData.linePercent - startPercent) / (endPercent - startPercent)
-                let binding = new DataStructs.WarpBinding(minTypeData.tableId, minTypeData.rowId, linePercent, true);
-                returnable.push(binding);
-            }
-        }
-
-        return returnable;
-    }
-    //// end Break Utils ////
 
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
         undoStackPush();
@@ -326,7 +365,7 @@ function ModelController() {
         }
     }
 
-    function addBoundTextRow(text, timeBinding, timelineId) {
+    function addBoundTextRow(text, time, timelineId) {
         undoStackPush();
 
         if (mModel.getAllTables().length == 0) {
@@ -342,7 +381,7 @@ function ModelController() {
         mModel.getAllTables()[0].dataRows.push(newRow);
 
         let timeColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 0).id;
-        let timeCell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, timeBinding, timeColId)
+        let timeCell = new DataStructs.TimeCell(time, timeColId)
         newRow.dataCells.push(timeCell);
 
         let nextColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 1).id;
@@ -355,11 +394,11 @@ function ModelController() {
             newRow.dataCells.push(cell);
         }
 
-        let newBinding = new DataStructs.CellBinding(mModel.getAllTables()[0].id, newRow.id, nextColId, textCell.id);
+        let newBinding = new DataStructs.CellBinding(textCell.id);
         mModel.getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
-    function addOrUpdateWarpBinding(timelineId, alteredBindingData) {
+    function updateWarpBinding(timelineId, binding) {
         undoStackPush();
 
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
@@ -368,48 +407,16 @@ function ModelController() {
 
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        let warpBindingData = mModel.getAllWarpBindingData().filter(wbd => wbd.timelineId == timelineId);
-        let validIds = WarpBindingUtil.filterValidWarpBindingIds(warpBindingData, alteredBindingData);
-        timeline.warpBindings = timeline.warpBindings.filter(wb => validIds.includes(wb.id));
-        if (!alteredBindingData.warpBindingId) {
-            // new warp binging
-            timeline.warpBindings.push(new DataStructs.WarpBinding(
-                alteredBindingData.tableId, alteredBindingData.rowId, alteredBindingData.linePercent));
-        } else {
-            let warpBinding = timeline.warpBindings.find(wb => wb.id == alteredBindingData.warpBindingId);
-            if (!warpBinding) { console.error("Cannot find warp binding!"); return; }
-            warpBinding.linePercent = alteredBindingData.linePercent;
-        }
-    }
+        timeline.warpBindings = timeline.warpBindings.filter(wb =>
+            // clear the binding out of the array so we can readd the new data
+            wb.id != binding.id &&
+            // if we don't have timestamps set, we have no information to eliminate bindings on.
+            (!wb.timeStamp ||
+                // otherwise make sure time and bindings both increase in the same direction
+                (wb.timeStamp < binding.timeStamp && wb.linePercent < binding.linePercent) ||
+                (wb.timeStamp > binding.timeStamp && wb.linePercent > binding.linePercent)));
 
-    function addTimeRow(time) {
-        undoStackPush();
-
-        if ((typeof time == "number" && isNaN(time))) throw new Error("Invalid time!")
-
-        if (mModel.getAllTables().length == 0) {
-            let newTable = new DataStructs.DataTable([
-                new DataStructs.DataColumn("Time", 0),
-                new DataStructs.DataColumn("", 1),
-            ]);
-            mModel.getAllTables().push(newTable);
-        }
-
-        let newRow = new DataStructs.DataRow();
-        newRow.index = mModel.getAllTables()[0].dataRows.length;
-        mModel.getAllTables()[0].dataRows.push(newRow);
-
-        let timeColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 0).id;
-        let timeCell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, time, timeColId)
-        newRow.dataCells.push(timeCell);
-
-        for (let i = 1; i < mModel.getAllTables()[0].dataColumns.length; i++) {
-            let colId = mModel.getAllTables()[0].dataColumns.find(col => col.index == i).id;
-            let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
-            newRow.dataCells.push(cell);
-        }
-
-        return { tableId: mModel.getAllTables()[0].id, rowId: newRow.id, timeCell };
+        timeline.warpBindings.push(binding);
     }
 
     function updateText(cellId, text) {
@@ -419,11 +426,11 @@ function ModelController() {
         cell.val = text;
     }
 
-    function updateTextOffset(cellId, offset) {
+    function updateTextOffset(cellBindingId, offset) {
         undoStackPush();
 
-        let cell = mModel.getCellById(cellId);
-        cell.offset = offset;
+        let cellBinding = mModel.getCellBindingById(cellBindingId);
+        cellBinding.offset = offset;
     }
 
     function addTimelineStroke(timelineId, points, color) {
@@ -488,52 +495,51 @@ function ModelController() {
 
         if (change == TableChange.DELETE_ROWS) {
             mModel.getAllTimelines().forEach(timeLine => {
-                let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.rowId));
-                if (deleteBindings) {
-                    // delete cell bindings for those rows
-                    timeLine.cellBindings = timeLine.cellBindings.filter(b => !changeData.includes(b.rowId));
-                    updateAndDeleteAxis(timeLine);
+                let prevCount = timeLine.cellBindings.length;
+                timeLine.cellBindings = timeLine.cellBindings
+                    // check each cell to see if it's still in the model, if not, filter it out.
+                    .filter(cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
+
+                if (timeLine.cellBindings.length != prevCount) {
+                    updateTimelineAxes(timeLine);
                 }
             })
         } else if (change == TableChange.DELETE_COLUMNS) {
             mModel.getAllTimelines().forEach(timeLine => {
-                let deleteBindings = timeLine.cellBindings.filter(b => changeData.includes(b.columnId));
-                if (deleteBindings) {
-                    // delete cell bindings for those columns
-                    timeLine.cellBindings = timeLine.cellBindings.filter(b => !changeData.includes(b.columnId));
-                    // delete axis for those columns
-                    timeLine.axisBindings = timeLine.axisBindings.filter(b => !changeData.includes(b.columnId));
-                }
+                let prevCount = timeLine.cellBindings.length;
+                timeLine.cellBindings = timeLine.cellBindings
+                    // check each cell to see if it's still in the model, if not, filter it out.
+                    .filter(cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
+                timeLine.axisBindings = timeLine.axisBindings.filter(b => !changeData.includes(b.columnId));
             })
         } else if (change == TableChange.UPDATE_CELLS) {
             mModel.getAllTimelines().forEach(timeLine => {
                 let wasChanged = timeLine.cellBindings.some(b => changeData.includes(b.cellId));
                 if (wasChanged) {
-                    updateAndDeleteAxis(timeLine);
+                    updateTimelineAxes(timeLine);
+                    updateWarpBindingTimeStamps(timeLine);
                 }
             })
         }
     }
 
     //// table Update Util functions ////
-    function updateAndDeleteAxis(timeLine) {
-        // update axis
-        let deleteAxis = [];
-        let bindingAndCells = timeLine.cellBindings.map(cb => { return { binding: cb, cell: mModel.getCellsFromBinding(cb).cell }; });
-        timeLine.axisBindings.forEach(axis => {
-            let cells = bindingAndCells.filter(bAndC => bAndC.binding.columnId == axis.columnId && bAndC.cell.getType() == DataTypes.NUM);
-            if (cells.length > 1) {
-                axis.val1 = Math.min(...cells.map(c => c.cell.getValue()));
-                axis.val2 = Math.max(...cells.map(c => c.cell.getValue()));
-            } else if (cells.length == 1) {
-                axis.val1 = 0;
-                axis.val2 = cells[0].cell.getValue();
-            } else {
-                deleteAxis.push(axis.id);
+    function updateTimelineAxes(timeline) {
+        let prevAxis = timeline.axisBindings;
+        timeline.axisBindings = [];
+
+        let dataCells = timeline.cellBindings.map(cb => mModel.getCellById(cb.cellId));
+
+        prevAxis.forEach(axis => {
+            let cells = dataCells.filter(cell => cell.columnId == axis.columnId && cell.getType() == DataTypes.NUM);
+            if (cells.length > 0) {
+                axis.val1 = Math.min(...cells.map(c => c.getValue()));
+                axis.val2 = Math.max(...cells.map(c => c.getValue()));
+
+                if (axis.val1 == axis.val2) axis.val1 = 0;
+                timeline.axisBindings.push(axis);
             }
-        })
-        // delete axis that no longer have cells
-        timeLine.axisBindings = timeLine.axisBindings.filter(b => !deleteAxis.includes(b.id));
+        });
     }
     //// end of table Update Util functions ////
 
@@ -541,22 +547,32 @@ function ModelController() {
         undoStackPush();
 
         let timeline = mModel.getTimelineById(lineId);
-        let filteredBindings = cellBindings.filter(binding => binding.columnId != mModel.getTimeColumnByTableId(binding.tableId).id);
-        timeline.cellBindings.push(...filteredBindings);
-        // clear out duplicates
-        timeline.cellBindings = DataUtil.getUniqueList(timeline.cellBindings, "cellId");
 
+        cellBindings = cellBindings.filter(cb => {
+            let cell = mModel.getCellById(cb.cellId);
+            if (!cell) { console.error("Invalid cell id: ", cb.cellId); return false; }
+            // filter out time cells
+            if (cell.isTimeCell) return false;
+            // don't bind empty cells. 
+            if (cell.val !== 0 && !cell.val) return false;
+
+            return true;
+        });
+
+        timeline.cellBindings.push(...cellBindings);
+
+        // update the axis
         let oldAxes = timeline.axisBindings;
         timeline.axisBindings = []
 
-        let columnsIds = DataUtil.getUniqueList(timeline.cellBindings.map(c => c.columnId));
+        let boundCells = timeline.cellBindings.map(c => mModel.getCellById(c.cellId));
+
+        let columnsIds = DataUtil.getUniqueList(boundCells.map(c => c.columnId));
         columnsIds.forEach(columnId => {
-            let tableId = timeline.cellBindings.find(binding => binding.columnId == columnId).tableId;
-            let table = mModel.getTableById(tableId);
-            let rowIds = timeline.cellBindings.filter(binding => binding.columnId == columnId).map(b => b.rowId);
-            let rows = rowIds.map(rowId => table.getRow(rowId));
-            let cells = rows.map(row => row.getCell(columnId));
-            let numCells = cells.filter(cell => cell.getType() == DataTypes.NUM && cell.isValid())
+            let numCells = boundCells.filter(cell =>
+                cell.columnId == columnId &&
+                cell.getType() == DataTypes.NUM &&
+                cell.isValid());
 
             if (numCells.length > 0) {
                 let min = Math.min(...numCells.map(i => i.getValue()));
@@ -575,6 +591,18 @@ function ModelController() {
                 timeline.axisBindings.push(axis)
             }
         });
+
+        updateWarpBindingTimeStamps(timeline);
+    }
+
+    function updateWarpBindingTimeStamps(timeline) {
+        if (mModel.hasTimeMapping(timeline.id) && timeline.warpBindings.some(wb => !wb.timeStamp)) {
+            timeline.warpBindings.forEach(wb => {
+                if (!wb.timeStamp) {
+                    wb.timeStamp = mModel.mapLinePercentToTime(timeline.id, wb.linePercent);
+                }
+            })
+        }
     }
 
     function updateAxisDist(axisId, oneOrTwo, dist) {
@@ -658,7 +686,9 @@ function ModelController() {
     this.addTable = addTable;
     this.addTableFromCSV = addTableFromCSV;
     this.tableUpdated = tableUpdated;
-    this.addTimeRow = addTimeRow
+
+    this.bindCells = bindCells;
+    this.updateWarpBinding = updateWarpBinding;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
@@ -667,11 +697,7 @@ function ModelController() {
 
     this.addTimelineStroke = addTimelineStroke;
 
-    this.bindCells = bindCells;
-
     this.updateAxisDist = updateAxisDist;
-
-    this.addOrUpdateWarpBinding = addOrUpdateWarpBinding;
 
     this.getModel = () => mModel.copy();
 

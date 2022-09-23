@@ -65,6 +65,7 @@ describe('Test Main - Integration Test', function () {
         });
 
         it('draw data points for linked cells', function () {
+            // WARNING: This test liable to break when moved to another timezone. (written for CET)
             integrationEnv.mainInit();
 
             IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
@@ -76,14 +77,14 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
 
-                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "1.5"], [3, 1, "", "text4"], [3, 2, "", "10"],
+                [1, 0, "", "2022"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "Jan 30, 2022"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "2022-01-03"], [3, 1, "", "text4"], [3, 2, "", "10"],
 
-                [4, 0, "", "2022-05-6"], [4, 1, "", "text6"], [4, 2, "", "text7"],
-                [5, 0, "", "May 11, 2022"], [5, 1, "", "text8"], [5, 2, "", "13"],
-                [6, 0, "", "2022-05-21"], [6, 1, "", "15"], [6, 2, "", "text9"],
-                [7, 0, "", "May 2022"], [7, 1, "", "16"], [7, 2, "", "18"],
+                [4, 0, "", "2022-01-6"], [4, 1, "", "text6"], [4, 2, "", "text7"],
+                [5, 0, "", "Jan 15, 2022"], [5, 1, "", "text8"], [5, 2, "", "13"],
+                [6, 0, "", "2022-01-27"], [6, 1, "", "15"], [6, 2, "", "text9"],
+                [7, 0, "", "Jan 2022"], [7, 1, "", "16"], [7, 2, "", "18"],
             ])
 
             IntegrationUtils.drawLine([
@@ -102,7 +103,7 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 2);
 
             // check that the comments were drawn in the correct places
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
             assert.equal(annotationSet.length, 9)
             expect(annotationSet.map(a => {
                 return {
@@ -123,7 +124,7 @@ describe('Test Main - Integration Test', function () {
                 y: 100,
                 label: "text3"
             }, {
-                x: 150,
+                x: 107,
                 y: 100,
                 label: "text4"
             }, {
@@ -131,19 +132,19 @@ describe('Test Main - Integration Test', function () {
                 y: 100,
                 label: "text5"
             }, {
-                x: 125,
+                x: 117,
                 y: 100,
                 label: "text6"
             }, {
-                x: 125,
+                x: 117,
                 y: 100,
                 label: "text7"
             }, {
-                x: 150,
+                x: 148,
                 y: 100,
                 label: "text8"
             }, {
-                x: 200,
+                x: 190,
                 y: 100,
                 label: "text9"
             }]);
@@ -169,13 +170,13 @@ describe('Test Main - Integration Test', function () {
                 x: 100,
                 y: 70,
             }, {
-                x: 150,
-                y: 44,
-            }, {
-                x: 150,
+                x: 107,
                 y: 70,
             }, {
-                x: 200,
+                x: 148,
+                y: 44,
+            }, {
+                x: 190,
                 y: 35,
             }]);
         });
@@ -186,114 +187,115 @@ describe('Test Main - Integration Test', function () {
         it('warp binding should move comment', function () {
             integrationEnv.mainInit();
 
-            // draw a line
+            // draw a line, bind data
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "sometext1"],
+                ["Jan 20, 2021", "sometext3"]
+            ], integrationEnv)
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
             // add a warp binding at 40%, and drag to 20%
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 120, y: 110 }], timelineId, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
-
-            // check that a table row was created with a time
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[0].dataCells[0].getValue(), 0.4);
-            // check that row is displaying
-            assert.equal(IntegrationUtils.getLastHoTable(integrationEnv).init.data[0][0], "0.4");
-            assert.equal(IntegrationUtils.getLastHoTable(integrationEnv).init.data[0][1], "");
+            IntegrationUtils.dragLine([{ x: 140, y: 110 }, { x: 125, y: 110 }], timelineId, integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp,
+                0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // add a comment
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 120, y: 110 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 125, y: 110 }, timelineId, integrationEnv.enviromentVariables);
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            assert.equal(annotationSet.length, 1, "annotation not created");
-            assert.equal(annotationSet[0].x, 120);
-            assert.equal(annotationSet[0].y, 100);
+            assert.equal(annotationSet.length, 3, "annotation not created");
+            assert.equal(annotationSet[2].x, 125);
+            assert.equal(annotationSet[2].y, 100);
 
             // add a second comment
             IntegrationUtils.clickLine({ x: 150, y: 110 }, timelineId, integrationEnv.enviromentVariables);
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            assert.equal(annotationSet.length, 2, "annotation not created");
-            // TODO: Actually, create a binding for the row as well so the comment stick where it was clicked
-            assert.equal(annotationSet[1].x, 200);
-            assert.equal(annotationSet[1].y, 100);
+            assert.equal(annotationSet.length, 4, "annotation not created");
+            assert.equal(annotationSet[3].x, 150);
+            assert.equal(annotationSet[3].y, 100);
 
             // check that two table rows were created
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[1].dataCells[1].val, "0.4");
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[2].dataCells[1].val, "1");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[3].dataCells[1].val, "<text>");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[4].dataCells[1].val, "<text>");
             let lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
-            assert.equal(lastCreatedTable.init.data.length, 3);
-            assert.equal(lastCreatedTable.init.data[1][0], "0.4");
-            assert.equal(lastCreatedTable.init.data[1][1], "0.4");
-            assert.equal(lastCreatedTable.init.data[2][0], "1");
-            assert.equal(lastCreatedTable.init.data[2][1], "1");
+            assert.equal(lastCreatedTable.init.data.length, 5);
+            assert.equal(lastCreatedTable.init.data[3][0], DataUtil.getFormattedDate(new Date("Jan 14, 2021")));
+            assert.equal(lastCreatedTable.init.data[3][1], "<text>");
+            assert.equal(lastCreatedTable.init.data[4][0], DataUtil.getFormattedDate(new Date("Jan 16, 2021")));
+            assert.equal(lastCreatedTable.init.data[4][1], "<text>");
 
             // check that the annotation was bound to the line
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].timeCell.getValue(), 0.4);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].dataCell.getValue(), "0.4");
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].timeCell.getValue(), 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].dataCell.getValue(), "1");
-
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[2].timeCell.getValue(), new Date("Jan 14, 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[2].dataCell.getValue(), "<text>");
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].timeCell.getValue(), new Date("Jan 16, 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].dataCell.getValue(), "<text>");
 
             // move the warp binding
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            let d = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].innerData[0];
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors[".warpTickTarget_" + timelineId].eventCallbacks.pointerdown;
-            let drag = (point) => { IntegrationUtils.pointerMove(point, integrationEnv) };
+            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.warpTickTarget_' + timelineId];
+            tickTargets.eventCallbacks.pointerdown({ clientX: 150, clientY: 110 }, tickTargets.innerData[0]);
+            IntegrationUtils.pointerMove({ x: 150, y: 110 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 150, y: 110 }, integrationEnv);
 
-            dragStart({ x: 120, y: 100 }, d);
-            drag({ x: 150, y: 110 }, d);
-            IntegrationUtils.pointerUp({ x: 150, y: 110 }, integrationEnv)
-
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp,
+                0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // check that comments moved
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            assert.equal(annotationSet.length, 2)
-            assert.equal(annotationSet[0].x, 150);
-            assert.equal(annotationSet[0].y, 100);
-            assert.equal(annotationSet[0].text, "0.4");
-            assert.equal(annotationSet[1].x, 200);
-            assert.equal(annotationSet[1].y, 100);
-            assert.equal(annotationSet[1].text, "1");
+            assert.equal(annotationSet.length, 4)
+            assert.equal(annotationSet[2].x, 150);
+            assert.equal(annotationSet[2].y, 100);
+            assert.equal(annotationSet[2].text, '<text>');
+            assert.equal(Math.round(annotationSet[3].x), 167);
+            assert.equal(annotationSet[3].y, 100);
+            assert.equal(annotationSet[3].text, '<text>');
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
             IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].linePercent, 0.7);
-            expect(integrationEnv.ModelController.getModel().getAllWarpBindingData()[1].timeCell.getValue()).to.be.closeTo(0.7, 0.0000001);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].linePercent, 0.7);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[1].timeStamp, new Date("Jan 17 2021").getTime());
 
             // update the time cells
             // check the table is what we expect it to be
             lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
-            expect(lastCreatedTable.init.data).to.eql([['0.4', ''], ['0.4', '0.4'], ['1', '1'], ['0.7', '']])
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.4);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
+            expect(lastCreatedTable.init.data).to.eql([
+                ['Jan 10, 2021', 'sometext1', ''],
+                ['Jan 20, 2021', 'sometext3', ''],
+                ['', '', ''],
+                ['Jan 14, 2021 00:00:00', '<text>', ''],
+                ['Jan 16, 2021 00:00:00', '<text>', '']
+            ])
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 14 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
 
-            lastCreatedTable.init.afterChange([[0, 0, "0.4", "0.2"]])
+            lastCreatedTable.init.afterChange([[3, 0, 'Jan 14, 2021 00:00:00', "Jan 12, 2021"]])
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 14 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.5);
 
             // check the the comment moved
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
-            assert.equal(annotationSet.length, 2)
-            assert.equal(annotationSet[0].x, 158);
-            assert.equal(annotationSet[0].y, 100);
-            assert.equal(annotationSet[0].text, "0.4");
-            assert.equal(annotationSet[1].x, 200);
-            assert.equal(annotationSet[1].y, 100);
-            assert.equal(annotationSet[1].text, "1");
+            assert.equal(annotationSet.length, 4)
+            assert.equal(annotationSet[2].x, 125);
+            assert.equal(annotationSet[2].y, 100);
+            assert.equal(annotationSet[2].text, "<text>");
+            assert.equal(Math.round(annotationSet[3].x), 163);
+            assert.equal(annotationSet[3].y, 100);
+            assert.equal(annotationSet[3].text, "<text>");
         });
     });
 
@@ -305,6 +307,10 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "7"],
+                ["Jan 20, 2021", "18"]
+            ], integrationEnv)
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -312,18 +318,17 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickLine({ x: 200, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 120, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
 
             // check that three table rows were created
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
-
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // go to pin mode
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
 
             // drag the comment
             let targetData = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
@@ -332,17 +337,16 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.pointerMove({ x: 130, y: 130 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 140, y: 150 }, integrationEnv);
 
-            // check that there are still three table rows
+            // check that there are still the six table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // check that a binding was created for the annotation row
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
             assert.equal(annotationSet[2].binding.cellBindingId, targetData[2].binding.cellBindingId);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].rowId, annotationSet[2].binding.rowId);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].linePercent, 0.4);
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData()[0].timeCell.getValue(), 0.2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].linePercent, 0.4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings[0].timeStamp, new Date("Jan 12 2021").getTime());
 
             // check that the comment is where it's expect to be
             assert.equal(annotationSet[2].x, 140);
@@ -358,6 +362,10 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.drawLine([{ x: 100, y: 200 }, { x: 150, y: 150 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "7"],
+                ["Jan 20, 2021", "18"]
+            ], integrationEnv)
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -365,11 +373,11 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickLine({ x: 200, y: 100 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 120, y: 180 }, timelineId, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
 
             // check that three table rows were created
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // get the drag functions
             let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -381,7 +389,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
             // there should be no bindings yet
-            assert.equal(integrationEnv.ModelController.getModel().getAllWarpBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].warpBindings.length, 0);
 
             // drag the comment
             let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].eventCallbacks.pointerdown;
@@ -390,9 +398,9 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.pointerMove({ x: 150, y: 170 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 160, y: 180 }, integrationEnv);
 
-            // check that there are still three table rows
+            // check that there are still three extra table rows
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // check that the offset is what it's expect to be
             annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -408,6 +416,10 @@ describe('Test Main - Integration Test', function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            IntegrationUtils.bindDataToLine(integrationEnv.ModelController.getModel().getAllTimelines()[0].id, [
+                ["Jan 10, 2021", "7"],
+                ["Jan 20, 2021", "18"]
+            ], integrationEnv)
 
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
@@ -429,14 +441,13 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].warpBindings.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[2].warpBindings.length, 1);
 
-            let id1 = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
-            let id2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
-            let id3 = integrationEnv.ModelController.getModel().getAllTimelines()[2].id;
-
-            let warpBindingData = integrationEnv.ModelController.getModel().getAllWarpBindingData();
-            expect(warpBindingData.map(wbd => wbd.timeCell.getValue())).to.eql([0.05, 0.50, 0.95]);
-            expect(warpBindingData.map(wbd => wbd.timelineId)).to.eql([id1, id2, id3]);
-            expect(warpBindingData.map(wbd => Math.round(wbd.linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
+            let warpBindings = integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.warpBindings);
+            expect(warpBindings.map(b => b[0].timeStamp)).to.eql([
+                0.05 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                0.95 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+            ]);
+            expect(warpBindings.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
         });
 
         it('should eliminate and split cell bindings', function () {
@@ -463,11 +474,11 @@ describe('Test Main - Integration Test', function () {
 
             IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
                 [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
-                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "1.3"], [3, 1, "", "text4"], [3, 2, "", "10"],
-                [4, 0, "", "1.1"], [4, 1, "", "text6"], [4, 2, "", "12"],
-                [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
+                [1, 0, "", "Jan 10, 2022"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "Jan 20, 2022"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "Jan 13, 2022"], [3, 1, "", "text4"], [3, 2, "", "10"],
+                [4, 0, "", "Jan 11, 2022"], [4, 1, "", "text6"], [4, 2, "", "12"],
+                [5, 0, "", "Jan 19, 2022"], [5, 1, "", "text7"], [5, 2, "", "17"],
             ])
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 5, 2]];

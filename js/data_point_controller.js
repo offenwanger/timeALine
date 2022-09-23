@@ -33,14 +33,14 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         drawAxes(DataUtil.getUniqueList(boundData.filter(d => d.axisBinding).map(d => {
             return {
                 id: d.axisBinding.id,
-                line: timelines.find(t => t.id == d.timelineId).points,
+                line: d.timeline.points,
                 axis: d.axisBinding
             }
         }), 'id'))
     }
 
     function drawPoints(timelines, boundData) {
-        let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timelineId == t.id))).flat();
+        let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timeline.id == t.id))).flat();
         let selection = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
         selection.exit().remove();
         selection.enter()

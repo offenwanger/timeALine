@@ -37,49 +37,73 @@ let DataStructs = function () {
         return timeline;
     }
 
-    function CellBinding(tableId, rowId, columnId, cellId) {
+    function CellBinding(cellId) {
         this.id = getUniqueId();
-        this.tableId = tableId;
-        this.rowId = rowId;
-        this.columnId = columnId;
         this.cellId = cellId;
+        // text value display offset
+        this.offset = { x: 10, y: 10 };
 
         this.clone = function () {
-            return new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
+            let binding = new CellBinding(this.cellId);
+            binding.offset = this.offset;
+            return binding;
         }
 
         this.copy = function () {
-            let binding = new CellBinding(this.tableId, this.rowId, this.columnId, this.cellId);
+            let binding = new CellBinding(this.cellId);
+            binding.offset = this.offset;
             binding.id = this.id;
             return binding;
         }
     }
     CellBinding.fromObject = function (obj) {
-        let binding = new CellBinding(obj.tableId, obj.rowId, obj.columnId, obj.cellId);
+        let binding = new CellBinding(obj.cellId);
+        binding.offset = obj.offset;
         binding.id = obj.id;
         return binding;
     }
 
-    function WarpBinding(tableId, rowId, linePercent, isValid = true) {
+    /**
+     * Warp Bindings must have a line percent, but not necessarily anything else.
+     * @param {float} linePercent 
+     */
+    function WarpBinding(linePercent) {
         this.id = getUniqueId();
-        this.tableId = tableId;
-        this.rowId = rowId;
+        // Timestamp in miliseconds
+        this.timeStamp = null;
+        this.timeCellId = null;
         this.linePercent = linePercent;
-        this.isValid = isValid;
 
         this.clone = function () {
-            return new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
+            let binding = new WarpBinding(this.linePercent);
+            binding.timeStamp = this.timeStamp;
+            binding.timeCellId = this.timeCellId;
+            return binding;
         };
 
         this.copy = function () {
-            let binding = new WarpBinding(this.tableId, this.rowId, this.linePercent, this.isValid);
+            let binding = new WarpBinding(this.linePercent);
             binding.id = this.id;
+            binding.timeStamp = this.timeStamp;
+            binding.timeCellId = this.timeCellId;
             return binding;
         }
     }
     WarpBinding.fromObject = function (obj) {
-        let binding = new WarpBinding(obj.tableId, obj.rowId, obj.linePercent, obj.isValid);
+        let binding = new WarpBinding(obj.linePercent);
         binding.id = obj.id;
+        binding.timeStamp = obj.timeStamp;
+        binding.timeCellId = obj.timeCellId;
+
+        // for robustness in case a Date get into a warpbinding instead of a timestamp
+        if (typeof binding.timeStamp === 'string' || binding.timeStamp instanceof String) {
+            if (!isNaN(new Date(binding.timeStamp))) {
+                binding.timeStamp = new Date(binding.timeStamp).getTime();
+            } else if (!isNaN(new Date(parseInt(binding.timeStamp)))) {
+                binding.timeStamp = new Date(parseInt(binding.timeStamp)).getTime();
+            }
+        }
+
         return binding;
     }
 
@@ -184,16 +208,79 @@ let DataStructs = function () {
         let row = new DataRow();
         row.id = obj.id;
         row.index = obj.index;
-        obj.dataCells.forEach(c => row.dataCells.push(DataCell.fromObject(c)));
+        obj.dataCells.forEach(c => {
+            if (c.isTimeCell) {
+                row.dataCells.push(TimeCell.fromObject(c));
+            } else {
+                row.dataCells.push(DataCell.fromObject(c));
+            }
+        });
         return row;
     }
 
-    function DataCell(type, val, columnId = null, offset = { x: 10, y: 10 }) {
+    function TimeCell(val, columnId = null) {
+        this.id = getUniqueId();
+        // could be string or timestamp or just text
+        this.val = val;
+        this.columnId = columnId;
+        this.isTimeCell = true;
+
+        this.isValid = function () {
+            return !isNaN(new Date(this.val)) || !isNaN(new Date(parseInt(this.val)));
+        }
+
+        this.getValue = function () {
+            // if this isn't valid, return a string to display.
+            if (!this.isValid()) {
+                return this.val.toString();
+            } else if (!isNaN(new Date(this.val))) {
+                return new Date(this.val).getTime();
+            } else if (!isNaN(new Date(parseInt(this.val)))) {
+                // we want the timestamp which is what we assume this is. 
+                return parseInt(this.val);
+            } else {
+                console.error("Bad state!", this);
+                return 0;
+            }
+        }
+
+        this.toString = function () {
+            if (!this.val) {
+                return "";
+            } else if (typeof this.val == "string") {
+                return this.val;
+            } else if (this.val instanceof Date) {
+                return DataUtil.getFormattedDate(this.val);
+            } else if (typeof this.val == 'number') {
+                return DataUtil.getFormattedDate(new Date(this.val));
+            }
+        }
+
+        this.copy = function () {
+            // TODO: Make sure that val get copied properly. We'll worry about it later.
+            let cell = new TimeCell(this.val, this.columnId);
+            cell.id = this.id;
+            return cell;
+        }
+
+        this.clone = function () {
+            return new TimeCell(this.val, this.columnId);
+        }
+    }
+    TimeCell.fromObject = function (obj) {
+        let time = obj.val;
+        let cell = new TimeCell(time, obj.columnId);
+        cell.val = obj.val;
+        cell.id = obj.id;
+        return cell;
+    }
+
+    function DataCell(type, val, columnId = null, color = null) {
         this.id = getUniqueId();
         this.type = type;
         this.val = val;
         this.columnId = columnId;
-        this.offset = offset
+        this.color = color
 
         this.isValid = function () {
             switch (this.type) {
@@ -202,8 +289,6 @@ let DataStructs = function () {
                 case DataTypes.NUM:
                     if (DataUtil.isNumeric(this.val)) return true;
                     else return false;
-                case DataTypes.TIME_BINDING:
-                    return DataUtil.isDate(this.val);
                 case DataTypes.UNSPECIFIED:
                     return true;
             }
@@ -218,8 +303,6 @@ let DataStructs = function () {
                     return this.val.toString();
                 case DataTypes.NUM:
                     return parseFloat("" + this.val);
-                case DataTypes.TIME_BINDING:
-                    return this.val instanceof TimeBinding ? this.val : new TimeBinding(TimeBindingTypes.TIMESTRAMP, Date.parse(val));
                 case DataTypes.UNSPECIFIED:
                     return DataUtil.inferDataAndType(this.val).val;
             }
@@ -234,8 +317,6 @@ let DataStructs = function () {
                 return this.val;
             } if (typeof this.val == 'number') {
                 return "" + Math.round(this.val * 100) / 100;
-            } else if (this.val instanceof TimeBinding) {
-                return this.val.toString();
             } else {
                 console.error("Invalid value type! ", this.val);
             }
@@ -243,55 +324,19 @@ let DataStructs = function () {
 
         this.copy = function () {
             // TODO: Make sure that val get copied properly. We'll worry about it later.
-            let cell = new DataCell(this.type, this.val, this.columnId, this.offset);
+            let cell = new DataCell(this.type, this.val, this.columnId, this.color);
             cell.id = this.id;
             return cell;
         }
 
         this.clone = function () {
-            return new DataCell(this.type, this.val, this.columnId, this.offset);
+            return new DataCell(this.type, this.val, this.columnId, this.color);
         }
     }
     DataCell.fromObject = function (obj) {
-        let val = obj.val;
-        if (typeof val == 'object') {
-            if (val.type && Object.values(TimeBindingTypes).includes(val.type)) {
-                val = new TimeBinding(val.type, val.value);
-            } else {
-                console.error("Badly formatted import: ", val)
-            };
-        }
-        let cell = new DataCell(obj.type, val, obj.columnId, obj.offset);
+        let cell = new DataCell(obj.type, obj.val, obj.columnId, obj.color);
         cell.id = obj.id;
         return cell;
-    }
-
-    function TimeBinding(type = TimeBindingTypes.TIMESTRAMP, value = 0) {
-        this.type = type;
-        this.value = value;
-
-        switch (type) {
-            case TimeBindingTypes.TIMESTRAMP:
-                if (!Number.isInteger(value)) throw new Error("Invalid timestamp: " + value);
-                // no additional setup nessiary
-                break;
-            default:
-                console.error("Invalid time type: " + type);
-        }
-
-        this.toString = function () {
-            switch (this.type) {
-                case TimeBindingTypes.TIMESTRAMP:
-                    return new Date(this.value).toDateString();
-                default:
-                    console.error("Invalid time type: " + type);
-                    return "";
-            }
-        }
-
-        this.clone = function () {
-            return new TimeBinding(this.type, this.value);
-        }
     }
 
     function Stroke(points, color) {
@@ -337,16 +382,17 @@ let DataStructs = function () {
 
     return {
         Timeline,
-        CellBinding,
-        WarpBinding,
-        AxisBinding,
         DataTable,
         DataColumn,
         DataRow,
+        TimeCell,
         DataCell,
-        TimeBinding,
         Stroke,
         StrokePoint,
+
+        CellBinding,
+        WarpBinding,
+        AxisBinding,
     }
 }();
 

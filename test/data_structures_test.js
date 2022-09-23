@@ -17,24 +17,13 @@ describe('Test DataStructs', function () {
 
     describe('Object conversion tests', function () {
         // expect them to be the same at sub levels for easier debugging of this test
-        function check(obj, original) {
-            if (typeof obj == 'object') {
-                Object.keys(obj).forEach(key => {
-                    check(obj[key], original[key]);
-                })
-            } else if (typeof obj == 'function') {
-                assert(typeof original, 'function');
-                return;
-            } else {
-                expect(obj).to.eql(original);
-            }
-
-        }
-
         it('should create data objects from JSON objects', function () {
             let table = TestUtils.makeTestTable(5, 8);
-            table.dataRows[3].dataCells[2].val = new DataStructs.TimeBinding();
-            table.dataRows[3].dataCells[3].val = new DataStructs.TimeBinding();
+            table.dataRows[3].dataCells[0].val = new Date("Jan 1, 1992");
+            table.dataRows[3].dataCells[0].val = "Not a date"
+            table.dataRows[3].dataCells[0].val = 200000123
+            table.dataRows[3].dataCells[1].val = 1000
+            table.dataRows[3].dataCells[1].val = "19992222"
 
             let timeline = new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 20, y: 40 }, { x: 20, y: 10 }, { x: 10, y: 400 }]);
             timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[0].id, 0.5));
@@ -43,15 +32,14 @@ describe('Test DataStructs', function () {
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[3].id, table.dataColumns[3].id, table.dataRows[3].dataCells[3].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));
 
-            check(DataStructs.DataTable.fromObject(JSON.parse(JSON.stringify(table))), table)
-            check(DataStructs.Timeline.fromObject(JSON.parse(JSON.stringify(timeline))), timeline)
-
+            TestUtils.deepEquals(DataStructs.DataTable.fromObject(JSON.parse(JSON.stringify(table))), table)
+            TestUtils.deepEquals(DataStructs.Timeline.fromObject(JSON.parse(JSON.stringify(timeline))), timeline)
         });
 
         it('should copy objects', function () {
             let table = TestUtils.makeTestTable(5, 8);
-            table.dataRows[3].dataCells[2].val = new DataStructs.TimeBinding();
-            table.dataRows[3].dataCells[3].val = new DataStructs.TimeBinding();
+            table.dataRows[3].dataCells[2].val = new Date("Jan 2, 2002");
+            table.dataRows[3].dataCells[3].val = new Date("Jan 2, 2002");
 
             let timeline = new DataStructs.Timeline([{ x: 10, y: 10 }, { x: 20, y: 40 }, { x: 20, y: 10 }, { x: 10, y: 400 }]);
             timeline.warpBindings.push(new DataStructs.WarpBinding(table.id, table.dataRows[0].id, 0.5));
@@ -60,8 +48,8 @@ describe('Test DataStructs', function () {
             timeline.cellBindings.push(new DataStructs.CellBinding(table.id, table.dataRows[3].id, table.dataColumns[3].id, table.dataRows[3].dataCells[3].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));
 
-            check(table.copy(), table)
-            check(timeline.copy(), timeline)
+            TestUtils.deepEquals(table.copy(), table)
+            TestUtils.deepEquals(timeline.copy(), timeline)
 
             let timeline2 = timeline.copy();
             timeline2.points[0].x = 10000;

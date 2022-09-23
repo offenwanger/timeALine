@@ -309,7 +309,7 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            let endPoint = integrationEnv.enviromentVariables.d3.selectors['.end-point'];
+            let endPoint = integrationEnv.enviromentVariables.d3.selectors['.drag-end-point'];
             endPoint.eventCallbacks.pointerdown({ clientX: 10, clientY: 10 }, lineData);
             dragController.onPointerMove({ x: 20, y: -20 });
             dragController.onPointerUp({ x: 20, y: -20 });
@@ -338,10 +338,10 @@ describe('Integration Test DragController', function () {
             ], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            let data = integrationEnv.enviromentVariables.d3.selectors['.start-point'].innerData;
+            let data = integrationEnv.enviromentVariables.d3.selectors['.drag-start-point'].innerData;
             assert.equal(data.length, 1, "data not set");
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['.start-point'].eventCallbacks.pointerdown;
+            let dragStart = integrationEnv.enviromentVariables.d3.selectors['.drag-start-point'].eventCallbacks.pointerdown;
 
             IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
             dragStart({ clientX: 100, clientY: 100 }, data[0]);

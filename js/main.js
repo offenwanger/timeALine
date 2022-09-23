@@ -48,10 +48,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // Note that both click and drag get called, ensure code doesn't overlap. 
     mLineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mMode == MODE_COMMENT) {
-            let type = mModelController.getModel().hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
-            let time = mModelController.getModel().mapLinePercentToTime(timelineId, type, linePoint.percent);
+            // TODO: Open the text input in new comment mode. 
+            let time;
+            if (mModelController.getModel().hasTimeMapping(timelineId)) {
+                time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+            } else {
+                // this function should be called with some text already
+                time = "";
+                //TODO create a warp binding
+            }
 
-            mModelController.addBoundTextRow(time.toString(), time, timelineId);
+            mModelController.addBoundTextRow("<text>", time, timelineId);
 
             modelUpdated();
         } else if (mMode == MODE_LINK) {
@@ -98,17 +105,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+            let warpBinding = new DataStructs.WarpBinding(linePoint.percent);
 
-            let type = mModelController.getModel().hasTimeMapping(timelineId) ? DataTypes.TIME_BINDING : DataTypes.NUM;
-            let time = mModelController.getModel().mapLinePercentToTime(timelineId, type, linePoint.percent);
+            if (mModelController.getModel().hasTimeMapping(timelineId)) {
+                let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+                if (time instanceof Date) time = time.getTime();
+                warpBinding.timeStamp = time;
+            }
 
-            let tableRowData = mModelController.addTimeRow(time);
-            mDataTableController.addOrUpdateTables(mModelController.getModel().getAllTables());
-
-            let warpBindingData = new DataStructs.WarpBindingData(timelineId, null,
-                tableRowData.tableId, tableRowData.rowId, tableRowData.timeCell,
-                linePoint.percent);
-            mTimeWarpController.pinDragStart(timelineId, warpBindingData);
+            mTimeWarpController.pinDragStart(timelineId, warpBinding);
         }
     })
     mLineViewController.setLineDragCallback((timelineId, linePoint) => {
@@ -134,13 +139,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
         let pointOnLine = PathMath.getClosestPointOnPath(mouseCoords, timeline.points);
         try {
-            let time;
+            let message;
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
-                time = mModelController.getModel().mapLinePercentToTime(timelineId, DataTypes.TIME_BINDING, pointOnLine.percent).toString();
+                message = DataUtil.getFormattedDate(new Date(mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent)));
             } else {
-                time = "" + Math.round(mModelController.getModel().mapLinePercentToTime(timelineId, DataTypes.NUM, pointOnLine.percent) * 100) / 100;
+                message = (Math.round(pointOnLine.percent * 10000) / 100) + "%";
             }
-            ToolTip.show(time, mouseCoords)
+            ToolTip.show(message, mouseCoords);
             mMouseDropShadow.show(pointOnLine, mouseCoords)
         } catch (e) { console.error(e.stack); }
     }
@@ -155,8 +160,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mTimeWarpController = new TimeWarpController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mTimeWarpController.setUpdateWarpBindingCallback((timelineId, warpBindingData) => {
-        mModelController.addOrUpdateWarpBinding(timelineId, warpBindingData);
-
+        mModelController.updateWarpBinding(timelineId, warpBindingData);
         modelUpdated();
     })
 
@@ -175,31 +179,24 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
         if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
+            let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
-            // check if there is a warp binding for this row
-            let warpBindingData = mModelController.getModel().getWarpBindingData(cellBindingData.timelineId);
             mDraggingValue = {};
             // copy to avoid data leaks
             mDraggingValue.cellBindingData = cellBindingData.copy();
-            mDraggingValue.cellBindingData.dataCell.offset = MathUtil.subtractAFromB(linePoint, coords);
+            mDraggingValue.cellBindingData.linePercent = linePoint.percent;
+            mDraggingValue.cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
 
-            mDraggingValue.binding = warpBindingData.find(wbd => wbd.rowId == cellBindingData.rowId);
-            if (mDraggingValue.binding) {
-                mDraggingValue.binding.linePercent = linePoint.percent;
+            mDraggingValue.binding = new DataStructs.WarpBinding(linePoint.percent);
+            if (cellBindingData.timeCell.isValid()) {
+                mDraggingValue.binding.timeStamp = cellBindingData.timeCell.getValue();
             } else {
-                // if not, create one
-                mDraggingValue.binding = new DataStructs.WarpBindingData(cellBindingData.timelineId, null,
-                    cellBindingData.tableId, cellBindingData.rowId, cellBindingData.timeCell,
-                    linePoint.percent);
+                mDraggingValue.binding.timeCellId = cellBindingData.timeCell.id;
             }
 
-            mTimeWarpController.pinDragStart(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding);
-            mDraggingValue.cellBindingData.linePercent = linePoint.percent;
-            mTextController.drawTimelineAnnotations(
-                mModelController.getModel().getTimelineById(mDraggingValue.cellBindingData.timelineId),
-                [mDraggingValue.cellBindingData]);
+            mTimeWarpController.pinDragStart(timeline.id, mDraggingValue.binding);
+            mTextController.drawTimelineAnnotations(timeline, [mDraggingValue.cellBindingData]);
         }
 
         return coords;
@@ -209,28 +206,29 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timelineId).filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
-            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, coords));
+            let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timeline.id)
+                .filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
 
             // copy the dataCell to avoid modification leaks
-            let dataCell = bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell.copy();
-            dataCell.offset = offset;
-            bindingData.find(b => b.cellBindingId == cellBindingData.cellBindingId).dataCell = dataCell;
+            let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
+            cellBinding.offset = offset;
+            bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
 
             mTextController.drawTimelineAnnotations(
-                mModelController.getModel().getTimelineById(cellBindingData.timelineId),
+                mModelController.getModel().getTimelineById(cellBindingData.timeline.id),
                 bindingData);
         } else if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
+            let timeline = mModelController.getModel().getTimelineById(cellBindingData.timeline.id);
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             mDraggingValue.binding.linePercent = linePoint.percent;
-            mTimeWarpController.pinDrag(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+            mTimeWarpController.pinDrag(mDraggingValue.cellBindingData.timeline.id, mDraggingValue.binding.linePercent);
 
             let cellBData = mDraggingValue.cellBindingData;
             if (cellBData.dataCell.getType() == DataTypes.TEXT) {
                 cellBData = cellBData.copy();
-                cellBData.dataCell.offset = MathUtil.subtractAFromB(linePoint, coords);
+                cellBData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
             }
             cellBData.linePercent = linePoint.percent;
             mTextController.drawTimelineAnnotations(timeline, [cellBData]);
@@ -241,20 +239,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(startPos, coords));
-            mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
             modelUpdated();
         } else if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(cellBindingData.timelineId);
-            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+            let linePoint = PathMath.getClosestPointOnPath(coords, cellBindingData.timeline.points);
 
             let offset = MathUtil.subtractAFromB(linePoint, coords);
-            mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+            mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
             mDraggingValue.binding.linePercent = linePoint.percent;
             // this will trigger a warp point update, which will update everything
-            mTimeWarpController.pinDragEnd(mDraggingValue.cellBindingData.timelineId, mDraggingValue.binding.linePercent);
+            mTimeWarpController.pinDragEnd(mDraggingValue.cellBindingData.timeline.id, mDraggingValue.binding.linePercent);
 
             modelUpdated();
         }
@@ -282,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             // check if there is a warp binding for this row
-            let warpBindingData = mModelController.getModel().getWarpBindingData(cellBindingData.timelineId);
+            let warpBindingData = cellBindingData.timeline.warpBindings;
             mDraggingValue = {};
             // copy to avoid data leaks
             mDraggingValue.cellBindingData = cellBindingData.copy();
@@ -317,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let cellBData = mDraggingValue.cellBindingData;
             if (cellBData.dataCell.getType() == DataTypes.TEXT) {
                 cellBData = cellBData.copy();
-                cellBData.dataCell.offset = MathUtil.addAToB(cellBData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+                cellBData.cellBinding.offset = MathUtil.addAToB(cellBData.cellBinding.offset, MathUtil.subtractAFromB(linePoint, mousePos));
             }
             cellBData.linePercent = linePoint.percent;
             mDataController.drawTimelineData(timeline, [cellBData]);
@@ -329,8 +326,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(mousePos, timeline.points);
 
             if (cellBindingData.dataCell.getType() == DataTypes.TEXT) {
-                let offset = MathUtil.addAToB(cellBindingData.dataCell.offset, MathUtil.subtractAFromB(linePoint, mousePos));
-                mModelController.updateTextOffset(cellBindingData.dataCell.id, offset);
+                let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(linePoint, mousePos));
+                mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
             }
 
             mDraggingValue.binding.linePercent = linePoint.percent;
@@ -643,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.setModelFromObject(result);
             modelUpdated();
         }).catch(err => {
-            console.error("Error while getting file: " + err)
+            console.error("Error while getting file: ", err)
         });
     })
 
@@ -754,7 +751,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         for (let i = 0; i < 3; i++) {
             let dataRow = new DataStructs.DataRow()
             dataRow.index = i;
-            for (let j = 0; j < newTable.dataColumns.length; j++) {
+            dataRow.dataCells.push(new DataStructs.TimeCell("", newTable.dataColumns[0].id));
+            for (let j = 1; j < newTable.dataColumns.length; j++) {
                 dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newTable.dataColumns[j].id));
             }
             newTable.dataRows.push(dataRow)

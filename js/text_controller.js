@@ -22,24 +22,17 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     let mDataCache = {};
 
     function updateModel(model) {
-        drawAnnotations(
-            model.getAllTimelines(),
-            model.getAllCellBindingData().filter(b => b.dataCell.getType() == DataTypes.TEXT));
-    }
-
-    function drawTimelineAnnotations(timeline, boundData) {
-        draw(timeline, boundData);
-    }
-
-    function drawAnnotations(timelines, boundData) {
-        // clear the cache, redraw
         mDataCache = {};
         mDisplayGroup.selectAll("*").remove();
         mInteractionGroup.selectAll("*").remove();
 
-        timelines.forEach(timeline => {
-            draw(timeline, boundData.filter(binding => binding.timelineId == timeline.id));
+        model.getAllTimelines().forEach(timeline => {
+            draw(timeline, model.getCellBindingData(timeline.id).filter(b => b.dataCell.getType() == DataTypes.TEXT));
         })
+    }
+
+    function drawTimelineAnnotations(timeline, boundData) {
+        draw(timeline, boundData);
     }
 
     function draw(timeline, boundData) {
@@ -58,17 +51,17 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
 
         boundData.forEach(binding => {
             let annotationData;
-            if (!mDataCache[timeline.id].bindings[binding.cellBindingId] || mDataCache[timeline.id].bindings[binding.cellBindingId] != JSON.stringify(binding)) {
+            if (!mDataCache[timeline.id].bindings[binding.cellBinding.id] || mDataCache[timeline.id].bindings[binding.cellBinding.id] != JSON.stringify(binding)) {
                 let pos = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
                 let text = binding.dataCell.getValue();
-                let offsetX = binding.dataCell.offset.x;
-                let offsetY = binding.dataCell.offset.y;
+                let offsetX = binding.cellBinding.offset.x;
+                let offsetY = binding.cellBinding.offset.y;
                 annotationData = { x: pos.x, y: pos.y, text, offsetX, offsetY, binding };
 
-                mDataCache[timeline.id].bindings[binding.cellBindingId] = JSON.stringify(binding);
-                mDataCache[timeline.id].annotationData[binding.cellBindingId] = annotationData;
+                mDataCache[timeline.id].bindings[binding.cellBinding.id] = JSON.stringify(binding);
+                mDataCache[timeline.id].annotationData[binding.cellBinding.id] = annotationData;
             } else {
-                annotationData = mDataCache[timeline.id].annotationData[binding.cellBindingId]
+                annotationData = mDataCache[timeline.id].annotationData[binding.cellBinding.id]
             }
 
             annotationDataset.push(annotationData);
@@ -274,7 +267,6 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     this.updateModel = updateModel;
-    this.drawAnnotations = drawAnnotations;
     this.drawTimelineAnnotations = drawTimelineAnnotations;
     this.setTextUpdatedCallback = (callback) => mTextUpdatedCallback = callback
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
