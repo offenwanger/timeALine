@@ -76,10 +76,15 @@ function ModelController() {
                         .map(cell => cell.getValue()))
                     otherAxis.dist1 = Math.min(otherAxis.dist1, axis.dist1);
 
-                    otherAxis.val2 = Math.min(...numericDataCells
+                    otherAxis.val2 = Math.max(...numericDataCells
                         .filter(cell => cell.columnId == axis.columnId)
                         .map(cell => cell.getValue()))
                     otherAxis.dist2 = Math.max(otherAxis.dist2, axis.dist2);
+
+                    if (otherAxis.val1 == otherAxis.val2) axis.val1 = 0;
+                    // just in case they were both 0.
+                    if (otherAxis.val1 == otherAxis.val2) axis.val2 = 1;
+
                 } else {
                     newTimeline.axisBindings.push(axis);
                 }
@@ -537,6 +542,8 @@ function ModelController() {
                 axis.val2 = Math.max(...cells.map(c => c.getValue()));
 
                 if (axis.val1 == axis.val2) axis.val1 = 0;
+                // just in case they were both 0
+                if (axis.val1 == axis.val2) axis.val2 = 1;
                 timeline.axisBindings.push(axis);
             }
         });
@@ -629,14 +636,15 @@ function ModelController() {
 
         mModel = new DataStructs.DataModel();
         obj.timelines.forEach(timeline => {
-            let cleanedPoints = timeline.points.filter(p => {
+            let prevPoints = [...timeline.points];
+            timeline.points = timeline.points.filter(p => {
                 if (isNaN(p.x) || isNaN(p.y)) return false;
                 else return true;
             });
-            if (cleanedPoints.length != timeline.points.length) {
+
+            if (prevPoints.length != timeline.points.length) {
                 // flag it but carry on with the filtered list.
-                console.error("Invalid points in loaded timeline!", timeline.points);
-                return;
+                console.error("Invalid points in loaded timeline!", prevPoints);
             }
 
             mModel.getAllTimelines().push(DataStructs.Timeline.fromObject(timeline))

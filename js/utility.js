@@ -205,7 +205,8 @@ let PathMath = function () {
         } else {
             let path = getPath(points);
             let length = path.getTotalLength() * percent;
-            return path.getPointAtLength(length);
+            let point = path.getPointAtLength(length);
+            return { x: point.x, y: point.y };
         }
     }
 
@@ -279,9 +280,9 @@ let PathMath = function () {
                     let point = subPath.getPointAtLength(len);
                     let label = labelerFunc(point);
                     if (label != seg.label) {
-                        seg.points.push(point);
+                        seg.points.push({ x: point.x, y: point.y });
                         segments.push(seg);
-                        seg = { label, points: [point] }
+                        seg = { label, points: [{ x: point.x, y: point.y }] }
                     }
                 }
 
@@ -302,8 +303,8 @@ let PathMath = function () {
                     if (label != segments[i].label) {
                         if (label != segments[i + 1].label) console.error("Something funky going on here.", label, segments[i].label, segments[i + 1].label);
                         // we found the crossover point
-                        segments[i].points.push(point);
-                        segments[i + 1].points.unshift(point);
+                        segments[i].points.push({ x: point.x, y: point.y });
+                        segments[i + 1].points.unshift({ x: point.x, y: point.y });
                         found = true;
                         break;
                     }
@@ -431,24 +432,24 @@ let DataUtil = function () {
     }
 
     function getFormattedDate(date) {
-        if(!(date instanceof Date)) {
+        if (!(date instanceof Date)) {
             console.error("Not a date!", date);
             return "";
         }
-    
+
         let year = date.getFullYear();
-        let month = date.toLocaleString('en-US', {month: 'short'});
+        let month = date.toLocaleString('en-US', { month: 'short' });
         let day = date.getDate();
         let hour = date.getHours();
         let min = date.getMinutes();
         let sec = date.getSeconds();
-    
+
         day = (day < 10 ? "0" : "") + day;
         hour = (hour < 10 ? "0" : "") + hour;
         min = (min < 10 ? "0" : "") + min;
         sec = (sec < 10 ? "0" : "") + sec;
-    
-        return month + " " + day + ", " + year + " " +  hour + ":" + min + ":" + sec;
+
+        return month + " " + day + ", " + year + " " + hour + ":" + min + ":" + sec;
     }
 
 

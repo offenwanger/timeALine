@@ -797,6 +797,7 @@ describe('Integration Test ModelController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "lines not merged");
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([250]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.map(p => p.x)).to.eql([0, 50, 75, 100, 150, 175, 200, 250]);
         });
 
         it('should merge a timeline with data without moving the data when its possible', function () {
