@@ -137,7 +137,9 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
 
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
-            let timeCell = getTimeCellForRow(getRowByCellId(cellBinding.cellId).id);
+            let timeCell = getTimeCellForDataCell(cellBinding.cellId);
+            if (!timeCell) return;
+
             if (timeCell.isValid()) returnable.push(timeCell.getValue());
         })
 
@@ -188,6 +190,31 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
         return row.getCell(col.id);
     }
 
+    function getTimeCellForPin(timePinId) {
+        let cellBinding = mTimelines.map(t => t.cellBindings).flat().find(cb => cb.timePinId == timePinId);
+        if (cellBinding) {
+            return getTimeCellForDataCell(cellBinding.cellId);
+        } else {
+            return null;
+        }
+    }
+
+    function getTimeCellForDataCell(dataCellId) {
+        let row = getRowByCellId(dataCellId);
+        if (!row) {
+            console.error("Cannot get row for cell!", dataCellId);
+            return null;
+        }
+
+        let timeCell = getTimeCellForRow(row.id);
+        if (!timeCell) {
+            console.error("Cannot get time cell for row!", row);
+            return null;
+        } else {
+            return timeCell;
+        }
+    }
+
     function getTableForCell(cellId) {
         let table = mDataTables.find(t => t.dataRows.some(row => row.dataCells.some(c => c.id == cellId)));
         if (!table) { throw new Error("Table not found for cell: " + cellId); }
@@ -226,6 +253,9 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
     this.getCellBindingById = getCellBindingById;
 
     this.getAxisById = getAxisById;
+
+    this.getTimeCellForPin = getTimeCellForPin;
+    this.getTimeCellForDataCell = getTimeCellForDataCell;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;

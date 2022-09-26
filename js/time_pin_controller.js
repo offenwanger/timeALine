@@ -13,6 +13,8 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     let mDraggingTimeline = null;
 
     let mUpdatePinBindingCallback = () => { };
+    let mMouseOverCallback = () => { };
+    let mMouseOutCallback = () => { };
 
     let mTailGroup = vizLayer.append('g')
         .attr("id", 'tick-tail-g');
@@ -21,7 +23,6 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
     let mPinTickTargetGroup = interactionLayer.append('g')
         .attr("id", 'tick-target-g')
-        .style('visibility', "hidden")
 
     function updateModel(model) {
         mLinePoints = {};
@@ -76,7 +77,8 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - PIN_TICK_LENGTH / 2);
 
-        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId).data(tickTargetData);
+        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId)
+            .data(tickTargetData);
         targets.exit().remove();
         targets.enter().append('line')
             .classed('pinTickTarget_' + timelineId, true)
@@ -92,15 +94,11 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
                 }
             })
             .on("mouseover", (event, d) => {
-                if (d.timeStamp) {
-                    ToolTip.show(new Date(d.binding.timestamp), d.position)
-                } else {
-                    ToolTip.show(Math.round(d.binding.linePercent * 100) + "%", d.position)
-                }
+                mMouseOverCallback(event, d.binding);
             })
-            .on("mouseout", function () {
-                ToolTip.hide();
-            });
+            .on("mouseout", function (event, d) {
+                mMouseOutCallback(event, d.binding);
+            })
 
         mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
@@ -211,16 +209,16 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mPinTickTargetGroup.style('visibility', "");
         } else if (!active && mActive) {
             mActive = false;
-            mPinTickTargetGroup.style('visibility', "hidden");
         }
     };
 
     this.updateModel = updateModel;
 
-    this.setUpdatePinBindingCallback = (callback) => mUpdatePinBindingCallback = callback;
+    this.setUpdateTimePinCallback = (callback) => mUpdatePinBindingCallback = callback;
+    this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
+    this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
 
     this.pinDragStart = pinDragStart;
     this.pinDrag = pinDrag;

@@ -584,7 +584,7 @@ describe('Test Main - Integration Test', function () {
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
-            timeLineTargets.eventCallbacks.mouseover({ x: 150, y: 102 }, data);
+            timeLineTargets.eventCallbacks.mouseover({ clientX: 150, clientY: 102 }, data);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert(integrationEnv.enviromentVariables.handsontables.length > 0);

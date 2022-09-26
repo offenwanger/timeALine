@@ -577,7 +577,7 @@ describe('Integration Test ModelController', function () {
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
-            timeLineTargets.eventCallbacks['mouseover']({ x: 125, y: 200 }, data);
+            timeLineTargets.eventCallbacks['mouseover']({ clientX: 125, clientY: 200 }, data);
 
             assert.equal(integrationEnv.enviromentVariables.$.selectors["#tooltip-div"].html, DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:32:16")));
         });

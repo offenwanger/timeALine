@@ -58,20 +58,17 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             })
             .on('mouseover', (e, d) => {
                 if (mActive) {
-                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                    mMouseOverCallback(d.id, mouseCoords)
-                }
-            })
-            .on('mousemove', (e, d) => {
-                if (mActive) {
-                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                    mMouseMoveCallback(d.id, mouseCoords)
+                    mMouseOverCallback(e, d.id)
                 }
             })
             .on('mouseout', (e, d) => {
                 if (mActive) {
-                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                    mMouseOutCallback(d.id, mouseCoords)
+                    mMouseOutCallback(e, d.id)
+                }
+            })
+            .on('mousemove', (e, d) => {
+                if (mActive) {
+                    mMouseMoveCallback(e, d.id)
                 }
             })
             .on('pointerdown', function (e, d) {

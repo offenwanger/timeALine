@@ -129,30 +129,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
-    mLineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
-        console.error("Fix this! Mouse coords should be calculated here!")
-        lineViewControllerShowTime(timelineId, mouseCoords);
+    mLineViewController.setMouseOverCallback((event, timelineId) => {
+        lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
         mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
     })
+    mLineViewController.setMouseMoveCallback((event, timelineId) => {
+        lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+    });
 
-    mLineViewController.setMouseMoveCallback(lineViewControllerShowTime);
-
-    function lineViewControllerShowTime(timelineId, mouseCoords) {
+    function lineViewControllerShowTime(timelineId, screenCoords) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
-        let pointOnLine = PathMath.getClosestPointOnPath(mouseCoords, timeline.points);
-        try {
-            let message;
-            if (mModelController.getModel().hasTimeMapping(timelineId)) {
-                message = DataUtil.getFormattedDate(new Date(mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent)));
-            } else {
-                message = (Math.round(pointOnLine.percent * 10000) / 100) + "%";
-            }
-            ToolTip.show(message, mouseCoords);
-            mMouseDropShadow.show(pointOnLine, mouseCoords)
-        } catch (e) { console.error(e.stack); }
+
+        let svgCoords = screenToSvgCoords(screenCoords);
+        let pointOnLine = PathMath.getClosestPointOnPath(svgCoords, timeline.points);
+
+        let message;
+        if (mModelController.getModel().hasTimeMapping(timelineId)) {
+            message = DataUtil.getFormattedDate(new Date(mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent)));
+        } else {
+            message = (Math.round(pointOnLine.percent * 10000) / 100) + "%";
+        }
+
+        mMouseDropShadow.show(pointOnLine, svgCoords);
+
+        ToolTip.show(message, screenCoords);
     }
 
-    mLineViewController.setMouseOutCallback((timelineId, mouseCoords) => {
+    mLineViewController.setMouseOutCallback(() => {
         ToolTip.hide();
         mMouseDropShadow.hide();
         mDataTableController.highlightCells([]);
@@ -161,10 +164,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
     let mTimePinController = new TimePinController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mTimePinController.setUpdatePinBindingCallback((timelineId, timePin) => {
+    mTimePinController.setUpdateTimePinCallback((timelineId, timePin) => {
+        // TODO: Too many back and forths here, see if can be simplified
+        if (!timePin.timeStamp && mModelController.getModel().hasTimeMapping(timelineId)) {
+            timePin.timeStamp = mModelController.getModel().mapLinePercentToTime(timelineId, timePin.linePercent);
+        }
+
         mModelController.updatePinBinding(timelineId, timePin);
         modelUpdated();
-    })
+    });
+    mTimePinController.setMouseOverCallback((event, timePin) => {
+        let screenCoords = { x: event.clientX, y: event.clientY };
+        let message = timePin.timeStamp ? DataUtil.getFormattedDate(timePin.timeStamp) : Math.round(timePin.linePercent * 100) + "%";
+
+        let timeCell = mModelController.getModel().getTimeCellForPin(timePin.id);
+        if (timeCell) {
+            if (timeCell.isValid()) {
+                console.error("Bad state. Valid time linked to pin.", timeCell, timePin)
+            } else if (timeCell.getValue()) {
+                message = "<div>" + message + "<div></div>" + timeCell.getValue() + "</div>";
+            }
+        }
+
+        ToolTip.show(message, screenCoords);
+    });
+    mTimePinController.setMouseOutCallback((event, timePin) => {
+        ToolTip.hide();
+    });
 
     let mTextController = new TextController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mTextController.setTextUpdatedCallback((cellId, text) => {

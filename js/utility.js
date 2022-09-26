@@ -433,8 +433,12 @@ let DataUtil = function () {
 
     function getFormattedDate(date) {
         if (!(date instanceof Date)) {
-            console.error("Not a date!", date);
-            return "";
+            let num = date;
+            date = new Date(num);
+            if (isNaN(date)) {
+                console.error("Not a date!", num);
+                return "";
+            }
         }
 
         let year = date.getFullYear();

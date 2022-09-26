@@ -416,6 +416,11 @@ function ModelController() {
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
         timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin);
+
+        let pinsIds = timeline.timePins.map(pin => pin.id);
+        timeline.cellBindings.forEach(b => {
+            if (!pinsIds.includes(b.timePinId)) b.timePinId = null;
+        })
     }
 
     function updateText(cellId, text) {
@@ -512,7 +517,6 @@ function ModelController() {
             })
         } else if (change == TableChange.DELETE_COLUMNS) {
             mModel.getAllTimelines().forEach(timeLine => {
-                let prevCount = timeLine.cellBindings.length;
                 timeLine.cellBindings = timeLine.cellBindings
                     // check each cell to see if it's still in the model, if not, filter it out.
                     .filter(cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
@@ -520,10 +524,20 @@ function ModelController() {
             })
         } else if (change == TableChange.UPDATE_CELLS) {
             mModel.getAllTimelines().forEach(timeLine => {
-                let wasChanged = timeLine.cellBindings.some(b => changeData.includes(b.cellId));
+                let wasChanged = timeLine.cellBindings.some(b => {
+                    if (changeData.includes(b.cellId)) return true;
+
+                    let timeCell = mModel.getTimeCellForDataCell(b.cellId);
+                    if (!timeCell) {
+                        console.error("Bad state! Could not get time cell for cell", b.cellId);
+                    }
+
+                    return changeData.includes(timeCell.id);
+                });
                 if (wasChanged) {
                     updateTimelineAxes(timeLine);
-                    updatePinBindingTimeStamps(timeLine);
+                    updateTimePinTimeStamps(timeLine);
+                    clearTimePinLinks(timeLine);
                 }
             })
         }
@@ -548,6 +562,19 @@ function ModelController() {
                 timeline.axisBindings.push(axis);
             }
         });
+    }
+
+    function clearTimePinLinks(timeline) {
+        timeline.cellBindings.forEach(b => {
+            if (b.timePinId) {
+                let timeCell = mModel.getTimeCellForDataCell(b.cellId);
+                if (!timeCell) return;
+
+                if (timeCell.isValid()) {
+                    b.timePinId = null;
+                }
+            }
+        })
     }
     //// end of table Update Util functions ////
 
@@ -600,10 +627,10 @@ function ModelController() {
             }
         });
 
-        updatePinBindingTimeStamps(timeline);
+        updateTimePinTimeStamps(timeline);
     }
 
-    function updatePinBindingTimeStamps(timeline) {
+    function updateTimePinTimeStamps(timeline) {
         if (mModel.hasTimeMapping(timeline.id) && timeline.timePins.some(pin => !pin.timeStamp)) {
             timeline.timePins.forEach(pin => {
                 if (!pin.timeStamp) {
