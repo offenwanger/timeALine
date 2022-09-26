@@ -37,14 +37,14 @@ describe('Test ModelController', function () {
 
         it('should not have mapping with one cell binding', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("<text>", "Jan 10, 2022", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "<text>", "Jan 10, 2022");
 
             assert.equal(modelController.getModel().hasTimeMapping(timeline.id), false);
         });
 
         it('should not have mapping with one cell binding and one time pin that are the same', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("<text>", "Jan 10, 2022", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "<text>", "Jan 10, 2022");
 
             let timePin = new DataStructs.TimePin(0.5);
             timePin.timeStamp = new Date("Jan 10, 2022").getTime();
@@ -56,8 +56,8 @@ describe('Test ModelController', function () {
         it('should caluclate time with two cell bindings', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
-            modelController.addBoundTextRow("<text1>", "Jan 10, 2022", timeline.id);
-            modelController.addBoundTextRow("<text2>", "Jan 20, 2022", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "<text1>", "Jan 10, 2022");
+            modelController.addBoundTextRow(timeline.id, "<text2>", "Jan 20, 2022");
 
             let percentToTime = function (percent) { return percent * (new Date("Jan 20, 2022").getTime() - new Date("Jan 10, 2022").getTime()) + new Date("Jan 10, 2022").getTime(); }
             expect(modelController.getModel().mapLinePercentToTime(timeline.id, 0)).to.be.closeTo(new Date("Jan 10, 2022").getTime(), 0.0001);
@@ -78,7 +78,7 @@ describe('Test ModelController', function () {
 
         it('should caluclate time with one cell binding and one time pin', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("<text>", "Jan 10, 2022", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "<text>", "Jan 10, 2022");
 
             let timePin = new DataStructs.TimePin(0.5);
             timePin.timeStamp = new Date("Jan 20, 2022").getTime();
@@ -103,7 +103,7 @@ describe('Test ModelController', function () {
 
         it('should caluclate time with one cell binding between two time pins', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("<text>", "Jan 15, 2022", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "<text>", "Jan 15, 2022");
 
             let timePin = new DataStructs.TimePin(0.25);
             timePin.timeStamp = new Date("Jan 10, 2022").getTime();
@@ -144,7 +144,7 @@ describe('Test ModelController', function () {
 
         it('should throw error for get time with one cell binding', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("", 50, timeline.id);
+            modelController.addBoundTextRow(timeline.id, "", 50);
 
             assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
         });
@@ -152,7 +152,7 @@ describe('Test ModelController', function () {
         it('should map bound cell to a value', function () {
             // TODO: map text based on Index
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("some text", "textTimeValue", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "some text", "textTimeValue");
             assert.equal(modelController.getModel().getAllCellBindingData().length, 1);
 
             let binding = modelController.getModel().getAllCellBindingData()[0];
@@ -174,7 +174,7 @@ describe('Test ModelController', function () {
         it('should map text time to no line percent', function () {
             // TODO: map text based on Index
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            modelController.addBoundTextRow("some text", "textTimeValue", timeline.id);
+            modelController.addBoundTextRow(timeline.id, "some text", "textTimeValue");
             assert.equal(modelController.getModel().getAllCellBindingData().length, 1);
 
             let binding = modelController.getModel().getAllCellBindingData()[0];

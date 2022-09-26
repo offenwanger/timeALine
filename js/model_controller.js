@@ -373,7 +373,7 @@ function ModelController() {
         }
     }
 
-    function addBoundTextRow(text, time, timelineId) {
+    function addBoundTextRow(timelineId, text, time, timePin = null) {
         undoStackPush();
 
         if (mModel.getAllTables().length == 0) {
@@ -402,8 +402,15 @@ function ModelController() {
             newRow.dataCells.push(cell);
         }
 
+        let timeline = mModel.getTimelineById(timelineId);
+
         let newBinding = new DataStructs.CellBinding(textCell.id);
-        mModel.getTimelineById(timelineId).cellBindings.push(newBinding);
+        if (timePin) {
+            newBinding.timePinId = timePin.id;
+            timeline.timePins.push(timePin);
+        }
+
+        timeline.cellBindings.push(newBinding);
     }
 
     function updatePinBinding(timelineId, pin) {

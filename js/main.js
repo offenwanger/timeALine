@@ -49,17 +49,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // Note that both click and drag get called, ensure code doesn't overlap. 
     mLineViewController.setLineClickCallback((timelineId, linePoint) => {
         if (mMode == MODE_COMMENT) {
-            // TODO: Open the text input in new comment mode. 
-            let time;
+            // TODO: Open the text input in new comment mode.
+            // TODO: place the text at the mouse click position 
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
-                time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+                let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+                mModelController.addBoundTextRow(timelineId, "<text>", time);
             } else {
-                // this function should be called with some text already
-                time = "";
-                //TODO create a time pin
+                let timePin = new DataStructs.TimePin(linePoint.percent);
+                mModelController.addBoundTextRow(timelineId, "<text>", "", timePin);
             }
 
-            mModelController.addBoundTextRow("<text>", time, timelineId);
 
             modelUpdated();
         } else if (mMode == MODE_LINK) {
