@@ -157,19 +157,21 @@ describe('Test ModelController', function () {
 
             let binding = modelController.getModel().getAllCellBindingData()[0];
 
-            assert.equal(binding.linePercent, 0);
+            assert.equal(binding.linePercent, NO_LINE_PERCENT);
 
-            let timePinData = new DataStructs.TimePin(0.5);
-            timePinData.timeCellId = binding.timeCell.id;
-            modelController.updatePinBinding(timeline.id, timePinData);
+            let timePin = new DataStructs.TimePin(0.5);
+            modelController.updatePinBinding(timeline.id, timePin);
+            modelController.updateTimePinBinding(binding.cellBinding.id, timePin.id);
+
             assert.equal(modelController.getModel().getAllCellBindingData().length, 1);
 
             binding = modelController.getModel().getAllCellBindingData()[0];
 
+            assert.equal(binding.cellBinding.timePinId, timePin.id);
             assert.equal(binding.linePercent, 0.5);
         });
 
-        it('should map text time to 0', function () {
+        it('should map text time to no line percent', function () {
             // TODO: map text based on Index
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
             modelController.addBoundTextRow("some text", "textTimeValue", timeline.id);
@@ -177,7 +179,7 @@ describe('Test ModelController', function () {
 
             let binding = modelController.getModel().getAllCellBindingData()[0];
 
-            assert.equal(binding.linePercent, 0);
+            assert.equal(binding.linePercent, NO_LINE_PERCENT);
         });
     })
 

@@ -215,8 +215,8 @@ function ModelController() {
 
         // split up the time pins into their proper segments
         segments.forEach(s => s.timePins = []);
-        let timePinData = mModel.getTimelineById(timeline.id).timePins;
-        timePinData.forEach(binding => {
+        let timePins = mModel.getTimelineById(timeline.id).timePins;
+        timePins.forEach(binding => {
             let segment = segments.find(s =>
                 binding.linePercent >= s.startPercent &&
                 binding.linePercent <= s.endPercent);
@@ -228,9 +228,12 @@ function ModelController() {
         segments.forEach(s => s.cellBindingsData = []);
         let cellBindingData = mModel.getCellBindingData(timeline.id);
         cellBindingData.forEach(binding => {
+            let linePercent = binding.linePercent;
+            if (linePercent == NO_LINE_PERCENT) linePercent = 0;
+
             let segment = segments.find(s =>
-                binding.linePercent >= s.startPercent &&
-                binding.linePercent <= s.endPercent);
+                linePercent >= s.startPercent &&
+                linePercent <= s.endPercent);
             if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent: " + binding.linePercent); return; };
             segment.cellBindingsData.push(binding);
         });
@@ -436,6 +439,13 @@ function ModelController() {
 
         let cellBinding = mModel.getCellBindingById(cellBindingId);
         cellBinding.offset = offset;
+    }
+
+    function updateTimePinBinding(cellBindingId, timePinId) {
+        undoStackPush();
+
+        let cellBinding = mModel.getCellBindingById(cellBindingId);
+        cellBinding.timePinId = timePinId;
     }
 
     function addTimelineStroke(timelineId, points, color) {
@@ -702,6 +712,7 @@ function ModelController() {
     this.addBoundTextRow = addBoundTextRow;
     this.updateText = updateText;
     this.updateTextOffset = updateTextOffset;
+    this.updateTimePinBinding = updateTimePinBinding;
 
     this.addTimelineStroke = addTimelineStroke;
 

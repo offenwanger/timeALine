@@ -158,6 +158,9 @@ describe('Test Main - Integration Test', function () {
                     y: Math.round(d.y)
                 }
             }).sort((a, b) => a.x - b.x == 0 ? a.y - b.y : a.x - b.x)).to.eql([{
+                x: 50,
+                y: 70,
+            }, {
                 x: 100,
                 y: 0,
             }, {
@@ -166,9 +169,6 @@ describe('Test Main - Integration Test', function () {
             }, {
                 x: 100,
                 y: 28,
-            }, {
-                x: 100,
-                y: 70,
             }, {
                 x: 107,
                 y: 70,
@@ -538,7 +538,7 @@ describe('Test Main - Integration Test', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 12);
             expect(integrationEnv.ModelController.getModel().getAllCellBindingData().map(cbd => Math.round(cbd.linePercent * 100) / 100).sort())
-                .to.eql([0, 0, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
+                .to.eql([NO_LINE_PERCENT, NO_LINE_PERCENT, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
 
             // this erases a chunk between .26 and .32 percent of the line
             IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv);
@@ -569,12 +569,12 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 3);
 
             IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
-                [1, 0, "", "1"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "2"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "1.3"], [3, 1, "", "text4"], [3, 2, "", "10"],
-                [4, 0, "", "1.1"], [4, 1, "", "text6"], [4, 2, "", "12"],
-                [5, 0, "", "1.9"], [5, 1, "", "text7"], [5, 2, "", "17"],
+                [0, 0, "", "Jan 10"], [0, 1, "", "10"], [0, 2, "", "text1"],
+                [1, 0, "", "Jan 11"], [1, 1, "", "20"], [1, 2, "", "text5"],
+                [2, 0, "", "Jan 12"], [2, 1, "", "text2"], [2, 2, "", "text3"],
+                [3, 0, "", "Jan 13"], [3, 1, "", "text4"], [3, 2, "", "10"],
+                [4, 0, "", "Jan 14"], [4, 1, "", "text6"], [4, 2, "", "12"],
+                [5, 0, "", "Jan 15"], [5, 1, "", "text7"], [5, 2, "", "17"],
             ])
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 3, 1]];
@@ -584,7 +584,7 @@ describe('Test Main - Integration Test', function () {
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
-            timeLineTargets.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
+            timeLineTargets.eventCallbacks.mouseover({ x: 150, y: 102 }, data);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert(integrationEnv.enviromentVariables.handsontables.length > 0);

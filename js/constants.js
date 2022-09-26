@@ -1,5 +1,8 @@
 const TAIL_LENGTH = 50;
 
+// taking an int here as it might do wierd things but is less likely to cause crashes. 
+const NO_LINE_PERCENT = -1;
+
 const DataTypes = {
     TEXT: 'text',
     NUM: 'num',

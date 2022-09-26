@@ -52,11 +52,20 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         boundData.forEach(binding => {
             let annotationData;
             if (!mDataCache[timeline.id].bindings[binding.cellBinding.id] || mDataCache[timeline.id].bindings[binding.cellBinding.id] != JSON.stringify(binding)) {
-                let pos = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
+                let linePercent = binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0;
+                let pos = PathMath.getPositionForPercent(timeline.points, linePercent);
                 let text = binding.dataCell.getValue();
                 let offsetX = binding.cellBinding.offset.x;
                 let offsetY = binding.cellBinding.offset.y;
-                annotationData = { x: pos.x, y: pos.y, text, offsetX, offsetY, binding };
+                annotationData = {
+                    x: pos.x,
+                    y: pos.y,
+                    text,
+                    offsetX,
+                    offsetY,
+                    hasTime: binding.linePercent != NO_LINE_PERCENT,
+                    binding
+                };
 
                 mDataCache[timeline.id].bindings[binding.cellBinding.id] = JSON.stringify(binding);
                 mDataCache[timeline.id].annotationData[binding.cellBinding.id] = annotationData;
@@ -101,7 +110,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 }
 
                 horizontalLineData.push({ x1: x1 - linePadding, x2: x2 + linePadding, y: closeY });
-                connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY });
+                connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY, hasTime: d.hasTime });
                 interactionTargetData.push(Object.assign({
                     binding: d.binding,
                     text: d.text,
@@ -114,7 +123,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
 
         setupInteractionTargets(timeline, interactionTargetData);
 
-        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line_' + timeline.id).data(horizontalLineData);
+        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line_' + timeline.id)
+            .data(horizontalLineData);
         horizontalLines.exit().remove();
         horizontalLines.enter()
             .append('line')
@@ -129,13 +139,15 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr('y2', function (d) { return d.y });
 
 
-        let connectingLines = mDisplayGroup.selectAll('.connecting-line_' + timeline.id).data(connectingLineData);
+        let connectingLines = mDisplayGroup.selectAll('.connecting-line_' + timeline.id)
+            .data(connectingLineData);
         connectingLines.exit().remove();
         connectingLines.enter()
             .append('line')
             .classed("connecting-line_" + timeline.id, true)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
+            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
             .attr('opacity', 0.6);
         mDisplayGroup.selectAll('.connecting-line_' + timeline.id)
             .attr('x1', function (d) { return d.x1 })

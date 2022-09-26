@@ -22,17 +22,20 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
             if (!dataCell) { console.error("Failed to get cell for column"); return; }
             if (dataCell.id != cellBinding.cellId) throw new ModelStateError("Got the wrong cell!");
 
-            // TODO: Drop this data in the tail
             let linePercent;
             if (timeCell.isValid()) {
                 linePercent = mapTimeToLinePercent(timeline.id, timeCell.getValue());
             } else {
-                let timePin = timeline.timePins.find(pin => pin.timeCellId == timeCell.id);
-                if (timePin) {
-                    linePercent = timePin.linePercent;
+                if (cellBinding.timePinId) {
+                    let timePin = timeline.timePins.find(pin => pin.id == cellBinding.timePinId);
+                    if (timePin) {
+                        linePercent = timePin.linePercent;
+                    } else {
+                        console.error("Time pin not found for cell binding!", cellBinding);
+                        linePercent = NO_LINE_PERCENT;
+                    }
                 } else {
-                    console.error("Finish me! Indicate unknown mapping here");
-                    linePercent = 0;
+                    linePercent = NO_LINE_PERCENT;
                 }
             }
             let axis = timeline.axisBindings.find(a => a.columnId == dataCell.columnId);
@@ -233,7 +236,7 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
 }
 
 
-DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCell, tableId, rowId, linePercent, axisBinding = null) {
+DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCell, tableId, rowId, linePercent = NO_LINE_PERCENT, axisBinding = null) {
     this.cellBinding = cellBinding;
     this.timeline = timeline;
     this.dataCell = dataCell;

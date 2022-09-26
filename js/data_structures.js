@@ -42,17 +42,19 @@ let DataStructs = function () {
         this.cellId = cellId;
         // text value display offset
         this.offset = { x: 10, y: 10 };
-        this.pinId = null;
+        this.timePinId = null;
 
         this.clone = function () {
             let binding = new CellBinding(this.cellId);
             binding.offset = this.offset;
+            binding.timePinId = this.timePinId;
             return binding;
         }
 
         this.copy = function () {
             let binding = new CellBinding(this.cellId);
             binding.offset = this.offset;
+            binding.timePinId = this.timePinId;
             binding.id = this.id;
             return binding;
         }
@@ -60,6 +62,7 @@ let DataStructs = function () {
     CellBinding.fromObject = function (obj) {
         let binding = new CellBinding(obj.cellId);
         binding.offset = obj.offset;
+        binding.timePinId = obj.timePinId;
         binding.id = obj.id;
         return binding;
     }
@@ -77,7 +80,6 @@ let DataStructs = function () {
         this.clone = function () {
             let binding = new TimePin(this.linePercent);
             binding.timeStamp = this.timeStamp;
-            binding.timeCellId = this.timeCellId;
             return binding;
         };
 
@@ -85,7 +87,6 @@ let DataStructs = function () {
             let binding = new TimePin(this.linePercent);
             binding.id = this.id;
             binding.timeStamp = this.timeStamp;
-            binding.timeCellId = this.timeCellId;
             return binding;
         }
     }
@@ -93,7 +94,6 @@ let DataStructs = function () {
         let binding = new TimePin(obj.linePercent);
         binding.id = obj.id;
         binding.timeStamp = obj.timeStamp;
-        binding.timeCellId = obj.timeCellId;
 
         // for robustness in case a Date get into a time pin instead of a timestamp
         if (typeof binding.timeStamp === 'string' || binding.timeStamp instanceof String) {
@@ -226,7 +226,7 @@ let DataStructs = function () {
         this.isTimeCell = true;
 
         this.isValid = function () {
-            return !isNaN(new Date(this.val)) || !isNaN(new Date(parseInt(this.val)));
+            return this.val && !isNaN(new Date(this.val)) || !isNaN(new Date(parseInt(this.val)));
         }
 
         this.getValue = function () {

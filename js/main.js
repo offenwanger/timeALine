@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mPanning = false;
     let mViewTransform = { x: 0, y: 0, rotation: 0 };
 
+    let mDraggingTimePinId = null;
+
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
 
@@ -128,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     mLineViewController.setMouseOverCallback((timelineId, mouseCoords) => {
+        console.error("Fix this! Mouse coords should be calculated here!")
         lineViewControllerShowTime(timelineId, mouseCoords);
         mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
     })
@@ -158,8 +161,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
     let mTimePinController = new TimePinController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mTimePinController.setUpdatePinBindingCallback((timelineId, timePinData) => {
-        mModelController.updatePinBinding(timelineId, timePinData);
+    mTimePinController.setUpdatePinBindingCallback((timelineId, timePin) => {
+        mModelController.updatePinBinding(timelineId, timePin);
         modelUpdated();
     })
 
@@ -185,14 +188,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData.linePercent = linePoint.percent;
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
 
-            let binding = new DataStructs.TimePin(linePoint.percent);
+            let timePin = new DataStructs.TimePin(linePoint.percent);
             if (cellBindingData.timeCell.isValid()) {
-                binding.timeStamp = cellBindingData.timeCell.getValue();
+                timePin.timeStamp = cellBindingData.timeCell.getValue();
             } else {
-                binding.timeCellId = cellBindingData.timeCell.id;
+                mDraggingTimePinId = timePin.id;
+                cellBindingData.timePinId = timePin.id;
             }
 
-            mTimePinController.pinDragStart(timeline.id, binding);
+            mTimePinController.pinDragStart(timeline.id, timePin);
             mTextController.drawTimelineAnnotations(timeline, [cellBindingData]);
         }
 
@@ -242,6 +246,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let offset = MathUtil.subtractAFromB(linePoint, coords);
             mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
+            mModelController.updateTimePinBinding(cellBindingData.cellBinding.id, mDraggingTimePinId)
+            mDraggingTimePinId = null;
+
             // this will trigger a time pin update, which will update everything
             mTimePinController.pinDragEnd(cellBindingData.timeline.id, linePoint.percent);
 
@@ -267,14 +274,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mMode == MODE_PIN) {
             let linePoint = PathMath.getClosestPointOnPath(coords, cellBindingData.timeline.points);
 
-            let binding = new DataStructs.TimePin(linePoint.percent);
+            let timePin = new DataStructs.TimePin(linePoint.percent);
             if (cellBindingData.timeCell.isValid()) {
-                binding.timeStamp = cellBindingData.timeCell.getValue();
+                timePin.timeStamp = cellBindingData.timeCell.getValue();
             } else {
-                binding.timeCellId = cellBindingData.timeCell.id;
+                mDraggingTimePinId = timePin.id;
+                cellBindingData.timePinId = timePin.id;
             }
 
-            mTimePinController.pinDragStart(cellBindingData.timeline.id, binding);
+            mTimePinController.pinDragStart(cellBindingData.timeline.id, timePin);
             cellBindingData.linePercent = linePoint.percent;
             mDataPointController.drawPoints([cellBindingData.timeline], [cellBindingData]);
         }
@@ -293,6 +301,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataPointController.setDragEndCallback((cellBindingData, startPos, coords) => {
         if (mMode == MODE_PIN) {
+            mModelController.updateTimePinBinding(cellBindingData.cellBinding.id, mDraggingTimePinId)
+            mDraggingTimePinId = null;
+
             let linePoint = PathMath.getClosestPointOnPath(coords, cellBindingData.timeline.points);
             // this will trigger a time pin update, which will update everything
             mTimePinController.pinDragEnd(cellBindingData.timeline.id, linePoint.percent);

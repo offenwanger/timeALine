@@ -84,9 +84,9 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
     //// point draw utility ////
     function getTimelineDrawingData(timeline, boundData) {
-        let drawingData = boundData.filter(b => b.linePercent >= 0 && b.linePercent <= 1).map(b => getDrawingData(timeline, b));
-        let tail1Data = boundData.filter(b => b.linePercent < 0).map(b => getDrawingData(timeline, b));
-        let tail2Data = boundData.filter(b => b.linePercent > 1).map(b => getDrawingData(timeline, b));
+        let drawingData = boundData.filter(b => b.linePercent != NO_LINE_PERCENT && b.linePercent >= 0 && b.linePercent <= 1).map(b => getDrawingData(timeline, b));
+        let tail1Data = boundData.filter((b, index) => (b.linePercent == NO_LINE_PERCENT && index % 2 == 0) || b.linePercent < 0).map(b => getDrawingData(timeline, b));
+        let tail2Data = boundData.filter((b, index) => (b.linePercent == NO_LINE_PERCENT && index % 2 == 1) || b.linePercent > 1).map(b => getDrawingData(timeline, b));
 
         drawingData.push(...filterAndFade(tail1Data, TAIL_POINT_COUNT));
         drawingData.push(...filterAndFade(tail2Data, TAIL_POINT_COUNT));
