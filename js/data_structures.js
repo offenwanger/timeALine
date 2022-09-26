@@ -232,7 +232,11 @@ let DataStructs = function () {
         this.getValue = function () {
             // if this isn't valid, return a string to display.
             if (!this.isValid()) {
-                return this.val.toString();
+                if (!this.val) {
+                    return "";
+                } else {
+                    return this.val.toString();
+                }
             } else if (!isNaN(new Date(this.val))) {
                 return new Date(this.val).getTime();
             } else if (!isNaN(new Date(parseInt(this.val)))) {
