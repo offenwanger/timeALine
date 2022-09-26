@@ -452,6 +452,20 @@ let DataUtil = function () {
         return month + " " + day + ", " + year + " " + hour + ":" + min + ":" + sec;
     }
 
+    function filterTimePinByChangedPin(pins, changedPin) {
+        let filtered = pins.filter(pin => {
+            // clear the binding out of the array so we can readd the new data
+            if (pin.id == changedPin.id) return false;
+            if (!pin.timeStamp || !changedPin.timeStamp) return true;
+
+            // otherwise make sure time and bindings both increase in the same direction
+            return (pin.timeStamp < changedPin.timeStamp && pin.linePercent < changedPin.linePercent) ||
+                (pin.timeStamp > changedPin.timeStamp && pin.linePercent > changedPin.linePercent);
+        });
+        filtered.push(changedPin);
+        return filtered;
+    }
+
 
     return {
         inferDataAndType,
@@ -464,7 +478,9 @@ let DataUtil = function () {
         AEqualsB,
         incrementAByB,
 
-        getFormattedDate
+        getFormattedDate,
+
+        filterTimePinByChangedPin,
     }
 }();
 

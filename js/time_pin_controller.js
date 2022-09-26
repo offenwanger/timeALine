@@ -180,17 +180,10 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             if (linePercent < 0) linePercent = 0;
             if (linePercent > 1) linePercent = 1;
 
-            let binding = mDraggingBinding.copy();
-            binding.linePercent = linePercent;
+            let changedPin = mDraggingBinding.copy();
+            changedPin.linePercent = linePercent;
 
-            let tempBindings = mBindings[timelineId].filter(pin =>
-                // clear the binding out of the array so we can readd the new data
-                pin.id != binding.id && (
-                    !pin.timeStamp ||
-                    // otherwise make sure time and bindings both increase in the same direction
-                    (pin.timeStamp < binding.timeStamp && pin.linePercent < binding.linePercent) ||
-                    (pin.timeStamp > binding.timeStamp && pin.linePercent > binding.linePercent)));
-            tempBindings.push(binding);
+            let tempBindings = DataUtil.filterTimePinByChangedPin(mBindings[timelineId], changedPin);
 
             let linePoints = mLinePoints[timelineId];
 

@@ -188,7 +188,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData.linePercent = linePoint.percent;
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
 
-            let timePin = new DataStructs.TimePin(linePoint.percent);
+            let timePin = timeline.timePins.find(pin => pin.id == cellBindingData.cellBinding.timePinId);
+            if (!timePin) timePin = new DataStructs.TimePin(linePoint.percent);
+
             if (cellBindingData.timeCell.isValid()) {
                 timePin.timeStamp = cellBindingData.timeCell.getValue();
             } else {

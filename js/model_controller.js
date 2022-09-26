@@ -406,7 +406,7 @@ function ModelController() {
         mModel.getTimelineById(timelineId).cellBindings.push(newBinding);
     }
 
-    function updatePinBinding(timelineId, binding) {
+    function updatePinBinding(timelineId, pin) {
         undoStackPush();
 
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
@@ -415,16 +415,7 @@ function ModelController() {
 
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        timeline.timePins = timeline.timePins.filter(pin =>
-            // clear the binding out of the array so we can readd the new data
-            pin.id != binding.id &&
-            // if we don't have timestamps set, we have no information to eliminate bindings on.
-            (!pin.timeStamp ||
-                // otherwise make sure time and bindings both increase in the same direction
-                (pin.timeStamp < binding.timeStamp && pin.linePercent < binding.linePercent) ||
-                (pin.timeStamp > binding.timeStamp && pin.linePercent > binding.linePercent)));
-
-        timeline.timePins.push(binding);
+        timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin);
     }
 
     function updateText(cellId, text) {
