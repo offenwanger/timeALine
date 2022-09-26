@@ -63,7 +63,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                     text,
                     offsetX,
                     offsetY,
-                    hasTime: binding.linePercent != NO_LINE_PERCENT,
+                    hasTime: binding.timeCell.isValid(),
                     binding
                 };
 
@@ -147,13 +147,13 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .classed("connecting-line_" + timeline.id, true)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
-            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
             .attr('opacity', 0.6);
         mDisplayGroup.selectAll('.connecting-line_' + timeline.id)
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
-            .attr('y2', function (d) { return d.y2 });
+            .attr('y2', function (d) { return d.y2 })
+            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3");
     }
 
     function setupInteractionTargets(timeline, interactionTargetData) {
