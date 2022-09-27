@@ -122,7 +122,7 @@ before(function () {
             return {
                 x: function () { return this },
                 y: function () { return this },
-                curve: function () { return function (val) { return val } },
+                curve: function () { return function (val) { return [...val] } },
                 node: function () { },
             }
         };
