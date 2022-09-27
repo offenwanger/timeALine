@@ -11,7 +11,7 @@ describe('Test TimePinController', function () {
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
         DataStructs = integrationEnv.enviromentVariables.DataStructs;
-        getTimePinController =  function (externalCall) {
+        getTimePinController = function (externalCall) {
             let TimePinController = integrationEnv.enviromentVariables.TimePinController;
             let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
             return new TimePinController(new mockElement(), new mockElement(), new mockElement(), externalCall);
@@ -111,11 +111,11 @@ describe('Integration Test TimePinController', function () {
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w =>w.timeStamp).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp).sort())
                 .to.eql([
-                    0.25*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
-                    0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
-                    0.75*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
+                    0.25 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                    0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                    0.75 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
                 ]);
         });
 
@@ -157,8 +157,8 @@ describe('Integration Test TimePinController', function () {
             // the timeline has the point set
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, 
-                0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp,
+                0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // no new data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
@@ -199,7 +199,8 @@ describe('Integration Test TimePinController', function () {
 
             bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
-            expect(bindingTickData.position).to.eql({ x: 125, y: 100 });
+            assert.equal(bindingTickData.position.x, 125);
+            assert.equal(bindingTickData.position.y, 100);
 
             // the timeline not been updated yet
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
@@ -232,7 +233,7 @@ describe('Integration Test TimePinController', function () {
 
             // we have three ticks in data and three drawn
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
-            
+
             let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId];
             assert.equal(tickTargets.innerData.length, 3)
 
@@ -249,7 +250,8 @@ describe('Integration Test TimePinController', function () {
 
             let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
-            expect(bindingTickData.position).to.eql({ x: 110, y: 100 });
+            assert.equal(bindingTickData.position.x, 110);
+            assert.equal(bindingTickData.position.y, 100);
 
             // finish the drag
             IntegrationUtils.pointerUp({ x: 110, y: 110 }, integrationEnv);
@@ -257,8 +259,8 @@ describe('Integration Test TimePinController', function () {
             // the timeline has been updated
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].linePercent, 0.1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp, 
-                0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp,
+                0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // no new data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
@@ -281,7 +283,7 @@ describe('Integration Test TimePinController', function () {
                 .to.eql([0.25, 0.50, 0.75]);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp))
                 .to.eql([null, null, null]);
-            
+
             IntegrationUtils.bindDataToLine(timelineId, [
                 ["Jan 10, 2021", "sometext1"],
                 ["Jan 18, 2021", "sometext2"],
@@ -293,11 +295,11 @@ describe('Integration Test TimePinController', function () {
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.linePercent * 100) / 100).sort())
                 .to.eql([0.25, 0.50, 0.75]);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w =>w.timeStamp).sort())
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp).sort())
                 .to.eql([
-                    0.25*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
-                    0.50*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(), 
-                    0.75*(new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
+                    0.25 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                    0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                    0.75 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
                 ]);
         });
     })

@@ -220,7 +220,7 @@ before(function () {
                 let lineLen = Math.sqrt(diffX * diffX + diffY * diffY);
                 if (length >= len && length <= len + lineLen) {
                     let percent = (length - len) / lineLen
-                    return { x: diffX * percent + a.x, y: diffY * percent + a.y };
+                    return { x: diffX * percent + a.x, y: diffY * percent + a.y, svgPoint: true };
                 }
 
                 len += lineLen;

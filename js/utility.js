@@ -68,12 +68,30 @@ let MathUtil = function () {
         var dot = aToPoint.x * aToB.x + aToPoint.y * aToB.y;
         var t = dot / sqLenAToB;
 
-        dot = (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x);
-
         return {
             x: a.x + aToB.x * t,
             y: a.y + aToB.y * t,
             neg: t < 0
+        };
+    }
+
+    function projectPointOntoLine(coords, point1, point2) {
+        var p1ToP2 = {
+            x: point2.x - point1.x,
+            y: point2.y - point1.y
+        };
+        var p1ToCoords = {
+            x: coords.x - point1.x,
+            y: coords.y - point1.y
+        };
+        var p1ToP2LenSquared = p1ToP2.x * p1ToP2.x + p1ToP2.y * p1ToP2.y;
+        var dot = p1ToCoords.x * p1ToP2.x + p1ToCoords.y * p1ToP2.y;
+        var percent = Math.min(1, Math.max(0, dot / p1ToP2LenSquared));
+
+        return {
+            x: point1.x + p1ToP2.x * percent,
+            y: point1.y + p1ToP2.y * percent,
+            percent: percent
         };
     }
 
@@ -103,6 +121,7 @@ let MathUtil = function () {
         normalize,
         getPointAtDistanceAlongVector,
         projectPointOntoVector,
+        projectPointOntoLine,
         vectorToRotation,
         rotateVectorLeft,
         rotateVectorRight,
@@ -110,16 +129,66 @@ let MathUtil = function () {
 }();
 
 let PathMath = function () {
+    let cache = {};
+    const PATH_PRECISION = 10; // pixels
+
+    function getHash(points) {
+        if (!Array.isArray(points)) {
+            console.error("Bad point array: ", points);
+            return "";
+        };
+
+        return points.map(p => "(" + Math.round(p.x) + "," + Math.round(p.y) + ")").join(",");
+    }
+
+    function getPathData(points) {
+        if (!Array.isArray(points)) {
+            console.error("Bad point array: ", points);
+            return {};
+        };
+
+        let hash = getHash(points);
+        if (!cache[hash]) {
+            cache[hash] = { accessed: Date.now() }
+
+            if (Object.keys(cache).length > 10) {
+                // ditch the least used
+                let deleteItem = Object.entries(cache).reduce((min, d) => {
+                    if (d[1].accessed < min[1].accessed) {
+                        return d;
+                    } else {
+                        return min;
+                    }
+                })
+
+                delete cache[deleteItem[0]]
+            }
+        }
+        return cache[hash]
+    }
+
     let mLineGenerator;
     function getPathD(points) {
-        if (!mLineGenerator) {
-            mLineGenerator = d3.line()
-                .x((p) => p.x)
-                .y((p) => p.y)
-                .curve(d3.curveCatmullRom.alpha(0.5));
+        if (!Array.isArray(points)) {
+            console.error("Bad point array: ", points);
+            return "";
+        };
+
+        let pathData = getPathData(points);
+        pathData.accessed = Date.now();
+
+        if (!pathData.pathD) {
+            if (!mLineGenerator) {
+                mLineGenerator = d3.line()
+                    .x((p) => p.x)
+                    .y((p) => p.y)
+                    .curve(d3.curveCatmullRom.alpha(0.5));
+            }
+
+            pathData.pathD = mLineGenerator(points);
         }
 
-        return mLineGenerator(points);
+        return pathData.pathD;
     }
 
     function getPath(points) {
@@ -129,64 +198,72 @@ let PathMath = function () {
     }
 
     function getPathLength(points) {
-        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getPathD(points));
-        return path.getTotalLength();
+        let pathData = getPathData(points);
+        pathData.accessed = Date.now();
+
+        if (!pathData.length) {
+            let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute('d', getPathD(points));
+            pathData.length = path.getTotalLength();
+        }
+
+        return pathData.length;
     }
 
-    function equalsPath(path1, path2) {
-        if (path1.length != path2.length) return false;
-        for (let i = 0; i < path1.length; i++) {
-            if (path1[i].x != path2[i].x || path1[i].y != path2[i].y) return false;
+    function equalsPath(points1, points2) {
+        if (points1.length != points2.length) return false;
+        for (let i = 0; i < points1.length; i++) {
+            if (points1[i].x != points2[i].x || points1[i].y != points2[i].y) return false;
         }
         return true;
     }
 
-    function getClosestPointOnPath(point, points) {
-        if (!Array.isArray(points)) throw new Error("Bad point array: " + points);
+    function getClosestPointOnPath(coords, points) {
+        if (!Array.isArray(points)) {
+            console.error("Bad point array: ", points);
+            return { x: 0, y: 0, percent: 0, length: 0 };
+        };
 
-        let path = getPath(points);
-        let pathLength = path.getTotalLength();
-        let precision = 20;
+        let pathData = getPathData(points);
+        pathData.accessed = Date.now();
 
-        let bestPoint;
-        let bestLength;
-        let bestDistance = Infinity;
-
-        for (let scanLength = 0; scanLength <= pathLength + precision; scanLength += precision) {
-            let scan = path.getPointAtLength(Math.min(scanLength, pathLength));
-            let scanDistance = MathUtil.distanceFromAToB(scan, point);
-            if (scanDistance < bestDistance) {
-                bestPoint = scan;
-                bestLength = Math.min(scanLength, pathLength);
-                bestDistance = scanDistance;
-            }
+        if (!pathData.pointsStructure) {
+            pathData.pointsStructure = createPointsStructure(points);
         }
 
-        // binary search for precise estimate
-        while (precision > 0.5) {
-            precision /= 2;
+        let pointsStructure = pathData.pointsStructure;
 
-            let beforeLength = bestLength - precision;
-            let beforePoint = path.getPointAtLength(beforeLength);
-            let beforeDistance = MathUtil.distanceFromAToB(beforePoint, point);
-
-            let afterLength = bestLength + precision;
-            let afterPoint = path.getPointAtLength(afterLength);
-            let afterDistance = MathUtil.distanceFromAToB(afterPoint, point);
-
-            if (beforeLength >= 0 && beforeDistance < bestDistance) {
-                bestPoint = beforePoint;
-                bestLength = beforeLength;
-                bestDistance = beforeDistance;
-            } else if (afterLength <= pathLength && afterDistance < bestDistance) {
-                bestPoint = afterPoint;
-                bestLength = afterLength;
-                bestDistance = afterDistance;
-            }
+        if (pointsStructure.length < 2) {
+            console.error("Bad state! Should be impossible for points structures to have less than 2 points.", pointsStructure);
+            return { x: 0, y: 0, percent: 0, length: 0 };
         }
 
-        return { x: bestPoint.x, y: bestPoint.y, percent: bestLength / path.getTotalLength(), length: bestLength };
+        let point1 = pointsStructure.reduce((minData, pointData) => {
+            let dist = MathUtil.distanceFromAToB(coords, pointData.point);
+            if (dist < minData.dist) {
+                return { dist, pointData };
+            } else {
+                return minData;
+            }
+        }, { dist: Infinity }).pointData;
+
+        // we now have 1 - 2 points to check to see which is closest;
+        let point2 = (point1.index + 1) == pointsStructure.length ? null : pointsStructure[point1.index + 1];
+        let prevPoint = point1.index == 0 ? null : pointsStructure[point1.index - 1];
+        if (!point2 || (prevPoint &&
+            MathUtil.distanceFromAToB(coords, prevPoint.point) <
+            MathUtil.distanceFromAToB(coords, point2.point))) {
+            point2 = point1;
+            point1 = prevPoint;
+        }
+
+        let pathLength = getPathLength(points);
+        let projectedPoint = MathUtil.projectPointOntoLine(coords, point1.point, point2.point);
+        let lenOnLine = MathUtil.distanceFromAToB(point1.point, point2.point) * projectedPoint.percent;
+        let length = lenOnLine + point1.percent * pathLength;
+        let percent = length / pathLength;
+
+        return { x: projectedPoint.x, y: projectedPoint.y, percent, length };
     }
 
     function getPositionForPercent(points, percent) {
@@ -341,6 +418,67 @@ let PathMath = function () {
             };
         })]
     }
+
+    // UTILITY //
+
+
+    function createPointsStructure(points) {
+        let path = getPath(points);
+        let pathLength = getPathLength(points);
+
+        let pointsStructure = [];
+        for (let scanLength = 0; scanLength < pathLength + PATH_PRECISION; scanLength += PATH_PRECISION) {
+            let currLen = Math.min(scanLength, pathLength);
+
+            // get the point
+            let point = path.getPointAtLength(currLen);
+            pointsStructure.push({
+                point: { x: point.x, y: point.y },
+                percent: currLen / pathLength,
+                normal: getNormal(point, currLen, pathLength, path)
+            });
+        }
+
+        // if the line is really twisty, add extra points.
+        let refinedPointsStructure = [pointsStructure[0]];
+        for (let i = 1; i < pointsStructure.length; i++) {
+            if (MathUtil.distanceFromAToB(pointsStructure[i - 1].point, pointsStructure[i].point) < 0.75 * PATH_PRECISION) {
+                let percent = (pointsStructure[i - 1].percent + pointsStructure[i].percent) / 2;
+                let currLen = pathLength * percent;
+                let point = path.getPointAtLength(currLen);
+
+                refinedPointsStructure.push({
+                    point: { x: point.x, y: point.y },
+                    percent,
+                    normal: getNormal(point, currLen, pathLength, path)
+                });
+            }
+
+            refinedPointsStructure.push(pointsStructure[i])
+        }
+
+        for (let i = 0; i < refinedPointsStructure.length; i++) {
+            refinedPointsStructure[i].index = i;
+        }
+
+        return refinedPointsStructure;
+    }
+
+    function getNormal(point, pointLen, pathLength, path) {
+        let point1 = point;
+        let point2;
+        if (pointLen + 1 > pathLength) {
+            point1 = path.getPointAtLength(pointLen - 1);
+            point2 = point;
+        } else {
+            point2 = path.getPointAtLength(pointLen + 1);
+        }
+        let normal = MathUtil.rotateVectorRight(MathUtil.normalize(MathUtil.vectorFromAToB(point1, point2)));
+
+        return normal;
+    }
+
+    // END UTILITY //
 
     return {
         getPathD,
