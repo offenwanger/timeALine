@@ -365,10 +365,10 @@ let PathMath = function () {
 
         let segments = []
 
-        let seg = { label: labelerFunc(metaPoints[0].point), points: [metaPoints[0].point] };
+        let seg = { label: labelerFunc(metaPoints[0].point, metaPoints[0].percent), points: [metaPoints[0].point] };
         for (let i = 1; i < metaPoints.length; i++) {
             let point = metaPoints[i].point;
-            let label = labelerFunc(point);
+            let label = labelerFunc(point, metaPoints[i].percent);
             if (label == seg.label) {
                 if (metaPoints[i].isOriginal) seg.points.push(point);
             } else {
