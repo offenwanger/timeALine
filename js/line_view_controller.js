@@ -27,7 +27,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     }
 
     function drawPlainLines(timelines) {
-        let paths = mLineGroup.selectAll('.timelinePath').data(timelines.map(path => path.points));
+        let paths = mLineGroup.selectAll('.timelinePath').data(timelines);
         paths.enter().append('path')
             .classed('timelinePath', true)
             .attr('fill', 'none')
@@ -36,7 +36,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mLineGroup.selectAll('.timelinePath').attr('d', (points) => PathMath.getPathD(points));
+        mLineGroup.selectAll('.timelinePath').attr('d', (timeline) => PathMath.getPathD(timeline.points));
 
         let points = mLineGroup.selectAll(".pointMarkerCircle").data(timelines.map(path => path.points).flat())
         points.enter()
@@ -64,36 +64,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             timePins = timePins.filter(pin => pin.linePercent || pin.linePercent == 0);
             timePins.sort((a, b) => a.linePercent - b.linePercent);
 
-            let timeRatios = [];
-            for (let i = 1; i < timePins.length; i++) {
-                timeRatios.push((timePins[i].timeStamp - timePins[i - 1].timeStamp) / (timePins[i].linePercent - timePins[i - 1].linePercent));
-            }
-            let minRatio = Math.min(...timeRatios);
-            let maxRatio = Math.max(...timeRatios);
-            let opacityValues = [];
-            for (let i = 0; i < timeRatios.length; i++) {
-                opacityValues.push(((timeRatios[i] - minRatio) / (maxRatio - minRatio)) * 0.8 + 0.2);
-            }
-
-            let segments = PathMath.segmentPath(timeline.points, function (point, percent) {
-                if (percent >= timePins[timePins.length - 1].linePercent) {
-                    return opacityValues[opacityValues.length - 1]
-                }
-
-                for (let i = 0; i < timePins.length; i++) {
-                    if (percent < timePins[i].linePercent) {
-                        if (i == 0) {
-                            return opacityValues[i];
-                        } else {
-                            return opacityValues[i - 1];
-                        }
-                    }
-                }
-
-                console.error("Code should be unreachable! Should have returned by now!");
-                return 1;
-            });
-
+            let segments = getDrawingSegments(timeline, timePins);
+            segments.forEach(segment => segment.id = timeline.id);
             allSegments.push(...segments);
         });
 
@@ -109,6 +81,59 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         mLineGroup.selectAll('.warped-timeline-path')
             .attr('opacity', (segment) => segment.label)
             .attr('d', (segment) => PathMath.getPathD(segment.points));
+    }
+
+    function drawWarpedTimeline(timeline, timePins) {
+        d3.selectAll(".warped-timeline-path").filter(function (d) { return d.id == timeline.id; }).remove();
+        d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
+        d3.selectAll(".temp").remove();
+
+        let segments = getDrawingSegments(timeline, timePins);
+        mLineGroup.selectAll(".temp")
+            .data(segments)
+            .enter()
+            .append('path')
+            .classed('temp', true)
+            .classed('warped-timeline-path', true)
+            .attr('fill', 'none')
+            .attr('stroke', 'steelblue')
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+            .attr('opacity', (segment) => segment.label)
+            .attr('d', (segment) => PathMath.getPathD(segment.points));
+    }
+
+    function getDrawingSegments(timeline, timePins) {
+        let timeRatios = [];
+        for (let i = 1; i < timePins.length; i++) {
+            timeRatios.push((timePins[i].timeStamp - timePins[i - 1].timeStamp) / (timePins[i].linePercent - timePins[i - 1].linePercent));
+        }
+        let minRatio = Math.min(...timeRatios);
+        let maxRatio = Math.max(...timeRatios);
+        let opacityValues = [];
+        for (let i = 0; i < timeRatios.length; i++) {
+            opacityValues.push(((timeRatios[i] - minRatio) / (maxRatio - minRatio)) * 0.8 + 0.2);
+        }
+
+        return PathMath.segmentPath(timeline.points, function (point, percent) {
+            if (percent >= timePins[timePins.length - 1].linePercent) {
+                return opacityValues[opacityValues.length - 1]
+            }
+
+            for (let i = 0; i < timePins.length; i++) {
+                if (percent < timePins[i].linePercent) {
+                    if (i == 0) {
+                        return opacityValues[i];
+                    } else {
+                        return opacityValues[i - 1];
+                    }
+                }
+            }
+
+            console.error("Code should be unreachable! Should have returned by now!");
+            return 1;
+        });
     }
 
     function drawLineTargets(timelines) {
@@ -180,6 +205,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     }
 
     this.updateModel = updateModel;
+    this.drawWarpedTimeline = drawWarpedTimeline;
     this.setActive = setActive;
     this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;

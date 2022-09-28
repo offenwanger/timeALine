@@ -88,6 +88,7 @@ before(function () {
                 } else return new MockElement();
             };
             this.remove = () => { };
+            this.filter = function () { return this; };
             this.innerData = null;
             this.data = function (data) { this.innerData = data; return this; };
             this.datum = function (data) { if (data) { this.innerData = data; return this; } else return this.innerData };

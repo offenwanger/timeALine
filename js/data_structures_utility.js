@@ -225,6 +225,10 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
         return mTimelines.find(t => t.id == id);
     }
 
+    function getTimelineForTimePin(timePinId) {
+        return mTimelines.find(t => t.timePins.some(pin => pin.id == timePinId));
+    }
+
     function getTableById(id) {
         return mDataTables.find(t => t.id == id);
     }
@@ -241,6 +245,7 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
     this.setTables = (tables) => mDataTables = tables;
 
     this.getTimelineById = getTimelineById;
+    this.getTimelineForTimePin = getTimelineForTimePin;
     this.getAllTimelines = function () { return mTimelines };
     this.getTableById = getTableById;
     this.getAllTables = function () { return mDataTables };

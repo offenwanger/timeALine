@@ -10,9 +10,10 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
     let mDragging = false;
     let mDraggingBinding = null;
-    let mDraggingTimeline = null;
 
-    let mUpdatePinBindingCallback = () => { };
+    let mDragStartCallback = () => { };
+    let mDragCallback = () => { };
+    let mDragEndCallback = () => { };
     let mMouseOverCallback = () => { };
     let mMouseOutCallback = () => { };
 
@@ -36,36 +37,31 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             mLinePoints[timeline.id] = timeline.points;
             mBindings[timeline.id] = timeline.timePins;
             drawTails(timeline.id, timeline.points);
-            drawPinTicks(timeline.id, timeline.points, timeline.timePins);
+            drawPinTicks(timeline, timeline.timePins);
         });
     }
 
-    function drawPinTicks(timelineId, linePoints, timePins) {
+    function drawPinTicks(timeline, timePins) {
         timePins.sort((a, b) => a.linePercent - b.linePercent)
 
         let tickData = [];
         let tickTargetData = [];
 
         timePins.forEach(binding => {
-            let position = PathMath.getPositionForPercent(linePoints, binding.linePercent);
+            let position = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
 
-            let degrees;
-            if (binding.linePercent > 0) {
-                let positionBefore = PathMath.getPositionForPercent(linePoints, binding.linePercent - 1);
-                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
-            } else {
-                let positionAfter = PathMath.getPositionForPercent(linePoints, binding.linePercent + 1);
-                degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(position, positionAfter)) - 90;
-            }
+            let positionBefore = PathMath.getNormalForPercent(timeline.points, binding.linePercent - 1);
+            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
+
 
             tickData.push({ position, degrees, binding });
             tickTargetData.push({ position, degrees, binding });
         });
 
-        let ticks = mPinTickGroup.selectAll('.pinTick_' + timelineId).data(tickData);
+        let ticks = mPinTickGroup.selectAll('.pinTick_' + timeline.id).data(tickData);
         ticks.exit().remove();
-        ticks.enter().append('line').classed('pinTick_' + timelineId, true);
-        mPinTickGroup.selectAll('.pinTick_' + timelineId)
+        ticks.enter().append('line').classed('pinTick_' + timeline.id, true);
+        mPinTickGroup.selectAll('.pinTick_' + timeline.id)
             .style("stroke", "black")
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", (d) => PIN_TICK_WIDTH)
@@ -74,20 +70,19 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - PIN_TICK_LENGTH / 2);
 
-        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId)
+        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
             .data(tickTargetData);
         targets.exit().remove();
         targets.enter().append('line')
-            .classed('pinTickTarget_' + timelineId, true)
+            .classed('pinTickTarget_' + timeline.id, true)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
             .on('pointerdown', (event, d) => {
                 if (mActive) {
                     mDragging = true;
-                    let bindingData = Object.entries(mBindings).find(([timelineId, timePins]) => timePins.some(pin => pin.id == d.binding.id))
-                    if (!bindingData) { console.error("Bad state! Timeline not found for binding!", d.binding); return; }
-                    pinDragStart(bindingData[0], d.binding);
+                    mDraggingBinding = d.binding;
+                    mDragStartCallback(event, d.binding);
                 }
             })
             .on("mouseover", (event, d) => {
@@ -97,7 +92,7 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
                 mMouseOutCallback(event, d.binding);
             })
 
-        mPinTickTargetGroup.selectAll('.pinTickTarget_' + timelineId)
+        mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", PIN_TICK_TARGET_SIZE + PIN_TICK_WIDTH)
             .attr("x1", (d) => d.position.x)
@@ -144,60 +139,14 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
     function onPointerMove(coords) {
         if (mActive && mDragging) {
-            let linePercent = PathMath.getClosestPointOnPath(coords, mLinePoints[mDraggingTimeline]).percent;
-            pinDrag(mDraggingTimeline, linePercent);
+            mDragCallback(coords, mDraggingBinding);
         }
     }
 
     function onPointerUp(coords) {
         if (mActive && mDragging) {
             mDragging = false;
-
-            let linePercent = PathMath.getClosestPointOnPath(coords, mLinePoints[mDraggingTimeline]).percent;
-            pinDragEnd(mDraggingTimeline, linePercent);
-
-            mDraggingTimeline = null;
-        }
-    }
-
-    function pinDragStart(timelineId, timePin) {
-        if (mActive) {
-            mDraggingBinding = timePin;
-            mDraggingTimeline = timelineId;
-            pinDrag(timelineId, timePin.linePercent);
-        }
-    }
-
-    function pinDrag(timelineId, linePercent) {
-        if (mActive) {
-            if (!mDraggingBinding) { console.error("Bad state! Binding not set!"); return; }
-
-            if (linePercent < 0) linePercent = 0;
-            if (linePercent > 1) linePercent = 1;
-
-            let changedPin = mDraggingBinding.copy();
-            changedPin.linePercent = linePercent;
-
-            let tempBindings = DataUtil.filterTimePinByChangedPin(mBindings[timelineId], changedPin);
-
-            let linePoints = mLinePoints[timelineId];
-
-            // TODO: It would be more efficient to just hide the temp deleted bindings. 
-            drawPinTicks(timelineId, linePoints, tempBindings);
-        }
-    }
-
-    function pinDragEnd(timelineId, linePercent) {
-        if (mActive) {
-            if (!mDraggingBinding) throw new Error("Bad state! Binding not set!")
-
-            if (linePercent < 0) linePercent = 0;
-            if (linePercent > 1) linePercent = 1;
-
-            let binding = mDraggingBinding.copy();
-            binding.linePercent = linePercent;
-
-            mUpdatePinBindingCallback(timelineId, binding);
+            mDragEndCallback(coords, mDraggingBinding);
 
             mDraggingBinding = null;
         }
@@ -212,14 +161,13 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     };
 
     this.updateModel = updateModel;
+    this.drawPinTicks = drawPinTicks;
 
-    this.setUpdateTimePinCallback = (callback) => mUpdatePinBindingCallback = callback;
+    this.setDragStartCallback = (callback) => mDragStartCallback = callback;
+    this.setDragCallback = (callback) => mDragCallback = callback;
+    this.setDragEndCallback = (callback) => mDragEndCallback = callback
     this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
     this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
-
-    this.pinDragStart = pinDragStart;
-    this.pinDrag = pinDrag;
-    this.pinDragEnd = pinDragEnd;
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
