@@ -268,16 +268,16 @@ describe('Test ModelController', function () {
             let timePin = new DataStructs.TimePin(0.75);
             modelController.updatePinBinding(timeline.id, timePin);
 
-            let oldSegments = PathMath.segmentPath(timeline.points, true, (point) => point.x > 11 ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
+            let oldSegments = PathMath.segmentPath(timeline.points, (point) => point.x > 11 ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
             let newSegments = oldSegments.map(s => { return { label: s.label, points: [...s.points] } });
             newSegments[1].points = [{ x: 15, y: 0 }, { x: 20, y: 10 }, { x: 20, y: 0 }]
 
             modelController.updateTimelinePoints(timeline.id, oldSegments, newSegments);
 
             assert.equal(modelController.getModel().getAllTimelines().length, 1);
-            expect(modelController.getModel().getAllTimelines()[0].points.map(p => p.y)).to.eql([0, 0, 0, 0, 0, 10, 0]);
+            expect(modelController.getModel().getAllTimelines()[0].points.map(p => p.y)).to.eql([0, 0, 0, 0, 10, 0]);
             assert.equal(modelController.getModel().getAllTimelines()[0].timePins.length, 1);
-            expect(modelController.getModel().getAllTimelines()[0].timePins[0].linePercent).to.be.closeTo(0.55, 0.01);
+            expect(modelController.getModel().getAllTimelines()[0].timePins[0].linePercent).to.be.closeTo(0.41, 0.01);
 
         });
     })

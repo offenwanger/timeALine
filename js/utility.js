@@ -76,6 +76,15 @@ let MathUtil = function () {
     }
 
     function projectPointOntoLine(coords, point1, point2) {
+        if (MathUtil.pointsEqual(point1, point2)) {
+            console.error("Invalid Line!", point1, point2);
+            return {
+                x: point1.x,
+                y: point1.y,
+                percent: 0
+            }
+        }
+
         var p1ToP2 = {
             x: point2.x - point1.x,
             y: point2.y - point1.y
@@ -168,33 +177,24 @@ let PathMath = function () {
     }
 
     let mLineGenerator;
+    function getLineGenerator() {
+        if (!mLineGenerator) {
+            mLineGenerator = d3.line()
+                .x((p) => p.x)
+                .y((p) => p.y)
+                .curve(d3.curveCatmullRom.alpha(0.5));
+        }
+        return mLineGenerator;
+    }
+
+
     function getPathD(points) {
         if (!Array.isArray(points)) {
             console.error("Bad point array: ", points);
             return "";
         };
 
-        let pathData = getPathData(points);
-        pathData.accessed = Date.now();
-
-        if (!pathData.pathD) {
-            if (!mLineGenerator) {
-                mLineGenerator = d3.line()
-                    .x((p) => p.x)
-                    .y((p) => p.y)
-                    .curve(d3.curveCatmullRom.alpha(0.5));
-            }
-
-            pathData.pathD = mLineGenerator(points);
-        }
-
-        return pathData.pathD;
-    }
-
-    function getPath(points) {
-        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getPathD(points));
-        return path;
+        return getLineGenerator()(points);
     }
 
     function getPathLength(points) {
@@ -208,6 +208,12 @@ let PathMath = function () {
         }
 
         return pathData.length;
+    }
+
+    function getSubpathLength(points, index) {
+        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute('d', getPathD(points.slice(0, index + 1)));
+        return path.getTotalLength();
     }
 
     function equalsPath(points1, points2) {
@@ -224,21 +230,14 @@ let PathMath = function () {
             return { x: 0, y: 0, percent: 0, length: 0 };
         };
 
-        let pathData = getPathData(points);
-        pathData.accessed = Date.now();
+        let metaPoints = getMetaPoints(points);
 
-        if (!pathData.pointsStructure) {
-            pathData.pointsStructure = createPointsStructure(points);
-        }
-
-        let pointsStructure = pathData.pointsStructure;
-
-        if (pointsStructure.length < 2) {
-            console.error("Bad state! Should be impossible for points structures to have less than 2 points.", pointsStructure);
+        if (metaPoints.length < 2) {
+            console.error("Bad state! Should be impossible for points structures to have less than 2 points.", metaPoints);
             return { x: 0, y: 0, percent: 0, length: 0 };
         }
 
-        let point1 = pointsStructure.reduce((minData, pointData) => {
+        let point1 = metaPoints.reduce((minData, pointData) => {
             let dist = MathUtil.distanceFromAToB(coords, pointData.point);
             if (dist < minData.dist) {
                 return { dist, pointData };
@@ -248,8 +247,9 @@ let PathMath = function () {
         }, { dist: Infinity }).pointData;
 
         // we now have 1 - 2 points to check to see which is closest;
-        let point2 = (point1.index + 1) == pointsStructure.length ? null : pointsStructure[point1.index + 1];
-        let prevPoint = point1.index == 0 ? null : pointsStructure[point1.index - 1];
+        let point2 = (point1.index + 1) == metaPoints.length ? null : metaPoints[point1.index + 1];
+        let prevPoint = point1.index == 0 ? null : metaPoints[point1.index - 1];
+
         if (!point2 || (prevPoint &&
             MathUtil.distanceFromAToB(coords, prevPoint.point) <
             MathUtil.distanceFromAToB(coords, point2.point))) {
@@ -271,43 +271,76 @@ let PathMath = function () {
         if (!points) throw new Error("Invalid point array:  " + points);
         if (points.length < 2) throw new Error("Invalid point array, too short: " + points);
 
-        if (percent < 0) {
+        if (percent <= 0) {
             let direction = MathUtil.vectorFromAToB(points[1], points[0]);
             let length = Math.abs(percent) * TAIL_LENGTH;
             return MathUtil.getPointAtDistanceAlongVector(length, direction, points[0]);
-        } else if (percent > 1) {
+        } else if (percent >= 1) {
             let direction = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]);
             let length = (percent - 1) * TAIL_LENGTH;
             return MathUtil.getPointAtDistanceAlongVector(length, direction, points[points.length - 1]);
         } else {
-            let path = getPath(points);
-            let length = path.getTotalLength() * percent;
-            let point = path.getPointAtLength(length);
-            return { x: point.x, y: point.y };
+            let metaPoints = getMetaPoints(points);
+            let afterPoint = null;
+            for (let i = 0; i < metaPoints.length; i++) {
+                if (percent < metaPoints[i].percent) {
+                    afterPoint = metaPoints[i];
+                    break;
+                }
+            }
+            if (afterPoint.index == 0) {
+                console.error("Code should be unreachable", percent, afterPoint);
+                afterPoint = metaPoints[1];
+            }
+            let beforePoint = metaPoints[afterPoint.index - 1];
+
+            let percentBetween = (percent - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
+            let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
+            let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
+
+            return { x, y };
         }
     }
 
     function getNormalForPercent(points, percent) {
         if (points.length < 2) throw new Error("invalid point array! Too short!", points);
 
-        let path = getPath(points);
-        let totalLength = path.getTotalLength();
-        let length = totalLength * percent;
-
-        let point1, point2;
-        // if the percent is really close to or off the end
-        if (length < 1) {
-            point1 = points[0]
-            point2 = points[1];
-        } else if (length > totalLength - 1) {
-            point1 = points[points.length - 2];
-            point2 = points[points.length - 1];
+        if (percent <= 0) {
+            return MathUtil.rotateVectorRight(
+                MathUtil.normalize(
+                    MathUtil.vectorFromAToB(points[0], points[1])));
+        } else if (percent >= 1) {
+            return MathUtil.rotateVectorRight(
+                MathUtil.normalize(
+                    MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1])));
         } else {
-            point1 = path.getPointAtLength(length);
-            point2 = path.getPointAtLength(length + 1);
-        }
+            let metaPoints = getMetaPoints(points);
+            let afterPoint = null;
+            for (let i = 0; i < metaPoints.length; i++) {
+                if (percent < metaPoints[i].percent) {
+                    afterPoint = metaPoints[i];
+                    break;
+                }
+            }
+            if (afterPoint.index == 0) {
+                console.error("Code should be unreachable", "percent:" + percent, afterPoint);
+                afterPoint = metaPoints[1];
+            }
+            let beforePoint = metaPoints[afterPoint.index - 1];
 
-        return MathUtil.rotateVectorRight(MathUtil.normalize(MathUtil.vectorFromAToB(point1, point2)));
+            let normalPositionBefore = MathUtil.addAToB(beforePoint.point, beforePoint.normal);
+            let normalPositionAfter = MathUtil.addAToB(afterPoint.point, afterPoint.normal);
+
+            let percentBetween = (percent - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
+            let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
+            let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
+            let normalX = percentBetween * (normalPositionAfter.x - normalPositionBefore.x) + normalPositionBefore.x;
+            let normalY = percentBetween * (normalPositionAfter.y - normalPositionBefore.y) + normalPositionBefore.y;
+
+            let normalVector = MathUtil.vectorFromAToB({ x, y }, { x: normalX, y: normalY });
+
+            return MathUtil.normalize(normalVector);
+        }
     }
 
     function getPositionForPercentAndDist(points, percent, dist) {
@@ -327,68 +360,24 @@ let PathMath = function () {
         return returnable;
     }
 
-    function segmentPath(points, fineDetail, labelerFunc) {
+    function segmentPath(points, labelerFunc) {
+        let metaPoints = getMetaPoints(points);
+
         let segments = []
 
-        let seg = { label: labelerFunc(points[0]), points: [points[0]] };
-        for (let i = 1; i < points.length; i++) {
-            let point = points[i];
+        let seg = { label: labelerFunc(metaPoints[0].point), points: [metaPoints[0].point] };
+        for (let i = 1; i < metaPoints.length; i++) {
+            let point = metaPoints[i].point;
             let label = labelerFunc(point);
             if (label == seg.label) {
-                seg.points.push(point);
+                if (metaPoints[i].isOriginal) seg.points.push(point);
             } else {
+                seg.points.push(point);
                 segments.push(seg)
-                seg = { label, points: [point] }
+                seg = { label, points: [{ x: point.x, y: point.y }] }
             }
         }
         segments.push(seg);
-
-        if (fineDetail && segments.length == 1) {
-            let originalSegment = segments[0];
-
-            segments = [];
-            let seg = { label: originalSegment.label, points: [originalSegment.points[0]] };
-            for (let i = 1; i < originalSegment.points.length; i++) {
-                let startLen = getPathLength(originalSegment.points.slice(0, i))
-                let subPath = getPath(originalSegment.points.slice(0, i + 1));
-                let endLen = subPath.getTotalLength();
-
-                for (let len = startLen; len < endLen; len++) {
-                    let point = subPath.getPointAtLength(len);
-                    let label = labelerFunc(point);
-                    if (label != seg.label) {
-                        seg.points.push({ x: point.x, y: point.y });
-                        segments.push(seg);
-                        seg = { label, points: [{ x: point.x, y: point.y }] }
-                    }
-                }
-
-                seg.points.push(originalSegment.points[i]);
-            }
-            segments.push(seg);
-
-        } else if (fineDetail) {
-            for (let i = 0; i < segments.length - 1; i++) {
-                let startLen = getPathLength(mergeSegments(segments.slice(0, i + 1)))
-                let subPath = getPath(mergeSegments(segments.slice(0, i + 2)));
-                let endLen = subPath.getTotalLength();
-
-                let found = false;
-                for (let len = startLen; len < endLen; len++) {
-                    let point = subPath.getPointAtLength(len);
-                    let label = labelerFunc(point);
-                    if (label != segments[i].label) {
-                        if (label != segments[i + 1].label) console.error("Something funky going on here.", label, segments[i].label, segments[i + 1].label);
-                        // we found the crossover point
-                        segments[i].points.push({ x: point.x, y: point.y });
-                        segments[i + 1].points.unshift({ x: point.x, y: point.y });
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) console.error("Unhandled edge case! But probably won't break anything by itself.");
-            }
-        }
 
         return segments;
     }
@@ -421,18 +410,30 @@ let PathMath = function () {
 
     // UTILITY //
 
+    function getMetaPoints(points) {
+        let pathData = getPathData(points);
+        pathData.accessed = Date.now();
 
-    function createPointsStructure(points) {
-        let path = getPath(points);
+        if (!pathData.metaPoints) {
+            pathData.metaPoints = createMetaPoints(points);
+        }
+
+        return pathData.metaPoints;
+    }
+
+    function createMetaPoints(points) {
+        let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute('d', getPathD(points));
+
         let pathLength = getPathLength(points);
 
-        let pointsStructure = [];
+        let metaPoints = [];
         for (let scanLength = 0; scanLength < pathLength + PATH_PRECISION; scanLength += PATH_PRECISION) {
             let currLen = Math.min(scanLength, pathLength);
 
             // get the point
             let point = path.getPointAtLength(currLen);
-            pointsStructure.push({
+            metaPoints.push({
                 point: { x: point.x, y: point.y },
                 percent: currLen / pathLength,
                 normal: getNormal(point, currLen, pathLength, path)
@@ -440,28 +441,55 @@ let PathMath = function () {
         }
 
         // if the line is really twisty, add extra points.
-        let refinedPointsStructure = [pointsStructure[0]];
-        for (let i = 1; i < pointsStructure.length; i++) {
-            if (MathUtil.distanceFromAToB(pointsStructure[i - 1].point, pointsStructure[i].point) < 0.75 * PATH_PRECISION) {
-                let percent = (pointsStructure[i - 1].percent + pointsStructure[i].percent) / 2;
+        let prevPointsStructure = metaPoints;
+        metaPoints = [metaPoints[0]];
+        for (let i = 1; i < prevPointsStructure.length; i++) {
+            if (MathUtil.distanceFromAToB(prevPointsStructure[i - 1].point, prevPointsStructure[i].point) < 0.75 * PATH_PRECISION) {
+                let percent = (prevPointsStructure[i - 1].percent + prevPointsStructure[i].percent) / 2;
                 let currLen = pathLength * percent;
                 let point = path.getPointAtLength(currLen);
 
-                refinedPointsStructure.push({
+                metaPoints.push({
                     point: { x: point.x, y: point.y },
                     percent,
                     normal: getNormal(point, currLen, pathLength, path)
                 });
             }
 
-            refinedPointsStructure.push(pointsStructure[i])
+            metaPoints.push(prevPointsStructure[i])
         }
 
-        for (let i = 0; i < refinedPointsStructure.length; i++) {
-            refinedPointsStructure[i].index = i;
+        let originalPoints = [];
+        for (let i = 0; i < points.length; i++) {
+            let point = points[i];
+            let currLen = getSubpathLength(points, i);
+            originalPoints.push({
+                point: { x: point.x, y: point.y },
+                percent: currLen / pathLength,
+                normal: getNormal(point, currLen, pathLength, path),
+                isOriginal: true
+            });
         }
 
-        return refinedPointsStructure;
+        prevPointsStructure = originalPoints.concat(metaPoints);
+        prevPointsStructure.sort((a, b) => a.percent - b.percent);
+        metaPoints = [prevPointsStructure[0]]
+        for (let i = 1; i < prevPointsStructure.length; i++) {
+            let pointData = prevPointsStructure[i];
+            let lastPointData = metaPoints[metaPoints.length - 1];
+            if (MathUtil.pointsEqual(lastPointData.point, pointData.point)) {
+                // we're going to assume that if the percents are the same the points are close enough to make no difference
+                lastPointData.isOriginal = lastPointData.isOriginal || pointData.isOriginal;
+            } else {
+                metaPoints.push(pointData);
+            }
+        }
+
+        for (let i = 0; i < metaPoints.length; i++) {
+            metaPoints[i].index = i;
+        }
+
+        return metaPoints;
     }
 
     function getNormal(point, pointLen, pathLength, path) {
@@ -482,7 +510,6 @@ let PathMath = function () {
 
     return {
         getPathD,
-        getPath,
         getPathLength,
         equalsPath,
         getPositionForPercent,

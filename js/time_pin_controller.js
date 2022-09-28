@@ -43,21 +43,18 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     function drawPinTicks(timelineId, linePoints, timePins) {
         timePins.sort((a, b) => a.linePercent - b.linePercent)
 
-        let path = PathMath.getPath(linePoints);
-        let totalLength = path.getTotalLength();
-
         let tickData = [];
         let tickTargetData = [];
 
         timePins.forEach(binding => {
-            let position = path.getPointAtLength(totalLength * binding.linePercent);
+            let position = PathMath.getPositionForPercent(linePoints, binding.linePercent);
 
             let degrees;
             if (binding.linePercent > 0) {
-                let positionBefore = path.getPointAtLength(totalLength * binding.linePercent - 1);
+                let positionBefore = PathMath.getPositionForPercent(linePoints, binding.linePercent - 1);
                 degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
             } else {
-                let positionAfter = path.getPointAtLength(totalLength * binding.linePercent + 1);
+                let positionAfter = PathMath.getPositionForPercent(linePoints, binding.linePercent + 1);
                 degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(position, positionAfter)) - 90;
             }
 

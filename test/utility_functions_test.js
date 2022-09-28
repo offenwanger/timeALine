@@ -111,7 +111,7 @@ describe('Test PathMath', function () {
                 { x: 20, y: 20 }
             ]
 
-            let segments = PathMath.segmentPath(points, false, (point) => {
+            let segments = PathMath.segmentPath(points, (point) => {
                 if (point.x == 15 && point.y == 15) return "labelYes";
                 else return "labelNo";
             });
@@ -125,7 +125,7 @@ describe('Test PathMath', function () {
                 { x: 0, y: 100 }
             ]
 
-            let segments = PathMath.segmentPath(points, true, (point) => {
+            let segments = PathMath.segmentPath(points, (point) => {
                 if (point.y > 40 && point.y <= 50) return "labelYes";
                 else return "labelNo";
             });

@@ -132,11 +132,11 @@ describe('Test DragController', function () {
             dragController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
-                assert.equal(result[0].oldSegments[1].points.length, 3);
+                assert.equal(result[0].oldSegments[1].points.length, 2);
                 assert.equal(result[0].newSegments.length, 3);
-                assert.equal(result[0].newSegments[1].points.length, 3);
-                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(14.2, .1);
-                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(13.4, .1);
+                assert.equal(result[0].newSegments[1].points.length, 2);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(14.2, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
                 called = true;
             })
 
@@ -167,11 +167,11 @@ describe('Test DragController', function () {
                 assert.equal(result[0].newSegments.length, 3);
                 assert.equal(result[0].newSegments[1].points.length, 2);
 
-                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(13.4, .1);
-                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(14.1, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(14.1, .1);
 
-                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(27.5, .1);
-                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(27.5, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(28.2, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(28.2, .1);
 
                 called = true;
             })
@@ -204,14 +204,14 @@ describe('Test DragController', function () {
                 assert.equal(result[0].newSegments.length, 3);
                 assert.equal(result[0].newSegments[1].points.length, 3);
 
-                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(13.4, .1);
-                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(14.1, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(14.1, .1);
 
                 expect(result[0].newSegments[1].points[1].x).to.be.closeTo(20, .1);
                 expect(result[0].newSegments[1].points[1].y).to.be.closeTo(20, .1);
 
-                expect(result[0].newSegments[1].points[2].x).to.be.closeTo(27, 1);
-                expect(result[0].newSegments[1].points[2].y).to.be.closeTo(27, 1);
+                expect(result[0].newSegments[1].points[2].x).to.be.closeTo(28.2, 1);
+                expect(result[0].newSegments[1].points[2].y).to.be.closeTo(28.2, 1);
 
                 called = true;
             })
@@ -254,10 +254,10 @@ describe('Test DragController', function () {
                 assert.equal(result[0].oldSegments[1].points.length, 2);
                 assert.equal(result[0].newSegments.length, 3);
                 assert.equal(result[0].newSegments[1].points.length, 2);
-                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(168.4, .1);
-                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(67.7, .1);
-                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(188.4, .1);
-                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(67.2, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(175.5, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(67.5, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(195.5, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(67.0, .1);
                 called = true;
             })
 

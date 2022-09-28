@@ -33,11 +33,10 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
             let brushRadius = mBrushController.getBrushRadius();
             mDragging = true;
             mDragStartPos = coords;
-
             mLines.forEach(line => {
                 let closestPoint = PathMath.getClosestPointOnPath(coords, line.points);
                 if (MathUtil.distanceFromAToB(closestPoint, coords) < brushRadius) {
-                    let oldSegments = PathMath.segmentPath(line.points, true,
+                    let oldSegments = PathMath.segmentPath(line.points,
                         (point) => MathUtil.distanceFromAToB(point, coords) < brushRadius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
                     let newSegments = PathMath.cloneSegments(oldSegments);
 

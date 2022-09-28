@@ -92,7 +92,7 @@ function EraserController(vizLayer, overlayLayer, interactionLayer, getAllLinePa
                 let segmentsData = checkedPaths.map(p => {
                     return {
                         id: p.id,
-                        segments: PathMath.segmentPath(p.points, true, (point) => {
+                        segments: PathMath.segmentPath(p.points, (point) => {
                             return mask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
                         })
                     }

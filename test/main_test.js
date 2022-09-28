@@ -464,7 +464,7 @@ describe('Test Main - Integration Test', function () {
     describe('Data linking - eraser test', function () {
         it('should correctly add end time pins', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 50, y: 10 }, { x: 100, y: 10 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }, { x: 200, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
             IntegrationUtils.bindDataToLine(integrationEnv.ModelController.getModel().getAllTimelines()[0].id, [
                 ["Jan 10, 2021", "7"],
@@ -474,17 +474,17 @@ describe('Test Main - Integration Test', function () {
             // add a few comments
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 0, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 200, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 10, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickLine({ x: 100, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 5, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 50, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 95, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 190, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.erase([
-                { x: 30, y: 10 },
-                { x: 30, y: 100 },
-                { x: 70, y: 100 },
-                { x: 70, y: 10 }], 10, integrationEnv);
+                { x: 60, y: 10 },
+                { x: 60, y: 100 },
+                { x: 140, y: 100 },
+                { x: 140, y: 10 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
@@ -497,7 +497,7 @@ describe('Test Main - Integration Test', function () {
                 0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
                 0.95 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
             ]);
-            expect(timePins.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.25, 0.47, 0.74]);
+            expect(timePins.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.2, 0.4, 0.75]);
         });
 
         it('should eliminate and split cell bindings', function () {

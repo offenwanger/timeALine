@@ -53,7 +53,7 @@ describe('Test EraserController', function () {
                 id: "id2", points: [
                     { x: 10, y: 10 },
                     { x: 20, y: 20 },
-                    { x: 30, y: 30 }]
+                    { x: 40, y: 40 }]
             }];
             let eraserController = getEraserController(getTimelines);
             eraserController.setActive(true);
@@ -65,7 +65,7 @@ describe('Test EraserController', function () {
                 assert.equal(result[0].segments[0].label, SEGMENT_LABELS.DELETED)
                 assert.equal(result[0].segments[0].points[0].x, 10)
                 assert.equal(result[0].segments[1].label, SEGMENT_LABELS.UNAFFECTED)
-                assert.equal(Math.round(result[0].segments[1].points[0].x), 26)
+                assert.equal(Math.round(result[0].segments[1].points[0].x), 31)
                 called = true;
             });
 
@@ -99,7 +99,7 @@ describe('Test EraserController', function () {
                 assert.equal(result[0].segments[0].label, SEGMENT_LABELS.UNAFFECTED)
                 assert.equal(result[0].segments[0].points[0].x, 40)
                 assert.equal(result[0].segments[1].label, SEGMENT_LABELS.DELETED)
-                assert.equal(Math.round(result[0].segments[1].points[0].x), 70)
+                assert.equal(Math.round(result[0].segments[1].points[0].x), 75)
                 called = true;
             });
 
@@ -164,11 +164,11 @@ describe('Test EraserController', function () {
                 assert.equal(result[0].segments[1].points.length, 2);
                 assert.equal(result[0].segments[2].points.length, 3);
 
-                expect(result[0].segments[1].points[0].x).to.be.closeTo(10.6, .1);
-                expect(result[0].segments[1].points[0].y).to.be.closeTo(10.6, .1);
+                expect(result[0].segments[1].points[0].x).to.be.closeTo(14.1, .1);
+                expect(result[0].segments[1].points[0].y).to.be.closeTo(14.1, .1);
 
-                expect(result[0].segments[1].points[1].x).to.be.closeTo(29.7, .1);
-                expect(result[0].segments[1].points[1].y).to.be.closeTo(29.7, .1);
+                expect(result[0].segments[1].points[1].x).to.be.closeTo(35.3, .1);
+                expect(result[0].segments[1].points[1].y).to.be.closeTo(35.3, .1);
 
                 called = true;
             })
@@ -331,8 +331,8 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
                 .to.eql([
                     [[0.25, 0.5]],
-                    [[0.11, 0.24, 0.37, 0.49, 0.62, 0.75]],
-                    [[0.06, 0.14, 0.21, 0.24]]
+                    [[0, 0.14, 0.29, 0.43, 0.57, 0.71]],
+                    [[0.0, 0.08, 0.15, 0.19]]
                 ]);
         });
 
@@ -397,8 +397,8 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
                 .to.eql([
                     [[0.25, 1], [1, 0.25]],
-                    [[0.49, 0.74], [0.74, 0.49]],
-                    [[0.23, 0.74, 0.74, 0.23]]
+                    [[0.33, 0.67], [0.67, 0.33]],
+                    [[0, 0.67, 0.67, 0]]
                 ]);
         });
     });

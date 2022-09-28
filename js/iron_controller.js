@@ -27,10 +27,10 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
         if (mActive) {
             mDragging = true;
             mStartPosition = coords;
-            
+
             let radius = mBrushController.getBrushRadius();
             mLines.forEach(line => {
-                let oldSegments = PathMath.segmentPath(line.points, true,
+                let oldSegments = PathMath.segmentPath(line.points,
                     (point) => MathUtil.distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
 
                 if (oldSegments.length == 0) { console.error("Failed to get segments for line", line); return; };

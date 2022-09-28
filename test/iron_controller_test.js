@@ -159,9 +159,9 @@ describe('Test IronController', function () {
 
                 expect(result[0].newSegments[1].points).to.not.eql(result[0].oldSegments[1].points);
                 expect(result[0].oldSegments[1].points.map(p => { return { x: Math.round(p.x), y: Math.round(p.y) } }))
-                    .to.eql([{ x: 261, y: 320 }, { x: 265, y: 320 }, { x: 280, y: 321 }]);
+                    .to.eql([{ x: 260, y: 320 }, { x: 265, y: 320 }, { x: 280, y: 321 }]);
                 expect(result[0].newSegments[1].points.map(p => { return { x: Math.round(p.x), y: Math.round(p.y) } }))
-                    .to.eql([{ x: 261, y: 320 }, { x: 280, y: 321 }]);
+                    .to.eql([{ x: 260, y: 320 }, { x: 280, y: 321 }]);
 
                 called = true;
             })
@@ -195,11 +195,11 @@ describe('Test IronController', function () {
                 assert.equal(result[0].newSegments[1].points.length, 2);
                 assert.equal(result[0].newSegments[2].points.length, 3);
 
-                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(13.4, .1);
-                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(13.4, .1);
+                expect(result[0].newSegments[1].points[0].x).to.be.closeTo(14.1, .1);
+                expect(result[0].newSegments[1].points[0].y).to.be.closeTo(14.1, .1);
 
-                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(27.5, .1);
-                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(27.5, .1);
+                expect(result[0].newSegments[1].points[1].x).to.be.closeTo(28.2, .1);
+                expect(result[0].newSegments[1].points[1].y).to.be.closeTo(28.2, .1);
 
                 called = true;
             })
@@ -244,7 +244,7 @@ describe('Integration Test IronController', function () {
             IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].points).to.not.eql(beforePoints);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 7);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 8);
         });
     })
 });
