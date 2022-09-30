@@ -672,6 +672,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
+    $("#toggle-timeline-style-button").on("click", () => {
+        mLineViewController.toggleStyle(mModelController.getModel());
+    })
+
     $("#lens-button").on("click", () => {
         if (mMode == MODE_LENS) {
             setDefaultMode()

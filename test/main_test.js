@@ -668,4 +668,53 @@ describe('Test Main - Integration Test', function () {
             }
         })
     })
+
+    describe('Style Test', function () {
+        it('should toggle without error', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }, { x: 200, y: 10 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "7"],
+                ["Jan 11, 2021", "17"],
+                ["Jan 12 2021", "19"],
+                ["Jan 13, 2021", "23"],
+                ["Jan 18, 2021", "31"],
+                ["Jan 19, 2021", "2"],
+                ["Jan 20, 2021", "18"]
+            ], integrationEnv)
+
+            // add a few comments
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 0, y: 10 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 200, y: 10 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 10, y: 10 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 10 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 190, y: 10 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            // add some pins
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 140, y: 12 }, { x: 125, y: 12 }], timelineId, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 12);
+
+            // toggle and drag again
+            IntegrationUtils.clickButton("#toggle-timeline-style-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 12 }, { x: 160, y: 12 }], timelineId, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+
+            // Toggle again to ensure the reverse operation is error free
+            IntegrationUtils.clickButton("#toggle-timeline-style-button", integrationEnv.enviromentVariables.$);
+            // and a couple more times because pressing buttons is fun.
+            IntegrationUtils.clickButton("#toggle-timeline-style-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#toggle-timeline-style-button", integrationEnv.enviromentVariables.$);
+        })
+    })
 });

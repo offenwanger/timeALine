@@ -1,4 +1,6 @@
 function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
+    let mLineStyle = LineStyle.STYLE_DASHED;
+
     let mActive = false;
     let mLineClickedCallback = () => { };
     let mLineDragStartCallback = () => { };
@@ -65,11 +67,44 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             timePins.sort((a, b) => a.linePercent - b.linePercent);
 
             let segments = getDrawingSegments(timeline, timePins);
-            segments.forEach(segment => segment.id = timeline.id);
+            segments.forEach(segment => segment.timelineId = timeline.id);
             allSegments.push(...segments);
         });
 
-        let paths = mLineGroup.selectAll('.warped-timeline-path').data(allSegments);
+        if (mLineStyle == LineStyle.STYLE_DASHED) {
+            drawDashedLines(allSegments);
+        } else if (mLineStyle == LineStyle.STYLE_OPACITY) {
+            drawSemiOpaqueLines(allSegments);
+        } else console.error("Unimplimented line style: " + mLineStyle)
+    }
+
+    function drawWarpedTimeline(timeline, timePins) {
+        d3.selectAll(".warped-timeline-path").filter(function (d) { return d.timelineId == timeline.id; }).remove();
+        d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
+
+        let segments = getDrawingSegments(timeline, timePins);
+        segments.forEach(segment => segment.timelineId = timeline.id);
+
+        if (mLineStyle == LineStyle.STYLE_DASHED) {
+            drawDashedLines(segments, false);
+        } else if (mLineStyle == LineStyle.STYLE_OPACITY) {
+            drawSemiOpaqueLines(segments, false);
+        } else console.error("Unimplimented line style: " + mLineStyle)
+    }
+
+    function drawSemiOpaqueLines(segmentData, overwrite = true) {
+        segmentData.forEach(s => {
+            s.opacity = s.label * 2;
+        })
+
+        let paths = mLineGroup.selectAll('.warped-timeline-path');
+        if (overwrite) {
+            paths = paths.data(segmentData);
+        } else {
+            let oldData = paths.data();
+            paths = paths.data(oldData.concat(segmentData));
+        }
+
         paths.enter().append('path')
             .classed('warped-timeline-path', true)
             .attr('fill', 'none')
@@ -79,54 +114,59 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr('stroke-width', 1.5)
         paths.exit().remove();
         mLineGroup.selectAll('.warped-timeline-path')
-            .attr('opacity', (segment) => segment.label)
+            .attr('opacity', (segment) => segment.opacity)
             .attr('d', (segment) => PathMath.getPathD(segment.points));
     }
 
-    function drawWarpedTimeline(timeline, timePins) {
-        d3.selectAll(".warped-timeline-path").filter(function (d) { return d.id == timeline.id; }).remove();
-        d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
-        d3.selectAll(".temp").remove();
+    function drawDashedLines(segmentData, overwrite = true) {
+        segmentData.forEach(s => {
+            s.indicatorStroke = 180 * Math.exp(-4 * s.label);
+        })
 
-        let segments = getDrawingSegments(timeline, timePins);
-        mLineGroup.selectAll(".temp")
-            .data(segments)
-            .enter()
-            .append('path')
-            .classed('temp', true)
+        let paths = mLineGroup.selectAll('.warped-timeline-path');
+        if (overwrite) {
+            paths = paths.data(segmentData);
+        } else {
+            let oldData = paths.data();
+            paths = paths.data(oldData.concat(segmentData));
+        }
+
+        paths.enter().append('path')
             .classed('warped-timeline-path', true)
             .attr('fill', 'none')
             .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-            .attr('opacity', (segment) => segment.label)
+        paths.exit().remove();
+        mLineGroup.selectAll('.warped-timeline-path')
+            .style("stroke-dasharray", d => d.indicatorStroke + ", 4, 1, 4, 1, 4")
             .attr('d', (segment) => PathMath.getPathD(segment.points));
     }
 
     function getDrawingSegments(timeline, timePins) {
-        let timeRatios = [];
+        let ratioValues = [];
         for (let i = 1; i < timePins.length; i++) {
-            timeRatios.push((timePins[i].timeStamp - timePins[i - 1].timeStamp) / (timePins[i].linePercent - timePins[i - 1].linePercent));
-        }
-        let minRatio = Math.min(...timeRatios);
-        let maxRatio = Math.max(...timeRatios);
-        let opacityValues = [];
-        for (let i = 0; i < timeRatios.length; i++) {
-            opacityValues.push(((timeRatios[i] - minRatio) / (maxRatio - minRatio)) * 0.8 + 0.2);
+            let percentOfTime = (timePins[i].timeStamp - timePins[i - 1].timeStamp) / (timePins[timePins.length - 1].timeStamp - timePins[0].timeStamp);
+            percentOfTime = Math.max(Math.round(100 * percentOfTime) / 100, 0.01);
+            let percentOfLine = (timePins[i].linePercent - timePins[i - 1].linePercent);
+            percentOfLine = Math.max(Math.round(100 * percentOfLine) / 100, 0.01);
+            let ratio = Math.log10(percentOfTime / percentOfLine)
+            let ratioValue = ratio / 4 + 0.5;
+            ratioValues.push(ratioValue)
         }
 
         return PathMath.segmentPath(timeline.points, function (point, percent) {
             if (percent >= timePins[timePins.length - 1].linePercent) {
-                return opacityValues[opacityValues.length - 1]
+                return ratioValues[ratioValues.length - 1]
             }
 
             for (let i = 0; i < timePins.length; i++) {
                 if (percent < timePins[i].linePercent) {
                     if (i == 0) {
-                        return opacityValues[i];
+                        return ratioValues[i];
                     } else {
-                        return opacityValues[i - 1];
+                        return ratioValues[i - 1];
                     }
                 }
             }
@@ -190,6 +230,19 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         mActive = active;
     };
 
+    function toggleStyle(model) {
+        if (mLineStyle == LineStyle.STYLE_DASHED) {
+            mLineStyle = LineStyle.STYLE_OPACITY;
+        } else {
+            mLineStyle = LineStyle.STYLE_DASHED;
+        }
+
+        d3.selectAll(".warped-timeline-path").remove();
+        d3.selectAll(".timelinePath").remove();
+
+        updateModel(model);
+    }
+
 
     function onPointerMove(coords) {
         if (mDragging && mActive) {
@@ -207,6 +260,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     this.updateModel = updateModel;
     this.drawWarpedTimeline = drawWarpedTimeline;
     this.setActive = setActive;
+    this.toggleStyle = toggleStyle;
     this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;

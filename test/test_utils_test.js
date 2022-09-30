@@ -90,7 +90,12 @@ before(function () {
             this.remove = () => { };
             this.filter = function () { return this; };
             this.innerData = null;
-            this.data = function (data) { this.innerData = data; return this; };
+            this.data = function (data) {
+                if (data) {
+                    this.innerData = data;
+                    return this;
+                } else return this.innerData;
+            };
             this.datum = function (data) { if (data) { this.innerData = data; return this; } else return this.innerData };
             this.exit = function () { return this; };
             this.enter = function () { return this; };

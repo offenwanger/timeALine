@@ -33,6 +33,11 @@ const TableChange = {
     UPDATE_CELLS: "updateCells",
 }
 
+const LineStyle = {
+    STYLE_OPACITY: 'opacity',
+    STYLE_DASHED: 'dashed',
+}
+
 class ModelStateError extends Error {
     constructor(message) {
         super(message);
