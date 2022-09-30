@@ -1,9 +1,19 @@
 let MathUtil = function () {
     function vectorFromAToB(a, b) {
+        if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
+            console.error("Invalid vectors!", a, b);
+            return { x: 0, y: 0 };
+        }
+
         return subtractAFromB(a, b);
     }
 
     function distanceFromAToB(a, b) {
+        if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
+            console.error("Invalid vectors!", a, b);
+            return 0;
+        }
+
         let x = a.x - b.x;
         let y = a.y - b.y;
 
@@ -11,6 +21,11 @@ let MathUtil = function () {
     }
 
     function addAToB(a, b) {
+        if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
+            console.error("Invalid vectors!", a, b);
+            return { x: 0, y: 0 };
+        }
+
         return {
             x: b.x + a.x,
             y: b.y + a.y
@@ -18,6 +33,11 @@ let MathUtil = function () {
     }
 
     function subtractAFromB(a, b) {
+        if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
+            console.error("Invalid vectors!", a, b);
+            return { x: 0, y: 0 };
+        }
+
         return {
             x: b.x - a.x,
             y: b.y - a.y
@@ -25,17 +45,32 @@ let MathUtil = function () {
     }
 
     function pointsEqual(a, b) {
+        if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
+            console.error("Invalid vectors!", a, b);
+            return false;
+        }
+
         return a.x == b.x && a.y == b.y;
     }
 
     function vectorLength(v) {
+        if (!v || !isNumeric(v.x) || !isNumeric(v.y)) {
+            console.error("Invalid vector!", v);
+            return 0;
+        }
+
         return distanceFromAToB(v, { x: 0, y: 0 });
     }
 
     function normalize(vector) {
+        if (!vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
+            console.error("Invalid vector!", vector);
+            return { x: 0, y: 0 };
+        }
+
         let length = vectorLength(vector);
         if (length == 0) {
-            console.error("cannot get normal for 0, 0!")
+            console.error("Invalid vector!", vector)
             return vector;
         }
 
@@ -43,11 +78,23 @@ let MathUtil = function () {
     }
 
     function getPointAtDistanceAlongVector(distance, vector, origin = { x: 0, y: 0 }) {
+        if (!origin || !isNumeric(origin.x) || !isNumeric(origin.y) || !isNumeric(distance)) {
+            console.error("Invalid values!", origin, distance);
+            return { x: 0, y: 0 };
+        }
+
         let normalVector = normalize(vector);
         return { x: normalVector.x * distance + origin.x, y: normalVector.y * distance + origin.y };
     }
 
     function projectPointOntoVector(point, vector, origin = { x: 0, y: 0 }) {
+        if (!point || !isNumeric(point.x) || !isNumeric(point.y) ||
+            !origin || !isNumeric(origin.x) || !isNumeric(origin.y) ||
+            !vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
+            console.error("Invalid values!", point, vector, origin);
+            return { x: 0, y: 0, neg: 0 };
+        }
+
         // handle edge case of straight normal
         if (vector.y == 0) {
             return { x: point.x, y: origin.y, neg: point.x > origin.x }
@@ -76,6 +123,13 @@ let MathUtil = function () {
     }
 
     function projectPointOntoLine(coords, point1, point2) {
+        if (!coords || !isNumeric(coords.x) || !isNumeric(coords.y) ||
+            !point1 || !isNumeric(point1.x) || !isNumeric(point1.y) ||
+            !point2 || !isNumeric(point2.x) || !isNumeric(point2.y)) {
+            console.error("Invalid values!", coords, point1, point2);
+            return { x: 0, y: 0, percent: 0 };
+        }
+
         if (MathUtil.pointsEqual(point1, point2)) {
             console.error("Invalid Line!", point1, point2);
             return {
@@ -113,11 +167,25 @@ let MathUtil = function () {
     }
 
     function rotateVectorLeft(vector) {
+        if (!vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
+            console.error("Invalid vector!", v);
+            return { x: 0, y: 0 };
+        }
+
         return { x: -vector.y, y: vector.x };
     }
 
     function rotateVectorRight(vector) {
+        if (!vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
+            console.error("Invalid vector!", v);
+            return { x: 0, y: 0 };
+        }
+
         return { x: vector.y, y: -vector.x };
+    }
+
+    function isNumeric(val) {
+        return typeof val == 'number';
     }
 
     return {
