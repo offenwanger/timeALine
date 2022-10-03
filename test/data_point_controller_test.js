@@ -82,6 +82,7 @@ describe('Integration Test DataPointController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
 
             let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-target-circle'];
             assert.equal(axisControlCircles.innerData.length, 2);

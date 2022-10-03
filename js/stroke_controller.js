@@ -2,7 +2,18 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
     let mModel = new DataStructs.DataModel();
     let mStrokesData = {}
 
+    let mActive = false;
+
+    let mStrokeDragging = false;
+    let mStrokeDraggingId = null;
+
+    let mDragStartCallback = (strokeId, event) => { };
+    let mDragCallback = (strokeId, coords) => { };
+    let mDragEndCallback = (strokeId, coords) => { };
+
     let mStrokeGroup = vizLayer.append('g')
+        .attr("id", 'stroke-view-g');
+    let mStrokeTargetGroup = interactionLayer.append('g')
         .attr("id", 'stroke-view-g');
 
     function updateModel(model) {
@@ -68,8 +79,63 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         mStrokeGroup.selectAll(".canvas-annotation-stroke")
             .attr("stroke", d => d.color)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
+
+
+        let targetSelection = mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")
+            .data(Object.entries(mStrokesData).map(([id, data]) => { return { id, data } }));
+        targetSelection.exit()
+            .remove();
+        targetSelection.enter()
+            .append("path")
+            .classed("canvas-annotation-stroke-target", true)
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr("stroke", "black")
+            .attr('stroke-width', 6)
+            .attr('fill', 'black')
+            .attr('opacity', 0)
+            .on('pointerdown', function (e, d) {
+                if (mActive) {
+                    mStrokeDragging = true;
+                    mStrokeDraggingId = d.id;
+                    mDragStartCallback(mStrokeDraggingId, e);
+                }
+            })
+        mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")
+            .attr('d', d => PathMath.getPathD(d.data.projectedPoints));
+    }
+
+    function onPointerMove(coords) {
+        if (mActive && mStrokeDragging) {
+            mDragCallback(mStrokeDraggingId, coords);
+        }
+    }
+
+    function onPointerUp(coords) {
+        if (mActive && mStrokeDragging) {
+            mDragEndCallback(mStrokeDraggingId, coords);
+
+            mStrokeDragging = false;
+            mStrokeDraggingId = null;
+        }
+    }
+
+    function setActive(active) {
+        if (active && !mActive) {
+            mActive = true;
+            mStrokeTargetGroup.style('visibility', "");
+        } else if (!active && mActive) {
+            mActive = false;
+            mStrokeTargetGroup.style('visibility', "hidden");
+        }
     }
 
     this.updateModel = updateModel;
+    this.setActive = setActive;
 
+    this.setDragStartCallback = (callback) => mDragStartCallback = callback;
+    this.setDragCallback = (callback) => mDragCallback = callback;
+    this.setDragEndCallback = (callback) => mDragEndCallback = callback;
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
 }

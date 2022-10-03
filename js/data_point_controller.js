@@ -1,20 +1,22 @@
 function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     const TAIL_POINT_COUNT = 20;
 
-    let mAxisUpdatedCallback = () => { };
-    let mDragStartCallback = () => { };
-    let mDragCallback = () => { };
-    let mDragEndCallback = () => { };
-    let mMouseOverCallback = () => { };
-    let mMouseOutCallback = () => { };
-
-    let mDragStartPos = null;
+    let mActive = false;
 
     let mPointDragging = false;
     let mPointDraggingBinding = null;
+    let mPointDragStartCallback = (cellBindingData, event) => { };
+    let mPointDragCallback = (cellBindingData, coords) => { };
+    let mPointDragEndCallback = (cellBindingData, coords) => { }
 
     let mAxisDragging = false;
     let mAxisDraggingData = null;
+    let mAxisDragStartCallback = (axisId, controlPoint, event) => { };
+    let mAxisDragCallback = (axisId, controlPoint, dist, coords) => { };
+    let mAxisDragEndCallback = (axisId, controlPoint, dist, coords) => { };
+
+    let mMouseOverCallback = () => { };
+    let mMouseOutCallback = () => { };
 
     let mDataPointGroup = vizLayer.append('g')
         .attr("id", 'data-point-display-g');
@@ -55,7 +57,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('fill', function (d) { return d.color })
             .style('opacity', function (d) { return d.opacity });
 
-        let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point').data(drawingData);
+        let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point')
+            .data(drawingData);
         targetSelection.exit().remove();
         targetSelection.enter()
             .append('circle')
@@ -64,9 +67,11 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('fill', "black")
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
-                mPointDragging = true;
-                mPointDraggingBinding = d.binding;
-                mDragStartPos = mDragStartCallback(mPointDraggingBinding, e);
+                if (mActive) {
+                    mPointDragging = true;
+                    mPointDraggingBinding = d.binding;
+                    mPointDragStartCallback(mPointDraggingBinding, e);
+                }
             })
             .on('mouseover', (e, d) => {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
@@ -194,8 +199,11 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('opacity', 0)
             .attr('cursor', 'pointer')
             .on('pointerdown', (e, d) => {
-                mAxisDraggingData = d;
-                mAxisDragging = true;
+                if (mActive) {
+                    mAxisDraggingData = d;
+                    mAxisDragging = true;
+                    mAxisDragStartCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, e)
+                }
             })
 
         mAxisTargetGroup.selectAll('.axis-target-circle')
@@ -205,7 +213,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
     function onPointerMove(coords) {
         if (mPointDragging) {
-            mDragCallback(mPointDraggingBinding, mDragStartPos, coords);
+            mPointDragCallback(mPointDraggingBinding, coords);
         }
 
         if (mAxisDragging) {
@@ -224,20 +232,21 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 line.attr('x2', newPosition.x)
                     .attr('y2', newPosition.y);
             }
+
+            let dist = MathUtil.distanceFromAToB(origin, newPosition);
+            dist = newPosition.neg ? -1 * dist : dist;
+            mAxisDragCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist, coords);
         }
     }
 
     function onPointerUp(coords) {
         if (mPointDragging) {
+
+            mPointDragEndCallback(mPointDraggingBinding, coords);
+
             mPointDragging = false;
-
-            mDragEndCallback(mPointDraggingBinding, mDragStartPos, coords);
-
-            // cleanup
             mPointDraggingBinding = null;
-            mDragStartPos = null;
         } else if (mAxisDragging) {
-            mAxisDragging = false;
 
             let normal = mAxisDraggingData.normal;
             let origin = mAxisDraggingData.basePose;
@@ -245,20 +254,36 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
             let dist = MathUtil.distanceFromAToB(origin, newPosition);
             dist = newPosition.neg ? -1 * dist : dist;
-            mAxisUpdatedCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist);
+            mAxisDragEndCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist, coords);
 
             // cleanup
+            mAxisDragging = false;
             mAxisDraggingData = null;
+        }
+    }
+
+    function setActive(active) {
+        if (active && !mActive) {
+            mActive = true;
+            mDataPointTargetGroup.style('visibility', "");
+            mAxisTargetGroup.style('visibility', "");
+        } else if (!active && mActive) {
+            mActive = false;
+            mDataPointTargetGroup.style('visibility', "hidden");
+            mAxisTargetGroup.style('visibility', "hidden");
         }
     }
 
     this.updateModel = updateModel;
     this.drawPoints = drawPoints;
     this.drawAxes = drawAxes;
-    this.setAxisUpdatedCallback = (callback) => mAxisUpdatedCallback = callback;
-    this.setDragStartCallback = (callback) => mDragStartCallback = callback;
-    this.setDragCallback = (callback) => mDragCallback = callback;
-    this.setDragEndCallback = (callback) => mDragEndCallback = callback
+    this.setActive = setActive;
+    this.setPointDragStartCallback = (callback) => mPointDragStartCallback = callback;
+    this.setPointDragCallback = (callback) => mPointDragCallback = callback;
+    this.setPointDragEndCallback = (callback) => mPointDragEndCallback = callback
+    this.setAxisDragStartCallback = (callback) => mAxisDragStartCallback = callback;
+    this.setAxisDragCallback = (callback) => mAxisDragCallback = callback;
+    this.setAxisDragEndCallback = (callback) => mAxisDragEndCallback = callback;
     this.setMouseOverCallback = (callback) => { mMouseOverCallback = callback; };
     this.setMouseOutCallback = (callback) => { mMouseOutCallback = callback; };
 

@@ -2,6 +2,8 @@
 function TextController(vizLayer, overlayLayer, interactionLayer) {
     const TEXT_WIDTH = 200;
 
+    let mActive = false;
+
     let mDisplayGroup = vizLayer.append('g')
         .attr("id", 'annotation-display-g');
     let mInteractionGroup = interactionLayer.append('g')
@@ -166,37 +168,41 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr('fill', 'white')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
-                mDragStartPos = mDragStartCallback(d.binding, e);
-                mDragging = true;
-                mDragBinding = d.binding;
+                if (mActive) {
+                    mDragStartPos = mDragStartCallback(d.binding, e);
+                    mDragging = true;
+                    mDragBinding = d.binding;
+                }
             })
             .on('dblclick', function (e, d) {
-                let position = d3.select(this).node().getBoundingClientRect();
-                let inputbox = d3.select("#input-box");
+                if (mActive) {
+                    let position = d3.select(this).node().getBoundingClientRect();
+                    let inputbox = d3.select("#input-box");
 
-                inputbox
-                    .style("top", Math.floor(position.y - 8) + "px")
-                    .style("left", Math.floor(position.x - 8) + "px")
-                    .attr("height", inputbox.property("scrollHeight"))
-                    .on('input', null)
-                    .on('input', function (e) {
-                        inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
-                    }).on('change', function (e) {
-                        inputbox
-                            .style("top", "-400px")
-                            .style("left", "-200px")
-                    }).on('blur', function (e) {
-                        mTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
-                        inputbox
-                            .style("top", "-400px")
-                            .style("left", "-200px")
-                    });
+                    inputbox
+                        .style("top", Math.floor(position.y - 8) + "px")
+                        .style("left", Math.floor(position.x - 8) + "px")
+                        .attr("height", inputbox.property("scrollHeight"))
+                        .on('input', null)
+                        .on('input', function (e) {
+                            inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
+                        }).on('change', function (e) {
+                            inputbox
+                                .style("top", "-400px")
+                                .style("left", "-200px")
+                        }).on('blur', function (e) {
+                            mTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
+                            inputbox
+                                .style("top", "-400px")
+                                .style("left", "-200px")
+                        });
 
-                inputbox.property("value", d.text);
-                inputbox.style("height", inputbox.property("scrollHeight") + "px");
-                inputbox.style("width", TEXT_WIDTH + "px");
+                    inputbox.property("value", d.text);
+                    inputbox.style("height", inputbox.property("scrollHeight") + "px");
+                    inputbox.style("width", TEXT_WIDTH + "px");
 
-                inputbox.node().focus();
+                    inputbox.node().focus();
+                }
             })
             .on('mouseover', function (e, d) {
                 mMouseOverCallback(d.binding, e);
@@ -278,8 +284,19 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         });
     }
 
+    function setActive(active) {
+        if (active && !mActive) {
+            mActive = true;
+            mInteractionGroup.style('visibility', "");
+        } else if (!active && mActive) {
+            mActive = false;
+            mInteractionGroup.style('visibility', "hidden");
+        }
+    }
+
     this.updateModel = updateModel;
     this.drawTimelineAnnotations = drawTimelineAnnotations;
+    this.setActive = setActive;
     this.setTextUpdatedCallback = (callback) => mTextUpdatedCallback = callback
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;

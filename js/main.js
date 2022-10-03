@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mPanning = false;
     let mViewTransform = { x: 0, y: 0, rotation: 0 };
 
+    // Dragging variables
     let mDraggingTimePin = null;
+    let mDragStartPosition = null;
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -293,18 +295,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mDataPointController = new DataPointController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mDataPointController.setAxisUpdatedCallback((axisId, oneOrTwo, newDist) => {
-        mModelController.updateAxisDist(axisId, oneOrTwo, newDist);
-
-        modelUpdated();
-    });
-    mDataPointController.setMouseOverCallback((cellBindingData, mouseCoords) => {
-        mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
-    })
-    mDataPointController.setMouseOutCallback((cellBindingData, mouseCoords) => {
-        mDataTableController.highlightCells([]);
-    })
-    mDataPointController.setDragStartCallback((cellBindingData, pointerEvent) => {
+    mDataPointController.setPointDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
         if (mMode == MODE_PIN) {
@@ -329,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         return coords;
     });
-    mDataPointController.setDragCallback((cellBindingData, startPos, coords) => {
+    mDataPointController.setPointDragCallback((cellBindingData, coords) => {
         if (mMode == MODE_PIN) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -340,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDataPointController.drawPoints([cellBindingData.timeline], [cellBindingData]);
         }
     });
-    mDataPointController.setDragEndCallback((cellBindingData, startPos, coords) => {
+    mDataPointController.setPointDragEndCallback((cellBindingData, coords) => {
         if (mMode == MODE_PIN) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -350,7 +341,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePin = null;
         }
     });
+    mDataPointController.setAxisDragEndCallback((axisId, oneOrTwo, newDist, coords) => {
+        mModelController.updateAxisDist(axisId, oneOrTwo, newDist);
 
+        modelUpdated();
+    });
+    mDataPointController.setMouseOverCallback((cellBindingData, mouseCoords) => {
+        mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
+    })
+    mDataPointController.setMouseOutCallback((cellBindingData, mouseCoords) => {
+        mDataTableController.highlightCells([]);
+    })
 
     let mLineDrawingController = new LineDrawingController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
@@ -669,6 +670,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             clearMode()
             mLineViewController.setActive(true);
             mTimePinController.setActive(true);
+            mDataPointController.setActive(true);
+            mTextController.setActive(true);
             mMode = MODE_PIN;
             showIndicator('#pin-button', '#pin-mode-indicator');
         }
@@ -853,6 +856,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         // set active those things with default mouseovers, etc. 
         mLineViewController.setActive(true);
+        mDataPointController.setActive(true);
+        mTextController.setActive(true);
 
         mMode = MODE_DEFAULT;
     }
@@ -865,6 +870,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mIronController.setActive(false);
         mTimePinController.setActive(false);
         mColorBrushController.setActive(false);
+        mDataPointController.setActive(false);
+        mTextController.setActive(false);
+        mStrokeController.setActive(false);
         mLensController.resetMode();
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
