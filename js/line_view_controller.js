@@ -40,6 +40,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         paths.exit().remove();
         mLineGroup.selectAll('.timelinePath').attr('d', (timeline) => PathMath.getPathD(timeline.points));
 
+        if (mLineStyle == LineStyle.STYLE_DASHED) {
+            mLineGroup.selectAll('.timelinePath')
+                .style("stroke-dasharray", "15, 4, 1, 4, 1, 4")
+        }
+
         let points = mLineGroup.selectAll(".pointMarkerCircle").data(timelines.map(path => path.points).flat())
         points.enter()
             .append("circle")
