@@ -69,7 +69,7 @@ function ModelController() {
 
         let newTimeline = new DataStructs.Timeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
-        newTimeline.color = averageColor(startTimeline.color, endTimeline.color);
+        newTimeline.color = DataUtil.getColorBetween(startTimeline.color, endTimeline.color, 0.5);
 
 
         let numericDataCells = newTimeline.cellBindings.map(cb => mModel.getCellById(cb.cellId)).filter(cell => cell.getType() == DataTypes.NUM);
@@ -190,22 +190,6 @@ function ModelController() {
         }
 
         return returnable;
-    }
-
-    function averageColor(color1, color2) {
-        let rgb1 = color1.match(/\w\w/g).map((c) => parseInt(c, 16));
-        let rgb2 = color2.match(/\w\w/g).map((c) => parseInt(c, 16));
-
-        if (rgb1.length != 3 || rgb2.length != 3 || rgb1.some(n => isNaN(n)) || rgb2.some(n => isNaN(n))) {
-            console.error("Invalid hex color!", color1, color2);
-            return "#000000";
-        }
-
-        let avgRGB = []
-        for (let i = 0; i < 3; i++) {
-            avgRGB[i] = Math.round(rgb1[i] + ((rgb2[i] - rgb1[i]) / 2)).toString(16).padStart(2, '0');
-        }
-        return '#' + avgRGB.join("");
     }
     /* End Utiltiy Function */
 
@@ -702,6 +686,19 @@ function ModelController() {
         }
     }
 
+    function updateAxisColor(axisId, oneOrTwo, color) {
+        undoStackPush();
+
+        let axis = mModel.getAxisById(axisId);
+
+        if (!axis) throw Error("Invalid axis id: " + axisId);
+        if (oneOrTwo == 1) {
+            axis.color1 = color;
+        } else {
+            axis.color2 = color;
+        }
+    }
+
     /****
      * Utility
      */
@@ -789,6 +786,7 @@ function ModelController() {
     this.updateStrokeColor = updateStrokeColor;
 
     this.updateAxisDist = updateAxisDist;
+    this.updateAxisColor = updateAxisColor;
 
     this.getModel = () => mModel.copy();
 

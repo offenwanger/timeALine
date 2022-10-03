@@ -165,6 +165,7 @@ function EraserController(vizLayer, overlayLayer, interactionLayer, getAllLinePa
         mBrushController.setActive(active)
     };
 
+    this.updateModel = (model) => mEraserLine.attr('stroke', model.getCanvas().color);
     this.setEraseCallback = (callback) => mEraseCallback = callback;
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;

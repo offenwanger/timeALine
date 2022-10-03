@@ -63,7 +63,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         targetSelection.enter()
             .append('circle')
             .classed('data-target-point', true)
-            .attr('r', 6.0)
+            .attr('r', 10)
             .attr('fill', "black")
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
@@ -116,7 +116,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             x: pos.x,
             y: pos.y,
             opacity: 1,
-            color: "red"
+            color: binding.color ? binding.color : "black"
         };
     }
 
@@ -147,8 +147,26 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
             axisLineData.push({ axisId: axis.id, x1: pos1.x, y1: pos1.y, x2: pos2.x, y2: pos2.y });
 
-            axisControlData.push({ axisId: axis.id, ctrl: 1, x: pos1.x, y: pos1.y, val: axis.val1, normal, basePose });
-            axisControlData.push({ axisId: axis.id, ctrl: 2, x: pos2.x, y: pos2.y, val: axis.val2, normal, basePose });
+            axisControlData.push({
+                axisId: axis.id,
+                ctrl: 1,
+                color: axis.color1 ? axis.color1 : "black",
+                x: pos1.x,
+                y: pos1.y,
+                val: axis.val1,
+                normal,
+                basePose
+            });
+            axisControlData.push({
+                axisId: axis.id,
+                ctrl: 2,
+                color: axis.color2 ? axis.color2 : "black",
+                x: pos2.x,
+                y: pos2.y,
+                val: axis.val2,
+                normal,
+                basePose
+            });
         })
 
         let lines = mAxisGroup.selectAll('.axis-line').data(axisLineData);
@@ -184,11 +202,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .append('circle')
             .classed("axis-control-circle", true)
             .attr('id', function (d) { return "axis-control_" + d.axisId + "_" + d.ctrl })
-            .attr('r', 3.5);
+            .attr('r', 3.0)
+            .attr('stroke', 'black')
 
         mAxisGroup.selectAll('.axis-control-circle')
             .attr('cx', function (d) { return d.x })
-            .attr('cy', function (d) { return d.y });
+            .attr('cy', function (d) { return d.y })
+            .attr('fill', function (d) { return d.color });
 
         let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
         controlTargets.exit().remove();
@@ -219,20 +239,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         if (mAxisDragging) {
             let normal = mAxisDraggingData.normal;
             let origin = mAxisDraggingData.basePose;
-
             let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
-            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cx", newPosition.x);
-            mAxisGroup.select("#axis-control_" + mAxisDraggingData.axisId + "_" + mAxisDraggingData.ctrl).attr("cy", newPosition.y);
-
-            let line = mAxisGroup.select("#axis-line_" + mAxisDraggingData.axisId);
-            if (mAxisDraggingData.ctrl == 1) {
-                line.attr('x1', newPosition.x)
-                    .attr('y1', newPosition.y);
-            } else {
-                line.attr('x2', newPosition.x)
-                    .attr('y2', newPosition.y);
-            }
-
             let dist = MathUtil.distanceFromAToB(origin, newPosition);
             dist = newPosition.neg ? -1 * dist : dist;
             mAxisDragCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist, coords);
@@ -247,10 +254,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             mPointDragging = false;
             mPointDraggingBinding = null;
         } else if (mAxisDragging) {
-
             let normal = mAxisDraggingData.normal;
             let origin = mAxisDraggingData.basePose;
-
             let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
             let dist = MathUtil.distanceFromAToB(origin, newPosition);
             dist = newPosition.neg ? -1 * dist : dist;

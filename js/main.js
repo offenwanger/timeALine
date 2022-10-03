@@ -347,10 +347,41 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePin = null;
         }
     });
-    mDataPointController.setAxisDragEndCallback((axisId, oneOrTwo, newDist, coords) => {
-        mModelController.updateAxisDist(axisId, oneOrTwo, newDist);
+    mDataPointController.setAxisDragStartCallback((axisId, controlNumber, event) => {
+        if (mMode == MODE_COLOR_BUCKET) {
+            mModelController.updateAxisColor(axisId, controlNumber, mColor);
+            modelUpdated();
+        } else if (mMode == MODE_EYEDROPPER) {
+            let axis = mModelController.getModel().getAxisById(axisId);
+            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            if (color) setColor(color);
+        }
+    })
+    mDataPointController.setAxisDragCallback((axisId, controlNumber, newDist, coords) => {
+        if (mMode == MODE_DEFAULT) {
+            let boundData = mModelController.getModel().getAllCellBindingData().filter(cbd => {
+                return cbd.dataCell.getType() == DataTypes.NUM && cbd.axisBinding && cbd.axisBinding.id == axisId;
+            });
+            boundData.forEach(cbd => {
+                if (controlNumber == 1) {
+                    cbd.axisBinding.dist1 = newDist;
+                } else {
+                    cbd.axisBinding.dist2 = newDist;
+                }
+            })
 
-        modelUpdated();
+            if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axisId); return; }
+
+            mDataPointController.drawPoints([boundData[0].timeline], boundData);
+            mDataPointController.drawAxes([{ id: axisId, line: boundData[0].timeline.points, axis: boundData[0].axisBinding }]);
+        }
+    });
+    mDataPointController.setAxisDragEndCallback((axisId, controlNumber, newDist, coords) => {
+        if (mMode == MODE_DEFAULT) {
+            mModelController.updateAxisDist(axisId, controlNumber, newDist);
+
+            modelUpdated();
+        }
     });
     mDataPointController.setMouseOverCallback((cellBindingData, mouseCoords) => {
         mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
@@ -596,6 +627,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTimePinController.updateModel(mModelController.getModel());
         mLensController.updateModel(mModelController.getModel());
         mStrokeController.updateModel(mModelController.getModel());
+        mEraserController.updateModel(mModelController.getModel());
 
         if (mLensController.getCurrentTimelineId()) {
             let timeline = mModelController.getModel().getTimelineById(mLensController.getCurrentTimelineId());

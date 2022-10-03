@@ -41,7 +41,19 @@ DataStructs.DataModel = function () {
             }
             let axis = timeline.axisBindings.find(a => a.columnId == dataCell.columnId);
 
-            returnable.push(new DataStructs.CellBindingData(cellBinding, timeline, dataCell, timeCell, tableId, rowId, linePercent, axis ? axis : null));
+            let color = null;
+            if (cellBinding.color) {
+                color = cellBinding.color;
+            } else if (dataCell.color) {
+                color = dataCell.color;
+            } else if (dataCell.getType() == DataTypes.NUM && axis && axis.color1 && axis.color2) {
+                let num = dataCell.getValue();
+                let colorPercent = (num - axis.val1) / (axis.val2 - axis.val1)
+
+                color = DataUtil.getColorBetween(axis.color1, axis.color2, colorPercent)
+            }
+
+            returnable.push(new DataStructs.CellBindingData(cellBinding, timeline, dataCell, timeCell, tableId, rowId, color, linePercent, axis ? axis : null));
         })
         return returnable;
     }
@@ -291,13 +303,14 @@ DataStructs.DataModel = function () {
 }
 
 
-DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCell, tableId, rowId, linePercent = NO_LINE_PERCENT, axisBinding = null) {
+DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCell, tableId, rowId, color, linePercent = NO_LINE_PERCENT, axisBinding = null) {
     this.cellBinding = cellBinding;
     this.timeline = timeline;
     this.dataCell = dataCell;
     this.timeCell = timeCell;
     this.tableId = tableId;
     this.rowId = rowId;
+    this.color = color;
 
     // optional values
     this.linePercent = linePercent;
@@ -310,7 +323,8 @@ DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCel
             this.dataCell.copy(),
             this.timeCell.copy(),
             this.tableId,
-            this.rowId
+            this.rowId,
+            this.color,
         )
         b.linePercent = this.linePercent;
         b.axisBinding = this.axisBinding;
