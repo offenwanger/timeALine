@@ -451,16 +451,16 @@ before(function () {
         return returnable;
     }
 
-    function deepEquals(obj, original) {
-        if (obj && typeof obj == 'object') {
-            Object.keys(obj).forEach(key => {
-                deepEquals(obj[key], original[key]);
+    function deepEquals(original, obj) {
+        if (original && typeof original == 'object') {
+            Object.keys(original).forEach(key => {
+                deepEquals(original[key], obj[key]);
             })
-        } else if (typeof obj == 'function') {
-            assert(typeof original, 'function');
+        } else if (typeof original == 'function') {
+            assert(typeof obj, 'function');
             return;
         } else {
-            expect(obj).to.eql(original);
+            expect(original).to.eql(obj);
         }
     }
 
