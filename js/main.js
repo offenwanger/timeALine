@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_LINK = "link";
 
     let mMode = MODE_DEFAULT;
+    let mColor = "#000000";
+
     let mSvg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight - 50);
@@ -353,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mLineDrawingController = new LineDrawingController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
         if (startPointLineId == null && endPointLineId == null) {
-            mModelController.newTimeline(newPoints);
+            mModelController.newTimeline(newPoints, mColor);
 
             modelUpdated();
         } else if (startPointLineId != null && endPointLineId != null) {
@@ -371,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mColorBrushController.setDrawFinishedCallback((points, color) => {
+    mColorBrushController.setDrawFinishedCallback((points) => {
         // TODO: Add new stroke
 
         modelUpdated();
@@ -872,14 +874,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function setColor(color) {
+        mColor = color;
+
         $('#color-picker-input').val(color);
         $('#color-picker-input').css('background-color', color);
         $('#color-picker-button').css('background-color', color);
         $('#color-bucket-button').css('background-color', color);
+
         $('#color-bucket-mode-indicator').css('background-color', color);
+
         $('#color-brush-button').css('background-color', color);
         $('#color-brush-mode-indicator').css('background-color', color);
         mColorBrushController.setColor(color)
+
+        $('#line-drawing-button').css('background-color', color);
+        $('#line-drawing-mode-indicator').css('background-color', color);
+        mLineDrawingController.setColor(color)
+
         mLensController.setColor(color)
         $.farbtastic('#color-picker-wrapper').setColor(color);
     }

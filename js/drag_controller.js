@@ -2,7 +2,7 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
     const DRAG_POINT_RADIUS = 5;
 
     let mActive = false;
-    let mLines = [];
+    let mTimelines = [];
     let mLineModifiedCallback = () => { };
     let mDragStartCallback = (timelineId, e) => { return { x: e.x, y: e.y } }
 
@@ -33,7 +33,7 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
             let brushRadius = mBrushController.getBrushRadius();
             mDragging = true;
             mDragStartPos = coords;
-            mLines.forEach(line => {
+            mTimelines.forEach(line => {
                 let closestPoint = PathMath.getClosestPointOnPath(coords, line.points);
                 if (MathUtil.distanceFromAToB(closestPoint, coords) < brushRadius) {
                     let oldSegments = PathMath.segmentPath(line.points,
@@ -42,6 +42,7 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
 
                     mMovingLines.push({
                         id: line.id,
+                        color: line.color,
                         oldSegments,
                         newSegments
                     });
@@ -60,16 +61,21 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
     function onPointerMove(coords) {
         if (mActive && mDragging) {
             let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-            let linesData = mMovingLines.map(line => moveSegments(line.newSegments, diff));
+            let linesData = mMovingLines.map(lineData => {
+                return {
+                    points: PathMath.mergeSegments(moveSegments(lineData.newSegments, diff)),
+                    color: lineData.color
+                }
+            });
 
-            drawLines(linesData.map(segments => PathMath.mergeSegments(segments)));
+            drawLines(linesData);
         }
 
         if (mActive && mDraggingRotation) {
             let lineStart = mMovingLines[0].oldSegments[0].points[0];
             let points = percentDistMappingToPoints(mMovingLines[0].percentDistMapping, lineStart, coords)
 
-            drawLines([points]);
+            drawLines([{ points, color: mMovingLines[0].color }]);
         }
     }
 
@@ -113,13 +119,13 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
 
 
     function updateModel(model) {
-        mLines = model.getAllTimelines();
+        mTimelines = model.getAllTimelines();
 
-        let startPointData = mLines.map(line => {
-            return { id: line.id, point: line.points[0], points: line.points };
+        let startPointData = mTimelines.map(line => {
+            return { id: line.id, point: line.points[0], points: line.points, color: line.color };
         })
-        let endPointsData = mLines.map(line => {
-            return { id: line.id, point: line.points[line.points.length - 1], points: line.points };
+        let endPointsData = mTimelines.map(line => {
+            return { id: line.id, point: line.points[line.points.length - 1], points: line.points, color: line.color };
         })
 
         let startPoints = mPointsGroup.selectAll('.drag-start-point').data(startPointData);
@@ -158,6 +164,7 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
             mDragStartPos = mDragStartCallback(d.id, e);
             mMovingLines = [{
                 id: d.id,
+                color: d.color,
                 oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
                 newSegments: [{ label: SEGMENT_LABELS.CHANGED, points: [...d.points] }]
             }];
@@ -187,6 +194,7 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
             mDragStartPos = mDragStartCallback(d.id, e);
             mMovingLines = [{
                 id: d.id,
+                color: d.color,
                 oldSegments: [{ label: SEGMENT_LABELS.CHANGED, points: d.points }],
                 percentDistMapping: pointsToPercentDistMapping(d.points),
             }];
@@ -241,17 +249,18 @@ function DragController(vizLayer, overlayLayer, interactionLayer) {
         return result;
     }
 
-    function drawLines(points) {
-        let paths = mLinesGroup.selectAll('.timelinePath').data(points);
+    function drawLines(data) {
+        let paths = mLinesGroup.selectAll('.timelinePath').data(data);
         paths.enter().append('path')
             .classed('timelinePath', true)
             .attr('fill', 'none')
-            .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mLinesGroup.selectAll('.timelinePath').attr('d', (points) => PathMath.getPathD(points));
+        mLinesGroup.selectAll('.timelinePath')
+            .attr('stroke', d => d.color)
+            .attr('d', d => PathMath.getPathD(d.points));
     }
 
     this.setActive = (active) => {

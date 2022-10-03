@@ -16,6 +16,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mModel;
     let mTimelineId;
 
+    let mColor = "#000000";
+
     let mLineLength;
     let mStrokesData = {}
 
@@ -30,10 +32,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mPanning = false;
 
     let mLensColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
+    mLensColorBrushController.setDrawFinishedCallback((points) => {
         if (mTimelineId) {
             let mappedPoints = mapPointsToPercentDist(points)
-            mModelController.addTimelineStroke(mTimelineId, mappedPoints, color);
+            mModelController.addTimelineStroke(mTimelineId, mappedPoints, mColor);
 
             modelUpdated();
         }
@@ -132,7 +134,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
                 let timeline = mModel.getTimelineById(mTimelineId);
                 mLineLength = PathMath.getPathLength(timeline.points);
-                redrawLine(mLineLength);
+                redrawLine(mLineLength, timeline.color);
 
                 redrawStrokes(mModel, null, true);
             }
@@ -185,23 +187,23 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         if (pathChanged) {
             let timeline = mModel.getTimelineById(mTimelineId);
             mLineLength = PathMath.getPathLength(timeline.points);
-            redrawLine(mLineLength);
+            redrawLine(mLineLength, timeline.color);
         }
 
         redrawStrokes(model, oldModel, pathChanged);
     }
 
-    function redrawLine(lineLength) {
+    function redrawLine(lineLength, color) {
         mLineG.selectAll("#lens-line")
             .data([null]).enter().append("line")
             .attr("id", "lens-line")
             // TODO: switch this out for a chosen color at some point
-            .attr("stroke", "steelblue")
             .attr("stroke-width", 1.5)
             .attr("x1", 0)
             .attr("y1", 0)
             .attr("y2", 0);
         mLineG.select("#lens-line")
+            .attr("stroke", color)
             .attr("x2", lineLength);
     }
     function eraseLine() {
@@ -320,6 +322,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         })
     }
 
+    function setColor(color) {
+        mLensColorBrushController.setColor(color);
+        mColor = color;
+    }
+
     this.focus = focus;
     this.updateModel = updateModel;
 
@@ -330,7 +337,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     this.setColorBrushActive = setColorBrushActive;
     this.resetMode = resetMode;
 
-    this.setColor = (color) => mLensColorBrushController.setColor(color);
+    this.setColor = setColor;
 
     this.setPanCallback = (callback) => mPanCallback = callback;
 }

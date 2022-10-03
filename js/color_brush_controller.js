@@ -1,6 +1,5 @@
 function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     let mActive = false;
-    let mColor = 'black';
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -14,7 +13,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     // this must be under the mDrawing group else it capure events it shouldn't.
     let mColorLine = mDrawingGroup.append('path')
         .attr('fill', 'none')
-        .attr('stroke', mColor)
+        .attr('stroke', '#000000')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5)
@@ -42,7 +41,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     function onPointerUp(coords) {
         if (mActive && mDragging && mDraggedPoints.length > 1) {
             let result = [...mDraggedPoints]
-            mDrawFinishedCallback(result, mColor);
+            mDrawFinishedCallback(result);
         }
 
         mDragging = false;
@@ -65,8 +64,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function setColor(color) {
-        mColor = color;
-        mColorLine.attr('stroke', mColor);
+        mColorLine.attr('stroke', color);
     }
 
     this.setActive = setActive;

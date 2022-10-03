@@ -2,7 +2,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
     const MIN_RESOLUTION = 2;
 
     let mActive = false;
-    let mLines = [];
+    let mTimelines = [];
     let mLineModifiedCallback = () => { };
 
     let mDragging = false;
@@ -29,7 +29,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
             mStartPosition = coords;
 
             let radius = mBrushController.getBrushRadius();
-            mLines.forEach(line => {
+            mTimelines.forEach(line => {
                 let oldSegments = PathMath.segmentPath(line.points,
                     (point) => MathUtil.distanceFromAToB(point, coords) < radius ? SEGMENT_LABELS.CHANGED : SEGMENT_LABELS.UNAFFECTED);
 
@@ -37,7 +37,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
 
                 if (oldSegments.length > 1 || oldSegments[0].label == SEGMENT_LABELS.CHANGED) {
                     let newSegments = PathMath.cloneSegments(oldSegments);
-                    mMovingLines.push({ id: line.id, oldSegments, newSegments });
+                    mMovingLines.push({ id: line.id, oldSegments, newSegments, color: line.color });
                 }
             })
 
@@ -53,10 +53,12 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
     function onPointerMove(coords) {
         if (mActive && mDragging) {
             let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
-            let drawingLines = [];
-            mMovingLines.forEach(line => {
-                drawingLines.push(PathMath.mergeSegments(ironSegments(line.newSegments, ironStrength)));
-            })
+            let drawingLines = mMovingLines.map(lineData => {
+                return {
+                    points: PathMath.mergeSegments(ironSegments(lineData.newSegments, ironStrength)),
+                    color: lineData.color,
+                }
+            });
 
             drawLines(drawingLines);
         }
@@ -127,17 +129,18 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
         return returnArray;
     }
 
-    function drawLines(points) {
-        let paths = mLinesGroup.selectAll('.timelinePath').data(points);
+    function drawLines(lineData) {
+        let paths = mLinesGroup.selectAll('.timelinePath').data(lineData);
         paths.enter().append('path')
             .classed('timelinePath', true)
             .attr('fill', 'none')
-            .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mLinesGroup.selectAll('.timelinePath').attr('d', (points) => PathMath.getPathD(points));
+        mLinesGroup.selectAll('.timelinePath')
+            .attr('stroke', d => d.color)
+            .attr('d', d => PathMath.getPathD(d.points));
     }
 
     this.setActive = (active) => {
@@ -155,7 +158,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
         mBrushController.setActive(active)
     };
 
-    this.updateModel = (model) => mLines = model.getAllTimelines();
+    this.updateModel = (model) => mTimelines = model.getAllTimelines();
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;

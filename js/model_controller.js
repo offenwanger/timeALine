@@ -4,12 +4,13 @@ function ModelController() {
     let mUndoStack = [];
     let mRedoStack = [];
 
-    function newTimeline(points) {
+    function newTimeline(points, color) {
         undoStackPush();
 
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
         let timeline = new DataStructs.Timeline(points.map(p => Object.assign({}, p)));
+        timeline.color = color;
         mModel.getAllTimelines().push(timeline);
 
         return timeline;
@@ -62,6 +63,8 @@ function ModelController() {
 
         let newTimeline = new DataStructs.Timeline(newPoints);
         newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
+        newTimeline.color = averageColor(startTimeline.color, endTimeline.color);
+
 
         let numericDataCells = newTimeline.cellBindings.map(cb => mModel.getCellById(cb.cellId)).filter(cell => cell.getType() == DataTypes.NUM);
         if (numericDataCells.length > 0) {
@@ -181,6 +184,22 @@ function ModelController() {
         }
 
         return returnable;
+    }
+
+    function averageColor(color1, color2) {
+        let rgb1 = color1.match(/\w\w/g).map((c) => parseInt(c, 16));
+        let rgb2 = color2.match(/\w\w/g).map((c) => parseInt(c, 16));
+
+        if (rgb1.length != 3 || rgb2.length != 3 || rgb1.some(n => isNaN(n)) || rgb2.some(n => isNaN(n))) {
+            console.error("Invalid hex color!", color1, color2);
+            return "#000000";
+        }
+
+        let avgRGB = []
+        for (let i = 0; i < 3; i++) {
+            avgRGB[i] = Math.round(rgb1[i] + ((rgb2[i] - rgb1[i]) / 2)).toString(16).padStart(2, '0');
+        }
+        return '#' + avgRGB.join("");
     }
     /* End Utiltiy Function */
 
@@ -315,6 +334,7 @@ function ModelController() {
         // create the new timelines
         let newTimelines = segments.filter(s => s.label == SEGMENT_LABELS.UNAFFECTED).map(segment => {
             let newTimeline = new DataStructs.Timeline(segment.points);
+            newTimeline.color = timeline.color;
 
             newTimeline.timePins = segment.timePins.map(pin => {
                 let timePin = pin.clone();

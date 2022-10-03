@@ -3,6 +3,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     const LINE_RESOLUTION = 50;
 
     let mActive = false;
+    let mColor = "#000000"
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -84,6 +85,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             // reset
             mDraggedPoints = [];
             mDrawingLine.attr('d', PathMath.getPathD([]));
+            mDrawingLine.attr('stroke', mColor);
             mDragStartParams = {};
             mPointsGroup.selectAll('.draw-start-point').style("visibility", "");
             mPointsGroup.selectAll('.draw-end-point').style("visibility", "");
@@ -92,7 +94,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
 
     let mDrawingLine = mLineDrawingGroup.append('path')
         .attr('fill', 'none')
-        .attr('stroke', 'steelblue')
+        .attr('stroke', '#000000')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5)
@@ -102,10 +104,10 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     function updateModel(model) {
         let timelines = model.getAllTimelines();
         mStartPoints = timelines.map(item => {
-            return { id: item.id, point: item.points[0], isStartPoint: true };
+            return { id: item.id, point: item.points[0], isStartPoint: true, color: item.color };
         })
         mEndPoints = timelines.map(item => {
-            return { id: item.id, point: item.points[item.points.length - 1], isStartPoint: false };
+            return { id: item.id, point: item.points[item.points.length - 1], isStartPoint: false, color: item.color };
         })
 
         let startPoints = mPointsGroup.selectAll('.draw-start-point').data(mStartPoints);
@@ -123,6 +125,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
                     mDragStartParams.startPoint = d.id;
                     mPointsGroup.selectAll('.draw-start-point').style("visibility", "hidden");
                     mPointsGroup.select('#end-point_' + d.id).style("visibility", "hidden");
+                    mDrawingLine.attr('stroke', d.color);
                 }
             })
         mPointsGroup.selectAll('.draw-start-point')
@@ -144,6 +147,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
                     mDragStartParams.endPoint = d.id;
                     mPointsGroup.selectAll('.draw-end-point').style("visibility", "hidden");
                     mPointsGroup.select('#start-point_' + d.id).style("visibility", "hidden");
+                    mDrawingLine.attr('stroke', d.color);
                 }
             })
         mPointsGroup.selectAll('.draw-end-point')
@@ -174,8 +178,14 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
         }
     }
 
+    function setColor(color) {
+        mColor = color;
+        mDrawingLine.attr('stroke', color);
+    }
+
     this.updateModel = updateModel;
     this.setActive = setActive;
+    this.setColor = setColor;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;

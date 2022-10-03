@@ -33,12 +33,13 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         paths.enter().append('path')
             .classed('timelinePath', true)
             .attr('fill', 'none')
-            .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mLineGroup.selectAll('.timelinePath').attr('d', (timeline) => PathMath.getPathD(timeline.points));
+        mLineGroup.selectAll('.timelinePath')
+            .attr('stroke', (timeline) => timeline.color)
+            .attr('d', (timeline) => PathMath.getPathD(timeline.points));
 
         if (mLineStyle == LineStyle.STYLE_DASHED) {
             mLineGroup.selectAll('.timelinePath')
@@ -50,7 +51,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .append("circle")
             .classed("pointMarkerCircle", true)
             .attr("r", "1px")
-            .attr("fill", "#4278B0")
+            .attr("fill", "#000000")
             .style("opacity", 0.5);
         points.exit().remove();
         mLineGroup.selectAll(".pointMarkerCircle")
@@ -72,7 +73,10 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             timePins.sort((a, b) => a.linePercent - b.linePercent);
 
             let segments = getDrawingSegments(timeline, timePins);
-            segments.forEach(segment => segment.timelineId = timeline.id);
+            segments.forEach(segment => {
+                segment.timelineId = timeline.id;
+                segment.color = timeline.color;
+            });
             allSegments.push(...segments);
         });
 
@@ -88,7 +92,10 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
 
         let segments = getDrawingSegments(timeline, timePins);
-        segments.forEach(segment => segment.timelineId = timeline.id);
+        segments.forEach(segment => {
+            segment.timelineId = timeline.id;
+            segment.color = timeline.color;
+        });
 
         if (mLineStyle == LineStyle.STYLE_DASHED) {
             drawDashedLines(segments, false);
@@ -113,14 +120,14 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         paths.enter().append('path')
             .classed('warped-timeline-path', true)
             .attr('fill', 'none')
-            .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
         mLineGroup.selectAll('.warped-timeline-path')
-            .attr('opacity', (segment) => segment.opacity)
-            .attr('d', (segment) => PathMath.getPathD(segment.points));
+            .attr('stroke', d => d.color)
+            .attr('opacity', d => d.opacity)
+            .attr('d', d => PathMath.getPathD(d.points));
     }
 
     function drawDashedLines(segmentData, overwrite = true) {
@@ -139,14 +146,14 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         paths.enter().append('path')
             .classed('warped-timeline-path', true)
             .attr('fill', 'none')
-            .attr('stroke', 'steelblue')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
         mLineGroup.selectAll('.warped-timeline-path')
+            .attr('stroke', d => d.color)
             .style("stroke-dasharray", d => d.indicatorStroke + ", 4, 1, 4, 1, 4")
-            .attr('d', (segment) => PathMath.getPathD(segment.points));
+            .attr('d', d => PathMath.getPathD(d.points));
     }
 
     function getDrawingSegments(timeline, timePins) {
