@@ -9,10 +9,6 @@ const DataTypes = {
     UNSPECIFIED: 'unspecified'
 }
 
-const DataTypesColor = {};
-DataTypesColor[DataTypes.TEXT] = 'steelblue';
-DataTypesColor[DataTypes.NUM] = 'green';
-
 const TimeBindingTypes = {
     TIMESTRAMP: 'timestamp',
 }
