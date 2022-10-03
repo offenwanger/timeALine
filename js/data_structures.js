@@ -5,9 +5,32 @@ let DataStructs = function () {
         return Date.now() + "_" + idCounter;
     }
 
+    function Canvas() {
+        this.color = "#FFFFFF";
+        this.cellBindings = [];
+        this.annotationStrokes = [];
+
+        this.copy = function () {
+            let canvas = new Canvas();
+            canvas.color = this.color;
+            canvas.cellBindings = this.cellBindings.map(b => b.copy());
+            canvas.annotationStrokes = this.annotationStrokes.map(b => b.copy());
+            return canvas;
+        }
+    }
+    Canvas.fromObject = function (obj) {
+        let canvas = new Canvas();
+        canvas.color = obj.color;
+        obj.cellBindings.forEach(b => canvas.cellBindings.push(CellBinding.fromObject(b)));
+        obj.annotationStrokes.forEach(b => canvas.annotationStrokes.push(Stroke.fromObject(b)));
+        return canvas;
+    }
+
     function Timeline(points = []) {
-        this.id = getUniqueId();
         this.points = points;
+
+        this.id = getUniqueId();
+        this.color = "#000000"
         this.cellBindings = [];
         this.timePins = [];
         this.axisBindings = [];
@@ -15,10 +38,12 @@ let DataStructs = function () {
 
         this.copy = function () {
             let timeline = new Timeline();
-            timeline.id = this.id;
             // sometimes the x, y, points are not nessisarily plain objects (i.e. SVP point)
             // TODO: Should maybe make my own point object...
             timeline.points = this.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
+
+            timeline.id = this.id;
+            timeline.color = this.color;
             timeline.cellBindings = this.cellBindings.map(b => b.copy());
             timeline.timePins = this.timePins.map(b => b.copy());
             timeline.axisBindings = this.axisBindings.map(b => b.copy());
@@ -30,6 +55,7 @@ let DataStructs = function () {
     Timeline.fromObject = function (obj) {
         let timeline = new Timeline(obj.points);
         timeline.id = obj.id;
+        timeline.color = obj.color;
         obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
         obj.timePins.forEach(b => timeline.timePins.push(TimePin.fromObject(b)));
         obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
@@ -38,14 +64,17 @@ let DataStructs = function () {
     }
 
     function CellBinding(cellId) {
-        this.id = getUniqueId();
         this.cellId = cellId;
+
+        this.id = getUniqueId();
+        this.color = null
         // text value display offset
         this.offset = { x: 10, y: 10 };
         this.timePinId = null;
 
         this.clone = function () {
             let binding = new CellBinding(this.cellId);
+            binding.color = this.color;
             binding.offset = this.offset;
             binding.timePinId = this.timePinId;
             return binding;
@@ -53,17 +82,19 @@ let DataStructs = function () {
 
         this.copy = function () {
             let binding = new CellBinding(this.cellId);
+            binding.id = this.id;
+            binding.color = this.color;
             binding.offset = this.offset;
             binding.timePinId = this.timePinId;
-            binding.id = this.id;
             return binding;
         }
     }
     CellBinding.fromObject = function (obj) {
         let binding = new CellBinding(obj.cellId);
+        binding.id = obj.id;
+        binding.color = obj.color;
         binding.offset = obj.offset;
         binding.timePinId = obj.timePinId;
-        binding.id = obj.id;
         return binding;
     }
 
@@ -72,14 +103,17 @@ let DataStructs = function () {
      * @param {float} linePercent 
      */
     function TimePin(linePercent) {
+        this.linePercent = linePercent;
+
         this.id = getUniqueId();
         // Timestamp in miliseconds
         this.timeStamp = null;
-        this.linePercent = linePercent;
+        this.color = "#000000"
 
         this.clone = function () {
             let binding = new TimePin(this.linePercent);
             binding.timeStamp = this.timeStamp;
+            binding.color = this.color;
             return binding;
         };
 
@@ -87,6 +121,7 @@ let DataStructs = function () {
             let binding = new TimePin(this.linePercent);
             binding.id = this.id;
             binding.timeStamp = this.timeStamp;
+            binding.color = this.color;
             return binding;
         }
     }
@@ -94,6 +129,7 @@ let DataStructs = function () {
         let binding = new TimePin(obj.linePercent);
         binding.id = obj.id;
         binding.timeStamp = obj.timeStamp;
+        binding.color = obj.color;
 
         // for robustness in case a Date get into a time pin instead of a timestamp
         if (typeof binding.timeStamp === 'string' || binding.timeStamp instanceof String) {
@@ -110,19 +146,24 @@ let DataStructs = function () {
     // These are only for number sets now, but if we get 
     // another type (i.e. duration) might need a 'type' specifier. 
     function AxisBinding(columnId) {
-        this.id = getUniqueId();
         this.columnId = columnId;
+
+        this.id = getUniqueId();
         this.val1 = 0;
         this.dist1 = 0;
+        this.color1 = "#000000";
         this.val2 = 1;
         this.dist2 = 1;
+        this.color2 = "#FF0000";
         this.linePercent = 1;
         this.clone = function () {
             let newAxis = new AxisBinding(this.columnId);
             newAxis.val1 = this.val1;
             newAxis.dist1 = this.dist1;
+            newAxis.color1 = this.color1;
             newAxis.val2 = this.val2;
             newAxis.dist2 = this.dist2;
+            newAxis.color2 = this.color2;
             newAxis.linePercent = this.linePercent;
             return newAxis;
         }
@@ -132,8 +173,10 @@ let DataStructs = function () {
             binding.id = this.id;
             binding.val1 = this.val1;
             binding.dist1 = this.dist1;
+            binding.color1 = this.color1;
             binding.val2 = this.val2;
             binding.dist2 = this.dist2;
+            binding.color2 = this.color2;
             binding.linePercent = this.linePercent;
             return binding;
         }
@@ -143,8 +186,10 @@ let DataStructs = function () {
         binding.id = obj.id;
         binding.val1 = obj.val1;
         binding.dist1 = obj.dist1;
+        binding.color1 = obj.color1;
         binding.val2 = obj.val2;
         binding.dist2 = obj.dist2;
+        binding.color2 = obj.color2;
         binding.linePercent = obj.linePercent;
         return binding;
     }
@@ -279,12 +324,13 @@ let DataStructs = function () {
         return cell;
     }
 
-    function DataCell(type, val, columnId = null, color = null) {
-        this.id = getUniqueId();
+    function DataCell(type, val, columnId) {
         this.type = type;
         this.val = val;
         this.columnId = columnId;
-        this.color = color
+
+        this.id = getUniqueId();
+        this.color = null;
 
         this.isValid = function () {
             switch (this.type) {
@@ -328,27 +374,32 @@ let DataStructs = function () {
 
         this.copy = function () {
             // TODO: Make sure that val get copied properly. We'll worry about it later.
-            let cell = new DataCell(this.type, this.val, this.columnId, this.color);
+            let cell = new DataCell(this.type, this.val, this.columnId);
             cell.id = this.id;
+            cell.color = this.color;
             return cell;
         }
 
         this.clone = function () {
-            return new DataCell(this.type, this.val, this.columnId, this.color);
+            let cell = new DataCell(this.type, this.val, this.columnId);
+            cell.color = this.color;
+            return cell;
         }
     }
     DataCell.fromObject = function (obj) {
         let cell = new DataCell(obj.type, obj.val, obj.columnId, obj.color);
         cell.id = obj.id;
+        cell.color = obj.color;
         return cell;
     }
 
     function Stroke(points, color) {
         if (!Array.isArray(points)) throw new Error("Invalid stroke array: " + points);
 
-        this.id = getUniqueId();
         this.points = points;
         this.color = color;
+
+        this.id = getUniqueId();
 
         this.copy = function () {
             let stroke = new Stroke(this.points.map(p => p.copy()), this.color);
@@ -385,6 +436,8 @@ let DataStructs = function () {
     }
 
     return {
+        Canvas,
+
         Timeline,
         DataTable,
         DataColumn,

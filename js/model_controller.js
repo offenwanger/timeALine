@@ -670,6 +670,7 @@ function ModelController() {
         // TODO: Do complete model validation.
 
         mModel = new DataStructs.DataModel();
+        mModel.setCanvas(DataStructs.Canvas.fromObject(obj.canvas))
         obj.timelines.forEach(timeline => {
             let prevPoints = [...timeline.points];
             timeline.points = timeline.points.filter(p => {
@@ -689,6 +690,7 @@ function ModelController() {
 
     function getModelAsObject() {
         return {
+            canvas: mModel.getCanvas(),
             timelines: mModel.getAllTimelines(),
             dataTables: mModel.getAllTables()
         }

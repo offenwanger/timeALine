@@ -1,6 +1,7 @@
-DataStructs.DataModel = function (timelines = [], dataTables = []) {
-    let mTimelines = timelines.map(t => t.copy())
-    let mDataTables = dataTables.map(t => t.copy());
+DataStructs.DataModel = function () {
+    let mCanvas = new DataStructs.Canvas();
+    let mTimelines = [];
+    let mDataTables = [];
 
     function getCellBindingData(timelineId) {
         let timeline = getTimelineById(timelineId);
@@ -241,8 +242,11 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
+    this.setCanvas = (canvas) => mCanvas = canvas;
     this.setTimelines = (timelines) => mTimelines = timelines;
     this.setTables = (tables) => mDataTables = tables;
+
+    this.getCanvas = () => mCanvas;
 
     this.getTimelineById = getTimelineById;
     this.getTimelineForTimePin = getTimelineForTimePin;
@@ -267,7 +271,13 @@ DataStructs.DataModel = function (timelines = [], dataTables = []) {
     this.hasTimeMapping = hasTimeMapping;
     this.getTimeBindingValues = getTimeBindingValues;
 
-    this.copy = function () { return new DataStructs.DataModel(mTimelines, mDataTables); }
+    this.copy = function () {
+        let model = new DataStructs.DataModel();
+        model.setCanvas(mCanvas.copy());
+        model.setTimelines(mTimelines.map(t => t.copy()));
+        model.setTables(mDataTables.map(t => t.copy()));
+        return model;
+    }
 }
 
 

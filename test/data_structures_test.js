@@ -30,6 +30,7 @@ describe('Test DataStructs', function () {
             timeline.timePins[0].timeStamp = 100000;
             timeline.timePins.push(new DataStructs.TimePin(0.7));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.dataRows[2].dataCells[1].id));
+            timeline.cellBindings[0].color = "#999999";
             timeline.cellBindings.push(new DataStructs.CellBinding(table.dataRows[3].dataCells[1].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));
 
@@ -47,6 +48,7 @@ describe('Test DataStructs', function () {
             timeline.timePins[0].timeStamp = 100000;
             timeline.timePins.push(new DataStructs.TimePin(0.7));
             timeline.cellBindings.push(new DataStructs.CellBinding(table.dataRows[2].dataCells[1].id));
+            timeline.cellBindings[0].color = "#999999";
             timeline.cellBindings.push(new DataStructs.CellBinding(table.dataRows[3].dataCells[1].id));
             timeline.axisBindings.push(new DataStructs.AxisBinding(table.dataColumns[3].id));
 

@@ -623,7 +623,7 @@ describe('Integration Test ModelController', function () {
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
 
             // clear the data
-            integrationEnv.ModelController.setModelFromObject({ timelines: [], dataTables: [] });
+            integrationEnv.ModelController.setModelFromObject({ canvas: new DataStructs.Canvas(), timelines: [], dataTables: [] });
             let originalFunc = integrationEnv.ModelController.setModelFromObject;
 
             integrationEnv.ModelController.setModelFromObject = function (result) {
