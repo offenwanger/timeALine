@@ -393,7 +393,7 @@ function ModelController() {
         newRow.dataCells.push(timeCell);
 
         let nextColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 1).id;
-        let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId, { x: 10, y: 10 })
+        let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId)
         newRow.dataCells.push(textCell);
 
         for (let i = 2; i < mModel.getAllTables()[0].dataColumns.length; i++) {
