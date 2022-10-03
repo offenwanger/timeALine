@@ -238,6 +238,14 @@ DataStructs.DataModel = function () {
         return mTimelines.map(t => t.axisBindings).flat().find(b => b.id == axisId);
     }
 
+    function getStrokeById(strokeId) {
+        return mTimelines
+            .map(t => t.annotationStrokes)
+            .flat()
+            .concat(mCanvas.annotationStrokes)
+            .find(s => s.id == strokeId);
+    }
+
     function getTimeColumnByTableId(tableId) {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
@@ -262,6 +270,8 @@ DataStructs.DataModel = function () {
     this.getCellBindingById = getCellBindingById;
 
     this.getAxisById = getAxisById;
+
+    this.getStrokeById = getStrokeById;
 
     this.getTimeCellForPin = getTimeCellForPin;
     this.getTimeCellForDataCell = getTimeCellForDataCell;

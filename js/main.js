@@ -102,10 +102,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
 
             modelUpdated();
+        } else if (mMode == MODE_COLOR_BUCKET) {
+            mModelController.updateTimelineColor(timelineId, mColor);
+            modelUpdated();
+        } else if (mMode == MODE_EYEDROPPER) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            setColor(timeline.color);
         } else if (mMode == MODE_LENS) {
             mLensController.focus(timelineId, linePoint.percent);
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
-
         } else if (mMode == MODE_SCISSORS) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             let points1 = [];
@@ -162,6 +167,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mStrokeController.setDragEndCallback((strokeId, coords) => {
+        if (mMode == MODE_COLOR_BUCKET) {
+            mModelController.updateStrokeColor(strokeId, mColor);
+            modelUpdated();
+        } else if (mMode == MODE_EYEDROPPER) {
+            setColor(mModelController.getModel().getStrokeById(strokeId).color);
+        }
+    })
 
     let mTimePinController = new TimePinController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
@@ -444,6 +457,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .on('pointerdown', function (pointerEvent) {
             if (mMode == MODE_PAN) {
                 mPanning = true;
+            } else if (mMode == MODE_COLOR_BUCKET) {
+                mModelController.updateCanvasColor(mColor);
+                modelUpdated();
+            } else if (mMode == MODE_EYEDROPPER) {
+                setColor(mModelController.getModel().getCanvas().color);
             }
 
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
@@ -475,6 +493,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTextController.onPointerMove(coords);
         mDataPointController.onPointerMove(coords);
         mIronController.onPointerMove(coords);
+        mStrokeController.onPointerMove(coords);
     });
 
     $(document).on("pointerup", function (e) {
@@ -494,6 +513,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTextController.onPointerUp(coords);
         mDataPointController.onPointerUp(coords);
         mIronController.onPointerUp(coords);
+        mStrokeController.onPointerUp(coords);
     });
 
     function screenToSvgCoords(screenCoords) {
@@ -587,6 +607,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             mLineHighlight.hide();
         }
+
+        $("body").css("background-color", mModelController.getModel().getCanvas().color);
     }
 
 
@@ -771,6 +793,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mMode = MODE_COLOR_BUCKET;
+            mLineViewController.setActive(true);
+            mTimePinController.setActive(true);
+            mDataPointController.setActive(true);
+            mTextController.setActive(true);
+            mStrokeController.setActive(true);
             showIndicator('#color-bucket-button', '#color-bucket-mode-indicator');
         }
     })
@@ -781,6 +808,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             clearMode()
             mMode = MODE_EYEDROPPER;
+            mLineViewController.setActive(true);
+            mTimePinController.setActive(true);
+            mDataPointController.setActive(true);
+            mTextController.setActive(true);
+            mStrokeController.setActive(true);
             showIndicator('#eyedropper-button', '#eyedropper-mode-indicator');
         }
     })
@@ -933,7 +965,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .attr('stroke', "blue")
             .attr('fill', "none")
             .attr('stroke-width', 5)
-            .style("mix-blend-mode", "screen")
             .style("isolation", "auto")
 
         let mLastPointSet = [];

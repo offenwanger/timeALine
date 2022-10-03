@@ -4,6 +4,12 @@ function ModelController() {
     let mUndoStack = [];
     let mRedoStack = [];
 
+    function updateCanvasColor(color) {
+        undoStackPush();
+
+        mModel.getCanvas().color = color;
+    }
+
     function newTimeline(points, color) {
         undoStackPush();
 
@@ -393,6 +399,14 @@ function ModelController() {
         }
     }
 
+    function updateTimelineColor(timelineId, color) {
+        undoStackPush();
+
+        let timeline = mModel.getTimelineById(timelineId);
+        if (!timeline) { console.error("Bad timeline id!", timelineId); return; }
+        timeline.color = color;
+    }
+
     function addBoundTextRow(timelineId, text, time, timePin = null) {
         undoStackPush();
 
@@ -475,6 +489,14 @@ function ModelController() {
         undoStackPush();
 
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color));
+    }
+
+    function updateStrokeColor(storkeId, color) {
+        undoStackPush();
+
+        let stroke = mModel.getStrokeById(storkeId);
+        if (!stroke) { console.error("Bad stroke id!", storkeId); return; }
+        stroke.color = color;
     }
 
     function addTable(table) {
@@ -740,6 +762,7 @@ function ModelController() {
     /****
      * Exports
      */
+    this.updateCanvasColor = updateCanvasColor;
 
     this.newTimeline = newTimeline;
     this.extendTimeline = extendTimeline;
@@ -747,6 +770,7 @@ function ModelController() {
     this.deleteTimeline = deleteTimeline;
     this.breakTimeline = breakTimeline;
     this.updateTimelinePoints = updateTimelinePoints;
+    this.updateTimelineColor = updateTimelineColor;
 
     this.addTable = addTable;
     this.addTableFromCSV = addTableFromCSV;
@@ -762,6 +786,7 @@ function ModelController() {
     this.updateTimePinBinding = updateTimePinBinding;
 
     this.addTimelineStroke = addTimelineStroke;
+    this.updateStrokeColor = updateStrokeColor;
 
     this.updateAxisDist = updateAxisDist;
 

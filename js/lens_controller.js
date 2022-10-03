@@ -162,6 +162,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         let oldModel = mModel;
         mModel = model;
 
+        mSvg.style("background-color", mModel.getCanvas().color);
+
         if (!mTimelineId) return;
 
         let timeline = mModel.getTimelineById(mTimelineId);
