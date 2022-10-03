@@ -50,11 +50,45 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let mLineViewController = new LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    // Note that both click and drag get called, ensure code doesn't overlap. 
-    mLineViewController.setLineClickCallback((timelineId, linePoint) => {
-        if (mMode == MODE_COMMENT) {
+    mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
+        if (mMode == MODE_PIN) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            if (!timeline) {
+                console.error("Bad timeline id! " + timelineId);
+                return;
+            }
+
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+            let timePin = new DataStructs.TimePin(linePoint.percent);
+
+            if (mModelController.getModel().hasTimeMapping(timelineId)) {
+                let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+                if (time instanceof Date) time = time.getTime();
+                timePin.timeStamp = time;
+            }
+
+            mDraggingTimePin = timePin;
+
+            pinDrag(timeline, timePin, linePoint.percent);
+        } else if (mMode == MODE_COMMENT || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
+            mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        }
+    })
+    mLineViewController.setLineDragCallback((timelineId, linePoint) => {
+        if (mMode == MODE_PIN) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            pinDrag(timeline, mDraggingTimePin, linePoint.percent);
+        }
+    })
+    mLineViewController.setLineDragEndCallback((timelineId, linePoint) => {
+        if (mMode == MODE_PIN) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
+            mDraggingTimePin = null;
+        } else if (mMode == MODE_COMMENT) {
             // TODO: Open the text input in new comment mode.
-            // TODO: place the text at the mouse click position 
+            // TODO: Create in pointer down instead and initiate a drag on the text 
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
                 let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
                 mModelController.addBoundTextRow(timelineId, "<text>", time);
@@ -62,7 +96,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 let timePin = new DataStructs.TimePin(linePoint.percent);
                 mModelController.addBoundTextRow(timelineId, "<text>", "", timePin);
             }
-
 
             modelUpdated();
         } else if (mMode == MODE_LINK) {
@@ -98,44 +131,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         }
     })
-
-    mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
-        if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(timelineId);
-            if (!timeline) {
-                console.error("Bad timeline id! " + timelineId);
-                return;
-            }
-
-            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
-            let timePin = new DataStructs.TimePin(linePoint.percent);
-
-            if (mModelController.getModel().hasTimeMapping(timelineId)) {
-                let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
-                if (time instanceof Date) time = time.getTime();
-                timePin.timeStamp = time;
-            }
-
-            mDraggingTimePin = timePin;
-
-            pinDrag(timeline, timePin, linePoint.percent);
-        }
-    })
-    mLineViewController.setLineDragCallback((timelineId, linePoint) => {
-        if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(timelineId);
-            pinDrag(timeline, mDraggingTimePin, linePoint.percent);
-        }
-    })
-    mLineViewController.setLineDragEndCallback((timelineId, linePoint) => {
-        if (mMode == MODE_PIN) {
-            let timeline = mModelController.getModel().getTimelineById(timelineId);
-            pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
-            mDraggingTimePin = null;
-        }
-    })
-
     mLineViewController.setMouseOverCallback((event, timelineId) => {
         lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
         mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
@@ -143,7 +138,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mLineViewController.setMouseMoveCallback((event, timelineId) => {
         lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
     });
-
     function lineViewControllerShowTime(timelineId, screenCoords) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
 
@@ -161,7 +155,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         ToolTip.show(message, screenCoords);
     }
-
     mLineViewController.setMouseOutCallback(() => {
         ToolTip.hide();
         mMouseDropShadow.hide();

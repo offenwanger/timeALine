@@ -572,7 +572,7 @@ describe('Integration Test ModelController', function () {
             ]);
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 2, 1]];
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];

@@ -57,9 +57,9 @@ describe('Integration Test TextController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
@@ -90,8 +90,8 @@ describe('Integration Test TextController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 40, y: 103 }, timelineId, integrationEnv.enviromentVariables);
-            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 40, y: 103 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);

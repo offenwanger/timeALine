@@ -529,10 +529,11 @@ before(function () {
         clickFunc();
     }
 
-    function clickLine(coords, lineId, enviromentVariables) {
-        let timeLineTargets = enviromentVariables.d3.selectors['.timelineTarget'];
+    function clickLine(coords, lineId, integrationEnv) {
+        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
         let data = timeLineTargets.innerData.find(d => d.id == lineId);
-        timeLineTargets.eventCallbacks['click'](coords, data);
+        timeLineTargets.eventCallbacks['pointerdown'](coords, data);
+        pointerUp(coords, integrationEnv);
     }
 
     function dragLine(points, lineId, integrationEnv) {
@@ -569,7 +570,7 @@ before(function () {
         IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, dataArray.length - 1, dataArray[0].length - 1]];
 
         IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-        IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv.enviromentVariables);
+        IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv);
         IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
         assert(integrationEnv.ModelController.getModel().getAllCellBindingData().length > 0, "Nothing bound!");

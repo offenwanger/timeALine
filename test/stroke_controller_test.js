@@ -19,7 +19,7 @@ describe('Integration Test StrokeController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv.enviromentVariables);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
 

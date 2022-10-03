@@ -197,10 +197,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr('stroke-width', 50)
             .attr('stroke-linecap', 'round')
             .attr('opacity', '0')
-            .on("click", (e, d) => {
+            .on('pointerdown', function (e, d) {
                 if (mActive) {
-                    let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                    mLineClickedCallback(d.id, PathMath.getClosestPointOnPath(mouseCoords, d.points))
+                    mDragging = true;
+                    mDraggingData = d;
+                    mLineDragStartCallback(d.id, e);
                 }
             })
             .on('mouseover', (e, d) => {
@@ -208,21 +209,14 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
                     mMouseOverCallback(e, d.id)
                 }
             })
-            .on('mouseout', (e, d) => {
-                if (mActive) {
-                    mMouseOutCallback(e, d.id)
-                }
-            })
             .on('mousemove', (e, d) => {
                 if (mActive) {
                     mMouseMoveCallback(e, d.id)
                 }
             })
-            .on('pointerdown', function (e, d) {
+            .on('mouseout', (e, d) => {
                 if (mActive) {
-                    mDragging = true;
-                    mDraggingData = d;
-                    mLineDragStartCallback(d.id, e);
+                    mMouseOutCallback(e, d.id)
                 }
             })
 
@@ -273,7 +267,6 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     this.drawWarpedTimeline = drawWarpedTimeline;
     this.setActive = setActive;
     this.toggleStyle = toggleStyle;
-    this.setLineClickCallback = (callback) => mLineClickedCallback = callback;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;
     this.setLineDragEndCallback = (callback) => mLineDragEndCallback = callback;
