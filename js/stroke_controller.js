@@ -14,40 +14,22 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
     let mStrokeGroup = vizLayer.append('g')
         .attr("id", 'stroke-view-g');
     let mStrokeTargetGroup = interactionLayer.append('g')
-        .attr("id", 'stroke-view-g');
+        .attr("id", 'stroke-view-target-g')
+        .style('visibility', "hidden");
 
     function updateModel(model) {
         let oldModel = mModel;
         mModel = model;
 
-        let stokesWithPathChange = [];
-        oldModel.getAllTimelines().forEach(oldTimeline => {
-            let newTimeline = mModel.getTimelineById(oldTimeline.id);
-            if (newTimeline && !PathMath.equalsPath(oldTimeline.points, newTimeline.points)) {
-                stokesWithPathChange.push(...oldTimeline.annotationStrokes.map(s => s.id));
-            }
-        });
-
         let oldStrokeData = mStrokesData;
-        let oldStrokes = oldModel.getAllTimelines().reduce((arr, t) => {
-            arr.push(...t.annotationStrokes);
-            return arr;
-        }, []);
-
         mStrokesData = {}
 
         mModel.getAllTimelines().forEach(timeline => {
+            let oldtimeline = oldModel.getAllTimelines().find(t => t.id == timeline.id);
+            let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
             timeline.annotationStrokes.forEach(stroke => {
-                let recalc = true;
-                if (!stokesWithPathChange.includes(stroke.id)) {
-                    let oldStroke = oldStrokes.find(s => s.id == stroke.id);
-                    if (oldStroke && oldStroke.equals(stroke)) {
-                        recalc = false
-                    }
-                }
-
-                if (recalc) {
-                    mStrokesData[stroke.id] = calculateStrokeData(timeline.points, stroke);
+                if (changedStrokes.includes(stroke.id)) {
+                    mStrokesData[stroke.id] = calculateStrokeData(timeline, stroke);
                 } else {
                     mStrokesData[stroke.id] = oldStrokeData[stroke.id];
                 }
@@ -57,9 +39,15 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         drawStrokes();
     }
 
-    function calculateStrokeData(timelinePoints, stroke) {
+    function calculateStrokeData(timeline, stroke) {
+        if (mModel.hasTimeMapping(timeline.id)) {
+            stroke.points.forEach(point => {
+                point.linePercent = mModel.mapTimeToLinePercent(timeline.id, point.timeStamp);
+            });
+        }
+
         let projectedPoints = stroke.points.map(point => {
-            return PathMath.getPositionForPercentAndDist(timelinePoints, point.linePercent, point.lineDist);
+            return PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist);
         })
 
         return { color: stroke.color, projectedPoints };
@@ -90,9 +78,9 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             .classed("canvas-annotation-stroke-target", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
-            .attr("stroke", "black")
+            .attr('stroke', 'black')
             .attr('stroke-width', 6)
-            .attr('fill', 'black')
+            .attr('fill', 'none')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
                 if (mActive) {

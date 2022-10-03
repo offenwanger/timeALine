@@ -49,6 +49,20 @@ function ModelController() {
                 binding.linePercent *= conversionRatio;
             })
         }
+
+        if (!mModel.hasTimeMapping(timeline.id)) {
+            if (extendStart) {
+                timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+                    let originalLengthAlongLine = point.linePercent * originalLength;
+                    point.linePercent = (originalLengthAlongLine + diff) / newLength;
+                }))
+            } else {
+                let conversionRatio = originalLength / newLength;
+                timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+                    point.linePercent *= conversionRatio;
+                }))
+            }
+        }
     }
 
     function mergeTimeline(timelineIdStart, timelineIdEnd, points) {
@@ -137,17 +151,13 @@ function ModelController() {
             }
         }
 
-        // update the annotation stroke line percents
         startTimeline.annotationStrokes.forEach(stroke => {
-            // TODO: either change strokes to use a time representation set along with the time pins
-            // or map all the strokes to time here and back to line percents (which will have to happen
-            // every time we move a time pin...)
-            console.error("Finish me!");
-
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
-                point.linePercent = p.linePercent * conversionRatio;
+                if (!point.timeStamp) {
+                    point.linePercent = p.linePercent * conversionRatio;
+                }
                 return point;
             })
             newTimeline.annotationStrokes.push(newStoke);
@@ -157,7 +167,9 @@ function ModelController() {
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
-                point.linePercent = ((p.linePercent * originalEndLength) + diff) / newLength;
+                if (!point.timeStamp) {
+                    point.linePercent = ((p.linePercent * originalEndLength) + diff) / newLength;
+                }
                 return point;
             })
             newTimeline.annotationStrokes.push(newStoke);
@@ -287,7 +299,16 @@ function ModelController() {
             }
         })
 
+        // piece out the strokes
         segments.forEach(s => s.annotationStrokes = []);
+        let hasTimeMapping = mModel.hasTimeMapping(timelineId);
+        if (hasTimeMapping) {
+            // temporarily set a line percent here for the splitting.
+            timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+                point.linePercent = mModel.mapTimeToLinePercent(timelineId, point.timeStamp);
+            }))
+        }
+
         timeline.annotationStrokes.forEach(stroke => {
             segments.forEach(segment => {
                 let currSet = [];
@@ -315,7 +336,9 @@ function ModelController() {
             segment.annotationStrokes.forEach(segmentStroke => {
                 segmentStroke.points = segmentStroke.points.map(p => {
                     let point = p.copy();
-                    point.linePercent = (point.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                    if (!hasTimeMapping) {
+                        point.linePercent = (point.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                    }
                     return point;
                 });
             });
@@ -569,7 +592,7 @@ function ModelController() {
                 });
                 if (wasChanged) {
                     updateTimelineAxes(timeLine);
-                    updateTimePinTimeStamps(timeLine);
+                    updateTimelineTimeStamps(timeLine);
                     clearTimePinLinks(timeLine);
                 }
             })
@@ -660,16 +683,25 @@ function ModelController() {
             }
         });
 
-        updateTimePinTimeStamps(timeline);
+        updateTimelineTimeStamps(timeline);
     }
 
-    function updateTimePinTimeStamps(timeline) {
+    function updateTimelineTimeStamps(timeline) {
         if (mModel.hasTimeMapping(timeline.id) && timeline.timePins.some(pin => !pin.timeStamp)) {
             timeline.timePins.forEach(pin => {
                 if (!pin.timeStamp) {
                     pin.timeStamp = mModel.mapLinePercentToTime(timeline.id, pin.linePercent);
                 }
             })
+        }
+
+        if (mModel.hasTimeMapping(timeline.id) && timeline.annotationStrokes.some(stroke => stroke.points.some(point => !point.timeStamp))) {
+            timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+                if (!point.timeStamp) {
+                    point.timeStamp = mModel.mapLinePercentToTime(timeline.id, point.linePercent);
+                    point.linePercent = null;
+                }
+            }))
         }
     }
 

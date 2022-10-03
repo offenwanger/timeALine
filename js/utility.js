@@ -719,6 +719,65 @@ let DataUtil = function () {
         return filtered;
     }
 
+    function timelineStrokesChanged(timeline1, timeline2) {
+        if (!timeline1) {
+            if (!timeline2) {
+                console.error("If they're both duds why are you asking?", timeline1, timeline2);
+                return [];
+            }
+
+            // one timeline is a dud, they're all changes
+            return timeline2.annotationStrokes.map(s => s.id);
+        }
+
+        if (!timeline2) {
+            if (!timeline1) {
+                console.error("If they're both duds why are you asking?", timeline1, timeline2);
+                return [];
+            }
+
+            // one timeline is a dud, they're all changes
+            return timeline1.annotationStrokes.map(s => s.id);
+        }
+
+        if (!PathMath.equalsPath(timeline1.points, timeline2.points)) {
+            return DataUtil.getUniqueList(
+                timeline1.annotationStrokes.map(s => s.id).concat(
+                    timeline2.annotationStrokes.map(s => s.id)));
+        }
+
+        let pinChanged = timeline1.timePins.length != timeline2.timePins.length ||
+            timeline1.timePins.some(pin => {
+                // check if at least one pin has changed.
+                let oldPin = timeline2.timePins.find(p => p.id == pin.id);
+                // pin set mismatch, that's a change.
+                if (!oldPin) return true;
+                // otherwise check if the line percent has changed.
+                if (oldPin.linePercent != pin.linePercent) return true;
+                return false;
+            });
+        if (pinChanged) {
+            return DataUtil.getUniqueList(
+                timeline1.annotationStrokes.map(s => s.id).concat(
+                    timeline2.annotationStrokes.map(s => s.id)));
+        }
+
+        let allIds = DataUtil.getUniqueList(
+            timeline1.annotationStrokes.map(s => s.id).concat(
+                timeline2.annotationStrokes.map(s => s.id)));
+
+        let changedIds = allIds.filter(id => {
+            let stroke1 = timeline1.annotationStrokes.find(s => s.id == id);
+            let stroke2 = timeline2.annotationStrokes.find(s => s.id == id);
+            // if either is missing this has changed.
+            if (!stroke1 || !stroke2) return true;
+            // if the path has changed it's changed.
+            if (!stroke1.equals(stroke2)) return true;
+            // no change
+            return false;
+        });
+        return changedIds;
+    }
 
     return {
         inferDataAndType,
@@ -736,6 +795,7 @@ let DataUtil = function () {
         getColorBetween,
 
         filterTimePinByChangedPin,
+        timelineStrokesChanged,
     }
 }();
 

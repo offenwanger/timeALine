@@ -38,7 +38,7 @@ let DataStructs = function () {
 
         this.copy = function () {
             let timeline = new Timeline();
-            // sometimes the x, y, points are not nessisarily plain objects (i.e. SVP point)
+            // sometimes the x, y, points are not nessisarily plain objects (i.e. SVG point)
             // TODO: Should maybe make my own point object...
             timeline.points = this.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
 
@@ -412,7 +412,11 @@ let DataStructs = function () {
             if (this.points.length != otherStroke.points.length) return false;
             if (this.color != otherStroke.color) return false;
             for (let i = 0; i < this.points.length; i++) {
-                if (this.points[i].linePercent != otherStroke.points[i].linePercent) return false;
+                if (this.points[i].timeStamp) {
+                    if (this.points[i].timeStamp != otherStroke.points[i].timeStamp) return false;
+                } else {
+                    if (this.points[i].linePercent != otherStroke.points[i].linePercent) return false;
+                }
                 if (this.points[i].lineDist != otherStroke.points[i].lineDist) return false;
             }
             return true;
@@ -424,15 +428,25 @@ let DataStructs = function () {
         return stroke;
     }
 
-    function StrokePoint(linePercent, lineDist) {
-        this.linePercent = linePercent;
+    function StrokePoint(timeStamp, lineDist) {
+        this.timeStamp = timeStamp;
         this.lineDist = lineDist;
+        // secondary structure for lines not bound to timelines with time mappings.
+        this.linePercent = null;
         this.copy = function () {
-            return new StrokePoint(this.linePercent, this.lineDist);
+            let point = new StrokePoint(this.timeStamp, this.lineDist);
+            if (!this.timeStamp) {
+                point.linePercent = this.linePercent;
+            }
+            return point;
         }
     }
     StrokePoint.fromObject = function (obj) {
-        return new StrokePoint(obj.linePercent, obj.lineDist);
+        let point = new StrokePoint(obj.timeStamp, obj.lineDist);
+        if (!obj.timeStamp) {
+            point.linePercent = obj.linePercent;
+        }
+        return point;
     }
 
     return {
