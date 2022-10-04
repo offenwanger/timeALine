@@ -1,8 +1,4 @@
 function TimePinController(vizLayer, overlayLayer, interactionLayer) {
-    const PIN_TICK_WIDTH = 6;
-    const PIN_TICK_LENGTH = 10
-    const PIN_TICK_TARGET_SIZE = 10;
-
     let mActive = false;
 
     let mLinePoints = {};
@@ -58,17 +54,22 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             tickTargetData.push({ position, degrees, binding });
         });
 
+
+        const pinTickWidth = 6;
+        const pinTickLength = 10
+        const pinTickTargetPadding = 10;
+
         let ticks = mPinTickGroup.selectAll('.pinTick_' + timeline.id).data(tickData);
         ticks.exit().remove();
         ticks.enter().append('line').classed('pinTick_' + timeline.id, true);
         mPinTickGroup.selectAll('.pinTick_' + timeline.id)
             .style("stroke", "black")
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", (d) => PIN_TICK_WIDTH)
+            .style("stroke-width", (d) => pinTickWidth)
             .attr("x1", (d) => d.position.x)
-            .attr("y1", (d) => d.position.y + PIN_TICK_LENGTH / 2)
+            .attr("y1", (d) => d.position.y + pinTickLength / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - PIN_TICK_LENGTH / 2);
+            .attr("y2", (d) => d.position.y - pinTickLength / 2);
 
         let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
             .data(tickTargetData);
@@ -94,11 +95,11 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
         mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", PIN_TICK_TARGET_SIZE + PIN_TICK_WIDTH)
+            .style("stroke-width", pinTickTargetPadding + pinTickWidth)
             .attr("x1", (d) => d.position.x)
-            .attr("y1", (d) => d.position.y + PIN_TICK_TARGET_SIZE + PIN_TICK_LENGTH / 2)
+            .attr("y1", (d) => d.position.y + pinTickTargetPadding + pinTickLength / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - PIN_TICK_TARGET_SIZE + PIN_TICK_LENGTH / 2);
+            .attr("y2", (d) => d.position.y - pinTickTargetPadding + pinTickLength / 2);
     }
 
     function drawTails(timelineId, linePoints) {
