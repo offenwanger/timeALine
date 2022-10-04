@@ -10,7 +10,7 @@ let FileHandler = function () {
         var a = document.createElement("a");
         var file = new Blob([JSON.stringify(obj)], { type: 'text/plain' });
         a.href = URL.createObjectURL(file);
-        a.download = 'json.txt';
+        a.download = 'viz.json';
         a.click();
     }
 
