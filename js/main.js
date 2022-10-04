@@ -498,6 +498,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 modelUpdated();
             } else if (mMode == MODE_EYEDROPPER) {
                 setColor(mModelController.getModel().getCanvas().color);
+            } else if (mMode == MODE_LENS) {
+                mLensController.focus(null, null);
+                mLineHighlight.hide();
             }
 
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
