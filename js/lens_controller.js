@@ -7,8 +7,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mModelController = externalModelController;
     let mVizLayer = svg.append("g")
         .attr("id", "lens-main-view-g");
-    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-canvas-interaction-layer");
-    let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
+    let mVizOverlayLayer = mSvg.append("g")
+        .attr("id", "lens-viz-overlay-layer");
+    let mInteractionLayer = mSvg.append("g")
+        .attr("id", "lens-interaction-layer");
 
     let mPanCallback = () => { };
 
@@ -24,10 +26,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mViewTransform = {};
     resetViewTransform();
 
-    let mLineG = mVizLayer.append("g").attr("id", "lens-line-g");
-    let mAnnotationGroup = mVizLayer.append("g").attr("id", "lens-annotations-g");
+    let mLineGroup = mVizLayer.append("g").attr("id", "lens-line-g");
+    let mTextGroup = mVizLayer.append("g").attr("id", "lens-annotations-g");
     let mPointsGroup = mVizLayer.append("g").attr("id", "lens-points-g");
     let mStrokeGroup = mVizLayer.append("g").attr("id", "lens-strokes-g");
+    let mPinGroup = mVizLayer.append("g").attr("id", "lens-pins-g");
 
     let mPanning = false;
 
@@ -136,7 +139,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             eraseLine();
             eraseTimePins();
             eraseDataPoints();
-            eraseAnnotations();
+            eraseTextData();
             eraseStrokes();
 
             resetViewTransform()
@@ -148,7 +151,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 mLineLength = PathMath.getPathLength(timeline.points);
                 redrawLine(mLineLength, timeline.color);
 
-                redrawStrokes(mModel, null, true);
+                redrawStrokes(null);
+                redrawDataPoints();
+                redrawTextData();
+                redrawTimePins();
             }
 
             mViewTransform.x = -(percent * mLineLength - svg.attr('width') / 2);
@@ -186,7 +192,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             eraseLine();
             eraseTimePins();
             eraseDataPoints();
-            eraseAnnotations();
+            eraseTextData();
             eraseStrokes();
 
             resetViewTransform();
@@ -197,18 +203,20 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
         let oldTimeline = oldModel.getTimelineById(mTimelineId);
 
-        let pathChanged = !PathMath.equalsPath(oldTimeline.points, timeline.points);
-        if (pathChanged) {
+        if (!PathMath.equalsPath(oldTimeline.points, timeline.points) || oldTimeline.color != timeline.color) {
             let timeline = mModel.getTimelineById(mTimelineId);
             mLineLength = PathMath.getPathLength(timeline.points);
             redrawLine(mLineLength, timeline.color);
         }
 
-        redrawStrokes(model, oldModel, pathChanged);
+        redrawStrokes(oldModel);
+        redrawDataPoints();
+        redrawTextData();
+        redrawTimePins();
     }
 
     function redrawLine(lineLength, color) {
-        mLineG.selectAll("#lens-line")
+        mLineGroup.selectAll("#lens-line")
             .data([null]).enter().append("line")
             .attr("id", "lens-line")
             // TODO: switch this out for a chosen color at some point
@@ -216,15 +224,37 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             .attr("x1", 0)
             .attr("y1", 0)
             .attr("y2", 0);
-        mLineG.select("#lens-line")
+        mLineGroup.select("#lens-line")
             .attr("stroke", color)
             .attr("x2", lineLength);
     }
     function eraseLine() {
-        mLineG.select("#lens-line").remove();
+        mLineGroup.select("#lens-line").remove();
     }
 
     function redrawTimePins() {
+        let timeline = mModel.getTimelineById(mTimelineId);
+        if (!timeline) {
+            console.error("Code should be unreachable.");
+            return;
+        }
+
+        let pinsData = timeline.timePins.map(pin => pin.linePercent * mLineLength);
+        let pins = mPinGroup.selectAll('.lens-pin-tick')
+            .data(pinsData);
+        pins.exit().remove();
+        pins.enter().append('line')
+            .classed('lens-pin-tick', true);
+
+        const pinTickWidth = 6;
+        const pinTickLength = 10
+        mPinGroup.selectAll('.lens-pin-tick')
+            .style("stroke", "black")
+            .style("stroke-width", (d) => pinTickWidth)
+            .attr("x1", (d) => d)
+            .attr("x2", (d) => d)
+            .attr("y1", (d) => pinTickLength / 2)
+            .attr("y2", (d) => -pinTickLength / 2);
 
     }
 
@@ -233,33 +263,81 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function redrawDataPoints() {
-        // draw any data points that are in the range we are showing
-        // we are showing length at a 1-1, 
-        // Data can be drawn at it's distance based on the axis
+        let cellBindingData = mModel.getCellBindingData(mTimelineId)
+            .filter(cbd => cbd.linePercent != NO_LINE_PERCENT &&
+                cbd.dataCell.getType() == DataTypes.NUM)
+        let numData = cellBindingData.map(cbd => {
+            let { val1, val2, dist1, dist2 } = cbd.axisBinding;
+            if (val1 == val2) {
+                console.error("Invalid binding values: " + val1 + ", " + val2);
+                val1 = 0;
+                if (val1 == val2) val2 = 1;
+            };
+            let dist = (dist2 - dist1) * (cbd.dataCell.getValue() - val1) / (val2 - val1) + dist1;
+            return {
+                x: cbd.linePercent * mLineLength,
+                y: -dist,
+                color: cbd.color ? cbd.color : "black"
+            };
+        });
 
+        let selection = mPointsGroup.selectAll('.lens-data-point').data(numData);
+        selection.exit().remove();
+        selection.enter()
+            .append('circle')
+            .classed('lens-data-point', true)
+            .attr('r', 3.0)
+            .attr('stroke', 'black')
+
+        mPointsGroup.selectAll('.lens-data-point')
+            .attr('cx', function (d) { return d.x })
+            .attr('cy', function (d) { return d.y })
+            .attr('fill', function (d) { return d.color });
     }
     function eraseDataPoints() {
+        mPointsGroup.selectAll('.lens-data-point').remove();
+    }
+
+    function redrawTextData() {
+        let cellBindingData = mModel.getCellBindingData(mTimelineId)
+            .filter(cbd => cbd.linePercent != NO_LINE_PERCENT &&
+                cbd.dataCell.getType() == DataTypes.TEXT)
+        let textData = cellBindingData.map(cbd => {
+            return {
+                x: cbd.linePercent * mLineLength,
+                color: cbd.color ? cbd.color : "black"
+            };
+        });
+
+        let selection = mTextGroup.selectAll('.lens-text-markers')
+            .data(textData);
+        selection.exit().remove();
+        selection.enter()
+            .append('line')
+            .classed("lens-text-markers", true)
+            .attr('stroke-width', 1)
+            .attr('stroke', 'black')
+            .attr('opacity', 0.6)
+            .attr('y1', -5)
+            .attr('y2', 5);
+        mTextGroup.selectAll('.lens-text-markers')
+            .attr('x1', function (d) { return d.x + 2 })
+            .attr('x2', function (d) { return d.x - 2 });
+    }
+    function eraseTextData() {
+        mTextGroup.selectAll('.lens-text-markers').remove();
 
     }
 
-    function redrawAnnotations() {
-        // get the annotation's distance from it's point on the line, draw a marker
-        // clicking the marker makes the text pop up. any other click closes it. 
-
-    }
-    function eraseAnnotations() {
-
-    }
-
-    function redrawStrokes(newModel, oldModel, redrawEverything) {
+    function redrawStrokes(oldModel) {
         let oldStrokeData = mStrokesData;
         mStrokesData = {}
 
-        let timeline = newModel.getTimelineById(mTimelineId);
+        let timeline = mModel.getTimelineById(mTimelineId);
         let oldtimeline = oldModel ? oldModel.getTimelineById(mTimelineId) : null;
         let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
         timeline.annotationStrokes.forEach(stroke => {
-            if (redrawEverything || changedStrokes.includes(stroke.id)) {
+            if (changedStrokes.includes(stroke.id)) {
                 mStrokesData[stroke.id] = calculateStrokeData(timeline, stroke);
             } else {
                 mStrokesData[stroke.id] = oldStrokeData[stroke.id];
