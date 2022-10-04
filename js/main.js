@@ -412,7 +412,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mColorBrushController.setDrawFinishedCallback((points) => {
-        // TODO: Add new stroke
+        let strokePoints = points.map(p => {
+            let strokePoint = new DataStructs.StrokePoint(null, p.y);
+            strokePoint.linePercent = p.x;
+            return strokePoint;
+        })
+        mModelController.addCanvasStroke(strokePoints, mColor);
 
         modelUpdated();
     })

@@ -96,4 +96,37 @@ describe('Integration Test StrokeController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
         });
     })
+
+    describe('canvas stroke draw and display', function () {
+        it('should show a stroke drawn in canvas', function () {
+            integrationEnv.mainInit();
+            let squiggle = [
+                { x: 10, y: 100 },
+                { x: 20, y: 110 },
+                { x: 30, y: 100 },
+                { x: 40, y: 110 },
+                { x: 50, y: 102 },
+                { x: 60, y: 110 }
+            ];
+
+            IntegrationUtils.clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.mainPointerDown(squiggle[0], integrationEnv)
+            squiggle.forEach(point => {
+                IntegrationUtils.pointerMove(point, integrationEnv);
+            })
+            IntegrationUtils.pointerUp(squiggle[squiggle.length - 1], integrationEnv);
+            IntegrationUtils.clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 10, y: 100 },
+                    { x: 20, y: 110 },
+                    { x: 30, y: 100 },
+                    { x: 40, y: 110 },
+                    { x: 50, y: 102 },
+                    { x: 60, y: 110 }
+                ]);
+        });
+    })
 });

@@ -498,6 +498,12 @@ function ModelController() {
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color));
     }
 
+    function addCanvasStroke(points, color) {
+        undoStackPush();
+
+        mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color));
+    }
+
     function updateStrokeColor(storkeId, color) {
         undoStackPush();
 
@@ -815,6 +821,7 @@ function ModelController() {
     this.updateTimePinBinding = updateTimePinBinding;
 
     this.addTimelineStroke = addTimelineStroke;
+    this.addCanvasStroke = addCanvasStroke;
     this.updateStrokeColor = updateStrokeColor;
 
     this.updateAxisDist = updateAxisDist;

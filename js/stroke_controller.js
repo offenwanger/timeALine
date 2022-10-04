@@ -36,6 +36,18 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             })
         });
 
+        mModel.getCanvas().annotationStrokes.forEach(stroke => {
+            mStrokesData[stroke.id] = {
+                color: stroke.color,
+                projectedPoints: stroke.points.map(p => {
+                    return {
+                        x: p.linePercent,
+                        y: p.lineDist,
+                    }
+                })
+            };
+        })
+
         drawStrokes();
     }
 
