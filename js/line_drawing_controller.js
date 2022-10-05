@@ -116,7 +116,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             .classed("draw-start-point", true)
             .attr('id', d => "start-point_" + d.id)
             .attr('r', EXTENSION_POINT_RADIUS)
-            .attr('cursor', 'pointer')
+            .attr('cursor', 'crosshair')
             .attr('fill', '#b51d1c')
             .attr("stroke", "black")
             .on('pointerdown', function (e, d) {
@@ -138,7 +138,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             .classed("draw-end-point", true)
             .attr('id', d => "end-point_" + d.id)
             .attr('r', EXTENSION_POINT_RADIUS)
-            .attr('cursor', 'pointer')
+            .attr('cursor', 'crosshair')
             .attr('fill', '#1c1db5')
             .attr("stroke", "black")
             .on('pointerdown', function (e, d) {
