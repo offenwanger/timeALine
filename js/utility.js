@@ -806,7 +806,6 @@ let ToolTip = function (id) {
     $("body").append(tooltipDiv);
 
     function show(str, pos) {
-        console.log("here", str, pos)
         tooltipDiv.css({
             left: pos.x + 10,
             top: pos.y + 10
