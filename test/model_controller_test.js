@@ -579,7 +579,7 @@ describe('Integration Test ModelController', function () {
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
             timeLineTargets.eventCallbacks['mouseover']({ clientX: 125, clientY: 200 }, data);
 
-            assert.equal(integrationEnv.enviromentVariables.$.selectors["#tooltip-div"].html, DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:32:16")));
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html, DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:32:16")));
         });
     });
 

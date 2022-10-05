@@ -15,10 +15,10 @@ body {
     position: absolute;
 }
 
-#tooltip-div {
+.tooltip-div {
     position: absolute;
     background-color: white;
-    min-width: 60px;
+    min-width: 100px;
     max-width: 300px;
     padding: 5px;
     padding-top: 10px;

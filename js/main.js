@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
 
+    let mTooltip = new ToolTip("main-tooltip");
+    let mTooltipSetTo = ""
+
     let mModelController = new ModelController();
 
     let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
@@ -158,10 +161,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         mMouseDropShadow.show(pointOnLine, svgCoords);
 
-        ToolTip.show(message, screenCoords);
+        mTooltip.show(message, screenCoords);
+        mTooltipSetTo = timelineId;
     }
-    mLineViewController.setMouseOutCallback(() => {
-        ToolTip.hide();
+    mLineViewController.setMouseOutCallback((event, timelineId) => {
+        if (mTooltipSetTo == timelineId) {
+            mTooltip.hide();
+        }
+
         mMouseDropShadow.hide();
         mDataTableController.highlightCells([]);
     })
@@ -204,10 +211,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
         }
 
-        ToolTip.show(message, screenCoords);
+        mTooltip.show(message, screenCoords);
+        mTooltipSetTo = timePin.id;
     });
     mTimePinController.setMouseOutCallback((event, timePin) => {
-        ToolTip.hide();
+        if (mTooltipSetTo = timePin.id) {
+            mTooltip.hide();
+        }
     });
 
     let mTextController = new TextController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
@@ -656,105 +666,31 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $("body").css("background-color", mModelController.getModel().getCanvas().color);
     }
 
-
-    $("#line-drawing-button").on("click", () => {
-        if (mMode == MODE_LINE_DRAWING) {
-            setDefaultMode()
+    // Setup main view buttons' events
+    $("#datasheet-toggle-button").on("click", () => {
+        if (mDrawerController.isOpen()) {
+            mDrawerController.closeDrawer();
         } else {
-            clearMode()
-            mLineDrawingController.setActive(true);
-            mMode = MODE_LINE_DRAWING;
-            showIndicator('#line-drawing-button', '#line-drawing-mode-indicator');
+            mDrawerController.openDrawer();
         }
     })
+    setupButtonTooltip("#datasheet-toggle-button", "Opens and closes the datasheets and lens view");
 
-    $("#eraser-button").on("click", () => {
-        if (mMode == MODE_ERASER) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_ERASER;
-            mEraserController.setActive(true);
-            showIndicator('#eraser-button', '#eraser-mode-indicator');
+    $("#undo-button").on("click", () => {
+        let undone = mModelController.undo();
+        if (undone) {
+            modelUpdated();
+        };
+    })
+    setupButtonTooltip("#undo-button", "Undo last action");
+
+    $("#redo-button").on("click", () => {
+        let redone = mModelController.redo();
+        if (redone) {
+            modelUpdated();
         }
     })
-
-    $("#drag-button").on("click", () => {
-        if (mMode == MODE_DRAG) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_DRAG;
-            mDragController.setActive(true);
-            showIndicator('#drag-button', '#drag-mode-indicator');
-        }
-    })
-
-    $("#iron-button").on("click", () => {
-        if (mMode == MODE_IRON) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_IRON;
-            mIronController.setActive(true);
-            showIndicator('#iron-button', '#iron-mode-indicator');
-        }
-    })
-
-    $("#scissors-button").on("click", () => {
-        if (mMode == MODE_SCISSORS) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mLineViewController.setActive(true);
-            mMode = MODE_SCISSORS;
-            showIndicator('#scissors-button', '#scissors-mode-indicator');
-        }
-    })
-
-    $("#comment-button").on("click", () => {
-        if (mMode == MODE_COMMENT) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mLineViewController.setActive(true);
-            mMode = MODE_COMMENT;
-            showIndicator('#comment-button', '#comment-mode-indicator');
-        }
-    })
-
-    $("#pin-button").on("click", () => {
-        if (mMode == MODE_PIN) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mLineViewController.setActive(true);
-            mTimePinController.setActive(true);
-            mDataPointController.setActive(true);
-            mTextController.setActive(true);
-            mMode = MODE_PIN;
-            showIndicator('#pin-button', '#pin-mode-indicator');
-        }
-    })
-
-    $("#toggle-timeline-style-button").on("click", () => {
-        mLineViewController.toggleStyle(mModelController.getModel());
-    })
-
-    $("#lens-button").on("click", () => {
-        if (mMode == MODE_LENS) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mLineViewController.setActive(true);
-            mMode = MODE_LENS;
-            showIndicator('#lens-button', '#lens-mode-indicator');
-        }
-    })
-
-    $("#download-button").on("click", () => {
-        FileHandler.downloadJSON(mModelController.getModelAsObject());
-    })
+    setupButtonTooltip("#redo-button", "Redo last undone action");
 
     $("#upload-button").on("click", () => {
         FileHandler.getJSONModel().then(result => {
@@ -764,32 +700,82 @@ document.addEventListener('DOMContentLoaded', function (e) {
             console.error("Error while getting file: ", err)
         });
     })
+    setupButtonTooltip("#upload-button", "Upload a previously downloaded file");
 
-    $("#undo-button").on("click", () => {
-        let undone = mModelController.undo();
-        if (undone) {
-            modelUpdated();
-        };
+    $("#download-button").on("click", () => {
+        FileHandler.downloadJSON(mModelController.getModelAsObject());
     })
+    setupButtonTooltip("#download-button", "Package your image into a json file which can be uploaded later");
+    // ---------------
+    setupModeButton("#line-drawing-button", MODE_LINE_DRAWING, () => {
+        mLineDrawingController.setActive(true);
+    });
+    setupButtonTooltip("#line-drawing-button", "Draws timelines")
 
-    $("#redo-button").on("click", () => {
-        let redone = mModelController.redo();
-        if (redone) {
-            modelUpdated();
-        }
+    setupModeButton("#drag-button", MODE_DRAG, () => {
+        mDragController.setActive(true);
+    });
+    setupButtonTooltip("#drag-button", "Deforms timelines")
+
+    setupModeButton("#iron-button", MODE_IRON, () => {
+        mIronController.setActive(true);
+    });
+    setupButtonTooltip("#iron-button", "Flattens timelines")
+
+    setupModeButton('#scissors-button', MODE_SCISSORS, () => {
+        mLineViewController.setActive(true);
+    });
+    setupButtonTooltip('#scissors-button', "Snips timelines")
+
+    $("#toggle-timeline-style-button").on("click", () => {
+        mLineViewController.toggleStyle(mModelController.getModel());
     })
+    setupButtonTooltip('#toggle-timeline-style-button', "Flips through available timeline styles")
+    // ---------------
+    setupModeButton('#color-brush-button', MODE_COLOR_BRUSH, () => {
+        mColorBrushController.setActive(true);
+        mLensController.setColorBrushActive(true);
 
-    $("#datasheet-toggle-button").on("click", () => {
-        if (mDrawerController.isOpen()) {
-            mDrawerController.closeDrawer();
+    });
+    setupButtonTooltip('#color-brush-button', "Draws annotations on the diagram and in the lens view")
+
+    setupModeButton('#comment-button', MODE_COMMENT, () => {
+        mLineViewController.setActive(true);
+    });
+    setupButtonTooltip('#comment-button', "Creates text items on timelines or on the main view")
+
+    setupModeButton('#pin-button', MODE_PIN, () => {
+        mLineViewController.setActive(true);
+        mTimePinController.setActive(true);
+        mDataPointController.setActive(true);
+        mTextController.setActive(true);
+    });
+    setupButtonTooltip('#pin-button', "Creates and moves time pins on timelines")
+    // ---------------
+    setupModeButton("#eraser-button", MODE_ERASER, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button", "Erases all the things!")
+
+    setupModeButton('#color-bucket-button', MODE_COLOR_BUCKET, () => {
+        mLineViewController.setActive(true);
+        mTimePinController.setActive(true);
+        mDataPointController.setActive(true);
+        mTextController.setActive(true);
+        mStrokeController.setActive(true);
+    });
+    setupButtonTooltip('#color-bucket-button', "Colors all the things!")
+
+    $("#color-picker-button").on("click", (e) => {
+        if ($("#color-picker-div").is(":visible")) {
+            $('#color-picker-div').hide();
         } else {
-            mDrawerController.openDrawer();
+            $('#color-picker-div').css('top', e.pageY);
+            $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
+            $('#color-picker-div').show();
         }
-
-        return;
     })
-
-
+    // setup the color picker
     $('#color-picker-wrapper').farbtastic((color) => {
         setColor(color);
     });
@@ -805,73 +791,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     // set color to a random color
     setColor("#" + Math.floor(Math.random() * 16777215).toString(16))
+    setupButtonTooltip("#color-picker-button", "Choose color to draw with");
 
+    setupModeButton('#eyedropper-button', MODE_EYEDROPPER, () => {
+        mLineViewController.setActive(true);
+        mTimePinController.setActive(true);
+        mDataPointController.setActive(true);
+        mTextController.setActive(true);
+        mStrokeController.setActive(true);
+    });
+    setupButtonTooltip('#eyedropper-button', "Copies the color from anything that can be colored")
+    // ---------------
+    setupModeButton('#lens-button', MODE_LENS, () => {
+        mLineViewController.setActive(true);
+    });
+    setupButtonTooltip('#lens-button', "Displayed the clicked section of timeline in the lens view")
 
-    $("#color-picker-button").on("click", (e) => {
-        if ($("#color-picker-div").is(":visible")) {
-            $('#color-picker-div').hide();
-        } else {
-            $('#color-picker-div').css('top', e.pageY);
-            $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
-            $('#color-picker-div').show();
-        }
+    setupModeButton("#panning-button", MODE_PAN, () => {
+        mLensController.setPanActive(true);
+    });
+    setupButtonTooltip("#panning-button", "Pans the main view and the lens view")
 
-        return;
-    })
+    // setup other buttons
 
-
-    $("#color-brush-button").on("click", () => {
-        if (mMode == MODE_COLOR_BRUSH) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_COLOR_BRUSH;
-            mColorBrushController.setActive(true);
-            mLensController.setColorBrushActive(true);
-            showIndicator('#color-brush-button', '#color-brush-mode-indicator');
-        }
-    })
-
-    $("#color-bucket-button").on("click", () => {
-        if (mMode == MODE_COLOR_BUCKET) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_COLOR_BUCKET;
-            mLineViewController.setActive(true);
-            mTimePinController.setActive(true);
-            mDataPointController.setActive(true);
-            mTextController.setActive(true);
-            mStrokeController.setActive(true);
-            showIndicator('#color-bucket-button', '#color-bucket-mode-indicator');
-        }
-    })
-
-    $("#eyedropper-button").on("click", () => {
-        if (mMode == MODE_EYEDROPPER) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_EYEDROPPER;
-            mLineViewController.setActive(true);
-            mTimePinController.setActive(true);
-            mDataPointController.setActive(true);
-            mTextController.setActive(true);
-            mStrokeController.setActive(true);
-            showIndicator('#eyedropper-button', '#eyedropper-mode-indicator');
-        }
-    })
-
-    $("#panning-button").on("click", () => {
-        if (mMode == MODE_PAN) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_PAN;
-            mLensController.setPanActive(true);
-            showIndicator('#panning-button', '#panning-mode-indicator');
-        }
-    })
+    setupModeButton('#link-button', MODE_LINK, () => {
+        mLineViewController.setActive(true);
+    });
+    setupButtonTooltip('#link-button', "Attaches data to timelines")
 
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([
@@ -893,33 +839,42 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDataTableController.addOrUpdateTables(newTable);
         modelUpdated();
     })
+    setupButtonTooltip("#add-datasheet-button", "Adds a new datasheet")
 
-    $("#load-datasheet-button").on("click", () => {
-        FileHandler.getCSVDataFile().then(result => {
-            // TODO figure out if there's a header row
-            mModelController.newTable(result.data);
-            modelUpdated();
-        });
-    })
+    function setupModeButton(buttonId, mode, callback) {
+        $(buttonId).on("click", () => {
+            if (mMode == mode) {
+                setDefaultMode()
+            } else {
+                clearMode()
+                callback();
+                mMode = mode;
 
-    $("#link-button").on('click', () => {
-        if (mMode == MODE_LINK) {
-            setDefaultMode()
-        } else {
-            clearMode()
-            mMode = MODE_LINK;
-            mLineViewController.setActive(true);
-            showIndicator('#link-button', '#link-mode-indicator');
-        }
-    })
-    $('#link-button-div').hide();
+                $(buttonId).css('opacity', '0.3');
 
+                $('#mode-indicator-div').html("");
+                let modeImg = $("<img>");
+                modeImg.attr("src", $(buttonId).attr("src"));
+                modeImg.css("max-width", "35px");
+                modeImg.css("background-color", $(buttonId).css("background-color"));
+                modeImg.addClass("mode-indicator");
+                $('#mode-indicator-div').append(modeImg);
+                $('#mode-indicator-div').show();
+            }
+        })
+    }
 
-    function showIndicator(imgButtonId, modeIndicatorId) {
-        $(imgButtonId).css('opacity', '0.3');
-        $('#mode-indicator-div img').hide();
-        $(modeIndicatorId).show();
-        $('#mode-indicator-div').show();
+    function setupButtonTooltip(buttonId, text) {
+        $(buttonId).on("pointerenter", (event) => {
+            let screenCoords = { x: event.clientX, y: event.clientY };
+            mTooltip.show(text, screenCoords);
+            mTooltipSetTo = buttonId;
+        })
+        $(buttonId).on("pointerout", (event) => {
+            if (mTooltipSetTo == buttonId) {
+                mTooltip.hide();
+            }
+        })
     }
 
     function setDefaultMode() {

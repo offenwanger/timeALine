@@ -153,7 +153,7 @@ before(function () {
 
 
     function fakeJqueryFactory() {
-        let selectors = { "#tooltip-div": new MockJqueryElement() };
+        let selectors = {};
 
         function MockJqueryElement(selector) {
             this.selector = selector;
@@ -163,6 +163,10 @@ before(function () {
                 this.eventCallbacks[event] = func;
                 return this;
             };
+            this.addClass = function (cls) { selectors["." + cls] = this };
+            this.attr = function (attr, val) { if (attr == "id") selectors["#" + val] = this };
+            this.outerWidth = function () { return 100; };
+            this.outerHeight = function () { return 20; };
             this.append = function () { return this };
             this.empty = function () { };
             this.get = function () { return this };
