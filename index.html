@@ -41,37 +41,47 @@
 </head>
 
 <body>
-    <input id="line-drawing-button" class="tool-button canvas-button" type="image" src="img/time_pencil_button.png" />
-    <input id="drag-button" class="tool-button canvas-button" type="image" src="img/drag_button.png" />
-    <input id="iron-button" class="tool-button canvas-button" type="image" src="img/iron_button.png" />
-    <input id="scissors-button" class="tool-button canvas-button" type="image" src="img/scissors_button.png" />
-    <input id="comment-button" class="tool-button canvas-button" type="image" src="img/text_button.png" />
-    <input id="pin-button" class="tool-button canvas-button" type="image" src="img/pin_button.png" />
-    <input id="toggle-timeline-style-button" class="tool-button canvas-button" type="image"
-        src="img/toggle_timeline_style_button.png" />
-    <input id="lens-button" class="tool-button canvas-button" type="image" src="img/lens_button.png" />
-    <input id="download-button" class="tool-button canvas-button" type="image" src="img/download_button.png" />
-    <input id="upload-button" class="tool-button canvas-button" type="image" src="img/upload_button.png" />
-    <input id="undo-button" class="tool-button canvas-button" type="image" src="img/undo_button.png" />
-    <input id="redo-button" class="tool-button canvas-button" type="image" src="img/redo_button.png" />
-
     <div id="svg_container"></div>
 
     <section class="drawer" id="data-drawer">
         <div class="drawer-wrapper">
             <div class="drawer-side-menu">
-                <input id="datasheet-toggle-button" class="shared-button" type="image"
+                <input id="datasheet-toggle-button" class="menu-button" type="image"
                     src="img/datasheet_drawer_toggle.png" />
-                <input id="color-brush-button" class="tool-button shared-button" type="image"
+
+                <img src="img/divider_line.png" class="menu-divider" />
+                <input id="undo-button" class="tool-button menu-button" type="image" src="img/undo_button.png" />
+                <input id="redo-button" class="tool-button menu-button" type="image" src="img/redo_button.png" />
+                <input id="upload-button" class="tool-button menu-button" type="image" src="img/upload_button.png" />
+                <input id="download-button" class="tool-button menu-button" type="image"
+                    src="img/download_button.png" />
+
+                <img src="img/divider_line.png" class="menu-divider" />
+                <input id="line-drawing-button" class="tool-button menu-button" type="image"
+                    src="img/time_pencil_button.png" />
+                <input id="drag-button" class="tool-button menu-button" type="image" src="img/deform_button.png" />
+                <input id="iron-button" class="tool-button menu-button" type="image" src="img/iron_button.png" />
+                <input id="scissors-button" class="tool-button menu-button" type="image"
+                    src="img/scissors_button.png" />
+                <input id="toggle-timeline-style-button" class="tool-button menu-button" type="image"
+                    src="img/toggle_timeline_style_button.png" />
+
+                <img src="img/divider_line.png" class="menu-divider" />
+                <input id="color-brush-button" class="tool-button menu-button" type="image"
                     src="img/color_brush_button.png" />
-                <input id="eraser-button" class="tool-button shared-button" type="image" src="img/eraser_button.png" />
-                <input id="color-bucket-button" class="tool-button shared-button" type="image"
+                <input id="comment-button" class="tool-button menu-button" type="image" src="img/text_button.png" />
+                <input id="pin-button" class="tool-button menu-button" type="image" src="img/pin_button.png" />
+
+                <img src="img/divider_line.png" class="menu-divider" />
+                <input id="eraser-button" class="tool-button menu-button" type="image" src="img/eraser_button.png" />
+                <input id="color-bucket-button" class="tool-button menu-button" type="image"
                     src="img/color_bucket_button.png" />
-                <input id="color-picker-button" class="shared-button" type="image" src="img/color_set.png" />
-                <input id="eyedropper-button" class="tool-button shared-button" type="image"
-                    src="img/eye_dropper.png" />
-                <input id="panning-button" class="tool-button shared-button" type="image"
-                    src="img/panning_button.png" />
+                <input id="color-picker-button" class="menu-button" type="image" src="img/color_set.png" />
+                <input id="eyedropper-button" class="tool-button menu-button" type="image" src="img/eye_dropper.png" />
+
+                <img src="img/divider_line.png" class="menu-divider" />
+                <input id="lens-button" class="tool-button menu-button" type="image" src="img/lens_button.png" />
+                <input id="panning-button" class="tool-button menu-button" type="image" src="img/panning_button.png" />
             </div>
             <div class="drawer-content-wrapper">
                 <div class="drawer-header">
@@ -93,13 +103,13 @@
     </section>
 
     <div id="link-button-div">
-        <input id="link-button" class="tool-button shared-button" type="image" src="img/link_button.png" />
+        <input id="link-button" class="tool-button menu-button" type="image" src="img/link_button.png" />
     </div>
 
     <div id="mode-indicator-div">
         <img id="line-drawing-mode-indicator" class="mode-indicator" src="img/time_pencil_button.png" height="30px" />
         <img id="eraser-mode-indicator" class="mode-indicator" src="img/eraser_button.png" height="30px" />
-        <img id="drag-mode-indicator" class="mode-indicator" src="img/drag_button.png" height="30px" />
+        <img id="drag-mode-indicator" class="mode-indicator" src="img/deform_button.png" height="30px" />
         <img id="iron-mode-indicator" class="mode-indicator" src="img/iron_button.png" height="30px" />
         <img id="scissors-mode-indicator" class="mode-indicator" src="img/scissors_button.png" height="30px" />
         <img id="comment-mode-indicator" class="mode-indicator" src="img/text_button.png" height="30px" />

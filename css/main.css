@@ -2,6 +2,12 @@ body {
     position: relative;
     overflow: hidden;
     touch-action: none;
+
+    user-select: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
 #mode-indicator-div {
@@ -54,11 +60,14 @@ body {
     position: absolute;
 }
 
-.canvas-button {
-    max-height: 30px;
-    object-fit: cover;
+.menu-button {
+    margin: 1px;
+    max-width: 35px;
 }
 
-.shared-button {
-    max-width: 35px;
+.menu-divider {
+    margin: -3px;
+    max-width: 41px;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
