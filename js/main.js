@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mSvg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
-        .attr('height', window.innerHeight - 50);
+        .attr('height', window.innerHeight);
 
     let mVizLayer = mSvg.append("g").attr("id", "main-viz-layer");
     let mVizOverlayLayer = mSvg.append("g").attr("id", "main-canvas-interaction-layer");
@@ -907,6 +907,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             showIndicator('#link-button', '#link-mode-indicator');
         }
     })
+    $('#link-button-div').hide();
 
 
     function showIndicator(imgButtonId, modeIndicatorId) {
