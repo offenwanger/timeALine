@@ -676,20 +676,32 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     setupButtonTooltip("#datasheet-toggle-button", "Opens and closes the datasheets and lens view");
 
-    $("#undo-button").on("click", () => {
+    $("#undo-button").on("click", () => { doUndo(); })
+    $(document).keydown(function (e) {
+        if (e.ctrlKey && e.which == 90) {
+            doUndo();
+        }
+    });
+    function doUndo() {
         let undone = mModelController.undo();
         if (undone) {
             modelUpdated();
         };
-    })
+    }
     setupButtonTooltip("#undo-button", "Undo last action");
 
-    $("#redo-button").on("click", () => {
+    $("#redo-button").on("click", () => { doRedo(); })
+    $(document).keydown(function (e) {
+        if ((e.ctrlKey && e.keyCode == 89) || (e.ctrlKey && e.shiftKey && e.which == 90)) {
+            doRedo();
+        }
+    });
+    function doRedo() {
         let redone = mModelController.redo();
         if (redone) {
             modelUpdated();
         }
-    })
+    }
     setupButtonTooltip("#redo-button", "Redo last undone action");
 
     $("#upload-button").on("click", () => {
