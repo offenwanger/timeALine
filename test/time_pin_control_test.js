@@ -72,6 +72,64 @@ describe('Integration Test TimePinController', function () {
     afterEach(function (done) {
         integrationEnv.cleanup(done);
     });
+    describe('pin display tests', function () {
+        it('should display tooltip on mouseover without time mapping', function () {
+            integrationEnv.mainInit();
+
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 200, y: 100 },
+            ], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 115, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + integrationEnv.ModelController.getModel().getAllTimelines()[0].id];
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[0]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Percent of time: 15%');
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[1]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Percent of time: 25%');
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[2]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Percent of time: 50%');
+        });
+
+        it('should display tooltip on mouseover with time mapping', function () {
+            integrationEnv.mainInit();
+
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 200, y: 100 },
+            ], integrationEnv);
+
+            IntegrationUtils.bindDataToLine(integrationEnv.ModelController.getModel().getAllTimelines()[0].id, [
+                ["Jan 10, 2021", "sometext1"],
+                ["Jan 20, 2021", "sometext3"]
+            ], integrationEnv)
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 115, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + integrationEnv.ModelController.getModel().getAllTimelines()[0].id];
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[0]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Jan 11, 2021 12:00:00');
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[1]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Jan 12, 2021 12:00:00');
+            pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[2]);
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Jan 15, 2021 00:00:00');
+        });
+    });
 
     describe('pin data tests', function () {
         it('should create pins without time', function () {

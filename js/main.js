@@ -683,7 +683,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let timeBindingValues = DataUtil.filterTimePinByChangedPin(
             mModelController.getModel().getTimeBindingValues(timeline), changedPin, timeAttribute);
-        mLineViewController.drawWarpedTimeline(timeline, timeBindingValues, timelineHasMapping);
+
+        mLineViewController.drawSingleTimeline(timeline, timeBindingValues, timeAttribute);
     }
 
     function pinDragEnd(timeline, timePin, linePercent) {

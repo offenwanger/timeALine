@@ -176,7 +176,7 @@ before(function () {
             this.css = function () { return this };
             this.hide = function () { return this };
             this.show = function () { return this };
-            this.html = function (html) { if (html) this.html = html; return this.html; };
+            this.html = function (html) { if (html) this.innerHtml = html; return this.innerHtml; };
             this.width = function () { return 100 };
             this.height = function () { return 100 };
         };

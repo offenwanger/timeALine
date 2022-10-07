@@ -21,30 +21,28 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
 
     function updateModel(model) {
         let timelines = model.getAllTimelines();
-
-        drawPlainLines(timelines.filter(timeline => timeline.timePins.filter(pin => pin.timeStamp).length == 0));
-        drawWarpedLines(timelines.filter(timeline => timeline.timePins.filter(pin => pin.timeStamp).length > 0), model);
+        drawLine(timelines, model);
 
         drawLineTargets(timelines);
     }
 
-    function drawPlainLines(timelines) {
-        let paths = mLineGroup.selectAll('.timelinePath').data(timelines);
-        paths.enter().append('path')
-            .classed('timelinePath', true)
-            .attr('fill', 'none')
-            .attr('stroke-linejoin', 'round')
-            .attr('stroke-linecap', 'round')
-            .attr('stroke-width', 1.5)
-        paths.exit().remove();
-        mLineGroup.selectAll('.timelinePath')
-            .attr('stroke', (timeline) => timeline.color)
-            .attr('d', (timeline) => PathMath.getPathD(timeline.points));
+    function drawLine(timelines, model) {
+        let allSegments = [];
+        timelines.forEach(timeline => {
+            let timeAttribute = model.hasTimeMapping(timeline.id) ? "timeStamp" : "timePercent";
+            let segments = getDrawingSegments(timeline, model.getTimeBindingValues(timeline), timeAttribute);
+            segments.forEach(segment => {
+                segment.timelineId = timeline.id;
+                segment.color = timeline.color;
+            });
+            allSegments.push(...segments);
+        });
 
         if (mLineStyle == LineStyle.STYLE_DASHED) {
-            mLineGroup.selectAll('.timelinePath')
-                .style("stroke-dasharray", "15, 4, 1, 4, 1, 4")
-        }
+            drawDashedLines(allSegments);
+        } else if (mLineStyle == LineStyle.STYLE_OPACITY) {
+            drawSemiOpaqueLines(allSegments);
+        } else console.error("Unimplimented line style: " + mLineStyle)
 
         let points = mLineGroup.selectAll(".pointMarkerCircle").data(timelines.map(path => path.points).flat())
         points.enter()
@@ -59,29 +57,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr("cy", function (d) { return d.y })
     }
 
-    function drawWarpedLines(timelines, model) {
-        let allSegments = [];
-        timelines.forEach(timeline => {
-            let segments = getDrawingSegments(timeline, model.getTimeBindingValues(timeline), model.hasTimeMapping(timeline.id));
-            segments.forEach(segment => {
-                segment.timelineId = timeline.id;
-                segment.color = timeline.color;
-            });
-            allSegments.push(...segments);
-        });
-
-        if (mLineStyle == LineStyle.STYLE_DASHED) {
-            drawDashedLines(allSegments);
-        } else if (mLineStyle == LineStyle.STYLE_OPACITY) {
-            drawSemiOpaqueLines(allSegments);
-        } else console.error("Unimplimented line style: " + mLineStyle)
-    }
-
-    function drawWarpedTimeline(timeline, timeBindingValues, timelineHasMapping) {
+    function drawSingleTimeline(timeline, timeBindingValues, timeAttribute) {
         d3.selectAll(".warped-timeline-path").filter(function (d) { return d.timelineId == timeline.id; }).remove();
         d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
 
-        let segments = getDrawingSegments(timeline, timeBindingValues, timelineHasMapping);
+        let segments = getDrawingSegments(timeline, timeBindingValues, timeAttribute);
         segments.forEach(segment => {
             segment.timelineId = timeline.id;
             segment.color = timeline.color;
@@ -146,11 +126,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr('d', d => PathMath.getPathD(d.points));
     }
 
-    function getDrawingSegments(timeline, timeBindingValues, timelineHasMapping) {
+    function getDrawingSegments(timeline, timeBindingValues, timeAttribute) {
 
         let ratioValues = [];
         for (let i = 1; i < timeBindingValues.length; i++) {
-            let percentOfTime = (timeBindingValues[i].timeStamp - timeBindingValues[i - 1].timeStamp) / (timeBindingValues[timeBindingValues.length - 1].timeStamp - timeBindingValues[0].timeStamp);
+            let percentOfTime = (timeBindingValues[i][timeAttribute] - timeBindingValues[i - 1][timeAttribute]) / (timeBindingValues[timeBindingValues.length - 1][timeAttribute] - timeBindingValues[0][timeAttribute]);
             percentOfTime = Math.max(Math.round(100 * percentOfTime) / 100, 0.01);
             let percentOfLine = (timeBindingValues[i].linePercent - timeBindingValues[i - 1].linePercent);
             percentOfLine = Math.max(Math.round(100 * percentOfLine) / 100, 0.01);
@@ -255,7 +235,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     }
 
     this.updateModel = updateModel;
-    this.drawWarpedTimeline = drawWarpedTimeline;
+    this.drawSingleTimeline = drawSingleTimeline;
     this.setActive = setActive;
     this.toggleStyle = toggleStyle;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
