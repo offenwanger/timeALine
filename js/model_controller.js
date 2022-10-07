@@ -34,7 +34,8 @@ function ModelController() {
         let newPoints = extendStart ? points.concat(timeline.points) : timeline.points.concat(points);
         let newLength = PathMath.getPathLength(newPoints);
 
-        timeline.timePins.push(...getCapTimePins(timeline, extendStart));
+        let capTimePin = getCapTimePin(timeline, extendStart);
+        if (capTimePin) timeline.timePins.push(capTimePin);
 
         timeline.points = newPoints;
         if (extendStart) {
@@ -119,17 +120,19 @@ function ModelController() {
 
         // Update time pin line percents
         let timePins = []
-        startTimeline.timePins.concat(getCapTimePins(startTimeline, false)).forEach(binding => {
-            let newBinding = binding.copy();
-            newBinding.linePercent = binding.linePercent * conversionRatio;
-            timePins.push(newBinding);
-        });
-        endTimeline.timePins.concat(getCapTimePins(endTimeline, true)).forEach(binding => {
-            let newBinding = binding.copy();
-            let originalLengthAlongLine = binding.linePercent * originalEndLength;
-            newBinding.linePercent = (originalLengthAlongLine + diff) / newLength;
-            timePins.push(newBinding);
-        });
+        startTimeline.timePins.concat([getCapTimePin(startTimeline, false)].filter(p => p))
+            .forEach(binding => {
+                let newBinding = binding.copy();
+                newBinding.linePercent = binding.linePercent * conversionRatio;
+                timePins.push(newBinding);
+            });
+        endTimeline.timePins.concat([getCapTimePin(endTimeline, true)].filter(p => p))
+            .forEach(binding => {
+                let newBinding = binding.copy();
+                let originalLengthAlongLine = binding.linePercent * originalEndLength;
+                newBinding.linePercent = (originalLengthAlongLine + diff) / newLength;
+                timePins.push(newBinding);
+            });
 
         // filter to bindings which are still valid and add them to the new line
         let timeSetBindings = []
@@ -181,29 +184,36 @@ function ModelController() {
         return [timelineIdStart, timelineIdEnd];
     }
 
-    /* Utility Function */
-    function getCapTimePins(timeline, capStart) {
-        let returnable = []
-        // before we make any changes, if needed, add a time pin so things won't move
-        let bindingValues = mModel.getTimeBindingValues(timeline);
-        if (bindingValues.length > 1) {
-            let capBinding = capStart ? bindingValues[0] : bindingValues[bindingValues.length - 1];
-            if (isNaN(capBinding.linePercent)) {
-                // it's needed
-                if (mModel.hasTimeMapping(timeline.id)) {
-                    let linePercent = mModel.mapTimeToLinePercent(timeline.id, capBinding.timeStamp);
-                    let timePin = new DataStructs.TimePin(linePercent);
-                    timePin.timeStamp = capBinding.timeStamp;
-                    returnable.push(timePin);
-                } else {
-                    console.error("Bad State! Should not have multiple binding values and no mapping!")
-                }
-            }
-        }
+    /* Utility Function for extending and merging timelines*/
+    function getCapTimePin(timeline, capStart) {
+        if (mModel.hasTimeMapping(timeline.id)) {
+            let boundValues = mModel.getBoundTimeCellValues(timeline.id);
+            if (boundValues.length > 1) {
+                let capTimeStamp = capStart ? boundValues[0] : boundValues[boundValues.length - 1];
 
-        return returnable;
+                timeline.timePins.sort((a, b) => a.timeStamp - b.timeStamp);
+                let capTimePin = capStart ? timeline.timePins[0] : timeline.timePins[timeline.timePins.length - 1];
+
+                if (capTimePin && ((capStart && Math.round(capTimePin.timeStamp) <= Math.round(capTimeStamp)) ||
+                    (!capStart && Math.round(capTimeStamp) <= Math.round(capTimePin.timeStamp)))) {
+                    // our cap is pinned, all good
+                    return null;
+                } else {
+                    let linePercent = mModel.mapTimeToLinePercent(timeline.id, capTimeStamp);
+                    let timePin = new DataStructs.TimePin(linePercent);
+                    timePin.timeStamp = capTimeStamp;
+                    return timePin;
+                }
+            } else {
+                // we only have time pins, so we're good.
+                return null;
+            }
+        } else {
+            // there is no time mapping, values are either bound or floating, so no need to cap
+            return null;
+        }
     }
-    /* End Utiltiy Function */
+    /* End Utilty Function */
 
     function deleteTimeline(timelineId) {
         undoStackPush();
@@ -217,32 +227,43 @@ function ModelController() {
         if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
         let timeline = mModel.getTimelineById(timelineId);
-
-        // assign the segments their correct line percents:
         let totalLength = PathMath.getPathLength(timeline.points);
-        segments[0].startLength = 0;
-        segments[0].startPercent = 0;
-        segments[0].endLength = PathMath.getPathLength(segments[0].points);
-        segments[0].endPercent = segments[0].endLength / totalLength;
-        for (let i = 1; i < segments.length; i++) {
-            segments[i].startLength = segments[i - 1].endLength;
-            segments[i].startPercent = segments[i - 1].endPercent;
-            segments[i].endLength = PathMath.getPathLength(PathMath.mergeSegments(segments.slice(0, i + 1)));
-            segments[i].endPercent = segments[i].endLength / totalLength;
-            // ensure the last segment does indeed go to one, avoid rounding errors.
-            if (i == segments.length - 1) segments[i].endPercent = 1;
+        let timelineHasMapping = mModel.hasTimeMapping(timelineId);
+
+        let findSegment = (percent) => {
+            return segments.find(s =>
+                percent >= s.startPercent &&
+                percent <= s.endPercent);
         }
 
+        // Assign the segments their correct line percents.
+        segments[0].startPercent = 0;
+        segments[0].endPercent = PathMath.getSubpathLength(segments[0].points) / totalLength;
+        for (let i = 1; i < segments.length; i++) {
+            segments[i].startPercent = segments[i - 1].endPercent;
+            segments[i].endPercent = PathMath.getSubpathLength(PathMath.mergeSegments(segments.slice(0, i + 1))) / totalLength;
+        }
+        // ensure the last segment does indeed go to one, avoid rounding errors.
+        segments[segments.length - 1].endPercent = 1;
+
+        if (!timelineHasMapping) {
+            // If we don't have a mapping, assign the segments their correct time percents.
+            segments[0].startTimePercent = 0;
+            segments[0].endTimePercent = PathMath.getSubpathLength(segments[0].points) / totalLength;
+            for (let i = 1; i < segments.length; i++) {
+                segments[i].startTimePercent = segments[i - 1].endPercent;
+                segments[i].endTimePercent = PathMath.getSubpathLength(PathMath.mergeSegments(segments.slice(0, i + 1))) / totalLength;
+            }
+            segments[segments.length - 1].endTimePercent = 1;
+        }
 
         // split up the time pins into their proper segments
         segments.forEach(s => s.timePins = []);
         let timePins = mModel.getTimelineById(timeline.id).timePins;
-        timePins.forEach(binding => {
-            let segment = segments.find(s =>
-                binding.linePercent >= s.startPercent &&
-                binding.linePercent <= s.endPercent);
+        timePins.forEach(pin => {
+            let segment = findSegment(pin.linePercent);
             if (!segment) { console.error("Unhandled edge case!", binding.linePercent, segments); return; };
-            segment.timePins.push(binding);
+            segment.timePins.push(pin);
         })
 
         // split up the cell bindings into their proper segments
@@ -252,96 +273,74 @@ function ModelController() {
             let linePercent = binding.linePercent;
             if (linePercent == NO_LINE_PERCENT) linePercent = 0;
 
-            let segment = segments.find(s =>
-                linePercent >= s.startPercent &&
-                linePercent <= s.endPercent);
-            if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent: " + binding.linePercent); return; };
+            let segment = findSegment(linePercent);
+            if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent", linePercent, binding.linePercent); return; };
             segment.cellBindingsData.push(binding);
         });
 
-        // add time pins to ensure the data doesn't move because of being disconnected
-        segments.forEach(segment => {
-            // we only care about data with valid time cells because invalid ones are either pegged or not, 
-            // and will therefore either way not be affected by the splice. 
-            let validCellBindings = segment.cellBindingsData.filter(c => c.timeCell.isValid());
-            let validTimePins = segment.timePins.filter(pin => pin.timeStamp);
-            if (validCellBindings.length > 0) {
-                // get the max/min data items
-                validCellBindings.sort((a, b) => a.linePercent - b.linePercent);
-                validTimePins.sort((a, b) => a.linePercent - b.linePercent);
+        // split up the strokes (sometimes literally split them) into their segments
+        segments.forEach(s => s.annotationStrokes = []);
+        timeline.annotationStrokes.forEach(stroke => {
+            let currSegment = findSegment(mModel.mapTimeToLinePercent(timelineId,
+                timelineHasMapping ? stroke.points[0].timeStamp : stroke.points[0].timePercent))
+            let currSet = [stroke.points[0].copy()];
 
-                // if there's already a binding at the start, don't bother creating a pin, it won't move
-                if (validCellBindings[0].linePercent > segment.startPercent && (
-                    validTimePins.length == 0 ||
-                    validCellBindings[0].linePercent < validTimePins[0].linePercent)) {
-                    // create a time pin for this item. 
-                    let timePin = new DataStructs.TimePin(validCellBindings[0].linePercent);
-                    timePin.timeStamp = validCellBindings[0].timeCell.getValue();
-                    segment.timePins.push(timePin);
-
-                    // update the valid time pins in with the new one. 
-                    validTimePins = segment.timePins.filter(pin => pin.timeStamp);
-                    validTimePins.sort((a, b) => a.linePercent - b.linePercent);
+            stroke.points.forEach(point => {
+                linePercent = mModel.mapTimeToLinePercent(timelineId, timelineHasMapping ? point.timeStamp : point.timePercent);
+                if (linePercent > currSegment.endPercent || linePercent < currSegment.startPercent) {
+                    // outside the current segment, add the previous stroke part to the previous segment and reset.
+                    if (currSet.length >= 2) {
+                        currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                    }
+                    currSet = [point.copy()];
+                    currSegment = findSegment(linePercent);
+                } else {
+                    currSet.push(point.copy());
                 }
+            })
+            // push the last stroke
+            if (currSet.length >= 2) {
+                currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+            }
+        });
 
-                let lastCell = validCellBindings[validCellBindings.length - 1];
-                // if there's already a binding at the end, don't bother creating a pin, it won't move
-                // if there was only one time pin, and we created a peg for it, this will be false because it's 
-                // line percent will be equal. 
-                if (lastCell.linePercent < segment.endPercent && (
-                    validTimePins.length == 0 ||
-                    lastCell.linePercent < validTimePins[validTimePins.length - 1].linePercent)) {
-                    // create a time pin for this item. 
-                    let timePin = new DataStructs.TimePin(lastCell.linePercent);
-                    timePin.timeStamp = lastCell.timeCell.getValue();
+        // add time pins to ensure the data doesn't move because of being disconnected if neccesary
+        segments.forEach(segment => {
+            // get the max time bound to this line
+            let maxTime = -Infinity;
+            let minTime = Infinity;
+            segment.timePins.sort((a, b) => a.linePercent - b.linePercent);
+            if (timelineHasMapping) {
+                // check the cellBindings
+                let validCellBindingsStamps = segment.cellBindingsData
+                    .filter(c => c.timeCell.isValid())
+                    .map(cbd => cbd.timeCell.getValue());
+                // check the strokes
+                let strokeStamps = segment.annotationStrokes
+                    .map(s => s.points.map(p => p.timeStamp))
+                    .flat();
+                maxTime = Math.max(maxTime, ...validCellBindingsStamps, ...strokeStamps);
+                minTime = Math.min(minTime, ...validCellBindingsStamps, ...strokeStamps);
+
+                if (minTime < Infinity &&
+                    segment.startPercent > 0 && (
+                        segment.timePins.length == 0 ||
+                        minTime < segment.timePins[0].timeStamp)) {
+                    // add a start peg based on the old timeline
+                    let timePin = new DataStructs.TimePin(segment.startPercent);
+                    timePin.timeStamp = mModel.mapLinePercentToTime(timelineId, segment.startPercent);
+                    segment.timePins.unshift(timePin);
+                }
+                if (maxTime > -Infinity &&
+                    segment.endPercent < 1 && (
+                        segment.timePins.length == 0 ||
+                        maxTime > segment.timePins[segment.timePins.length - 1].timeStamp)) {
+                    // add an end peg based on the old timeline
+                    let timePin = new DataStructs.TimePin(segment.endPercent);
+                    timePin.timeStamp = mModel.mapLinePercentToTime(timelineId, segment.endPercent);
                     segment.timePins.push(timePin);
                 }
             }
-        })
-
-        // piece out the strokes
-        segments.forEach(s => s.annotationStrokes = []);
-        let hasTimeMapping = mModel.hasTimeMapping(timelineId);
-        if (hasTimeMapping) {
-            // temporarily set a line percent here for the splitting.
-            timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
-                point.linePercent = mModel.mapTimeToLinePercent(timelineId, point.timeStamp);
-            }))
-        }
-
-        timeline.annotationStrokes.forEach(stroke => {
-            segments.forEach(segment => {
-                let currSet = [];
-                stroke.points.forEach(point => {
-                    if (point.linePercent >= segment.startPercent && point.linePercent <= segment.endPercent) {
-                        currSet.push(point);
-                    } else if (currSet.length > 0) {
-                        // we were in the segment but then we left
-                        if (currSet.length > 1) {
-                            // only push a stroke if it has more than one point
-                            segment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
-                        }
-                        currSet = [];
-                    }
-                })
-                // if we finished inside the segment, push the last stroke
-                if (currSet.length > 1) {
-                    segment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
-                }
-            })
-        });
-
-        segments.forEach(segment => {
-            // map the strokes to the new line percents.
-            segment.annotationStrokes.forEach(segmentStroke => {
-                segmentStroke.points = segmentStroke.points.map(p => {
-                    let point = p.copy();
-                    if (!hasTimeMapping) {
-                        point.linePercent = (point.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
-                    }
-                    return point;
-                });
-            });
         })
 
         // create the new timelines
@@ -349,17 +348,28 @@ function ModelController() {
             let newTimeline = new DataStructs.Timeline(segment.points);
             newTimeline.color = timeline.color;
 
+            // update pin mappings
             newTimeline.timePins = segment.timePins.map(pin => {
                 let timePin = pin.clone();
                 timePin.linePercent = (timePin.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
                 return timePin;
             });
 
+            // update the axis mappings
             newTimeline.cellBindings = segment.cellBindingsData.map(b => b.cellBinding);
             let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData.filter(cbd => cbd.dataCell.getType() == DataTypes.NUM).map(cbd => cbd.dataCell.columnId));
             newTimeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
 
-            newTimeline.annotationStrokes = segment.annotationStrokes;
+            // update the annotation stroke mappings
+            newTimeline.annotationStrokes = [...segment.annotationStrokes];
+            if (!timelineHasMapping) {
+                newTimeline.annotationStrokes.forEach(stroke => {
+                    stroke.points.forEach(point => {
+                        point.timePercent = (point.timePercent - segment.startTimePercent) /
+                            (segment.endTimePercent - segment.startTimePercent);
+                    })
+                });
+            }
 
             return newTimeline;
         })
@@ -460,10 +470,20 @@ function ModelController() {
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
 
         let timeline = mModel.getTimelineById(timelineId);
-
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin);
+        let timelineHasMapping = mModel.hasTimeMapping(timelineId);
+        let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
+
+        if (isNaN(pin[timeAttribute])) {
+            console.error("Invalid pin update! Should have " +
+                (timelineHasMapping ? "timeStamp" : "timePercent")
+                + " set!", pin);
+            k
+            return;
+        }
+
+        timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin, timeAttribute);
 
         let pinsIds = timeline.timePins.map(pin => pin.id);
         timeline.cellBindings.forEach(b => {
@@ -560,49 +580,62 @@ function ModelController() {
     function tableUpdated(table, change, changeData) {
         undoStackPush();
 
+        let affectedTimelines = [];
+        let affectedTimelinesData = {};
+        mModel.getAllTimelines().forEach(timeline => {
+            let affected = timeline.cellBindings.some(b => {
+                if (change == TableChange.UPDATE_CELLS) {
+                    // check if this timeline has cells with ids in the changed list
+                    if (changeData.includes(b.cellId)) return true;
+                    let timeCell = mModel.getTimeCellForDataCell(b.cellId);
+                    if (!timeCell) { console.error("Bad state! Could not get time cell for cell", b.cellId); }
+                    return changeData.includes(timeCell.id);
+                } else if (change == TableChange.DELETE_ROWS) {
+                    // check if this timeline has bound cells in rows that got deleted
+                    return changeData.includes(mModel.getRowByCellId(b.cellId).id);
+                } else if (change == TableChange.DELETE_COLUMNS) {
+                    return changeData.includes(mModel.getCellById(b.cellId).columnId);
+                }
+            });
+
+            if (affected) {
+                affectedTimelines.push(timeline);
+                if (mModel.hasTimeMapping(timeline.id)) {
+                    let bindingValues = mModel.getTimeBindingValues(timeline);
+                    affectedTimelinesData[timeline.id] = {
+                        startTime: bindingValues[0].timeStamp,
+                        endTime: bindingValues[bindingValues.length - 1].timeStamp
+                    };
+                }
+            }
+        })
+
         // sanitize the table to prevent data leaks
         table = table.copy();
 
         let index = mModel.getAllTables().findIndex(t => t.id == table.id);
         mModel.getAllTables()[index] = table;
 
-        if (change == TableChange.DELETE_ROWS) {
-            mModel.getAllTimelines().forEach(timeLine => {
-                let prevCount = timeLine.cellBindings.length;
-                timeLine.cellBindings = timeLine.cellBindings
-                    // check each cell to see if it's still in the model, if not, filter it out.
-                    .filter(cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
+        affectedTimelines.forEach(timeline => {
+            // remove cells bindings no longer in the model
+            timeline.cellBindings = timeline.cellBindings.filter(
+                cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
 
-                if (timeLine.cellBindings.length != prevCount) {
-                    updateTimelineAxes(timeLine);
+            updateTimelineAxes(timeline);
+            clearLinksAndSetPins(timeline);
+
+            let previouslyMappedTimelineIds = Object.keys(affectedTimelinesData);
+            let timelineHadMapping = previouslyMappedTimelineIds.includes(timeline.id);
+            if (timelineHadMapping != mModel.hasTimeMapping(timeline.id)) {
+                if (timelineHadMapping) {
+                    mapTimeStampsToTimePercents(timeline,
+                        affectedTimelinesData[timeline.id].startTime,
+                        affectedTimelinesData[timeline.id].endTime)
+                } else {
+                    mapTimePercentsToTimeStamps(timeline);
                 }
-            })
-        } else if (change == TableChange.DELETE_COLUMNS) {
-            mModel.getAllTimelines().forEach(timeLine => {
-                timeLine.cellBindings = timeLine.cellBindings
-                    // check each cell to see if it's still in the model, if not, filter it out.
-                    .filter(cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
-                timeLine.axisBindings = timeLine.axisBindings.filter(b => !changeData.includes(b.columnId));
-            })
-        } else if (change == TableChange.UPDATE_CELLS) {
-            mModel.getAllTimelines().forEach(timeLine => {
-                let wasChanged = timeLine.cellBindings.some(b => {
-                    if (changeData.includes(b.cellId)) return true;
-
-                    let timeCell = mModel.getTimeCellForDataCell(b.cellId);
-                    if (!timeCell) {
-                        console.error("Bad state! Could not get time cell for cell", b.cellId);
-                    }
-
-                    return changeData.includes(timeCell.id);
-                });
-                if (wasChanged) {
-                    updateTimelineAxes(timeLine);
-                    updateTimelineTimeStamps(timeLine);
-                    clearTimePinLinks(timeLine);
-                }
-            })
-        }
+            }
+        });
     }
 
     //// table Update Util functions ////
@@ -626,13 +659,22 @@ function ModelController() {
         });
     }
 
-    function clearTimePinLinks(timeline) {
+    function clearLinksAndSetPins(timeline) {
         timeline.cellBindings.forEach(b => {
             if (b.timePinId) {
                 let timeCell = mModel.getTimeCellForDataCell(b.cellId);
                 if (!timeCell) return;
 
                 if (timeCell.isValid()) {
+                    let timePin = mModel.getTimePinById(b.timePinId);
+                    let pinCopy = timePin.copy();
+                    pinCopy.timeStamp = timeCell.getValue();
+                    let resultingPins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pinCopy, 'timeStamp');
+
+                    if (resultingPins.length == timeline.timePins.length) {
+                        timePin.timeStamp = timeCell.getValue();
+                    }
+
                     b.timePinId = null;
                 }
             }
@@ -644,6 +686,7 @@ function ModelController() {
         undoStackPush();
 
         let timeline = mModel.getTimelineById(lineId);
+        let hasMappingBefore = mModel.hasTimeMapping(timeline.id);
 
         cellBindings = cellBindings.filter(cb => {
             let cell = mModel.getCellById(cb.cellId);
@@ -689,26 +732,84 @@ function ModelController() {
             }
         });
 
-        updateTimelineTimeStamps(timeline);
+        if (mModel.hasTimeMapping(timeline.id) && !hasMappingBefore) {
+            // we can only go from no mapping to mapping in this function
+            mapTimePercentsToTimeStamps(timeline);
+        }
     }
 
-    function updateTimelineTimeStamps(timeline) {
-        if (mModel.hasTimeMapping(timeline.id) && timeline.timePins.some(pin => !pin.timeStamp)) {
-            timeline.timePins.forEach(pin => {
-                if (!pin.timeStamp) {
-                    pin.timeStamp = mModel.mapLinePercentToTime(timeline.id, pin.linePercent);
-                }
-            })
+    function mapTimePercentsToTimeStamps(timeline) {
+        if (!mModel.hasTimeMapping(timeline.id)) {
+            console.error("Invalid timeline for percent to stamp mapping!");
+            return;
         }
 
-        if (mModel.hasTimeMapping(timeline.id) && timeline.annotationStrokes.some(stroke => stroke.points.some(point => !point.timeStamp))) {
-            timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
-                if (!point.timeStamp) {
-                    point.timeStamp = mModel.mapLinePercentToTime(timeline.id, point.linePercent);
-                    point.linePercent = null;
-                }
-            }))
+        let values = mModel.getTimeBindingValues(timeline);
+        timeMin = values[0].timeStamp;
+        timeMax = values[values.length - 1].timeStamp;
+
+        // It is possible that we might have a single time pin that already has a time stamp
+        let stampedPin = timeline.timePins.find(pin => pin.timeStamp);
+        if (stampedPin) {
+            if (stampedPin.timeStamp == timeMin || stampedPin.timeStamp == timeMax) {
+                // all good, don't need to factor this into the calculation.
+                stampedPin = null;
+            } else {
+                stampedPin = stampedPin.copy();
+            }
         }
+        function convertPercent(timePercent) {
+            let result;
+            if (stampedPin) {
+                if (timePercent > stampedPin.timePercent) {
+                    let rangePercent = (timePercent - stampedPin.timePercent) / (1 - stampedPin.timePercent);
+                    result = rangePercent * (timeMax - stampedPin.timeStamp) + stampedPin.timeStamp;
+                } else {
+                    let rangePercent = timePercent / stampedPin.timePercent;
+                    result = rangePercent * (stampedPin.timeStamp - timeMin) + timeMin;
+                }
+            } else {
+                result = timePercent * (timeMax - timeMin) + timeMin;
+            }
+            return Math.round(result);
+        }
+
+        timeline.timePins.forEach(pin => {
+            if (!pin.timeStamp) {
+                pin.timeStamp = convertPercent(pin.timePercent);
+            }
+            pin.timePercent = null;
+        })
+
+        timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+            if (!point.timeStamp) {
+                point.timeStamp = convertPercent(point.timePercent);
+                point.timePercent = null;
+            }
+        }))
+
+    }
+
+    function mapTimeStampsToTimePercents(timeline, lineStartTimeStamp, lineEndTimeStamp) {
+        // map everything to time percent
+        if (isNaN(lineStartTimeStamp)) {
+            console.error("Invalid parameters. Must include time mapping values if shifted to no time mapping.");
+            return;
+        }
+        if (isNaN(lineEndTimeStamp)) {
+            console.error("Invalid parameters. Must include time mapping values if shifted to no time mapping.")
+            return;
+        }
+
+        timeline.timePins.forEach(pin => {
+            // there can really only be at most one pin in this case.
+            pin.timePercent = pin.linePercent;
+        })
+
+        timeline.annotationStrokes.forEach(stroke => stroke.points.forEach(point => {
+            point.timePercent = (point.timeStamp - lineStartTimeStamp) / (lineEndTimeStamp - lineStartTimeStamp);
+            point.timeStamp = null;
+        }))
     }
 
     function updateAxisDist(axisId, oneOrTwo, dist) {

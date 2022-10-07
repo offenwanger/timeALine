@@ -41,7 +41,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
                 color: stroke.color,
                 projectedPoints: stroke.points.map(p => {
                     return {
-                        x: p.linePercent,
+                        x: p.xValue,
                         y: p.lineDist,
                     }
                 })
@@ -52,11 +52,11 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function calculateStrokeData(timeline, stroke) {
-        if (mModel.hasTimeMapping(timeline.id)) {
-            stroke.points.forEach(point => {
-                point.linePercent = mModel.mapTimeToLinePercent(timeline.id, point.timeStamp);
-            });
-        }
+        let timelineHasMapping = mModel.hasTimeMapping(timeline.id);
+        stroke.points.forEach(point => {
+            point.linePercent = mModel.mapTimeToLinePercent(timeline.id,
+                timelineHasMapping ? point.timeStamp : point.timePercent);
+        });
 
         let projectedPoints = stroke.points.map(point => {
             return PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist);

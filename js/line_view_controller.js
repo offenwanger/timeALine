@@ -6,8 +6,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     let mLineDragStartCallback = () => { };
     let mLineDragCallback = () => { };
     let mLineDragEndCallback = () => { };
-    let mMouseOverCallback = () => { };
-    let mMouseOutCallback = () => { };
+    let mPointerEnterCallback = () => { };
+    let mPointerOutCallback = () => { };
     let mMouseMoveCallback = () => { };
 
     let mLineGroup = mVizLayer.append('g')
@@ -62,17 +62,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     function drawWarpedLines(timelines, model) {
         let allSegments = [];
         timelines.forEach(timeline => {
-            let timePins = model.getTimeBindingValues(timeline);
-            if (!timePins[0].linePercent) {
-                timePins[0].linePercent = 0;
-            }
-            if (!timePins[timePins.length - 1].linePercent) {
-                timePins[timePins.length - 1].linePercent = 1;
-            }
-            timePins = timePins.filter(pin => pin.linePercent || pin.linePercent == 0);
-            timePins.sort((a, b) => a.linePercent - b.linePercent);
-
-            let segments = getDrawingSegments(timeline, timePins);
+            let segments = getDrawingSegments(timeline, model.getTimeBindingValues(timeline), model.hasTimeMapping(timeline.id));
             segments.forEach(segment => {
                 segment.timelineId = timeline.id;
                 segment.color = timeline.color;
@@ -87,11 +77,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         } else console.error("Unimplimented line style: " + mLineStyle)
     }
 
-    function drawWarpedTimeline(timeline, timePins) {
+    function drawWarpedTimeline(timeline, timeBindingValues, timelineHasMapping) {
         d3.selectAll(".warped-timeline-path").filter(function (d) { return d.timelineId == timeline.id; }).remove();
         d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
 
-        let segments = getDrawingSegments(timeline, timePins);
+        let segments = getDrawingSegments(timeline, timeBindingValues, timelineHasMapping);
         segments.forEach(segment => {
             segment.timelineId = timeline.id;
             segment.color = timeline.color;
@@ -156,12 +146,13 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .attr('d', d => PathMath.getPathD(d.points));
     }
 
-    function getDrawingSegments(timeline, timePins) {
+    function getDrawingSegments(timeline, timeBindingValues, timelineHasMapping) {
+
         let ratioValues = [];
-        for (let i = 1; i < timePins.length; i++) {
-            let percentOfTime = (timePins[i].timeStamp - timePins[i - 1].timeStamp) / (timePins[timePins.length - 1].timeStamp - timePins[0].timeStamp);
+        for (let i = 1; i < timeBindingValues.length; i++) {
+            let percentOfTime = (timeBindingValues[i].timeStamp - timeBindingValues[i - 1].timeStamp) / (timeBindingValues[timeBindingValues.length - 1].timeStamp - timeBindingValues[0].timeStamp);
             percentOfTime = Math.max(Math.round(100 * percentOfTime) / 100, 0.01);
-            let percentOfLine = (timePins[i].linePercent - timePins[i - 1].linePercent);
+            let percentOfLine = (timeBindingValues[i].linePercent - timeBindingValues[i - 1].linePercent);
             percentOfLine = Math.max(Math.round(100 * percentOfLine) / 100, 0.01);
             let ratio = Math.log10(percentOfTime / percentOfLine)
             let ratioValue = ratio / 4 + 0.5;
@@ -169,12 +160,12 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         }
 
         return PathMath.segmentPath(timeline.points, function (point, percent) {
-            if (percent >= timePins[timePins.length - 1].linePercent) {
+            if (percent >= timeBindingValues[timeBindingValues.length - 1].linePercent) {
                 return ratioValues[ratioValues.length - 1]
             }
 
-            for (let i = 0; i < timePins.length; i++) {
-                if (percent < timePins[i].linePercent) {
+            for (let i = 0; i < timeBindingValues.length; i++) {
+                if (percent < timeBindingValues[i].linePercent) {
                     if (i == 0) {
                         return ratioValues[i];
                     } else {
@@ -204,9 +195,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
                     mLineDragStartCallback(d.id, e);
                 }
             })
-            .on('mouseover', (e, d) => {
+            .on('pointerenter', (e, d) => {
                 if (mActive) {
-                    mMouseOverCallback(e, d.id)
+                    mPointerEnterCallback(e, d.id)
                 }
             })
             .on('mousemove', (e, d) => {
@@ -214,9 +205,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
                     mMouseMoveCallback(e, d.id)
                 }
             })
-            .on('mouseout', (e, d) => {
+            .on('pointerout', (e, d) => {
                 if (mActive) {
-                    mMouseOutCallback(e, d.id)
+                    mPointerOutCallback(e, d.id)
                 }
             })
 
@@ -270,9 +261,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;
     this.setLineDragEndCallback = (callback) => mLineDragEndCallback = callback;
-    this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
+    this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
     this.setMouseMoveCallback = (callback) => mMouseMoveCallback = callback;
-    this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
+    this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

@@ -328,11 +328,12 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
-            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()
+                .map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.timePercent) / 100))))
                 .to.eql([
-                    [[0.25, 0.5]],
-                    [[0, 0.14, 0.29, 0.43, 0.57, 0.71]],
-                    [[0.0, 0.08, 0.15, 0.19]]
+                    [[0.25, 0.25, 0.5]],
+                    [[0.14, 0.14, 0.29, 0.43, 0.57, 0.71]],
+                    [[0.08, 0.15, 0.19]]
                 ]);
         });
 
@@ -394,11 +395,11 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 5);
 
-            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.linePercent) / 100))))
+            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.timePercent) / 100))))
                 .to.eql([
-                    [[0.25, 1], [1, 0.25]],
-                    [[0.33, 0.67], [0.67, 0.33]],
-                    [[0, 0.67, 0.67, 0]]
+                    [[0.25, 0.25, 1], [1, 0.25]],
+                    [[0.33, 0.33, 0.67], [0.67, 0.33]],
+                    [[0.67, 0.67, 0]]
                 ]);
         });
     });

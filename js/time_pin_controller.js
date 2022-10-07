@@ -10,8 +10,8 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     let mDragStartCallback = () => { };
     let mDragCallback = () => { };
     let mDragEndCallback = () => { };
-    let mMouseOverCallback = () => { };
-    let mMouseOutCallback = () => { };
+    let mPointerEnterCallback = () => { };
+    let mPointerOutCallback = () => { };
 
     let mTailGroup = vizLayer.append('g')
         .attr("id", 'tick-tail-g');
@@ -86,11 +86,11 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
                     mDragStartCallback(event, d.binding);
                 }
             })
-            .on("mouseover", (event, d) => {
-                mMouseOverCallback(event, d.binding);
+            .on("pointerenter", (event, d) => {
+                mPointerEnterCallback(event, d.binding);
             })
-            .on("mouseout", function (event, d) {
-                mMouseOutCallback(event, d.binding);
+            .on("pointerout", function (event, d) {
+                mPointerOutCallback(event, d.binding);
             })
 
         mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
@@ -167,8 +167,8 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
     this.setDragEndCallback = (callback) => mDragEndCallback = callback
-    this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
-    this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
+    this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
+    this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

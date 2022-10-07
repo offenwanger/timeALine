@@ -108,11 +108,13 @@ let DataStructs = function () {
         this.id = getUniqueId();
         // Timestamp in miliseconds
         this.timeStamp = null;
+        this.timePercent = null;
         this.color = "#000000"
 
         this.clone = function () {
             let binding = new TimePin(this.linePercent);
             binding.timeStamp = this.timeStamp;
+            binding.timePercent = this.timePercent;
             binding.color = this.color;
             return binding;
         };
@@ -121,6 +123,7 @@ let DataStructs = function () {
             let binding = new TimePin(this.linePercent);
             binding.id = this.id;
             binding.timeStamp = this.timeStamp;
+            binding.timePercent = this.timePercent;
             binding.color = this.color;
             return binding;
         }
@@ -129,6 +132,7 @@ let DataStructs = function () {
         let binding = new TimePin(obj.linePercent);
         binding.id = obj.id;
         binding.timeStamp = obj.timeStamp;
+        binding.timePercent = obj.timePercent;
         binding.color = obj.color;
 
         // for robustness in case a Date get into a time pin instead of a timestamp
@@ -428,24 +432,25 @@ let DataStructs = function () {
         return stroke;
     }
 
-    function StrokePoint(timeStamp, lineDist) {
-        this.timeStamp = timeStamp;
+    function StrokePoint(lineDist) {
         this.lineDist = lineDist;
-        // secondary structure for lines not bound to timelines with time mappings.
-        this.linePercent = null;
+
+        this.timeStamp = null;
+        this.timePercent = null;
+        this.xValue = null;
         this.copy = function () {
-            let point = new StrokePoint(this.timeStamp, this.lineDist);
-            if (!this.timeStamp) {
-                point.linePercent = this.linePercent;
-            }
+            let point = new StrokePoint(this.lineDist);
+            point.timeStamp = this.timeStamp;
+            point.timePercent = this.timePercent;
+            point.xValue = this.xValue;
             return point;
         }
     }
     StrokePoint.fromObject = function (obj) {
-        let point = new StrokePoint(obj.timeStamp, obj.lineDist);
-        if (!obj.timeStamp) {
-            point.linePercent = obj.linePercent;
-        }
+        let point = new StrokePoint(obj.lineDist);
+        point.timeStamp = obj.timeStamp;
+        point.timePercent = obj.timePercent;
+        point.xValue = obj.xValue;
         return point;
     }
 

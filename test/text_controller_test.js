@@ -37,7 +37,35 @@ describe('Integration Test TextController', function () {
     });
 
     describe('text test', function () {
-        it('should draw text at the correct location', function () {
+        it('should add text at the correct location without time mapping', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 110, y: 100 },
+                { x: 120, y: 100 },
+                { x: 150, y: 100 },
+                { x: 90, y: 100 },
+                { x: 40, y: 100 },
+                { x: 10, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
+
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(textSet.length, 3, "Annotations not created")
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+        });
+
+        it('should draw text at the correct location with time mapping', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([

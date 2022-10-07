@@ -77,12 +77,12 @@ describe('Integration Test TimePinController', function () {
         it('should create pins without time', function () {
             integrationEnv.mainInit();
 
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 102 }, { x: 200, y: 104 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.dragLine([{ x: 150, y: 102 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.dragLine([{ x: 125, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.dragLine([{ x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 175, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
@@ -119,7 +119,7 @@ describe('Integration Test TimePinController', function () {
                 ]);
         });
 
-        it('should create and update pin on drag with no data', function () {
+        it('should create and update pin on drag with no time', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
@@ -131,6 +131,8 @@ describe('Integration Test TimePinController', function () {
             // the timeline has the point set
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timePercent, 0.5);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, null);
 
             // no data was bound
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
@@ -281,6 +283,8 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
                 .to.eql([0.25, 0.50, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([0.25, 0.50, 0.75]);
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp))
                 .to.eql([null, null, null]);
 
@@ -301,6 +305,204 @@ describe('Integration Test TimePinController', function () {
                     0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
                     0.75 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
                 ]);
+        });
+
+
+        it('should set time when binding enough time after a single pin had a time set', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 101 }, { x: 125, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 150, y: 103 }, { x: 175, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp).sort())
+                .to.eql([null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.5, 0.667]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.75]);
+
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 15, 2021", "sometext2"]
+            ], integrationEnv)
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 1);
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(textSet.length, 1);
+            expect(textSet[0].offsetX).to.eql(10)
+            expect(textSet[0].offsetY).to.eql(10)
+            expect(textSet[0].x).to.eql(100)
+            expect(textSet[0].y).to.eql(100)
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+                eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
+            IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            // check that the time pin was created
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp).sort())
+                .to.eql([new Date("Jan 15, 2021").getTime(), null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.5, 0.583, 0.667]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.5, 0.75]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId, null);
+
+            // check that it's positioning the text correctly
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            expect(textSet[0].offsetX).to.eql(0)
+            expect(textSet[0].offsetY).to.eql(20)
+            expect(textSet[0].x).to.eql(150)
+            expect(textSet[0].y).to.eql(100)
+
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "sometext1"],
+                ["Jan 20, 2021", "sometext3"]
+            ], integrationEnv)
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.5, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(w.timeStamp / 1000) * 1000).sort())
+                .to.eql([
+                    new Date("Thu Jan 14 2021 06:51:26 GMT+0100 (Central European Standard Time)").getTime(),
+                    new Date("Jan 15, 2021").getTime(),
+                    new Date("Jan 16, 2021").getTime()
+                ]);
+        });
+
+
+        it('should set time on pins when changing data cells', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 125, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickLine({ x: 175, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+
+            let timePinIds = integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(p => p.id);
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 101 }, { x: 135, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 150, y: 103 }, { x: 165, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 4);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.25, 0.5, 0.594, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
+
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[0, 0, "", "Jan 10, 2022"]]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([new Date("Jan 10, 2022").getTime(), null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.25, 0.5, 0.594, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
+
+            timePinIds = integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(p => p.id);
+            assert(!timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
+
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[1, 0, "", "Jan 20, 2022"]]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([
+                    new Date("Jan 10, 2022").getTime(),
+                    new Date("Jan 15, 2022").getTime(),
+                    new Date("Sun Jan 16 2022 21:00:00 GMT+0100 (Central European Standard Time)").getTime(),
+                    new Date("Jan 20, 2022").getTime()
+                ]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
+        });
+
+
+        it('should break the link on a datacell but not set if it would be invalid', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 125, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickLine({ x: 175, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+
+            let timePinIds = integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(p => p.id);
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 101 }, { x: 135, y: 101 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 150, y: 103 }, { x: 165, y: 103 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 4);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.25, 0.5, 0.594, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
+
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[0, 0, "", "Jan 20, 2022"]]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([new Date("Jan 20, 2022").getTime(), null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => Math.round(1000 * w.timePercent) / 1000).sort())
+                .to.eql([0.25, 0.5, 0.594, 0.75]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
+
+            timePinIds = integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(p => p.id);
+            assert(!timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
+            assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
+
+            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[1, 0, "", "Jan 10, 2022"]]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
+                .sort((a, b) => a.linePercent - b.linePercent)
+                .map(w => w.timeStamp))
+                .to.eql([
+                    new Date("Jan 20, 2022").getTime(),
+                    new Date("Jan 30 2022").getTime(),
+                    new Date("Feb 02 2022 18:00:00 GMT+0100 (Central European Standard Time)").getTime(),
+                    new Date("Feb 09 2022").getTime(),
+                ]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0.25, 0.35, 0.65, 0.75]);
         });
     })
 });

@@ -15,8 +15,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     let mAxisDragCallback = (axisId, controlPoint, dist, coords) => { };
     let mAxisDragEndCallback = (axisId, controlPoint, dist, coords) => { };
 
-    let mMouseOverCallback = () => { };
-    let mMouseOutCallback = () => { };
+    let mPointerEnterCallback = () => { };
+    let mPointerOutCallback = () => { };
 
     let mDataPointGroup = vizLayer.append('g')
         .attr("id", 'data-point-display-g');
@@ -73,13 +73,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mPointDragStartCallback(mPointDraggingBinding, e);
                 }
             })
-            .on('mouseover', (e, d) => {
+            .on('pointerenter', (e, d) => {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mMouseOverCallback(d.binding, mouseCoords);
+                mPointerEnterCallback(d.binding, mouseCoords);
             })
-            .on('mouseout', (e, d) => {
+            .on('pointerout', (e, d) => {
                 let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mMouseOutCallback(d.binding, mouseCoords);
+                mPointerOutCallback(d.binding, mouseCoords);
             });
 
         mDataPointTargetGroup.selectAll('.data-target-point')
@@ -289,8 +289,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     this.setAxisDragStartCallback = (callback) => mAxisDragStartCallback = callback;
     this.setAxisDragCallback = (callback) => mAxisDragCallback = callback;
     this.setAxisDragEndCallback = (callback) => mAxisDragEndCallback = callback;
-    this.setMouseOverCallback = (callback) => { mMouseOverCallback = callback; };
-    this.setMouseOutCallback = (callback) => { mMouseOutCallback = callback; };
+    this.setPointerEnterCallback = (callback) => { mPointerEnterCallback = callback; };
+    this.setPointerOutCallback = (callback) => { mPointerOutCallback = callback; };
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

@@ -488,16 +488,19 @@ describe('Test Main - Integration Test', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[2].timePins.length, 1);
 
             let timePins = integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.timePins);
-            expect(timePins.map(b => b[0].timeStamp)).to.eql([
-                0.05 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
-                0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
-                0.95 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+            expect(timePins.map(pins => pins.map(pin => pin.timeStamp))).to.eql([
+                [0.25 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()],
+                [
+                    0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime(),
+                    0.65 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()
+                ],
+                [0.80 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime()],
             ]);
-            expect(timePins.map(b => Math.round(b[0].linePercent * 100) / 100)).to.eql([0.2, 0.4, 0.75]);
+            expect(timePins.map(pins => pins.map(pin => Math.round(pin.linePercent * 100) / 100))).to.eql([[1], [0, 1], [0]]);
         });
 
         it('should eliminate and split cell bindings', function () {
@@ -584,7 +587,7 @@ describe('Test Main - Integration Test', function () {
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
-            timeLineTargets.eventCallbacks.mouseover({ clientX: 150, clientY: 102 }, data);
+            timeLineTargets.eventCallbacks.pointerenter({ clientX: 150, clientY: 102 }, data);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert(integrationEnv.enviromentVariables.handsontables.length > 0);
@@ -621,7 +624,7 @@ describe('Test Main - Integration Test', function () {
                 should.exist(td.style.filter)
             }
 
-            timeLineTargets.eventCallbacks['mouseout']({ x: 150, y: 102 }, data);
+            timeLineTargets.eventCallbacks['pointerout']({ x: 150, y: 102 }, data);
             // all data showing again
             for (let i = 0; i < 6; i++) {
                 let td = { style: {} };
@@ -635,7 +638,7 @@ describe('Test Main - Integration Test', function () {
 
             let cirleData = integrationEnv.enviromentVariables.d3.selectors['.data-target-point'];
             data = cirleData.innerData[1];
-            cirleData.eventCallbacks['mouseover']({ x: 150, y: 102 }, data);
+            cirleData.eventCallbacks['pointerenter']({ x: 150, y: 102 }, data);
             // all data showing again
             for (let i = 0; i < 6; i++) {
                 if (i == 1) {

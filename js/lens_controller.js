@@ -37,19 +37,19 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mLensColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLensColorBrushController.setDrawFinishedCallback((points) => {
         if (mTimelineId) {
-            let mappedPoints = points.map(p => {
-                let point = new DataStructs.StrokePoint(null, -p.y);
-                point.linePercent = p.x / mLineLength;
+            let model = mModelController.getModel();
+            let timelineHasMapping = model.hasTimeMapping(mTimelineId);
+            let mappedPoints = points.filter(p => p.x <= mLineLength && p.x >= 0).map(p => {
+                let point = new DataStructs.StrokePoint(-p.y);
+                let linePercent = point.linePercent = p.x / mLineLength;
+                if (timelineHasMapping) {
+                    point.timeStamp = model.mapLinePercentToTime(mTimelineId, linePercent);
+                } else {
+                    point.timePercent = model.mapLinePercentToTime(mTimelineId, linePercent);;
+                }
                 return point;
             })
 
-            let model = mModelController.getModel();
-            if (model.hasTimeMapping(mTimelineId)) {
-                mappedPoints.forEach(p => {
-                    p.timeStamp = model.mapLinePercentToTime(mTimelineId, p.linePercent);
-                    p.linePercent = null;
-                })
-            }
             mModelController.addTimelineStroke(mTimelineId, mappedPoints, mColor);
 
             modelUpdated();
@@ -363,15 +363,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function calculateStrokeData(timeline, stroke) {
-        if (mModel.hasTimeMapping(timeline.id)) {
-            stroke.points.forEach(point => {
-                point.linePercent = mModel.mapTimeToLinePercent(timeline.id, point.timeStamp);
-            });
-        }
-
+        let mapValue = mModel.hasTimeMapping(timeline.id) ? "timeStamp" : "timePercent";
         let projectedPoints = stroke.points.map(point => {
-            return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], point.linePercent, point.lineDist);
-        })
+            let linePercent = mModel.mapTimeToLinePercent(timeline.id, point[mapValue]);
+            return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], linePercent, point.lineDist);
+        });
 
         return { color: stroke.color, projectedPoints };
     }

@@ -330,6 +330,9 @@ before(function () {
             },
             on: function (event, callback) {
                 returnable.documentCallbacks.push({ event, callback });
+            },
+            keydown: function (callback) {
+                returnable.documentCallbacks.push({ event: "keydown", callback });
             }
         }, TestUtils.fakeDocument);
 

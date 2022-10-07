@@ -278,9 +278,9 @@ let PathMath = function () {
         return pathData.length;
     }
 
-    function getSubpathLength(points, index) {
+    function getSubpathLength(points) {
         let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute('d', getPathD(points.slice(0, index + 1)));
+        path.setAttribute('d', getPathD(points));
         return path.getTotalLength();
     }
 
@@ -412,7 +412,10 @@ let PathMath = function () {
     }
 
     function getPositionForPercentAndDist(points, percent, dist) {
-        if (isNaN(percent) || isNaN(dist)) throw new Error("Invalid percent, dist: " + percent + ", " + dist);
+        if (isNaN(percent) || isNaN(dist)) {
+            console.error("Invalid percent, dist!", percent, dist);
+            return { x: 0, y: 0 };
+        }
 
         let basePose = getPositionForPercent(points, percent);
         let normal = getNormalForPercent(points, percent);
@@ -530,7 +533,7 @@ let PathMath = function () {
         let originalPoints = [];
         for (let i = 0; i < points.length; i++) {
             let point = points[i];
-            let currLen = getSubpathLength(points, i);
+            let currLen = getSubpathLength(points.slice(0, i + 1));
             originalPoints.push({
                 point: { x: point.x, y: point.y },
                 percent: currLen / pathLength,
@@ -579,6 +582,7 @@ let PathMath = function () {
     return {
         getPathD,
         getPathLength,
+        getSubpathLength,
         equalsPath,
         getPositionForPercent,
         getNormalForPercent,
@@ -705,15 +709,20 @@ let DataUtil = function () {
         return '#' + avgRGB.join("");
     }
 
-    function filterTimePinByChangedPin(pins, changedPin) {
+    function filterTimePinByChangedPin(pins, changedPin, timeAttribute) {
+        if (!timeAttribute || isNaN(changedPin[timeAttribute])) {
+            console.error("Invalid pin or time attribute!", changedPin, timeAttribute);
+            return pins;
+        }
+
         let filtered = pins.filter(pin => {
-            // clear the binding out of the array so we can readd the new data
+            // clear the binding out of the array so we can read the new data
             if (pin.id == changedPin.id) return false;
-            if (!pin.timeStamp || !changedPin.timeStamp) return true;
+            if (!pin[timeAttribute] || !changedPin[timeAttribute]) return true;
 
             // otherwise make sure time and bindings both increase in the same direction
-            return (pin.timeStamp < changedPin.timeStamp && pin.linePercent < changedPin.linePercent) ||
-                (pin.timeStamp > changedPin.timeStamp && pin.linePercent > changedPin.linePercent);
+            return (pin[timeAttribute] < changedPin[timeAttribute] && pin.linePercent < changedPin.linePercent) ||
+                (pin[timeAttribute] > changedPin[timeAttribute] && pin.linePercent > changedPin.linePercent);
         });
         filtered.push(changedPin);
         return filtered;

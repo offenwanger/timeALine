@@ -94,7 +94,7 @@ describe('Test ModelController', function () {
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 10, 2022").getTime())).to.be.closeTo(0, 0.0001);
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 15, 2022").getTime())).to.be.closeTo(0.25, 0.0001);
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 20, 2022").getTime())).to.be.closeTo(0.5, 0.0001);
-            expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 25, 2022").getTime())).to.be.closeTo(1, 0.0001);
+            expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 25, 2022").getTime())).to.be.closeTo(0.75, 0.0001);
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 30, 2022").getTime())).to.be.closeTo(1, 0.0001);
 
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 1, 2022").getTime())).to.be.closeTo(0, 0.0001);
@@ -127,26 +127,27 @@ describe('Test ModelController', function () {
             expect(modelController.getModel().mapTimeToLinePercent(timeline.id, new Date("Jan 25, 2022").getTime())).to.be.closeTo(1, 0.0001);
         });
 
-        it('should throw error for get time with no references', function () {
+        it('should get timePercent when getting with no references', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
 
-            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
+            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 0.5), 0.5);
         });
 
-        it('should throw error for get time one time pin', function () {
+        it('should get timePercent when getting with only one time pin', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
-            let timePin = new DataStructs.TimePin(0.3);
+            let timePin = new DataStructs.TimePin(0.25);
             timePin.timeStamp = 100;
+            timePin.timePercent = 0.1;
             modelController.updatePinBinding(timeline.id, timePin);
 
-            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
+            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 0.5), 0.4);
         });
 
-        it('should throw error for get time with one cell binding', function () {
+        it('should get timePercent when getting with only one cell binding', function () {
             let timeline = modelController.newTimeline([{ x: 0, y: 0 }, { x: 10, y: 10 }]);
             modelController.addBoundTextRow(timeline.id, "", 50);
 
-            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 100), 0);
+            assert.equal(modelController.getModel().mapLinePercentToTime(timeline.id, 0.5), 0.5);
         });
 
         it('should map bound cell to a value', function () {
@@ -195,7 +196,7 @@ describe('Test ModelController', function () {
             modelController.bindCells(timeline.id, [new DataStructs.CellBinding(table.dataRows[0].dataCells[1].id)])
 
             assert.equal(modelController.getModel().getAllCellBindingData().length, 1);
-            assert.equal(modelController.getModel().getAllCellBindingData()[0].linePercent, 1);
+            assert.equal(modelController.getModel().getAllCellBindingData()[0].linePercent, NO_LINE_PERCENT);
         });
     })
 
@@ -577,7 +578,7 @@ describe('Integration Test ModelController', function () {
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
-            timeLineTargets.eventCallbacks['mouseover']({ clientX: 125, clientY: 200 }, data);
+            timeLineTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, data);
 
             assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html, DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:32:16")));
         });

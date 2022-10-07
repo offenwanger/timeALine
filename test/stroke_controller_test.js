@@ -15,7 +15,7 @@ describe('Integration Test StrokeController', function () {
     describe('lens stroke draw and display', function () {
         it('should show a stroke drawn in lens in the canvas without time data', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
@@ -37,12 +37,12 @@ describe('Integration Test StrokeController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
             expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
-                .to.eql([{ x: 205, y: 150 },
-                { x: 210, y: 160 },
-                { x: 215, y: 150 },
+                .to.eql([{ x: 210, y: 150 },
                 { x: 220, y: 160 },
-                { x: 225, y: 152 },
-                { x: 230, y: 160 }]);
+                { x: 230, y: 150 },
+                { x: 240, y: 160 },
+                { x: 250, y: 152 },
+                { x: 260, y: 160 }]);
 
             IntegrationUtils.drawLensColorLine([{ x: 10, y: 100 }, { x: 34, y: 110 }], integrationEnv);
             IntegrationUtils.drawLensColorLine([{ x: 130, y: 100 }, { x: 324, y: 110 }], integrationEnv);

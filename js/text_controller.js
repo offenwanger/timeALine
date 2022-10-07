@@ -14,8 +14,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     let mDragStartCallback = () => { };
     let mDragCallback = () => { };
     let mDragEndCallback = () => { };
-    let mMouseOverCallback = () => { };
-    let mMouseOutCallback = () => { };
+    let mPointerEnterCallback = () => { };
+    let mPointerOutCallback = () => { };
 
     let mDragging = false;
     let mDragStartPos = null;
@@ -204,11 +204,11 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                     inputbox.node().focus();
                 }
             })
-            .on('mouseover', function (e, d) {
-                mMouseOverCallback(d.binding, e);
+            .on('pointerenter', function (e, d) {
+                mPointerEnterCallback(d.binding, e);
             })
             .on('mouseout', function (e, d) {
-                mMouseOutCallback(d.binding, e);
+                mPointerOutCallback(d.binding, e);
             });
 
         mInteractionGroup.selectAll('.text-interaction-target_' + timeline.id)
@@ -301,8 +301,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
     this.setDragEndCallback = (callback) => mDragEndCallback = callback;
-    this.setMouseOverCallback = (callback) => mMouseOverCallback = callback;
-    this.setMouseOutCallback = (callback) => mMouseOutCallback = callback;
+    this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
+    this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

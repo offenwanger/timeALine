@@ -5,7 +5,7 @@ DataStructs.DataModel = function () {
 
     function getCellBindingData(timelineId) {
         let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id!", timelineId); return []; }
+        if (!timeline) { console.error("Invalid timeline id for getting cell binding data!", timelineId); return []; }
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
             let table = getTableForCell(cellBinding.cellId);
@@ -24,21 +24,28 @@ DataStructs.DataModel = function () {
             if (dataCell.id != cellBinding.cellId) throw new ModelStateError("Got the wrong cell!");
 
             let linePercent;
-            if (timeCell.isValid()) {
+            if (cellBinding.timePinId) {
+                let timePin = timeline.timePins.find(pin => pin.id == cellBinding.timePinId);
+                if (timePin) {
+                    linePercent = timePin.linePercent;
+                } else {
+                    console.error("Time pin not found for cell binding!", cellBinding);
+                    cellBinding.timePinId = null;
+                    linePercent = NO_LINE_PERCENT;
+                }
+            } else if (hasTimeMapping(timelineId) && timeCell.isValid()) {
                 linePercent = mapTimeToLinePercent(timeline.id, timeCell.getValue());
-            } else {
-                if (cellBinding.timePinId) {
-                    let timePin = timeline.timePins.find(pin => pin.id == cellBinding.timePinId);
-                    if (timePin) {
-                        linePercent = timePin.linePercent;
-                    } else {
-                        console.error("Time pin not found for cell binding!", cellBinding);
-                        linePercent = NO_LINE_PERCENT;
-                    }
+            } else if (timeCell.isValid()) {
+                let timePin = timeline.timePins.find(pin => pin.timeStamp == timeCell.getValue());
+                if (timePin) {
+                    linePercent = timePin.linePercent;
                 } else {
                     linePercent = NO_LINE_PERCENT;
                 }
+            } else {
+                linePercent = NO_LINE_PERCENT;
             }
+
             let axis = timeline.axisBindings.find(a => a.columnId == dataCell.columnId);
 
             let color = null;
@@ -63,90 +70,154 @@ DataStructs.DataModel = function () {
     }
 
     function mapTimeToLinePercent(timelineId, time) {
-        if (isNaN(time)) { console.error("Invalid time: " + time); return 0; }
+        if (isNaN(time)) { console.error("Invalid time: ", time); return 0; }
 
         let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id!", timelineId); return 0; }
+        if (!timeline) { console.error("Invalid timeline id for mapping time to line percent!", timelineId); return 0; }
 
-        if (timeline.timePins.find(pin => pin.timeStamp == time)) {
-            return timeline.timePins.find(pin => pin.timeStamp == time).linePercent;
+        let timelineHasMapping = hasTimeMapping(timelineId);
+        if (!timelineHasMapping && (time < 0 || time > 1)) {
+            console.error("Invalid state! Expected time percent and value invalid", time, timeline);
+            return 0;
+        }
+        // we can't check timestamps as they are unbounded.
+
+        // there might be an extact pin with timestamp even if we don't have a time mapping.
+        let exactPin = timeline.timePins.find(pin => pin.timeStamp == time);
+        if (!exactPin && !timelineHasMapping) {
+            // only check this if the line does not have a mapping. 
+            // If it has a mapping, we should not be asking to map a timePercent, 
+            // and we don't want to confuse a timeStamp of 0.5 with a timePercent.
+            exactPin = timeline.timePins.find(pin => pin.timePercent == time);
+        }
+        if (exactPin) {
+            return exactPin.linePercent;
         }
 
         let bindingValues = getTimeBindingValues(timeline);
-
-        if (bindingValues.length == 0) {
+        if (bindingValues.length < 2) {
+            console.error("Code should be unreachable!", timeline, time);
             return 0;
-        } else if (bindingValues.length == 1) {
-            return time > bindingValues[0].timeStamp ? 0 : 1;
         }
 
-        if (!("linePercent" in bindingValues[0])) bindingValues[0].linePercent = 0;
-        if (!("linePercent" in bindingValues[bindingValues.length - 1])) bindingValues[bindingValues.length - 1].linePercent = 1;
-        bindingValues = bindingValues.filter(bv => "linePercent" in bv);
-
-        if (time < bindingValues[0].timeStamp) {
+        let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
+        if (time <= bindingValues[0][timeAttribute]) {
             return 0;
-        } else if (time > bindingValues[bindingValues.length - 1].timeStamp) {
+        } else if (time >= bindingValues[bindingValues.length - 1][timeAttribute]) {
             return 1;
         }
 
-        return mapBindingArrayInterval(bindingValues, time, "timeStamp", "linePercent")
+        return mapBindingArrayInterval(bindingValues, time, timeAttribute, "linePercent")
     }
 
     function mapLinePercentToTime(timelineId, linePercent) {
         if (isNaN(linePercent)) { console.error("Invalid percent:" + linePercent); return 0; }
-
-        let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id!", timelineId); return 0; }
-
-        let bindingValues = getTimeBindingValues(timeline);
-
-        if (bindingValues.length < 2) { console.error("Insufficient data to get time!"); return 0; }
-
-        if (!("linePercent" in bindingValues[0])) bindingValues[0].linePercent = 0;
-        if (!("linePercent" in bindingValues[bindingValues.length - 1])) bindingValues[bindingValues.length - 1].linePercent = 1;
-        bindingValues = bindingValues.filter(bv => "linePercent" in bv);
-
-        if (linePercent < bindingValues[0].linePercent) {
-            let timeRatio = (bindingValues[1].timeStamp - bindingValues[0].timeStamp) / (bindingValues[1].linePercent - bindingValues[0].linePercent)
-            let timeDiff = timeRatio * (bindingValues[0].linePercent - linePercent);
-            return bindingValues[0].timeStamp - timeDiff;
-        } else if (linePercent > bindingValues[bindingValues.length - 1].linePercent) {
-            let lastBinding = bindingValues[bindingValues.length - 1];
-            let prevBinding = bindingValues[bindingValues.length - 2];
-            let timeRatio = (lastBinding.timeStamp - prevBinding.timeStamp) / (lastBinding.linePercent - prevBinding.linePercent)
-            let timeDiff = timeRatio * (linePercent - lastBinding.linePercent);
-            return lastBinding.timeStamp + timeDiff;
+        if (linePercent < 0) {
+            console.error("Invalid linePercent!", linePercent);
+            linePercent = 0;
+        }
+        if (linePercent > 1) {
+            console.error("Invalid linePercent!", linePercent);
+            linePercent = 1;
         }
 
-        return mapBindingArrayInterval(bindingValues, linePercent, "linePercent", "timeStamp")
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) { console.error("Invalid timeline id for mapping line percent to time!", timelineId); return 0; }
+
+        let bindingValues = getTimeBindingValues(timeline);
+        if (bindingValues.length < 2) {
+            console.error("Code should be unreachable!", timeline, time);
+            return 0;
+        }
+
+        let timeAttribute = hasTimeMapping(timelineId) ? "timeStamp" : "timePercent";
+        return mapBindingArrayInterval(bindingValues, linePercent, "linePercent", timeAttribute)
     }
 
     function hasTimeMapping(timelineId) {
         let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id!", timelineId); return false; }
+        if (!timeline) { console.error("Invalid timeline id for testing time mapping!", timelineId); return false; }
 
-        let bindingValues = getTimeBindingValues(timeline);
+        let timePinTimeStamps = [...timeline.timePins
+            .filter(pin => pin.timeStamp)].map(b => b.timeStamp);
+        let boundTimeValues = getBoundTimeCellValues(timeline.id)
+            .filter(time => !timePinTimeStamps.includes(time));
 
-        if (bindingValues.length < 2) { return false; }
-        return true;
+        if (boundTimeValues.concat(timePinTimeStamps).length < 2) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     function getTimeBindingValues(timeline) {
-        let bindingValues = [...timeline.timePins.filter(pin => pin.timeStamp)];
-        let timePinTimeStamps = bindingValues.map(b => b.timeStamp);
-        bindingValues.push(...getBoundTimeValues(timeline.id)
-            .map(val => { return { timeStamp: val } })
-            .filter(b => !timePinTimeStamps.includes(b.timeStamp)));
-        bindingValues.sort((a, b) => a.timeStamp - b.timeStamp);
+        let timeBindingValues;
 
-        return bindingValues;
+        if (hasTimeMapping(timeline.id)) {
+            timeBindingValues = timeline.timePins.filter(pin => pin.timeStamp);
+            timeBindingValues.sort((a, b) => a.linePercent - b.linePercent);
+
+            let timePinTimeStamps = timeBindingValues.map(b => b.timeStamp);
+
+            timeBindingValues.push(...getBoundTimeCellValues(timeline.id)
+                .map(val => { return { timeStamp: val } })
+                .filter(b => !timePinTimeStamps.includes(b.timeStamp)));
+            timeBindingValues.sort((a, b) => a.timeStamp - b.timeStamp);
+
+            if (!("linePercent" in timeBindingValues[0])) timeBindingValues[0].linePercent = 0;
+            if (!("linePercent" in timeBindingValues[timeBindingValues.length - 1])) timeBindingValues[timeBindingValues.length - 1].linePercent = 1;
+            timeBindingValues = timeBindingValues.filter(bv => "linePercent" in bv);
+
+            if (timeBindingValues.length < 2) {
+                console.error("Code should be unreachable! there should be at least two bindings.", timeBindingValues);
+            }
+
+            if (timeBindingValues[0].linePercent > 0) {
+                let timeRatio = (timeBindingValues[1].timeStamp - timeBindingValues[0].timeStamp) / (timeBindingValues[1].linePercent - timeBindingValues[0].linePercent)
+                let timeDiff = timeRatio * (timeBindingValues[0].linePercent);
+                timeBindingValues.unshift({ linePercent: 0, timeStamp: timeBindingValues[0].timeStamp - timeDiff });
+            }
+
+            if (timeBindingValues[timeBindingValues.length - 1].linePercent < 1) {
+                let lastBinding = timeBindingValues[timeBindingValues.length - 1];
+                let prevBinding = timeBindingValues[timeBindingValues.length - 2];
+                let timeRatio = (lastBinding.timeStamp - prevBinding.timeStamp) / (lastBinding.linePercent - prevBinding.linePercent)
+                let timeDiff = timeRatio * (1 - lastBinding.linePercent);
+                timeBindingValues.push({ linePercent: 1, timeStamp: lastBinding.timeStamp + timeDiff });
+            }
+        } else {
+            timeBindingValues = [...timeline.timePins];
+            timeBindingValues.sort((a, b) => a.linePercent - b.linePercent);
+
+            if (timeBindingValues.length == 0 || timeBindingValues[0].linePercent > 0) {
+                timeBindingValues.unshift({ linePercent: 0, timePercent: 0 });
+            }
+
+            if (timeBindingValues[timeBindingValues.length - 1].linePercent < 1) {
+                timeBindingValues.push({ linePercent: 1, timePercent: 1 })
+            }
+
+            if (timeBindingValues[1].timePercent <= 0) {
+                timeBindingValues[1].timePercent = 0.001;
+            }
+
+            if (timeBindingValues[timeBindingValues.length - 2].timePercent >= 1) {
+                timeBindingValues[timeBindingValues.length - 2].timePercent = 0.999;
+            }
+        }
+
+        // sort again to be on the safe side.
+        timeBindingValues.sort((a, b) => a.linePercent - b.linePercent);
+        return timeBindingValues;
     }
 
     /* End Mapping Utility function */
-    function getBoundTimeValues(timelineId) {
+    function getBoundTimeCellValues(timelineId) {
         let timeline = getTimelineById(timelineId);
-        if (!timeline) throw new Error("Bad timelineId: " + timelineId);
+        if (!timeline) {
+            console.error("bad timeline id for getting bound time cells!", timelineId);
+            return [];
+        }
 
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
@@ -250,6 +321,10 @@ DataStructs.DataModel = function () {
         return mTimelines.map(t => t.axisBindings).flat().find(b => b.id == axisId);
     }
 
+    function getTimePinById(pinId) {
+        return mTimelines.map(t => t.timePins).flat().find(pin => pin.id == pinId);
+    }
+
     function getStrokeById(strokeId) {
         return mTimelines
             .map(t => t.annotationStrokes)
@@ -271,9 +346,11 @@ DataStructs.DataModel = function () {
     this.getTimelineById = getTimelineById;
     this.getTimelineForTimePin = getTimelineForTimePin;
     this.getAllTimelines = function () { return mTimelines };
+
     this.getTableById = getTableById;
     this.getAllTables = function () { return mDataTables };
     this.getTimeColumnByTableId = getTimeColumnByTableId;
+    this.getRowByCellId = getRowByCellId;
 
     this.getCellBindingData = getCellBindingData;
     this.getAllCellBindingData = getAllCellBindingData;
@@ -282,11 +359,13 @@ DataStructs.DataModel = function () {
     this.getCellBindingById = getCellBindingById;
 
     this.getAxisById = getAxisById;
+    this.getTimePinById = getTimePinById;
 
     this.getStrokeById = getStrokeById;
 
     this.getTimeCellForPin = getTimeCellForPin;
     this.getTimeCellForDataCell = getTimeCellForDataCell;
+    this.getBoundTimeCellValues = getBoundTimeCellValues;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;
