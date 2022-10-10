@@ -231,6 +231,47 @@ describe('Integration Test EraserController', function () {
         });
     })
 
+    describe('erase line with text test', function () {
+        it('should erase line and not move text with no time mapping', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 100 }, { x: 400, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 300, y: 101 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 350, y: 102 }, timelineId, integrationEnv);
+            IntegrationUtils.clickLine({ x: 387, y: 110 }, timelineId, integrationEnv);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(textSet.length, 6, "Annotations not created")
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150, 300, 350, 387]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100, 100, 100, 100]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
+
+            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
+
+            let timelineId1 = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId1].innerData;
+            assert.equal(textSet.length, 3, "Annotations not created")
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
+            let timelineId2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
+
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId2].innerData;
+            assert.equal(textSet.length, 3, "Annotations not created")
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([300, 350, 387]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
+        });
+    })
+
     describe('erase line with strokes test', function () {
         it('should break strokes into two', function () {
             integrationEnv.mainInit();

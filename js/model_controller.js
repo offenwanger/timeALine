@@ -350,7 +350,7 @@ function ModelController() {
 
             // update pin mappings
             newTimeline.timePins = segment.timePins.map(pin => {
-                let timePin = pin.clone();
+                let timePin = pin.copy();
                 timePin.linePercent = (timePin.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
                 return timePin;
             });
