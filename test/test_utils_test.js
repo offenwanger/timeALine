@@ -179,6 +179,7 @@ before(function () {
             this.html = function (html) { if (html) this.innerHtml = html; return this.innerHtml; };
             this.width = function () { return 100 };
             this.height = function () { return 100 };
+            this.scrollTop = function () { return 100 };
         };
 
         function fakeJquery(selector) {

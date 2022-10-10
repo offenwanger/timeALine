@@ -10,14 +10,14 @@ function DataTableController() {
     let mHighlightCells = [];
 
     function updateModel(model) {
-        redrawAllTables(model.getAllTables());
-    }
+        let scrollTop = $("#table-list").scrollTop()
 
-    function redrawAllTables(allTables) {
         $("#table-list").empty();
         mHoTables = {};
         mDataTables = {};
-        addOrUpdateTables(allTables);
+
+        addOrUpdateTables(model.getAllTables());
+        $("#table-list").scrollTop(scrollTop)
     }
 
     function addOrUpdateTables(tables) {
@@ -417,7 +417,6 @@ function DataTableController() {
 
     this.updateModel = updateModel;
 
-    this.redrawAllTables = redrawAllTables;
     this.addOrUpdateTables = addOrUpdateTables;
     this.highlightCells = highlightCells;
     this.deselectCells = () => Object.values(mHoTables).forEach(table => table.deselectCell());
