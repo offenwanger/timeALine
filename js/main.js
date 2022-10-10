@@ -320,6 +320,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 }
             }
 
+            if (!cellBindingData.timeCell.isValid()) {
+                mModelController.updateTimePinBinding(cellBindingData.cellBinding.id, mDraggingTimePin.id)
+            }
+
             // this will trigger a model update
             pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
             mDraggingTimePin = null;
@@ -379,6 +383,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     mDraggingTimePin.timePercent = mModelController.getModel()
                         .mapLinePercentToTime(timeline.id, linePoint.percent, true)
                 }
+            }
+
+            if (!cellBindingData.timeCell.isValid()) {
+                mModelController.updateTimePinBinding(cellBindingData.cellBinding.id, mDraggingTimePin.id)
             }
 
             // this will trigger a model update

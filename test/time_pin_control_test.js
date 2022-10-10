@@ -260,6 +260,14 @@ describe('Integration Test TimePinController', function () {
                     new Date("Jan 19, 2021").getTime(),
                     new Date("Jan 20, 2021").getTime()
                 ]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(textSet.length, 1);
+            expect(textSet[0].offsetX).to.eql(0)
+            expect(textSet[0].offsetY).to.eql(20)
+            expect(textSet[0].x).to.eql(150)
+            expect(textSet[0].y).to.eql(100)
         });
 
         it('should create and update pin on drag with data', function () {
