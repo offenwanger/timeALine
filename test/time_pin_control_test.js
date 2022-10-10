@@ -199,6 +199,69 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
         });
 
+        it('should create and update a pin for data without time only when dropped', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["", "sometext1"],
+                ["Jan 10, 2021", "17"],
+                ["Jan 11, 2021", "17"],
+                ["Jan 19, 2021", "18"],
+                ["Jan 20, 2021", "18"]
+            ], integrationEnv)
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 100, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 110, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 190, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 200, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 4);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0, 0.1, 0.9, 1]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp))
+                .to.eql([
+                    new Date("Jan 10, 2021").getTime(),
+                    new Date("Jan 11, 2021").getTime(),
+                    new Date("Jan 19, 2021").getTime(),
+                    new Date("Jan 20, 2021").getTime()
+                ]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            assert.equal(textSet.length, 1);
+            expect(textSet[0].offsetX).to.eql(10)
+            expect(textSet[0].offsetY).to.eql(10)
+            expect(textSet[0].x).to.eql(100)
+            expect(textSet[0].y).to.eql(100)
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+                eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
+            IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 5);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
+                .to.eql([0, 0.1, 0.5, 0.9, 1]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timePercent).sort())
+                .to.eql([null, null, null, null, null]);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.timeStamp).sort())
+                .to.eql([
+                    new Date("Jan 10, 2021").getTime(),
+                    new Date("Jan 11, 2021").getTime(),
+                    new Date("Jan 15, 2021").getTime(),
+                    new Date("Jan 19, 2021").getTime(),
+                    new Date("Jan 20, 2021").getTime()
+                ]);
+        });
+
         it('should create and update pin on drag with data', function () {
             integrationEnv.mainInit();
 

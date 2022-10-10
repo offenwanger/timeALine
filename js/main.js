@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             if (mDraggingTimePinSettingTime) {
                 if (mModelController.getModel().hasTimeMapping(timeline.id)) {
-                    timePin.timeStamp = mModelController.getModel()
+                    mDraggingTimePin.timeStamp = mModelController.getModel()
                         .mapLinePercentToTime(timeline.id, linePoint.percent, false)
                 } else {
                     mDraggingTimePin.timePercent = mModelController.getModel()
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             if (mDraggingTimePinSettingTime) {
                 if (mModelController.getModel().hasTimeMapping(timeline.id)) {
-                    timePin.timeStamp = mModelController.getModel()
+                    mDraggingTimePin.timeStamp = mModelController.getModel()
                         .mapLinePercentToTime(timeline.id, linePoint.percent, false)
                 } else {
                     mDraggingTimePin.timePercent = mModelController.getModel()
