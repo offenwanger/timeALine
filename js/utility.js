@@ -725,6 +725,7 @@ let DataUtil = function () {
                 (pin[timeAttribute] > changedPin[timeAttribute] && pin.linePercent > changedPin.linePercent);
         });
         filtered.push(changedPin);
+        filtered.sort((a, b) => a.linePercent - b.linePercent);
         return filtered;
     }
 

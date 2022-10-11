@@ -298,11 +298,16 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
         });
 
-        it('should display a pin while dragging, but not update until done', function () {
+        it('should display a pin while dragging, but not update until done, with a timeline mapping', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 10, 2021", "sometext1"],
+                ["Jan 20, 2021", "sometext3"]
+            ], integrationEnv)
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
@@ -311,6 +316,10 @@ describe('Integration Test TimePinController', function () {
 
             let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;
             onLineDragStart({ clientX: 150, clientY: 110 }, data)
+
+            let timelineSegments = integrationEnv.enviromentVariables.d3.selectors['.warped-timeline-path'];
+            assert.equal(timelineSegments.innerData.length, 2);
+            expect(timelineSegments.innerData.map(d => Math.round(d.label * 1000) / 1000)).to.eql([0.5, 0.5]);
 
             // the tick was drawn
             assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId], "pin ticks were not set")
@@ -335,6 +344,12 @@ describe('Integration Test TimePinController', function () {
 
             // the timeline not been updated yet
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
+            // but the visuals have
+            timelineSegments = integrationEnv.enviromentVariables.d3.selectors['.warped-timeline-path'];
+            // TODO: FIssues with the test infrastrucure filter function means the last segment doesn't get deleted
+            // hense the extra 0.5s that shouldn't be there. 
+            assert.equal(timelineSegments.innerData.length, 4);
+            expect(timelineSegments.innerData.map(d => Math.round(d.label * 1000) / 1000)).to.eql([0.5, 0.5, 0.575, 0.456]);
 
             IntegrationUtils.pointerUp({ x: 125, y: 110 }, integrationEnv);
 
@@ -342,8 +357,12 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.25);
 
+            timelineSegments = integrationEnv.enviromentVariables.d3.selectors['.warped-timeline-path'];
+            assert.equal(timelineSegments.innerData.length, 2);
+            expect(timelineSegments.innerData.map(d => Math.round(d.label * 1000) / 1000)).to.eql([0.575, 0.456]);
+
             // no new data was bound
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
         });
 
         it('should delete visual pins while dragging, but not update until done', function () {
