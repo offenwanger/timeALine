@@ -408,8 +408,8 @@ describe('Integration Test TimePinController', function () {
 
             // the timeline has been updated
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].linePercent, 0.1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp,
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp,
                 0.50 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // no new data was bound
