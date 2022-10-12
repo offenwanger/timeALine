@@ -56,11 +56,25 @@ body {
     text-shadow: 0.07em 0 black, 0 0.07em black, -0.07em 0 black, 0 -0.07em black;
 }
 
-#link-button-div {
+.mobile-menu {
     position: absolute;
+    display: none;
+}
+
+.sub-menu {
+    display: flex;
+    flex-direction: column;
+    width: 40px;
+    transition: transform 0.3s;
+    will-change: transform;
 }
 
 .menu-button {
+    margin: 1px;
+    max-width: 35px;
+}
+
+.sub-menu-button {
     margin: 1px;
     max-width: 35px;
 }

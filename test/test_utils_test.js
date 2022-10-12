@@ -180,6 +180,7 @@ before(function () {
             this.width = function () { return 100 };
             this.height = function () { return 100 };
             this.scrollTop = function () { return 100 };
+            this.offset = function () { return { top: 100, left: 100 } };
         };
 
         function fakeJquery(selector) {

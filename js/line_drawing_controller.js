@@ -80,7 +80,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
 
                 let result = getPointsFromLine(mDrawingLine, LINE_RESOLUTION);
 
-                mDrawFinishedCallback(result, startPointLineId, endPointLineId);
+                mDrawFinishedCallback(result, mColor, startPointLineId, endPointLineId);
             }
             // reset
             mDraggedPoints = [];
@@ -186,6 +186,7 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     this.updateModel = updateModel;
     this.setActive = setActive;
     this.setColor = setColor;
+    this.getColor = () => mColor;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;

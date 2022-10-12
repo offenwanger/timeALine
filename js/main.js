@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_NONE = 'noneMode';
     const MODE_DEFAULT = 'default';
     const MODE_LINE_DRAWING = "drawing";
+    const MODE_LINE_DRAWING_EYEDROPPER = "drawingEyedropper";
     const MODE_ERASER = "eraser";
     const MODE_DRAG = "drag";
     const MODE_IRON = "iron";
@@ -10,13 +11,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
     const MODE_COLOR_BRUSH = "colorBrush";
+    const MODE_COLOR_BRUSH_EYEDROPPER = "colorBrushEyedropper";
     const MODE_COLOR_BUCKET = "bucket";
-    const MODE_EYEDROPPER = "eyedropper";
+    const MODE_COLOR_BUCKET_EYEDROPPER = "bucketEyedropper";
     const MODE_PAN = "pan";
     const MODE_LINK = "link";
 
     let mMode = MODE_DEFAULT;
-    let mColor = "#000000";
+    let mBucketColor = "#000000";
 
     let mSvg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
@@ -111,11 +113,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             modelUpdated();
         } else if (mMode == MODE_COLOR_BUCKET) {
-            mModelController.updateTimelineColor(timelineId, mColor);
+            mModelController.updateTimelineColor(timelineId, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_EYEDROPPER) {
+        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
-            setColor(timeline.color);
+            setColorBrushColor(timeline.color);
+        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            setColorBucketColor(timeline.color);
+        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            setLineDrawingColor(timeline.color);
         } else if (mMode == MODE_LENS) {
             mLensController.focus(timelineId, linePoint.percent);
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
@@ -181,10 +189,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mStrokeController.setDragEndCallback((strokeId, coords) => {
         if (mMode == MODE_COLOR_BUCKET) {
-            mModelController.updateStrokeColor(strokeId, mColor);
+            mModelController.updateStrokeColor(strokeId, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_EYEDROPPER) {
-            setColor(mModelController.getModel().getStrokeById(strokeId).color);
+        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+            setColorBrushColor(mModelController.getModel().getStrokeById(strokeId).color);
+        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            setColorBucketColor(mModelController.getModel().getStrokeById(strokeId).color);
+        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            setLineDrawingColor(mModelController.getModel().getStrokeById(strokeId).color);
         }
     })
 
@@ -397,12 +409,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataPointController.setAxisDragStartCallback((axisId, controlNumber, event) => {
         if (mMode == MODE_COLOR_BUCKET) {
-            mModelController.updateAxisColor(axisId, controlNumber, mColor);
+            mModelController.updateAxisColor(axisId, controlNumber, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_EYEDROPPER) {
+        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
             let axis = mModelController.getModel().getAxisById(axisId);
             let color = controlNumber == 1 ? axis.color1 : axis.color2;
-            if (color) setColor(color);
+            if (color) setColorBrushColor(color);
+        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            let axis = mModelController.getModel().getAxisById(axisId);
+            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            if (color) setColorBucketColor(color);
+        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            let axis = mModelController.getModel().getAxisById(axisId);
+            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            if (color) setLineDrawingColor(color);
         }
     })
     mDataPointController.setAxisDragCallback((axisId, controlNumber, newDist, coords) => {
@@ -481,9 +501,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // END UTILITY
 
     let mLineDrawingController = new LineDrawingController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mLineDrawingController.setDrawFinishedCallback((newPoints, startPointLineId = null, endPointLineId = null) => {
+    mLineDrawingController.setDrawFinishedCallback((newPoints, color, startPointLineId = null, endPointLineId = null) => {
         if (startPointLineId == null && endPointLineId == null) {
-            mModelController.newTimeline(newPoints, mColor);
+            mModelController.newTimeline(newPoints, color);
 
             modelUpdated();
         } else if (startPointLineId != null && endPointLineId != null) {
@@ -501,13 +521,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mColorBrushController.setDrawFinishedCallback((points) => {
+    mColorBrushController.setDrawFinishedCallback((points, color) => {
         let strokePoints = points.map(p => {
             let strokePoint = new DataStructs.StrokePoint(p.y);
             strokePoint.xValue = p.x;
             return strokePoint;
         })
-        mModelController.addCanvasStroke(strokePoints, mColor);
+        mModelController.addCanvasStroke(strokePoints, color);
 
         modelUpdated();
     })
@@ -555,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             $('#link-button-div').show();
         } else {
             $('#link-button-div').hide();
-            if (mMode == MODE_LINK) clearMode();
+            if (mMode == MODE_LINK) setDefaultMode();
         }
     });
     mDataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
@@ -584,10 +604,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (mMode == MODE_PAN) {
                 mPanning = true;
             } else if (mMode == MODE_COLOR_BUCKET) {
-                mModelController.updateCanvasColor(mColor);
+                mModelController.updateCanvasColor(mBucketColor);
                 modelUpdated();
-            } else if (mMode == MODE_EYEDROPPER) {
-                setColor(mModelController.getModel().getCanvas().color);
+            } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+                setColorBrushColor(mModelController.getModel().getCanvas().color);
+            } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+                setColorBucketColor(mModelController.getModel().getCanvas().color);
+            } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+                setLineDrawingColor(mModelController.getModel().getCanvas().color);
             } else if (mMode == MODE_LENS) {
                 mLensController.focus(null, null);
                 mLineHighlight.hide();
@@ -734,6 +758,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     // Setup main view buttons' events
     $("#datasheet-toggle-button").on("click", () => {
+        // TODO: Made sub-menus slide nicely to.
+        clearMode();
         if (mDrawerController.isOpen()) {
             mDrawerController.closeDrawer();
         } else {
@@ -789,6 +815,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineDrawingController.setActive(true);
     });
     setupButtonTooltip("#line-drawing-button", "Draws timelines")
+    setupButtonTooltip('#line-drawing-button', "Draws annotations on the diagram and in the lens view")
+    setupSubModeButton('#line-drawing-button', '-eyedropper', MODE_LINE_DRAWING_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#line-drawing-button-eyedropper', "Copies the color from anything that can be colored")
+    $("#line-drawing-button-color-picker").on("click", toggleColorPicker);
+    setupButtonTooltip("#line-drawing-button-color-picker", "Choose timeline color");
 
     setupModeButton("#drag-button", MODE_DRAG, () => {
         mDragController.setActive(true);
@@ -813,9 +844,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupModeButton('#color-brush-button', MODE_COLOR_BRUSH, () => {
         mColorBrushController.setActive(true);
         mLensController.setColorBrushActive(true);
-
     });
     setupButtonTooltip('#color-brush-button', "Draws annotations on the diagram and in the lens view")
+    setupSubModeButton('#color-brush-button', '-eyedropper', MODE_COLOR_BRUSH_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#color-brush-button-eyedropper', "Copies the color from anything that can be colored")
+    $("#color-brush-button-color-picker").on("click", toggleColorPicker);
+    setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
 
     setupModeButton('#comment-button', MODE_COMMENT, () => {
         mLineViewController.setActive(true);
@@ -844,42 +878,44 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mStrokeController.setActive(true);
     });
     setupButtonTooltip('#color-bucket-button', "Colors all the things!")
+    setupButtonTooltip('#color-bucket-button', "Draws annotations on the diagram and in the lens view")
+    setupSubModeButton('#color-bucket-button', '-eyedropper', MODE_COLOR_BUCKET_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#color-bucket-button-eyedropper', "Copies the color from anything that can be colored")
+    $("#color-bucket-button-color-picker").on("click", toggleColorPicker);
+    setupButtonTooltip("#color-bucket-button-color-picker", "Choose color to color things with");
 
-    $("#color-picker-button").on("click", (e) => {
-        if ($("#color-picker-div").is(":visible")) {
-            $('#color-picker-div').hide();
-        } else {
-            $('#color-picker-div').css('top', e.pageY);
-            $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
-            $('#color-picker-div').show();
-        }
-    })
-    // setup the color picker
     $('#color-picker-wrapper').farbtastic((color) => {
-        setColor(color);
+        if (mMode == MODE_COLOR_BRUSH || mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+            setColorBrushColor(color);
+        } else if (mMode == MODE_COLOR_BUCKET || mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            setColorBucketColor(color);
+        } else if (mMode == MODE_LINE_DRAWING || mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            setLineDrawingColor(color);
+        }
     });
     $(document).on("click", function (event) {
         if ($(event.target).closest('#color-picker-div').length === 0 &&
-            $(event.target).closest("#color-picker-button").length === 0) {
-            // if we didn't click on the div or the open button
+            $(event.target).closest("#color-brush-button-color-picker").length === 0 &&
+            $(event.target).closest("#color-bucket-button-color-picker").length === 0 &&
+            $(event.target).closest("#line-drawing-button-color-picker").length === 0) {
+            // if we didn't click on the div or an open button
             $('#color-picker-div').hide();
         }
     });
     $("#color-picker-input").on('input', (e) => {
-        setColor($("#color-picker-input").val());
+        if (mMode == MODE_COLOR_BRUSH || MODE_COLOR_BRUSH_EYEDROPPER) {
+            setColorBrushColor($("#color-picker-input").val());
+        } else if (mMode == MODE_COLOR_BUCKET || MODE_COLOR_BUCKET_EYEDROPPER) {
+            setColorBucketColor($("#color-picker-input").val());
+        } else if (mMode == MODE_LINE_DRAWING || MODE_LINE_DRAWING_EYEDROPPER) {
+            setLineDrawingColor($("#color-picker-input").val());
+        }
     })
     // set color to a random color
-    setColor("#" + Math.floor(Math.random() * 16777215).toString(16))
-    setupButtonTooltip("#color-picker-button", "Choose color to draw with");
+    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16))
+    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16))
+    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16))
 
-    setupModeButton('#eyedropper-button', MODE_EYEDROPPER, () => {
-        mLineViewController.setActive(true);
-        mTimePinController.setActive(true);
-        mDataPointController.setActive(true);
-        mTextController.setActive(true);
-        mStrokeController.setActive(true);
-    });
-    setupButtonTooltip('#eyedropper-button', "Copies the color from anything that can be colored")
     // ---------------
     setupModeButton('#lens-button', MODE_LENS, () => {
         mLineViewController.setActive(true);
@@ -925,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (mMode == mode) {
                 setDefaultMode()
             } else {
-                clearMode()
+                clearMode();
                 callback();
                 mMode = mode;
 
@@ -933,9 +969,43 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
                 $('#mode-indicator-div').html("");
                 let modeImg = $("<img>");
+                modeImg.attr("id", "mode-img");
                 modeImg.attr("src", $(buttonId).attr("src"));
                 modeImg.css("max-width", "35px");
                 modeImg.css("background-color", $(buttonId).css("background-color"));
+                modeImg.addClass("mode-indicator");
+                $('#mode-indicator-div').append(modeImg);
+                $('#mode-indicator-div').show();
+
+                $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
+                $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
+                $(buttonId + '-sub-menu').show();
+            }
+        })
+    }
+
+    function setupSubModeButton(buttonId, subButtonAppendix, mode, callback) {
+        $(buttonId + subButtonAppendix).on("click", () => {
+            if (mMode == mode) {
+                $(buttonId).trigger('click');
+            } else {
+                // clear everything and show your own submenu
+                clearMode();
+                $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
+                $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
+                $(buttonId + '-sub-menu').show();
+
+                callback();
+                mMode = mode;
+
+                $(buttonId).css('opacity', '0.3');
+                $(buttonId + subButtonAppendix).css('opacity', '0.3');
+
+                $('#mode-indicator-div').html("");
+                let modeImg = $("<img>");
+                modeImg.attr("src", $(buttonId + subButtonAppendix).attr("src"));
+                modeImg.css("max-width", "35px");
+                modeImg.css("background-color", $(buttonId + subButtonAppendix).css("background-color"));
                 modeImg.addClass("mode-indicator");
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
@@ -967,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mMode = MODE_DEFAULT;
     }
 
-    function clearMode() {
+    function clearMode(hideSubMenus = true) {
         mLineViewController.setActive(false);
         mLineDrawingController.setActive(false);
         mEraserController.setActive(false);
@@ -982,31 +1052,59 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
+        $('.sub-menu').hide();
 
         mMode = MODE_NONE;
     }
 
-    function setColor(color) {
-        mColor = color;
+    // Color utility functions
+    function setEyeDropperActive() {
+        mLineViewController.setActive(true);
+        mTimePinController.setActive(true);
+        mDataPointController.setActive(true);
+        mTextController.setActive(true);
+        mStrokeController.setActive(true);
+    }
 
+    function toggleColorPicker(e) {
+        if ($("#color-picker-div").is(":visible")) {
+            $('#color-picker-div').hide();
+        } else {
+            setColorPickerInputColor(mColorBrushController.getColor());
+            $('#color-picker-div').css('top', e.pageY);
+            $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
+            $('#color-picker-div').show();
+        }
+    }
+
+    function setColorPickerInputColor(color) {
         $('#color-picker-input').val(color);
         $('#color-picker-input').css('background-color', color);
-        $('#color-picker-button').css('background-color', color);
-        $('#color-bucket-button').css('background-color', color);
-
-        $('#color-bucket-mode-indicator').css('background-color', color);
-
-        $('#color-brush-button').css('background-color', color);
-        $('#color-brush-mode-indicator').css('background-color', color);
-        mColorBrushController.setColor(color)
-
-        $('#line-drawing-button').css('background-color', color);
-        $('#line-drawing-mode-indicator').css('background-color', color);
-        mLineDrawingController.setColor(color)
-
-        mLensController.setColor(color)
         $.farbtastic('#color-picker-wrapper').setColor(color);
     }
+
+    function setColorBucketColor(color) {
+        $('#color-bucket-button-color-picker').css('background-color', color);
+        $('#color-bucket-button').css('background-color', color);
+        $('#mode-img').css('background-color', color);
+        mBucketColor = color;
+    }
+
+    function setLineDrawingColor(color) {
+        $('#line-drawing-button-color-picker').css('background-color', color);
+        $('#line-drawing-button').css('background-color', color);
+        $('#mode-img').css('background-color', color);
+        mLineDrawingController.setColor(color)
+    }
+
+    function setColorBrushColor(color) {
+        $('#color-brush-button-color-picker').css('background-color', color);
+        $('#color-brush-button').css('background-color', color);
+        $('#mode-img').css('background-color', color);
+        mColorBrushController.setColor(color)
+        mLensController.setColorBrushColor(color)
+    }
+    // End color utility functions
 
     function MouseDropShadow(parent) {
         let shadow = parent.append('g')

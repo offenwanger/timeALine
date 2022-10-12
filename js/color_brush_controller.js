@@ -1,5 +1,6 @@
 function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     let mActive = false;
+    let mColor = '#000000'
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -41,7 +42,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     function onPointerUp(coords) {
         if (mActive && mDragging && mDraggedPoints.length > 1) {
             let result = [...mDraggedPoints]
-            mDrawFinishedCallback(result);
+            mDrawFinishedCallback(result, mColor);
         }
 
         mDragging = false;
@@ -64,11 +65,13 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function setColor(color) {
+        mColor = color;
         mColorLine.attr('stroke', color);
     }
 
     this.setActive = setActive;
     this.setColor = setColor;
+    this.getColor = () => mColor;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
 
     this.onPointerDown = onPointerDown;

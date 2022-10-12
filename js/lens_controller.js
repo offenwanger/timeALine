@@ -18,8 +18,6 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mModel;
     let mTimelineId;
 
-    let mColor = "#000000";
-
     let mLineLength;
     let mStrokesData = {}
 
@@ -35,7 +33,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mPanning = false;
 
     let mLensColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mLensColorBrushController.setDrawFinishedCallback((points) => {
+    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
         if (mTimelineId) {
             let model = mModelController.getModel();
             let timelineHasMapping = model.hasTimeMapping(mTimelineId);
@@ -50,7 +48,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 return point;
             })
 
-            mModelController.addTimelineStroke(mTimelineId, mappedPoints, mColor);
+            mModelController.addTimelineStroke(mTimelineId, mappedPoints, color);
 
             modelUpdated();
         }
@@ -401,9 +399,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         mMode = MODE_DEFAULT;
     }
 
-    function setColor(color) {
+    function setColorBrushColor(color) {
         mLensColorBrushController.setColor(color);
-        mColor = color;
     }
 
     this.focus = focus;
@@ -416,7 +413,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     this.setColorBrushActive = setColorBrushActive;
     this.resetMode = resetMode;
 
-    this.setColor = setColor;
+    this.setColorBrushColor = setColorBrushColor;
 
     this.setPanCallback = (callback) => mPanCallback = callback;
 }
