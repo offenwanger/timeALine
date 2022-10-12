@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_NONE = 'noneMode';
-    const MODE_DEFAULT = 'default';
+    const MODE_SELECTION = 'selection';
     const MODE_LINE_DRAWING = "drawing";
     const MODE_LINE_DRAWING_EYEDROPPER = "drawingEyedropper";
     const MODE_ERASER = "eraser";
-    const MODE_DRAG = "drag";
-    const MODE_IRON = "iron";
+    const MODE_DEFORM = "deform";
+    const MODE_SMOOTH = "smooth";
     const MODE_SCISSORS = "scissors";
     const MODE_COMMENT = "comment";
     const MODE_PIN = "pin";
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_PAN = "pan";
     const MODE_LINK = "link";
 
-    let mMode = MODE_DEFAULT;
+    let mMode;
     let mBucketColor = "#000000";
 
     let mSvg = d3.select('#svg_container').append('svg')
@@ -55,9 +55,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
 
+    let mSelectionController = new SelectionController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mSelectionController.setDragStartCallback((timelineId, pointerEvent) => {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        return coords;
+    });
+    mSelectionController.setLineModifiedCallback((timelineId, points, newPoints) => {
+        mModelController.updateTimelinePoints(timelineId, [{ points }], [{ points: newPoints }]);
+
+        modelUpdated();
+    });
+
     let mLineViewController = new LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
-        if (mMode == MODE_PIN) {
+        if (mMode == MODE_SELECTION) {
+            mSelectionController.onTimelinePointerDown(timelineId, screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY }));
+        } if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             if (!timeline) {
                 console.error("Bad timeline id! " + timelineId);
@@ -268,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         return coords;
     });
     mTextController.setDragCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_COMMENT || mMode == MODE_DEFAULT) {
+        if (mMode == MODE_COMMENT || mMode == MODE_SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -307,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mTextController.setDragEndCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_COMMENT || mMode == MODE_DEFAULT) {
+        if (mMode == MODE_COMMENT || mMode == MODE_SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -426,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     mDataPointController.setAxisDragCallback((axisId, controlNumber, newDist, coords) => {
-        if (mMode == MODE_DEFAULT) {
+        if (mMode == MODE_SELECTION) {
             let boundData = mModelController.getModel().getAllCellBindingData().filter(cbd => {
                 return cbd.dataCell.getType() == DataTypes.NUM && cbd.axisBinding && cbd.axisBinding.id == axisId;
             });
@@ -445,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mDataPointController.setAxisDragEndCallback((axisId, controlNumber, newDist, coords) => {
-        if (mMode == MODE_DEFAULT) {
+        if (mMode == MODE_SELECTION) {
             mModelController.updateAxisDist(axisId, controlNumber, newDist);
 
             modelUpdated();
@@ -543,19 +556,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     })
 
-    let mDragController = new DragController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mDragController.setDragStartCallback((timelineId, pointerEvent) => {
+    let mDeformController = new DeformController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mDeformController.setDragStartCallback((timelineId, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         return coords;
     });
-    mDragController.setLineModifiedCallback(data => {
+    mDeformController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
         modelUpdated();
     });
 
-    let mIronController = new IronController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mIronController.setLineModifiedCallback(data => {
+    let mSmoothController = new SmoothController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mSmoothController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
         modelUpdated();
@@ -621,9 +634,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mColorBrushController.onPointerDown(coords);
             mLineDrawingController.onPointerDown(coords);
-            mDragController.onPointerDown(coords);
+            mDeformController.onPointerDown(coords);
             mEraserController.onPointerDown(coords);
-            mIronController.onPointerDown(coords);
+            mSmoothController.onPointerDown(coords);
+            mSelectionController.onPointerDown(coords);
         })
 
     $(document).on('pointermove', function (e) {
@@ -640,13 +654,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineViewController.onPointerMove(coords);
         mLineDrawingController.onPointerMove(coords);
         mBrushController.onPointerMove(coords);
-        mDragController.onPointerMove(coords);
+        mDeformController.onPointerMove(coords);
         mEraserController.onPointerMove(coords);
         mTimePinController.onPointerMove(coords);
         mTextController.onPointerMove(coords);
         mDataPointController.onPointerMove(coords);
-        mIronController.onPointerMove(coords);
+        mSmoothController.onPointerMove(coords);
         mStrokeController.onPointerMove(coords);
+        mSelectionController.onPointerMove(coords);
 
         $('#mode-indicator-div').css({
             left: e.pageX + 10,
@@ -665,13 +680,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mColorBrushController.onPointerUp(coords);
         mLineViewController.onPointerUp(coords);
         mLineDrawingController.onPointerUp(coords);
-        mDragController.onPointerUp(coords);
+        mDeformController.onPointerUp(coords);
         mEraserController.onPointerUp(coords);
         mTimePinController.onPointerUp(coords);
         mTextController.onPointerUp(coords);
         mDataPointController.onPointerUp(coords);
-        mIronController.onPointerUp(coords);
+        mSmoothController.onPointerUp(coords);
         mStrokeController.onPointerUp(coords);
+        mSelectionController.onPointerUp(coords);
     });
 
     function screenToSvgCoords(screenCoords) {
@@ -732,8 +748,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function modelUpdated() {
         mLineViewController.updateModel(mModelController.getModel());
         mLineDrawingController.updateModel(mModelController.getModel());
-        mDragController.updateModel(mModelController.getModel());
-        mIronController.updateModel(mModelController.getModel());
+        mDeformController.updateModel(mModelController.getModel());
+        mSmoothController.updateModel(mModelController.getModel());
         mDataTableController.updateModel(mModelController.getModel());
         mTextController.updateModel(mModelController.getModel());
         mDataPointController.updateModel(mModelController.getModel());
@@ -741,6 +757,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLensController.updateModel(mModelController.getModel());
         mStrokeController.updateModel(mModelController.getModel());
         mEraserController.updateModel(mModelController.getModel());
+        mSelectionController.updateModel(mModelController.getModel());
 
         if (mLensController.getCurrentTimelineId()) {
             let timeline = mModelController.getModel().getTimelineById(mLensController.getCurrentTimelineId());
@@ -821,15 +838,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $("#line-drawing-button-color-picker").on("click", toggleColorPicker);
     setupButtonTooltip("#line-drawing-button-color-picker", "Choose timeline color");
 
-    setupModeButton("#drag-button", MODE_DRAG, () => {
-        mDragController.setActive(true);
-    });
-    setupButtonTooltip("#drag-button", "Deforms timelines")
 
-    setupModeButton("#iron-button", MODE_IRON, () => {
-        mIronController.setActive(true);
+    $("#line-manipulation-button").on("click", () => {
+        if (mMode == MODE_DEFORM) {
+            setDefaultMode();
+        } else {
+            $("#line-manipulation-button-deform").trigger("click");
+        }
+    })
+    setupButtonTooltip("#line-manipulation-button", "Smooths and deforms timelines")
+    setupSubModeButton("#line-manipulation-button", "-deform", MODE_DEFORM, () => {
+        mDeformController.setActive(true);
     });
-    setupButtonTooltip("#iron-button", "Flattens timelines")
+    setupButtonTooltip("#line-manipulation-button-deform", "Deforms timelines")
+    setupSubModeButton("#line-manipulation-button", "-smooth", MODE_SMOOTH, () => {
+        mSmoothController.setActive(true);
+    });
+    setupButtonTooltip("#line-manipulation-button-smooth", "Flattens timelines")
 
     setupModeButton('#scissors-button', MODE_SCISSORS, () => {
         mLineViewController.setActive(true);
@@ -865,6 +890,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip('#pin-button', "Creates and moves time pins on timelines")
     // ---------------
+    $("#selection-button").on("click", () => {
+        setDefaultMode();
+    })
+    setupButtonTooltip("#selection-button", "Select and move items around")
+
     setupModeButton("#eraser-button", MODE_ERASER, () => {
         mEraserController.setActive(true);
     });
@@ -1028,21 +1058,37 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function setDefaultMode() {
         clearMode();
+        mMode = MODE_SELECTION;
 
-        // set active those things with default pointerenters, etc. 
+        mSelectionController.setActive(true);
         mLineViewController.setActive(true);
         mDataPointController.setActive(true);
         mTextController.setActive(true);
 
-        mMode = MODE_DEFAULT;
+        $("#selection-button").css('opacity', '0.3');
+
+        $('#mode-indicator-div').html("");
+        let modeImg = $("<img>");
+        modeImg.attr("id", "mode-img");
+        modeImg.attr("src", $("#selection-button").attr("src"));
+        modeImg.css("max-width", "35px");
+        modeImg.css("background-color", $("#selection-button").css("background-color"));
+        modeImg.addClass("mode-indicator");
+        $('#mode-indicator-div').append(modeImg);
+        $('#mode-indicator-div').show();
+
+        $('#selection-button-sub-menu').css('top', $("#selection-button").offset().top);
+        $('#selection-button-sub-menu').css('left', $("#selection-button").offset().left - $('#selection-button-sub-menu').outerWidth() - 10);
+        $('#selection-button-sub-menu').show();
     }
+    setDefaultMode();
 
     function clearMode(hideSubMenus = true) {
         mLineViewController.setActive(false);
         mLineDrawingController.setActive(false);
         mEraserController.setActive(false);
-        mDragController.setActive(false);
-        mIronController.setActive(false);
+        mDeformController.setActive(false);
+        mSmoothController.setActive(false);
         mTimePinController.setActive(false);
         mColorBrushController.setActive(false);
         mDataPointController.setActive(false);

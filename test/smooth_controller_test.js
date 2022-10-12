@@ -2,15 +2,15 @@ const chai = require('chai');
 let assert = chai.assert;
 let expect = chai.expect;
 
-describe('Test IronController', function () {
+describe('Test SmoothController', function () {
     let integrationEnv;
-    let getIronController;
+    let getSmoothController;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
-        getIronController = function (externalCall) {
-            let IronController = integrationEnv.enviromentVariables.IronController;
+        getSmoothController = function (externalCall) {
+            let SmoothController = integrationEnv.enviromentVariables.SmoothController;
             let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
-            return new IronController(new mockElement(), new mockElement(), new mockElement(), externalCall);
+            return new SmoothController(new mockElement(), new mockElement(), new mockElement(), externalCall);
         }
     });
 
@@ -20,14 +20,14 @@ describe('Test IronController', function () {
 
     describe('instantiation test', function () {
         it('should start without error', function () {
-            getIronController();
+            getSmoothController();
         })
     });
 
-    describe('iron line tests', function () {
-        it('should start iron without error', function () {
-            let ironController = getIronController();
-            ironController.updateModel({
+    describe('smooth line tests', function () {
+        it('should start smooth without error', function () {
+            let smoothController = getSmoothController();
+            smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: 0, y: 0 },
@@ -40,15 +40,15 @@ describe('Test IronController', function () {
                         { x: 15, y: 15 }]
                 }]
             })
-            ironController.setActive(true);
+            smoothController.setActive(true);
 
-            ironController.onPointerDown({ x: 10, y: 10 });
+            smoothController.onPointerDown({ x: 10, y: 10 });
         })
 
-        it('should iron start of line without error', function () {
-            let ironController = getIronController();
+        it('should smooth start of line without error', function () {
+            let smoothController = getSmoothController();
 
-            ironController.updateModel({
+            smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: -10, y: -10 },
@@ -63,10 +63,10 @@ describe('Test IronController', function () {
                         { x: 30, y: 30 }]
                 }]
             });
-            ironController.setActive(true);
+            smoothController.setActive(true);
 
             let called = false;
-            ironController.setLineModifiedCallback((result) => {
+            smoothController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].id, "id2")
                 assert.equal(result[0].oldSegments.length, 2)
                 assert.equal(result[0].newSegments.length, 2)
@@ -82,17 +82,17 @@ describe('Test IronController', function () {
                 called = true;
             });
 
-            ironController.onPointerDown({ x: 10, y: 10 });
-            ironController.onPointerMove({ x: 15, y: 15 });
-            ironController.onPointerUp({ x: 15, y: 15 });
+            smoothController.onPointerDown({ x: 10, y: 10 });
+            smoothController.onPointerMove({ x: 15, y: 15 });
+            smoothController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
 
-        it('should iron end of line without error', function () {
-            let ironController = getIronController();
+        it('should smooth end of line without error', function () {
+            let smoothController = getSmoothController();
 
-            ironController.updateModel({
+            smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: 40, y: 40 },
@@ -107,9 +107,9 @@ describe('Test IronController', function () {
                         { x: 30, y: 30 }]
                 }]
             });
-            ironController.setActive(true);
+            smoothController.setActive(true);
             let called = false;
-            ironController.setLineModifiedCallback((result) => {
+            smoothController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].id, "id1")
                 assert.equal(result[0].oldSegments.length, 2)
                 assert.equal(result[0].newSegments.length, 2)
@@ -125,17 +125,17 @@ describe('Test IronController', function () {
                 called = true;
             });
 
-            ironController.onPointerDown({ x: 80, y: 80 });
-            ironController.onPointerMove({ x: 75, y: 80 });
-            ironController.onPointerUp({ x: 75, y: 80 }, integrationEnv);
+            smoothController.onPointerDown({ x: 80, y: 80 });
+            smoothController.onPointerMove({ x: 75, y: 80 });
+            smoothController.onPointerUp({ x: 75, y: 80 }, integrationEnv);
 
             assert.equal(called, true);
         });
 
-        it('should iron points in middle of line', function () {
-            let ironController = getIronController();
+        it('should smooth points in middle of line', function () {
+            let smoothController = getSmoothController();
 
-            ironController.updateModel({
+            smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 121, y: 306 },
@@ -148,9 +148,9 @@ describe('Test IronController', function () {
                         { x: 468, y: 305 }]
                 }]
             });
-            ironController.setActive(true);
+            smoothController.setActive(true);
             let called = false;
-            ironController.setLineModifiedCallback((result) => {
+            smoothController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].newSegments.length, 3);
                 assert.equal(result[0].newSegments[0].label, SEGMENT_LABELS.UNAFFECTED);
@@ -166,17 +166,17 @@ describe('Test IronController', function () {
                 called = true;
             })
 
-            ironController.onPointerDown({ x: 270, y: 320 });
-            ironController.onPointerMove({ x: 280, y: 320 });
-            ironController.onPointerUp({ x: 300, y: 320 }, integrationEnv);
+            smoothController.onPointerDown({ x: 270, y: 320 });
+            smoothController.onPointerMove({ x: 280, y: 320 });
+            smoothController.onPointerUp({ x: 300, y: 320 }, integrationEnv);
 
             assert.equal(called, true);
         });
 
-        it('should create appropriate new points for ironing a section with no points', function () {
-            let ironController = getIronController();
+        it('should create appropriate new points for smoothing a section with no points', function () {
+            let smoothController = getSmoothController();
 
-            ironController.updateModel({
+            smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 0, y: 40 },
@@ -185,9 +185,9 @@ describe('Test IronController', function () {
                         { x: 40, y: 0 }]
                 }]
             });
-            ironController.setActive(true);
+            smoothController.setActive(true);
             let called = false;
-            ironController.setLineModifiedCallback((result) => {
+            smoothController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].newSegments.length, 3);
@@ -206,15 +206,15 @@ describe('Test IronController', function () {
 
             let clickPoint = { x: 21, y: 19 };
 
-            ironController.onPointerDown(clickPoint);
-            ironController.onPointerUp(clickPoint, integrationEnv);
+            smoothController.onPointerDown(clickPoint);
+            smoothController.onPointerUp(clickPoint, integrationEnv);
 
             assert.equal(called, true);
         });
     });
 });
 
-describe('Integration Test IronController', function () {
+describe('Integration Test SmoothController', function () {
     let integrationEnv;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
@@ -224,7 +224,7 @@ describe('Integration Test IronController', function () {
         integrationEnv.cleanup(done);
     });
 
-    describe('iron line test', function () {
+    describe('smooth line test', function () {
         it('should flatten the line', function () {
             integrationEnv.mainInit();
             let longerLine = [
@@ -237,11 +237,12 @@ describe('Integration Test IronController', function () {
             let beforePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
             assert.equal(beforePoints.length, 6, "line not drawn");
 
-            IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#line-manipulation-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#line-manipulation-button-smooth", integrationEnv.enviromentVariables.$);
             IntegrationUtils.mainPointerDown({ x: 125, y: 200 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 150, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
-            IntegrationUtils.clickButton("#iron-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#line-manipulation-button", integrationEnv.enviromentVariables.$);
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].points).to.not.eql(beforePoints);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 8);

@@ -113,6 +113,7 @@ before(function () {
             };
             this.text = function () { return this; };
             this.clone = function () { return this; };
+            this.raise = function () { return this };
         };
         this.mockElement = MockElement;
 
@@ -181,6 +182,7 @@ before(function () {
             this.height = function () { return 100 };
             this.scrollTop = function () { return 100 };
             this.offset = function () { return { top: 100, left: 100 } };
+            this.trigger = function (event) { if (this.eventCallbacks[event]) { this.eventCallbacks[event](); } else { console.error("No listener set", event); } };
         };
 
         function fakeJquery(selector) {
@@ -345,13 +347,14 @@ before(function () {
         let brush_controller = rewire('../js/brush_controller.js');
         let color_brush_controller = rewire('../js/color_brush_controller.js');
         let eraser_controller = rewire('../js/eraser_controller.js');
-        let drag_controller = rewire('../js/drag_controller.js');
-        let iron_controller = rewire('../js/iron_controller.js');
+        let deform_controller = rewire('../js/deform_controller.js');
+        let smooth_controller = rewire('../js/smooth_controller.js');
         let line_drawing_controller = rewire('../js/line_drawing_controller.js');
         let drawer_controller = rewire('../js/drawer_controller.js');
         let lens_controller = rewire('../js/lens_controller.js');
         let stroke_controller = rewire('../js/stroke_controller.js');
         let line_view_controller = rewire('../js/line_view_controller.js');
+        let selection_controller = rewire('../js/selection_controller.js');
         let time_pin_controller = rewire('../js/time_pin_controller.js');
         let data_point_controller = rewire('../js/data_point_controller.js');
         let text_controller = rewire('../js/text_controller.js');
@@ -411,6 +414,7 @@ before(function () {
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
+            SelectionController: selection_controller.__get__("SelectionController"),
             TimePinController: time_pin_controller.__get__("TimePinController"),
             TextController: text_controller.__get__("TextController"),
             DataPointController: data_point_controller.__get__("DataPointController"),
@@ -421,8 +425,8 @@ before(function () {
             LensController: lens_controller.__get__("LensController"),
             StrokeController: stroke_controller.__get__("StrokeController"),
             EraserController: eraser_controller.__get__("EraserController"),
-            DragController: drag_controller.__get__("DragController"),
-            IronController: iron_controller.__get__("IronController"),
+            DeformController: deform_controller.__get__("DeformController"),
+            SmoothController: smooth_controller.__get__("SmoothController"),
             DataTableController: table_view_controller.__get__("DataTableController"),
             PathMath: utility.__get__("PathMath"),
             MathUtil: utility.__get__("MathUtil"),

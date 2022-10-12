@@ -2,15 +2,15 @@ const chai = require('chai');
 let assert = chai.assert;
 let expect = chai.expect;
 
-describe('Test DragController', function () {
+describe('Test DeformController', function () {
     let integrationEnv;
-    let getDragController;
+    let getDeformController;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
-        getDragController = function () {
-            let DragController = integrationEnv.enviromentVariables.DragController;
+        getDeformController = function () {
+            let DeformController = integrationEnv.enviromentVariables.DeformController;
             let mockElement = integrationEnv.enviromentVariables.d3.mockElement;
-            return new DragController(new mockElement(), new mockElement(), new mockElement());
+            return new DeformController(new mockElement(), new mockElement(), new mockElement());
         }
     });
 
@@ -20,14 +20,14 @@ describe('Test DragController', function () {
 
     describe('instantiation test', function () {
         it('should start without error', function () {
-            getDragController();
+            getDeformController();
         })
     });
 
     describe('drag line tests', function () {
         it('should start drag without error', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: 0, y: 0 },
@@ -40,14 +40,14 @@ describe('Test DragController', function () {
                         { x: 15, y: 15 }]
                 }]
             })
-            dragController.setActive(true);
+            deformController.setActive(true);
 
-            dragController.onPointerDown({ x: 10, y: 10 });
+            deformController.onPointerDown({ x: 10, y: 10 });
         })
 
         it('should drag start of line without error', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: -10, y: -10 },
@@ -60,25 +60,25 @@ describe('Test DragController', function () {
                         { x: 30, y: 30 }]
                 }]
             })
-            dragController.setActive(true);
+            deformController.setActive(true);
 
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].newSegments[0].points[0].x, 15)
                 assert.equal(result[0].newSegments[0].points[0].y, 15)
                 called = true;
             })
 
-            dragController.onPointerDown({ x: 10, y: 10 });
-            dragController.onPointerMove({ x: 15, y: 15 });
-            dragController.onPointerUp({ x: 15, y: 15 });
+            deformController.onPointerDown({ x: 10, y: 10 });
+            deformController.onPointerMove({ x: 15, y: 15 });
+            deformController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
 
         it('should drag end of line without error', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
                         { x: -10, y: -10 },
@@ -91,25 +91,25 @@ describe('Test DragController', function () {
                         { x: 30, y: 30 }]
                 }]
             })
-            dragController.setActive(true);
+            deformController.setActive(true);
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].newSegments[1].points[1].x, 5)
                 assert.equal(result[0].newSegments[1].points[1].y, -2)
                 called = true;
             })
 
 
-            dragController.onPointerDown({ x: -5, y: -28 });
-            dragController.onPointerMove({ x: 5, y: -8 });
-            dragController.onPointerUp({ x: 5, y: -10 });
+            deformController.onPointerDown({ x: -5, y: -28 });
+            deformController.onPointerMove({ x: 5, y: -8 });
+            deformController.onPointerUp({ x: 5, y: -10 });
 
             assert.equal(called, true);
         });
 
         it('should drag points in middle of line', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 121, y: 306 },
@@ -127,9 +127,9 @@ describe('Test DragController', function () {
                         { x: 682, y: 282 }]
                 }]
             });
-            dragController.setActive(true);
+            deformController.setActive(true);
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].oldSegments[1].points.length, 2);
@@ -140,16 +140,16 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            dragController.onPointerDown({ x: 420, y: 313 });
-            dragController.onPointerMove({ x: 100, y: 100 });
-            dragController.onPointerUp({ x: 15, y: 15 });
+            deformController.onPointerDown({ x: 420, y: 313 });
+            deformController.onPointerMove({ x: 100, y: 100 });
+            deformController.onPointerUp({ x: 15, y: 15 });
 
             assert.equal(called, true);
         });
 
         it('should create appropriate new points for line with no points', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 0, y: 40 },
@@ -158,9 +158,9 @@ describe('Test DragController', function () {
                         { x: 40, y: 0 }]
                 }]
             });
-            dragController.setActive(true);
+            deformController.setActive(true);
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].oldSegments[1].points.length, 2);
@@ -177,15 +177,15 @@ describe('Test DragController', function () {
             })
 
             let clickPoint = { x: 21, y: 19 };
-            dragController.onPointerDown(clickPoint);
-            dragController.onPointerUp(clickPoint);
+            deformController.onPointerDown(clickPoint);
+            deformController.onPointerUp(clickPoint);
 
             assert.equal(called, true);
         });
 
         it('should create appropriate new points for line with points', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 0, y: 40 },
@@ -195,9 +195,9 @@ describe('Test DragController', function () {
                         { x: 40, y: 0 }]
                 }]
             });
-            dragController.setActive(true);
+            deformController.setActive(true);
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].oldSegments[1].points.length, 3);
@@ -217,15 +217,15 @@ describe('Test DragController', function () {
             })
 
             let clickPoint = { x: 21, y: 19 };
-            dragController.onPointerDown(clickPoint);
-            dragController.onPointerUp(clickPoint);
+            deformController.onPointerDown(clickPoint);
+            deformController.onPointerUp(clickPoint);
 
             assert.equal(called, true);
         });
 
         it('should drag line between points', function () {
-            let dragController = getDragController();
-            dragController.updateModel({
+            let deformController = getDeformController();
+            deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
                         { x: 57, y: 292 },
@@ -246,9 +246,9 @@ describe('Test DragController', function () {
                         { x: 778, y: 243 }]
                 }]
             });
-            dragController.setActive(true);
+            deformController.setActive(true);
             let called = false;
-            dragController.setLineModifiedCallback((result) => {
+            deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
                 assert.equal(result[0].oldSegments.length, 3);
                 assert.equal(result[0].oldSegments[1].points.length, 2);
@@ -261,65 +261,17 @@ describe('Test DragController', function () {
                 called = true;
             })
 
-            dragController.onPointerDown({ x: 378, y: 265 });
-            dragController.onPointerMove({ x: 178, y: 65 });
-            dragController.onPointerUp({ x: 178, y: 65 });
+            deformController.onPointerDown({ x: 378, y: 265 });
+            deformController.onPointerMove({ x: 178, y: 65 });
+            deformController.onPointerUp({ x: 178, y: 65 });
 
             assert.equal(called, true);
         });
 
-    });
-
-    describe('drag endpoint tests', function () {
-        it('should rotate the line', function () {
-            let dragController = getDragController();
-
-            let lineData = {
-                id: "1656511643611_1",
-                points: [
-                    { x: 0, y: 0 },
-                    { x: 10, y: 10 },
-                    { x: 5, y: 10 },
-                    { x: 10, y: 15 },
-                    { x: 15, y: 20 },
-                    { x: 20, y: 20 },
-                    { x: 15, y: 15 },
-                    { x: 10, y: 10 },
-                    { x: 15, y: 5 },
-                    { x: 25, y: 5 },
-                    { x: 25, y: 10 },
-                    { x: 25, y: 15 },
-                    { x: 20, y: 15 },
-                    { x: 10, y: 10 }
-                ]
-            };
-
-            dragController.updateModel({ getAllTimelines: () => [lineData] });
-            dragController.setActive(true);
-
-            let called = false;
-            dragController.setLineModifiedCallback((result) => {
-                assert.equal(result.length, 1);
-                assert.equal(result[0].oldSegments.length, 1);
-                assert.equal(result[0].oldSegments[0].points.length, lineData.points.length);
-                assert.equal(result[0].newSegments.length, 1);
-                assert.equal(result[0].newSegments[0].points.length, lineData.points.length);
-                expect(result[0].newSegments[0].points.map(p => Math.round(p.x))).to.eql(lineData.points.map(p => p.y * 2));
-                expect(result[0].newSegments[0].points.map(p => Math.round(p.y))).to.eql(lineData.points.map(p => p.x == 0 ? 0 : p.x * -2));
-                called = true;
-            })
-
-            let endPoint = integrationEnv.enviromentVariables.d3.selectors['.drag-end-point'];
-            endPoint.eventCallbacks.pointerdown({ clientX: 10, clientY: 10 }, lineData);
-            dragController.onPointerMove({ x: 20, y: -20 });
-            dragController.onPointerUp({ x: 20, y: -20 });
-
-            assert.equal(called, true);
-        });
     });
 });
 
-describe('Integration Test DragController', function () {
+describe('Integration Test DeformController', function () {
     let integrationEnv;
     beforeEach(function () {
         integrationEnv = TestUtils.getIntegrationEnviroment();
@@ -329,29 +281,7 @@ describe('Integration Test DragController', function () {
         integrationEnv.cleanup(done);
     });
 
-    describe('drag line end point test', function () {
-        it('should drag the whole line', function () {
-            integrationEnv.mainInit();
-            IntegrationUtils.drawLine([
-                { x: 100, y: 100 },
-                { x: 200, y: 200 }
-            ], integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+    describe('drag line test', function () {
 
-            let data = integrationEnv.enviromentVariables.d3.selectors['.drag-start-point'].innerData;
-            assert.equal(data.length, 1, "data not set");
-
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['.drag-start-point'].eventCallbacks.pointerdown;
-
-            IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
-            dragStart({ clientX: 100, clientY: 100 }, data[0]);
-            IntegrationUtils.pointerMove({ x: 150, y: 200 }, integrationEnv);
-            IntegrationUtils.pointerUp({ x: 150, y: 200 }, integrationEnv);
-            IntegrationUtils.clickButton("#drag-button", integrationEnv.enviromentVariables.$);
-
-            let linePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;
-            expect(linePoints[0]).to.eql({ x: 150, y: 200 });
-            expect(linePoints[linePoints.length - 1]).to.eql({ x: 250, y: 300 });
-        });
     })
 });

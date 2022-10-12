@@ -1,4 +1,4 @@
-function IronController(vizLayer, overlayLayer, interactionLayer) {
+function SmoothController(vizLayer, overlayLayer, interactionLayer) {
     const MIN_RESOLUTION = 2;
 
     let mActive = false;
@@ -7,10 +7,10 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
 
     let mDragging = false;
 
-    let mIronGroup = interactionLayer.append('g')
-        .attr("id", 'iron-g')
+    let mSmoothGroup = interactionLayer.append('g')
+        .attr("id", 'smooth-g')
         .style("visibility", 'hidden');
-    let mLinesGroup = mIronGroup.append('g');
+    let mLinesGroup = mSmoothGroup.append('g');
 
     let mCover = overlayLayer.append('rect')
         .attr('x', 0)
@@ -52,10 +52,10 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
 
     function onPointerMove(coords) {
         if (mActive && mDragging) {
-            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
+            let smoothStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
             let drawingLines = mMovingLines.map(lineData => {
                 return {
-                    points: PathMath.mergeSegments(ironSegments(lineData.newSegments, ironStrength)),
+                    points: PathMath.mergeSegments(smoothSegments(lineData.newSegments, smoothStrength)),
                     color: lineData.color,
                 }
             });
@@ -68,12 +68,12 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
         if (mActive && mDragging) {
             mDragging = false;
             let radius = mBrushController.getBrushRadius();
-            let ironStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20);
+            let smoothStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20);
             let result = mMovingLines.map(line => {
                 return {
                     id: line.id,
                     oldSegments: line.oldSegments,
-                    newSegments: ironSegments(line.newSegments, ironStrength)
+                    newSegments: smoothSegments(line.newSegments, smoothStrength)
                 }
             });
             mLineModifiedCallback(result);
@@ -87,7 +87,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
         }
     }
 
-    function ironSegments(segments, ironStrength) {
+    function smoothSegments(segments, smoothStrength) {
         let returnArray = [];
         segments.forEach(segment => {
             if (segment.label == SEGMENT_LABELS.UNAFFECTED) {
@@ -101,7 +101,7 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
                     let length = MathUtil.distanceFromAToB(projectPoint, point);
                     if (length > 0) {
                         let vector = MathUtil.vectorFromAToB(projectPoint, point);
-                        let newPoint = MathUtil.getPointAtDistanceAlongVector(Math.max(length - ironStrength, 0), vector, projectPoint);
+                        let newPoint = MathUtil.getPointAtDistanceAlongVector(Math.max(length - smoothStrength, 0), vector, projectPoint);
                         movedPoints.push(newPoint);
                     } else {
                         movedPoints.push(point);
@@ -146,12 +146,12 @@ function IronController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mIronGroup.style('visibility', "")
+            mSmoothGroup.style('visibility', "")
                 .attr('width', overlayLayer.node().getBBox().width)
                 .attr('height', overlayLayer.node().getBBox().height)
         } else if (!active && mActive) {
             mActive = false;
-            mIronGroup.style('visibility', "hidden");
+            mSmoothGroup.style('visibility', "hidden");
         }
 
         mActive = active;

@@ -28,8 +28,8 @@
     <script src="js/brush_controller.js" charset="utf-8"></script>
     <script src="js/line_drawing_controller.js" charset="utf-8"></script>
     <script src="js/eraser_controller.js" charset="utf-8"></script>
-    <script src="js/drag_controller.js" charset="utf-8"></script>
-    <script src="js/iron_controller.js" charset="utf-8"></script>
+    <script src="js/deform_controller.js" charset="utf-8"></script>
+    <script src="js/smooth_controller.js" charset="utf-8"></script>
     <script src="js/line_view_controller.js" charset="utf-8"></script>
     <script src="js/time_pin_controller.js" charset="utf-8"></script>
     <script src="js/data_point_controller.js" charset="utf-8"></script>
@@ -37,6 +37,7 @@
     <script src="js/lens_controller.js" charset="utf-8"></script>
     <script src="js/stroke_controller.js" charset="utf-8"></script>
     <script src="js/color_brush_controller.js" charset="utf-8"></script>
+    <script src="js/selection_controller.js" charset="utf-8"></script>
     <script src="js/main.js" charset="utf-8"></script>
 </head>
 
@@ -59,8 +60,8 @@
                 <img src="img/divider_line.png" class="menu-divider" />
                 <input id="line-drawing-button" class="tool-button menu-button" type="image"
                     src="img/time_pencil_button.png" />
-                <input id="drag-button" class="tool-button menu-button" type="image" src="img/deform_button.png" />
-                <input id="iron-button" class="tool-button menu-button" type="image" src="img/iron_button.png" />
+                <input id="line-manipulation-button" class="tool-button menu-button" type="image"
+                    src="img/line_manipulation_button.png" />
                 <input id="scissors-button" class="tool-button menu-button" type="image"
                     src="img/scissors_button.png" />
                 <input id="toggle-timeline-style-button" class="tool-button menu-button" type="image"
@@ -73,6 +74,8 @@
                 <input id="pin-button" class="tool-button menu-button" type="image" src="img/pin_button.png" />
 
                 <img src="img/divider_line.png" class="menu-divider" />
+                <input id="selection-button" class="tool-button menu-button" type="image"
+                    src="img/selection_button.png" />
                 <input id="eraser-button" class="tool-button menu-button" type="image" src="img/eraser_button.png" />
                 <input id="color-bucket-button" class="tool-button menu-button" type="image"
                     src="img/color_bucket_button.png" />
@@ -114,6 +117,13 @@
         <input id="line-drawing-button-color-picker" class="sub-menu-button" type="image" src="img/color_set.png" />
         <input id="line-drawing-button-eyedropper" class="tool-button sub-menu-button" type="image"
             src="img/eye_dropper.png" />
+    </div>
+
+    <div id="line-manipulation-button-sub-menu" class="mobile-menu  sub-menu" style="display:none;">
+        <input id="line-manipulation-button-deform" class="tool-button sub-menu-button" type="image"
+            src="img/deform_button.png" />
+        <input id="line-manipulation-button-smooth" class="tool-button sub-menu-button" type="image"
+            src="img/smooth_button.png" />
     </div>
 
     <div id="link-button-div" class="mobile-menu">
