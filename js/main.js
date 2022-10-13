@@ -178,12 +178,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let svgCoords = screenToSvgCoords(screenCoords);
         let pointOnLine = PathMath.getClosestPointOnPath(svgCoords, timeline.points);
 
-        let message;
-        if (mModelController.getModel().hasTimeMapping(timelineId)) {
-            message = DataUtil.getFormattedDate(new Date(mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent)));
-        } else {
-            message = (Math.round(pointOnLine.percent * 10000) / 100) + "%";
-        }
+
+        let time = mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent);
+        let message = mModelController.getModel().hasTimeMapping(timelineId) ?
+            DataUtil.getFormattedDate(time) : "Percent of time: " + Math.round(time * 100) + "%";
 
         mMouseDropShadow.show(pointOnLine, svgCoords);
 
