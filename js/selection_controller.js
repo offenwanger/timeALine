@@ -31,6 +31,7 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
         .attr('fill', '#b51d1c')
         .attr("stroke", "black")
         .on('pointerdown', startNodeDragStart)
+        .style("visibility", 'hidden');
     let mStartPointTarget = mSelectionGroup.append("circle")
         .attr("id", "line-selection-start-point-target")
         .attr('r', 20)
@@ -38,18 +39,21 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
         .attr('cursor', 'pointer')
         .attr('opacity', 0)
         .on('pointerdown', startNodeDragStart)
+        .style("visibility", 'hidden');
     let mRotatePoint = mSelectionGroup.append("circle")
         .attr("id", "line-selection-end-point")
         .attr('r', 5)
         .attr('fill', '#1c1db5')
-        .attr("stroke", "black");
+        .attr("stroke", "black")
+        .style("visibility", 'hidden');
     let mRotatePointTarget = mSelectionGroup.append("circle")
         .attr("id", "line-selection-end-point-target")
         .attr('r', 20)
         .attr('fill', '#000000')
         .attr('cursor', 'pointer')
         .attr('opacity', 0)
-        .on('pointerdown', onRotatePointDragStart);
+        .on('pointerdown', onRotatePointDragStart)
+        .style("visibility", 'hidden');
 
     let mLine = mSelectionGroup.append('path')
         .attr("id", "line-selection-line")
@@ -57,6 +61,7 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
         .attr('stroke-width', 1.5)
+        .style("visibility", 'hidden');
 
     let mMarqueeGroup = overlayLayer.append("g")
         .attr("id", 'marquee-group')
