@@ -812,11 +812,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip("#redo-button", "Redo last undone action");
 
     $("#upload-button").on("click", () => {
-        FileHandler.getJSONModel().then(result => {
+        FileHandler.getJSONModel().catch(err => {
+            console.error("Error while getting file: ", err)
+        }).then(result => {
             mModelController.setModelFromObject(result);
             modelUpdated();
         }).catch(err => {
-            console.error("Error while getting file: ", err)
+            console.error("Error while setting the model: ", err)
         });
     })
     setupButtonTooltip("#upload-button", "Upload a previously downloaded file");

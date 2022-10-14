@@ -642,6 +642,77 @@ describe('Integration Test ModelController', function () {
 
             integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
         });
+
+        it('should draw correctly from unserialized data', function (done) {
+            // Running this as an integration test to test the upload/download buttons code
+            integrationEnv.mainInit();
+            let line1Points = [
+                { x: 10, y: 10 },
+                { x: 5, y: 0 },
+                { x: 10, y: 0 },
+                { x: 15, y: 0 },
+                { x: 20, y: 0 }];
+            let line2Points = [
+                { x: 0, y: 0 },
+                { x: 10, y: 0 },
+                { x: 20, y: 16 },
+                { x: 30, y: 2 },
+                { x: 40, y: 10 }];
+            IntegrationUtils.drawLine(line1Points, integrationEnv);
+            IntegrationUtils.drawLine(line2Points, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+
+            IntegrationUtils.bindDataToLine(integrationEnv.ModelController.getModel().getAllTimelines()[0].id, [
+                ["0.25", "text1"],
+                ["0.75", "text1"]
+            ], integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" +
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
+            assert.equal(textSet.length, 2);
+            assert.equal(textSet[0].x, 10);
+            assert.equal(textSet[0].y, 10);
+            assert.equal(textSet[1].x, 10);
+            assert.equal(textSet[1].y, 10);
+
+            integrationEnv.enviromentVariables.$.selectors['#download-button'].eventCallbacks.click();
+            integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
+
+            // clear the data
+            IntegrationUtils.erase(line1Points, 10, integrationEnv);
+            IntegrationUtils.erase(line2Points, 10, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
+
+            let originalFunc = integrationEnv.enviromentVariables.FileHandler.getJSONModel;
+            // inject test code into async function call set
+            integrationEnv.enviromentVariables.FileHandler.getJSONModel = function () {
+                return {
+                    promise: originalFunc(),
+                    catch: function (func) { this.promise = this.promise.catch(func); return this; },
+                    then: function (func) {
+                        this.promise = this.promise.then(func).then(() => {
+                            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+                            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" +
+                                integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
+                            assert.equal(textSet.length, 2);
+                            assert.equal(textSet[0].x, 10);
+                            assert.equal(textSet[0].y, 10);
+                            assert.equal(textSet[1].x, 10);
+                            assert.equal(textSet[1].y, 10);
+                            done();
+                        }).catch((err) => {
+                            console.error("failed!", err);
+                        })
+                        return this;
+                    }
+                }
+            };
+
+            integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+        });
     });
 
     describe('Line modification tests', function () {
