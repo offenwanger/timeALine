@@ -835,7 +835,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#line-drawing-button', "Draws annotations on the diagram and in the lens view")
     setupSubModeButton('#line-drawing-button', '-eyedropper', MODE_LINE_DRAWING_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#line-drawing-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#line-drawing-button-color-picker").on("click", toggleColorPicker);
+    $("#line-drawing-button-color-picker").on("click", (e) => {
+        setColorPickerInputColor(mLineDrawingController.getColor());
+        toggleColorPicker(e);
+    });
     setupButtonTooltip("#line-drawing-button-color-picker", "Choose timeline color");
 
 
@@ -873,7 +876,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#color-brush-button', "Draws annotations on the diagram and in the lens view")
     setupSubModeButton('#color-brush-button', '-eyedropper', MODE_COLOR_BRUSH_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#color-brush-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#color-brush-button-color-picker").on("click", toggleColorPicker);
+    $("#color-brush-button-color-picker").on("click", (e) => {
+        setColorPickerInputColor(mColorBrushController.getColor());
+        toggleColorPicker(e);
+    });
     setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
 
     setupModeButton('#comment-button', MODE_COMMENT, () => {
@@ -911,7 +917,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#color-bucket-button', "Draws annotations on the diagram and in the lens view")
     setupSubModeButton('#color-bucket-button', '-eyedropper', MODE_COLOR_BUCKET_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#color-bucket-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#color-bucket-button-color-picker").on("click", toggleColorPicker);
+    $("#color-bucket-button-color-picker").on("click", (e) => {
+        setColorPickerInputColor(mBucketColor);
+        toggleColorPicker(e);
+    });
     setupButtonTooltip("#color-bucket-button-color-picker", "Choose color to color things with");
 
     $('#color-picker-wrapper').farbtastic((color) => {
@@ -942,9 +951,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     // set color to a random color
-    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16))
-    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16))
-    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16))
+    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
+    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
+    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
 
     // ---------------
     setupModeButton('#lens-button', MODE_LENS, () => {
@@ -1116,7 +1125,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if ($("#color-picker-div").is(":visible")) {
             $('#color-picker-div').hide();
         } else {
-            setColorPickerInputColor(mColorBrushController.getColor());
             $('#color-picker-div').css('top', e.pageY);
             $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
             $('#color-picker-div').show();
