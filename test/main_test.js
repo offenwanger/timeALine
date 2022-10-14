@@ -23,18 +23,14 @@ describe('Test Main - Integration Test', function () {
         it('should link non-blank data cell', function () {
             integrationEnv.mainInit();
 
-            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.createTable([
+                ["timeCell", 10, ""],
+                ["", 20, ""],
+                ["", "text1", "text2"],
+            ], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert(integrationEnv.enviromentVariables.handsontables.length > 0);
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "timeCell"],
-                [0, 1, "", "10"],
-                [1, 1, "", "20"],
-                [2, 1, "", "text1"],
-                [2, 2, "", "text2"],
-            ])
 
             IntegrationUtils.drawLine([
                 { x: 100, y: 100 },
@@ -48,18 +44,17 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 5)
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [
-                [0, 0, 0, 2],
-                [0, 0, 1, 1]
-            ];
+            // give it a wierd double selection [rowStart, colStart, rowEnd, colEnd]
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 0, 2], [0, 0, 1, 1]];
 
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
             // won't bind the two time cols.
-            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 1);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
+            expect(integrationEnv.ModelController.getModel().getAllCellBindingData().map(cb => cb.dataCell.getValue())).to.eql([10, 20]);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val1, 10);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().find(item => item.axisBinding).axisBinding.val2, 20);
         });

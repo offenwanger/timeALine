@@ -565,6 +565,18 @@ before(function () {
     }
 
     function bindDataToLine(lineId, dataArray, integrationEnv) {
+        createTable(dataArray, integrationEnv)
+
+        IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, dataArray.length - 1, dataArray[0].length - 1]];
+
+        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+        IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv);
+        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+
+        assert(integrationEnv.ModelController.getModel().getAllCellBindingData().length > 0, "Nothing bound!");
+    }
+
+    function createTable(dataArray, integrationEnv) {
         IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
         if (dataArray.length > 3) {
             IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, dataArray.length - 3);
@@ -579,14 +591,6 @@ before(function () {
         IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange(dataArray.map((row, rowIndex) => row.map((item, colIndex) => {
             return [rowIndex, colIndex, "", "" + item];
         })).flat())
-
-        IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, dataArray.length - 1, dataArray[0].length - 1]];
-
-        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-        IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv);
-        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-
-        assert(integrationEnv.ModelController.getModel().getAllCellBindingData().length > 0, "Nothing bound!");
     }
 
     function erase(points, radius, integrationEnv) {
@@ -611,6 +615,7 @@ before(function () {
         getLastHoTable,
         clickButton,
         clickLine,
+        createTable,
         bindDataToLine,
         dragLine,
         erase,

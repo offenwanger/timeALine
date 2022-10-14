@@ -383,7 +383,7 @@ function DataTableController() {
                 }
             })
         });
-        return data;
+        return DataUtil.getUniqueList(data, "cellId");
     }
 
     function highlightCells(cellIds) {
