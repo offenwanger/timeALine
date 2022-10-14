@@ -714,4 +714,64 @@ describe('Integration Test ModelController', function () {
             integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
         });
     });
+    describe('Data Binding Test', function () {
+        it('should bind data, but not bind duplicate data', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 100 }, { x: 25, y: 100 }, { x: 50, y: 100 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 125, y: 100 }, { x: 150, y: 100 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 200, y: 100 }, { x: 225, y: 100 }, { x: 250, y: 100 }], integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3, "lines not drawn");
+            expect(integrationEnv.ModelController.getModel().getAllTimelines()
+                .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([50, 50, 50]);
+
+            let timelineId1 = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            let timelineId2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
+            let timelineId3 = integrationEnv.ModelController.getModel().getAllTimelines()[2].id;
+
+            IntegrationUtils.createTable([
+                ["Jan 10, 2021", 1],
+                ["Jan 12, 2021", "Text 1"],
+                ["Jan 13, 2021", "Text 2"],
+                ["Jan 16, 2021", 1.5],
+
+                ["Jan 15, 2021", 2],
+                ["Jan 20, 2021", "Text 3"],
+
+                ["Jan 11, 2021", "Text 4"],
+                ["Jan 16, 2021", "Text 5"]
+            ], integrationEnv);
+
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 4, 1], [1, 0, 4, 1]];
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId1).map(b => b.dataCell.getValue()))
+                .to.eql([1, "Text 1", "Text 2", 1.5, 2]);
+
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[4, 0, 5, 1]];
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 125, y: 102 }, timelineId2, integrationEnv);
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId2).map(b => b.dataCell.getValue()))
+                .to.eql([2, "Text 3"]);
+
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId3).map(b => b.dataCell.getValue()))
+                .to.eql(["Text 3", "Text 4", "Text 5"]);
+
+            // extra bind to make sure we don't bind overlapping data
+            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId3).map(b => b.dataCell.getValue()))
+                .to.eql(["Text 3", "Text 4", "Text 5"]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);
+        });
+    });
 });
