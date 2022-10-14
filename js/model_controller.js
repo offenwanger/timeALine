@@ -479,7 +479,6 @@ function ModelController() {
             console.error("Invalid pin update! Should have " +
                 (timelineHasMapping ? "timeStamp" : "timePercent")
                 + " set!", pin);
-            k
             return;
         }
 
