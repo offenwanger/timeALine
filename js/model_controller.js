@@ -72,6 +72,9 @@ function ModelController() {
         let startTimeline = mModel.getTimelineById(timelineIdStart);
         let endTimeline = mModel.getTimelineById(timelineIdEnd);
 
+        let startTimelineHasMapping = mModel.hasTimeMapping(timelineIdStart);
+        let endTimelineHasMapping = mModel.hasTimeMapping(timelineIdEnd);
+
         let originalStartLength = PathMath.getPathLength(startTimeline.points);
         let originalEndLength = PathMath.getPathLength(endTimeline.points);
 
@@ -82,33 +85,53 @@ function ModelController() {
         let newPoints = startTimeline.points.concat(points, endTimeline.points);
         let newLength = PathMath.getPathLength(newPoints);
 
+        // Merge the line
         let newTimeline = new DataStructs.Timeline(newPoints);
-        newTimeline.cellBindings = DataUtil.getUniqueList(startTimeline.cellBindings.concat(endTimeline.cellBindings), 'cellId');
         newTimeline.color = DataUtil.getColorBetween(startTimeline.color, endTimeline.color, 0.5);
 
+        // Merge the cellBindings
+        let endBindings = [...endTimeline.cellBindings];
+        startTimeline.cellBindings.forEach(cellBinding => {
+            let duplicate = endBindings.find(eb => eb.cellId == cellBinding.cellId);
+            if (duplicate) {
+                // remove from end bindings
+                endBindings.splice(endBindings.indexOf(duplicate), 1);
 
+                cellBinding.color = cellBinding.color ? cellBinding.color : duplicate.color;
+                cellBinding.timePinId = cellBinding.timePinId ? cellBinding.timePinId : duplicate.timePinId;
+            }
+            newTimeline.cellBindings.push(cellBinding);
+        });
+        newTimeline.cellBindings.push(...endBindings);
+
+        // Merge the axis
         let numericDataCells = newTimeline.cellBindings.map(cb => mModel.getCellById(cb.cellId)).filter(cell => cell.getType() == DataTypes.NUM);
         if (numericDataCells.length > 0) {
             // if there is no numeric data there should be no axis, otherwise merge them
             newTimeline.axisBindings = [...startTimeline.axisBindings];
             endTimeline.axisBindings.forEach(axis => {
-                let otherAxis = newTimeline.axisBindings.find(ab => ab.columnId == axis.columnId);
-                if (otherAxis) {
+                let newAxis = newTimeline.axisBindings.find(ab => ab.columnId == axis.columnId);
+                if (newAxis) {
                     // update the data
-                    otherAxis.val1 = Math.min(...numericDataCells
+                    newAxis.val1 = Math.min(...numericDataCells
                         .filter(cell => cell.columnId == axis.columnId)
                         .map(cell => cell.getValue()))
-                    otherAxis.dist1 = Math.min(otherAxis.dist1, axis.dist1);
-
-                    otherAxis.val2 = Math.max(...numericDataCells
+                    newAxis.val2 = Math.max(...numericDataCells
                         .filter(cell => cell.columnId == axis.columnId)
                         .map(cell => cell.getValue()))
-                    otherAxis.dist2 = Math.max(otherAxis.dist2, axis.dist2);
-
-                    if (otherAxis.val1 == otherAxis.val2) axis.val1 = 0;
+                    if (newAxis.val1 == newAxis.val2) axis.val1 = 0;
                     // just in case they were both 0.
-                    if (otherAxis.val1 == otherAxis.val2) axis.val2 = 1;
+                    if (newAxis.val1 == newAxis.val2) axis.val2 = 1;
 
+                    // set the dists to the extremes
+                    // check if the line was increasing negative or positive and match that
+                    if (newAxis.dist1 < newAxis.dist2) {
+                        newAxis.dist1 = Math.min(newAxis.dist1, axis.dist1, newAxis.dist2, axis.dist2);
+                        newAxis.dist2 = Math.max(newAxis.dist1, axis.dist1, newAxis.dist2, axis.dist2);
+                    } else {
+                        newAxis.dist2 = Math.min(newAxis.dist1, axis.dist1, newAxis.dist2, axis.dist2);
+                        newAxis.dist1 = Math.max(newAxis.dist1, axis.dist1, newAxis.dist2, axis.dist2);
+                    }
                 } else {
                     newTimeline.axisBindings.push(axis);
                 }
@@ -118,12 +141,43 @@ function ModelController() {
         let conversionRatio = originalStartLength / newLength;
         let diff = newLength - originalEndLength;
 
-        // Update time pin line percents
+        let getTime;
+        if (startTimelineHasMapping != endTimelineHasMapping) {
+            let startvalues = mModel.getTimeBindingValues(startTimeline);
+            let endvalues = mModel.getTimeBindingValues(endTimeline);
+            // if one side has a mapping: 
+            let timeInSegment
+            let segmentStartTime;
+            if (startTimelineHasMapping) {
+                let startTimeRatio = (startvalues[startvalues.length - 1].timeStamp - startvalues[0].timeStamp) / originalStartLength;
+                let timeInBridge = startTimeRatio * (newLength - originalStartLength - originalEndLength);
+                timeInSegment = startTimeRatio * originalEndLength;
+                segmentStartTime = startvalues[startvalues.length - 1].timeStamp + timeInBridge;
+            } else {
+                let endTimeRatio = (endvalues[endvalues.length - 1].timeStamp - endvalues[0].timeStamp) / originalEndLength;
+                let timeInBridge = endTimeRatio * (newLength - originalStartLength - originalEndLength);
+                timeInSegment = endTimeRatio * originalStartLength;
+                segmentStartTime = endvalues[0].timeStamp - timeInBridge - timeInSegment;
+            }
+            getTime = function (timePercent) {
+                return timePercent * timeInSegment + segmentStartTime;
+            }
+        }
+
+        // Update time pin line percents and timesPercents if necessary
         let timePins = []
         startTimeline.timePins.concat([getCapTimePin(startTimeline, false)].filter(p => p))
             .forEach(binding => {
                 let newBinding = binding.copy();
                 newBinding.linePercent = binding.linePercent * conversionRatio;
+
+                if (!startTimelineHasMapping && endTimelineHasMapping && isNaN(parseInt(binding.timeStamp))) {
+                    newBinding.timeStamp = getTime(binding.timePercent);
+                    newBinding.timePercent = null;
+                } else if (!startTimelineHasMapping) {
+                    newBinding.timePercent = binding.timePercent / 2;
+                }
+
                 timePins.push(newBinding);
             });
         endTimeline.timePins.concat([getCapTimePin(endTimeline, true)].filter(p => p))
@@ -131,36 +185,58 @@ function ModelController() {
                 let newBinding = binding.copy();
                 let originalLengthAlongLine = binding.linePercent * originalEndLength;
                 newBinding.linePercent = (originalLengthAlongLine + diff) / newLength;
+
+                if (!endTimelineHasMapping && startTimelineHasMapping && isNaN(parseInt(binding.timeStamp))) {
+                    newBinding.timeStamp = getTime(binding.timePercent);
+                    newBinding.timePercent = null;
+                } else if (!endTimelineHasMapping) {
+                    newBinding.timePercent = binding.timePercent / 2 + 0.5;
+                }
+
                 timePins.push(newBinding);
             });
 
-        // filter to bindings which are still valid and add them to the new line
-        let timeSetBindings = []
-        timePins.forEach(binding => {
-            if (binding.timeStamp) {
-                timeSetBindings.push(binding);
-            } else {
-                newTimeline.timePins.push(binding)
-            }
-        })
+        // Delete invalid pins as necessary
+        if (startTimelineHasMapping || endTimelineHasMapping) {
+            let pinsByPercent = [...timePins].sort((a, b) => a.linePercent - b.linePercent);
+            let pinsByTime = [...timePins].sort((a, b) => a.timeStamp - b.timeStamp);
 
-        if (timeSetBindings.length > 0) {
-            timeSetBindings.sort((a, b) => { a.linePercent - b.linePercent; });
-            newTimeline.timePins.push(timeSetBindings[0])
-            for (let i = 1; i < timeSetBindings.length; i++) {
-                if (timeSetBindings[i - 1].timeStamp < timeSetBindings[i].timeStamp) {
-                    newTimeline.timePins.push(timeSetBindings[i])
+            // Algorithm to remove invalid pins
+            // Find the pin with the biggest index difference, remove. Repeat until all pins are at the same index
+            for (let i = 0; i < pinsByPercent.length; i++) {
+                if (pinsByPercent[i] != pinsByTime[i]) {
+                    // how far away is the item in the percent array?
+                    let distPercentItem = pinsByTime.indexOf(pinsByPercent[i])
+                    // how far is the item in the time array?
+                    let distTimeItem = pinsByPercent.indexOf(pinsByTime[i])
+                    let eliminate;
+                    if (distPercentItem < distTimeItem) {
+                        // percent item is closer, eliminate the dist item
+                        eliminate = pinsByTime[i];
+                    } else {
+                        eliminate = pinsByPercent[i];
+                    }
+                    pinsByPercent.splice(pinsByPercent.indexOf(eliminate), 1);
+                    pinsByTime.splice(pinsByPercent.indexOf(eliminate), 1);
+                    i--;
                 }
             }
+            newTimeline.timePins = pinsByPercent;
+        } else {
+            newTimeline.timePins = timePins;
         }
 
         startTimeline.annotationStrokes.forEach(stroke => {
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
-                if (!point.timeStamp) {
-                    point.linePercent = p.linePercent * conversionRatio;
+                if (!startTimelineHasMapping && endTimelineHasMapping) {
+                    point.timeStamp = getTime(point.timePercent);
+                    point.timePercent = null;
+                } else if (!startTimelineHasMapping) {
+                    point.timePercent = point.timePercent / 2;
                 }
+
                 return point;
             })
             newTimeline.annotationStrokes.push(newStoke);
@@ -170,8 +246,11 @@ function ModelController() {
             let newStoke = new DataStructs.Stroke([], stroke.color);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
-                if (!point.timeStamp) {
-                    point.linePercent = ((p.linePercent * originalEndLength) + diff) / newLength;
+                if (!endTimelineHasMapping && startTimelineHasMapping) {
+                    point.timeStamp = getTime(point.timePercent);
+                    point.timePercent = null;
+                } else if (!endTimelineHasMapping) {
+                    point.timePercent = (point.timePercent / 2) + 0.5;
                 }
                 return point;
             })
@@ -181,35 +260,61 @@ function ModelController() {
         mModel.setTimelines(mModel.getAllTimelines().filter(timeline => timeline.id != timelineIdStart && timeline.id != timelineIdEnd));
         mModel.getAllTimelines().push(newTimeline);
 
+        let timelineHasMapping = mModel.hasTimeMapping(newTimeline.id);
+        // last couple things to check. 
+        if (!endTimelineHasMapping && !startTimelineHasMapping && timelineHasMapping) {
+            mapTimePercentsToTimeStamps(newTimeline);
+        }
+
+        // last thing create pins for cell bindings that lost their pins
+        newTimeline.cellBindings.forEach(cb => {
+            if (cb.timePinId) {
+                let pin = newTimeline.timePins.find(p => p.id == cb.timePinId);
+                if (!pin) {
+                    if (!timelineHasMapping) { console.error("Bad state! Timeline has no mapping, pin should not have been eliminated!", cb); return }
+                    // the only way for this pin to have been elminated is if it had a time mapping which was incompatible
+                    let pin = startTimeline.timePins.concat(endTimeline.timePins).find(p => p.id == cb.timePinId);
+                    if (!pin) { console.error("Bad state! Pin not found!", cb.timePinId); return }
+                    if (isNaN(parseInt(pin.timeStamp))) { console.error("Bad state! Pin should not have been eliminated!", pin); return }
+                    let existingPin = newTimeline.timePins.find(p => p.timeStamp == pin.timeStamp);
+                    if (!existingPin) {
+                        let newPin = new DataStructs.TimePin(mModel.mapTimeToLinePercent(pin.timeStamp));
+                        newPin.timeStamp = pin.timeStamp;
+                        newTimeline.timePins.push(newPin);
+                        cb.timePinId = newPin.id;
+                    } else {
+                        cb.timePinId = existingPin.id;
+                    }
+                }
+            }
+        })
+
         return [timelineIdStart, timelineIdEnd];
     }
 
     /* Utility Function for extending and merging timelines*/
     function getCapTimePin(timeline, capStart) {
-        if (mModel.hasTimeMapping(timeline.id)) {
-            let boundValues = mModel.getBoundTimeCellValues(timeline.id);
-            if (boundValues.length > 1) {
-                let capTimeStamp = capStart ? boundValues[0] : boundValues[boundValues.length - 1];
+        let timelineHasMapping = mModel.hasTimeMapping(timeline.id);
+        let boundValues = mModel.getBoundTimeCellValues(timeline.id)
+            .concat(timeline.annotationStrokes.map(s => s.points.map(p => timelineHasMapping ? p.timeStamp : p.timePercent)));
+        if (boundValues.length > 1) {
+            let capTimeStamp = capStart ? boundValues[0] : boundValues[boundValues.length - 1];
 
-                timeline.timePins.sort((a, b) => a.timeStamp - b.timeStamp);
-                let capTimePin = capStart ? timeline.timePins[0] : timeline.timePins[timeline.timePins.length - 1];
+            timeline.timePins.sort((a, b) => a.timeStamp - b.timeStamp);
+            let capTimePin = capStart ? timeline.timePins[0] : timeline.timePins[timeline.timePins.length - 1];
 
-                if (capTimePin && ((capStart && Math.round(capTimePin.timeStamp) <= Math.round(capTimeStamp)) ||
-                    (!capStart && Math.round(capTimeStamp) <= Math.round(capTimePin.timeStamp)))) {
-                    // our cap is pinned, all good
-                    return null;
-                } else {
-                    let linePercent = mModel.mapTimeToLinePercent(timeline.id, capTimeStamp);
-                    let timePin = new DataStructs.TimePin(linePercent);
-                    timePin.timeStamp = capTimeStamp;
-                    return timePin;
-                }
-            } else {
-                // we only have time pins, so we're good.
+            if (capTimePin && ((capStart && Math.round(capTimePin.timeStamp) <= Math.round(capTimeStamp)) ||
+                (!capStart && Math.round(capTimeStamp) <= Math.round(capTimePin.timeStamp)))) {
+                // our cap is pinned, all good
                 return null;
+            } else {
+                let linePercent = mModel.mapTimeToLinePercent(timeline.id, capTimeStamp);
+                let timePin = new DataStructs.TimePin(linePercent);
+                timePin.timeStamp = capTimeStamp;
+                return timePin;
             }
         } else {
-            // there is no time mapping, values are either bound or floating, so no need to cap
+            // we only have time pins, so we're good.
             return null;
         }
     }
@@ -472,22 +577,26 @@ function ModelController() {
         let timeline = mModel.getTimelineById(timelineId);
         if (!timeline) throw new Error("Invalid TimelineId: " + timelineId);
 
-        let timelineHasMapping = mModel.hasTimeMapping(timelineId);
-        let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
+        if (timeline.timePins.length > 0) {
+            let timelineHasMapping = mModel.hasTimeMapping(timelineId);
+            let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
 
-        if (isNaN(pin[timeAttribute])) {
-            console.error("Invalid pin update! Should have " +
-                (timelineHasMapping ? "timeStamp" : "timePercent")
-                + " set!", pin);
-            return;
+            if (isNaN(parseInt(pin[timeAttribute]))) {
+                console.error("Invalid pin update! Should have " +
+                    (timelineHasMapping ? "timeStamp" : "timePercent")
+                    + " set!", pin);
+                return;
+            }
+
+            timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin, timeAttribute);
+
+            let pinsIds = timeline.timePins.map(pin => pin.id);
+            timeline.cellBindings.forEach(b => {
+                if (!pinsIds.includes(b.timePinId)) b.timePinId = null;
+            })
+        } else {
+            timeline.timePins.push(pin);
         }
-
-        timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin, timeAttribute);
-
-        let pinsIds = timeline.timePins.map(pin => pin.id);
-        timeline.cellBindings.forEach(b => {
-            if (!pinsIds.includes(b.timePinId)) b.timePinId = null;
-        })
     }
 
     function updateText(cellId, text) {
@@ -794,11 +903,11 @@ function ModelController() {
 
     function mapTimeStampsToTimePercents(timeline, lineStartTimeStamp, lineEndTimeStamp) {
         // map everything to time percent
-        if (isNaN(lineStartTimeStamp)) {
+        if (isNaN(parseInt(lineStartTimeStamp))) {
             console.error("Invalid parameters. Must include time mapping values if shifted to no time mapping.");
             return;
         }
-        if (isNaN(lineEndTimeStamp)) {
+        if (isNaN(parseInt(lineEndTimeStamp))) {
             console.error("Invalid parameters. Must include time mapping values if shifted to no time mapping.")
             return;
         }
@@ -854,7 +963,7 @@ function ModelController() {
         obj.timelines.forEach(timeline => {
             let prevPoints = [...timeline.points];
             timeline.points = timeline.points.filter(p => {
-                if (isNaN(p.x) || isNaN(p.y)) return false;
+                if (isNaN(parseInt(p.x)) || isNaN(parseInt(p.y))) return false;
                 else return true;
             });
 
