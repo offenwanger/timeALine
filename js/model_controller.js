@@ -686,6 +686,7 @@ function ModelController() {
 
         let timeline = mModel.getTimelineById(lineId);
         let hasMappingBefore = mModel.hasTimeMapping(timeline.id);
+        let alreadyBoundCells = timeline.cellBindings.map(cb => cb.cellId);
 
         cellBindings = cellBindings.filter(cb => {
             let cell = mModel.getCellById(cb.cellId);
@@ -694,6 +695,8 @@ function ModelController() {
             if (cell.isTimeCell) return false;
             // don't bind empty cells. 
             if (cell.val !== 0 && !cell.val) return false;
+            // filter out already bound cells
+            if (alreadyBoundCells.includes(cell.id)) return false;
 
             return true;
         });
