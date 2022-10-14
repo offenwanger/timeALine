@@ -1,4 +1,6 @@
 DataStructs.DataModel = function () {
+    const MAP_TIME = "mapTime";
+
     let mCanvas = new DataStructs.Canvas();
     let mTimelines = [];
     let mDataTables = [];
@@ -6,6 +8,7 @@ DataStructs.DataModel = function () {
     function getCellBindingData(timelineId) {
         let timeline = getTimelineById(timelineId);
         if (!timeline) { console.error("Invalid timeline id for getting cell binding data!", timelineId); return []; }
+        let timelineHasMapping = hasTimeMapping(timelineId);
         let returnable = [];
         timeline.cellBindings.forEach(cellBinding => {
             let table = getTableForCell(cellBinding.cellId);
@@ -33,8 +36,8 @@ DataStructs.DataModel = function () {
                     cellBinding.timePinId = null;
                     linePercent = NO_LINE_PERCENT;
                 }
-            } else if (hasTimeMapping(timelineId) && timeCell.isValid()) {
-                linePercent = mapTimeToLinePercent(timeline.id, timeCell.getValue());
+            } else if (timelineHasMapping && timeCell.isValid()) {
+                linePercent = MAP_TIME;
             } else if (timeCell.isValid()) {
                 let timePin = timeline.timePins.find(pin => pin.timeStamp == timeCell.getValue());
                 if (timePin) {
@@ -62,6 +65,22 @@ DataStructs.DataModel = function () {
 
             returnable.push(new DataStructs.CellBindingData(cellBinding, timeline, dataCell, timeCell, tableId, rowId, color, linePercent, axis ? axis : null));
         })
+
+        let mapBindings = returnable.filter(cb => cb.linePercent == MAP_TIME);
+        if (mapBindings.length > 0) {
+            let timesForMapping = mapBindings.map(cb => cb.timeCell.getValue());
+            timesForMapping.sort();
+            let linePercents = batchMapTimeToLinePercent(timeline.id, timesForMapping);
+            if (linePercents.length != timesForMapping.length) {
+                console.error("Mapping failed!", linePercents);
+                mapBindings.forEach(cb => { cb.linePercent = NO_LINE_PERCENT });
+                return returnable;
+            }
+            mapBindings.forEach(cb => {
+                cb.linePercent = linePercents[timesForMapping.indexOf(cb.timeCell.getValue())];
+            });
+        }
+
         return returnable;
     }
 
@@ -70,21 +89,16 @@ DataStructs.DataModel = function () {
     }
 
     function mapTimeToLinePercent(timelineId, time) {
-        if (isNaN(time)) { console.error("Invalid time: ", time); return 0; }
-
-        let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id for mapping time to line percent!", timelineId); return 0; }
-
-        let timelineHasMapping = hasTimeMapping(timelineId);
-        if (!timelineHasMapping && (time < 0 || time > 1)) {
-            console.error("Invalid state! Expected time percent and value invalid", time, timeline);
+        if (isNaN(time)) {
+            console.error("Invalid time: ", time);
             return 0;
         }
-        // we can't check timestamps as they are unbounded.
 
-        // there might be an extact pin with timestamp even if we don't have a time mapping.
+        let timeline = getTimelineById(timelineId);
+
+        // there might be an exact pin with timestamp even if we don't have a time mapping.
         let exactPin = timeline.timePins.find(pin => pin.timeStamp == time);
-        if (!exactPin && !timelineHasMapping) {
+        if (!exactPin && !hasTimeMapping(timelineId)) {
             // only check this if the line does not have a mapping. 
             // If it has a mapping, we should not be asking to map a timePercent, 
             // and we don't want to confuse a timeStamp of 0.5 with a timePercent.
@@ -94,20 +108,38 @@ DataStructs.DataModel = function () {
             return exactPin.linePercent;
         }
 
+        return batchMapTimeToLinePercent(timelineId, [time])[0];
+    }
+
+    // Utility function
+    function batchMapTimeToLinePercent(timelineId, times) {
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) { console.error("Invalid timeline id for mapping time to line percent!", timelineId); return []; }
+
+        let timelineHasMapping = hasTimeMapping(timelineId);
+
+        // validate times
+        times = times.filter(time => {
+            if (isNaN(time)) {
+                console.error("Invalid time: ", time);
+                return false;
+            } else if (!timelineHasMapping && (time < 0 || time > 1)) {
+                // we can't check timestamps as they are unbounded.
+                console.error("Invalid state! Expected time percent and value invalid", time, timeline);
+                return false;
+            }
+            return true;
+        });
+
         let bindingValues = getTimeBindingValues(timeline);
         if (bindingValues.length < 2) {
-            console.error("Code should be unreachable!", timeline, time);
-            return 0;
+            console.error("Code should be unreachable!", timeline);
+            return [];
         }
 
         let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
-        if (time <= bindingValues[0][timeAttribute]) {
-            return 0;
-        } else if (time >= bindingValues[bindingValues.length - 1][timeAttribute]) {
-            return 1;
-        }
 
-        return mapBindingArrayInterval(bindingValues, time, timeAttribute, "linePercent")
+        return mapBindingArrayInterval(bindingValues, times, timeAttribute, "linePercent")
     }
 
     function mapLinePercentToTime(timelineId, linePercent) {
@@ -131,7 +163,14 @@ DataStructs.DataModel = function () {
         }
 
         let timeAttribute = hasTimeMapping(timelineId) ? "timeStamp" : "timePercent";
-        return mapBindingArrayInterval(bindingValues, linePercent, "linePercent", timeAttribute)
+        let mapping = mapBindingArrayInterval(bindingValues, [linePercent], "linePercent", timeAttribute);
+
+        if (mapping.length == 0) {
+            console.error("Failed to map!", linePercent);
+            return 0;
+        }
+
+        return mapping[0];
     }
 
     function hasTimeMapping(timelineId) {
@@ -142,8 +181,9 @@ DataStructs.DataModel = function () {
             .filter(pin => pin.timeStamp)].map(b => b.timeStamp);
         let boundTimeValues = getBoundTimeCellValues(timeline.id)
             .filter(time => !timePinTimeStamps.includes(time));
+        let times = DataUtil.getUniqueList(boundTimeValues.concat(timePinTimeStamps));
 
-        if (boundTimeValues.concat(timePinTimeStamps).length < 2) {
+        if (times.length < 2) {
             return false;
         } else {
             return true;
@@ -156,6 +196,12 @@ DataStructs.DataModel = function () {
         if (hasTimeMapping(timeline.id)) {
             timeBindingValues = timeline.timePins.filter(pin => pin.timeStamp);
             timeBindingValues.sort((a, b) => a.linePercent - b.linePercent);
+
+            let uniqueValues = DataUtil.getUniqueList(timeBindingValues, 'timeStamp');
+            if (uniqueValues.length < timeBindingValues) {
+                console.error("Bad State! Times multiply bounds to point!", timeBindingValues);
+                timeBindingValues = uniqueValues;
+            }
 
             let timePinTimeStamps = timeBindingValues.map(b => b.timeStamp);
 
@@ -230,26 +276,50 @@ DataStructs.DataModel = function () {
         return returnable;
     }
 
-    function mapBindingArrayInterval(bindings, value, fromKey, toKey) {
-        if (bindings.length < 2) throw new ModelStateError("Insufficent bindings for mapping!");
+    function mapBindingArrayInterval(bindings, values, fromKey, toKey) {
+        if (bindings.length < 2) {
+            console.error("Insufficent bindings for mapping!", bindings);
+            return [];
+        }
+        if (!values || values.length == 0) {
+            console.error("No values passed!", values);
+            return [];
+        }
+
+        values.sort();
+        let returnable = [];
+
+        let valuesIndex = 0;
+        let bindingIndex = 1;
+        // first handle all values outside the start of the range
+        while (values[valuesIndex] < bindings[0][fromKey]) {
+            returnable.push(bindings[0][toKey])
+            valuesIndex++;
+        }
 
         // find the correct interval
-        for (let i = 1; i < bindings.length; i++) {
-            let nextVal = bindings[i][fromKey];
-            let prevVal = bindings[i - 1][fromKey];
+        for (valuesIndex; valuesIndex < values.length; valuesIndex++) {
+            while (bindingIndex < bindings.length && bindings[bindingIndex][fromKey] < values[valuesIndex]) {
+                bindingIndex++;
+            }
 
-            if (value >= prevVal && value <= nextVal) {
-                let percentBetween = (value - prevVal) / (nextVal - prevVal)
+            if (bindingIndex == bindings.length) {
+                // handle values outside end of the range
+                returnable.push(bindings[bindings.length - 1][toKey])
+            } else {
+                let nextVal = bindings[bindingIndex][fromKey];
+                let prevVal = bindings[bindingIndex - 1][fromKey];
+                let percentBetween = (values[valuesIndex] - prevVal) / (nextVal - prevVal)
 
-                let nextConvertVal = bindings[i][toKey];
-                let prevConvertVal = bindings[i - 1][toKey];
+                let nextConvertVal = bindings[bindingIndex][toKey];
+                let prevConvertVal = bindings[bindingIndex - 1][toKey];
 
-                return percentBetween * (nextConvertVal - prevConvertVal) + prevConvertVal;
+                returnable.push(percentBetween * (nextConvertVal - prevConvertVal) + prevConvertVal);
+
             }
         }
 
-        console.error("Unhandle mapping edge case!", bindings, value, fromKey, toKey);
-        return 0;
+        return returnable;
     }
 
     function getCellById(cellId) {
