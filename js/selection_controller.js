@@ -78,7 +78,14 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
 
         // TODO: hacky. Fix.
         mSelectedTimelines = mSelectedTimelines.map(t => mModel.getTimelineById(t.id));
-        if (mSelectedTimelines[0]) setTimelineControls(mSelectedTimelines[0]);
+        if (mSelectedTimelines[0]) {
+            setTimelineControls(mSelectedTimelines[0])
+        } else {
+            mStartPoint.style("visibility", 'hidden');
+            mStartPointTarget.style("visibility", 'hidden');
+            mRotatePoint.style("visibility", 'hidden');
+            mRotatePointTarget.style("visibility", 'hidden');
+        }
     }
 
     function startNodeDragStart(e, d) {

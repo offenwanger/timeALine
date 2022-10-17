@@ -342,7 +342,8 @@ describe('Integration Test EraserController', function () {
             IntegrationUtils.drawLensColorLine(squiggle, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
-            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"]
+                .innerData[0].projectedPoints.map(p => { return { x: Math.round(p.x), y: Math.round(p.y) } }))
                 .to.eql([
                     { x: 110, y: 150 },
                     { x: 120, y: 160 },
@@ -374,7 +375,7 @@ describe('Integration Test EraserController', function () {
                 .to.eql([
                     [[0.25, 0.25, 0.5]],
                     [[0.14, 0.14, 0.29, 0.43, 0.57, 0.71]],
-                    [[0.08, 0.15, 0.19]]
+                    [[0, 0.08, 0.15, 0.19]]
                 ]);
         });
 
