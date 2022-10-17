@@ -169,33 +169,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     mLineViewController.setPointerEnterCallback((event, timelineId) => {
         if (mMode == MODE_SELECTION) {
-            lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+            showLineTime(timelineId, { x: event.clientX, y: event.clientY });
             mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+            FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         }
     })
     mLineViewController.setMouseMoveCallback((event, timelineId) => {
         if (mMode == MODE_SELECTION) {
-            lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+            showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     });
-    function lineViewControllerShowTime(timelineId, screenCoords) {
-        let timeline = mModelController.getModel().getTimelineById(timelineId);
-
-        let svgCoords = screenToSvgCoords(screenCoords);
-        let pointOnLine = PathMath.getClosestPointOnPath(svgCoords, timeline.points);
-
-
-        let time = mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent);
-        let message = mModelController.getModel().hasTimeMapping(timelineId) ?
-            DataUtil.getFormattedDate(time) : "Percent of time: " + Math.round(time * 100) + "%";
-
-        mMouseDropShadow.show(pointOnLine, svgCoords);
-
-        mTooltip.show(message, screenCoords);
-        mTooltipSetTo = timelineId;
-    }
     mLineViewController.setPointerOutCallback((event, timelineId) => {
         if (mMode == MODE_SELECTION) {
             if (mTooltipSetTo == timelineId) {
@@ -204,6 +189,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mMouseDropShadow.hide();
             mDataTableController.highlightCells([]);
+            FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         }
@@ -1202,6 +1188,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
         this.hide = function () { shadow.style("visibility", "hidden"); };
         // start hidden
         this.hide();
+    }
+
+    function showLineTime(timelineId, screenCoords) {
+        let timeline = mModelController.getModel().getTimelineById(timelineId);
+
+        let svgCoords = screenToSvgCoords(screenCoords);
+        let pointOnLine = PathMath.getClosestPointOnPath(svgCoords, timeline.points);
+
+        let time = mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent);
+        let message = mModelController.getModel().hasTimeMapping(timelineId) ?
+            DataUtil.getFormattedDate(time) : "Percent of time: " + Math.round(time * 100) + "%";
+
+        mMouseDropShadow.show(pointOnLine, svgCoords);
+
+        mTooltip.show(message, screenCoords);
+        mTooltipSetTo = timelineId;
     }
 
     function LineHighlight(parent) {

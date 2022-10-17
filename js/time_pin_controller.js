@@ -40,13 +40,13 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
         let tickData = [];
         let tickTargetData = [];
 
-        timePins.forEach(binding => {
-            let position = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
+        timePins.forEach(pin => {
+            let position = PathMath.getPositionForPercent(timeline.points, pin.linePercent);
             let degrees = MathUtil.vectorToRotation(
-                PathMath.getNormalForPercent(timeline.points, binding.linePercent));
+                PathMath.getNormalForPercent(timeline.points, pin.linePercent));
 
-            tickData.push({ position, degrees, binding });
-            tickTargetData.push({ position, degrees, binding, timelineId: timeline.id });
+            tickData.push({ position, degrees, pin });
+            tickTargetData.push({ position, degrees, pin, timelineId: timeline.id });
         });
 
 
@@ -68,7 +68,7 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             .attr("y1", (d) => d.position.y + pinTickLength / 2)
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - pinTickLength / 2)
-            .attr('timeline-id', timeline.id);
+            .attr('pin-id', (d) => d.pin.id);
 
         let targets = mPinTickTargetGroup.selectAll('.pin-tick-target[timeline-id="' + timeline.id + '"]')
             .data(tickTargetData);
@@ -82,18 +82,22 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerdown', (event, d) => {
                 if (mActive) {
                     mDragging = true;
-                    mDraggingBinding = d.binding;
-                    mDragStartCallback(event, d.binding);
+                    mDraggingBinding = d.pin;
+                    mDragStartCallback(event, d.pin);
                 }
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
-                    mPointerEnterCallback(e, d.binding);
+                    mPointerEnterCallback(e, d.pin);
+                    FilterUtil.applyShadowFilter(mPinTickGroup
+                        .selectAll('[pin-id="' + d.pin.id + '"]'));
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
-                    mPointerOutCallback(e, d.binding);
+                    mPointerOutCallback(e, d.pin);
+                    FilterUtil.removeShadowFilter(mPinTickGroup
+                        .selectAll('[pin-id="' + d.pin.id + '"]'));
                 }
             })
 

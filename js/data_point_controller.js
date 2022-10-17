@@ -57,7 +57,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.color })
             .style('opacity', function (d) { return d.opacity })
-            .attr('timeline-id', function (d) { return d.timelineId });
+            .attr('timeline-id', function (d) { return d.timelineId })
+            .attr('binding-id', function (d) { return d.binding.cellBinding.id });
 
         let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point')
             .data(drawingData);
@@ -78,11 +79,15 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerenter', (e, d) => {
                 if (mActive) {
                     mPointerEnterCallback(e, d.binding);
+                    FilterUtil.applyShadowFilter(mDataPointGroup
+                        .select('.data-display-point[binding-id="' + d.binding.cellBinding.id + '"]'));
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
                     mPointerOutCallback(e, d.binding);
+                    FilterUtil.removeShadowFilter(mDataPointGroup
+                        .select('.data-display-point[binding-id="' + d.binding.cellBinding.id + '"]'));
                 }
             });
 
@@ -205,12 +210,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .classed('axis-control-label', true)
             .attr('text-anchor', 'left')
             .style('font-size', '16px');
-
         mAxisGroup.selectAll('.axis-control-label')
             .attr('x', function (d) { return d.x })
             .attr('y', function (d) { return d.y })
             .text(function (d) { return d.val })
-            .attr('timeline-id', function (d) { return d.timelineId });
+            .attr('timeline-id', function (d) { return d.timelineId })
+            .attr('axis-id', function (d) { return d.axisId })
+            .attr('axis-ctrl', function (d) { return d.ctrl });
 
         let controls = mAxisGroup.selectAll('.axis-control-circle').data(axisControlData);
         controls.exit().remove();
@@ -220,12 +226,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('id', function (d) { return "axis-control_" + d.axisId + "_" + d.ctrl })
             .attr('r', 3.0)
             .attr('stroke', 'black')
-
         mAxisGroup.selectAll('.axis-control-circle')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.color })
-            .attr('timeline-id', function (d) { return d.timelineId });
+            .attr('timeline-id', function (d) { return d.timelineId })
+            .attr('axis-id', function (d) { return d.axisId })
+            .attr('axis-ctrl', function (d) { return d.ctrl });
 
         let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
         controlTargets.exit().remove();
@@ -242,6 +249,18 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mAxisDragStartCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, e)
                 }
             })
+            .on('pointerenter', (e, d) => {
+                if (mActive) {
+                    FilterUtil.applyShadowFilter(mAxisGroup
+                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
+                }
+            })
+            .on('pointerout', (e, d) => {
+                if (mActive) {
+                    FilterUtil.removeShadowFilter(mAxisGroup
+                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
+                }
+            });
 
         mAxisTargetGroup.selectAll('.axis-target-circle')
             .attr('cx', function (d) { return d.x })

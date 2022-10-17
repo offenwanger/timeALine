@@ -88,6 +88,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
             .attr("x", function (d) { return d.x + d.offsetX; })
             .attr("y", function (d) { return d.y + d.offsetY; })
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
             .call(setText, TEXT_WIDTH);
 
         let horizontalLineData = []
@@ -113,8 +114,20 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                     closeX = x2 + linePadding;
                 }
 
-                horizontalLineData.push({ x1: x1 - linePadding, x2: x2 + linePadding, y: closeY });
-                connectingLineData.push({ x1: d.x, y1: d.y, x2: closeX, y2: closeY, hasTime: d.hasTime });
+                horizontalLineData.push({
+                    x1: x1 - linePadding,
+                    x2: x2 + linePadding,
+                    y: closeY,
+                    bindingId: d.binding.cellBinding.id
+                });
+                connectingLineData.push({
+                    x1: d.x,
+                    y1: d.y,
+                    x2: closeX,
+                    y2: closeY,
+                    hasTime: d.hasTime,
+                    bindingId: d.binding.cellBinding.id
+                });
                 interactionTargetData.push(Object.assign({
                     binding: d.binding,
                     text: d.text,
@@ -125,7 +138,6 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 }));
             })
 
-        setupInteractionTargets(timeline, interactionTargetData);
         let horizontalLines = mDisplayGroup.selectAll('.horizontal-line[timeline-id="' + timeline.id + '"]')
             .data(horizontalLineData);
         horizontalLines.exit().remove();
@@ -140,7 +152,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y })
             .attr('x2', function (d) { return d.x2 })
-            .attr('y2', function (d) { return d.y });
+            .attr('y2', function (d) { return d.y })
+            .attr("binding-id", function (d) { return d.bindingId; });
 
 
         let connectingLines = mDisplayGroup.selectAll('.connecting-line[timeline-id="' + timeline.id + '"]')
@@ -158,7 +171,10 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
             .attr('y2', function (d) { return d.y2 })
-            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3");
+            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
+            .attr("binding-id", function (d) { return d.bindingId; });
+
+        setupInteractionTargets(timeline, interactionTargetData);
     }
 
     function setupInteractionTargets(timeline, interactionTargetData) {
@@ -211,11 +227,15 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerenter', (e, d) => {
                 if (mActive) {
                     mPointerEnterCallback(e, d.binding);
+                    FilterUtil.applyShadowFilter(mDisplayGroup
+                        .selectAll('[binding-id="' + d.binding.cellBinding.id + '"]'));
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
                     mPointerOutCallback(e, d.binding);
+                    FilterUtil.removeShadowFilter(mDisplayGroup
+                        .selectAll('[binding-id="' + d.binding.cellBinding.id + '"]'));
                 }
             });
 

@@ -844,6 +844,9 @@ let FilterUtil = function () {
     }
 
     function applyShadowFilter(selection) {
+        // avoid double adds
+        removeShadowFilter(selection);
+
         let currFilters = selection.attr("filter");
         if (!currFilters) currFilters = "";
         selection.attr("filter", currFilters + " url(#" + SHADOW_ID + ")");
@@ -853,11 +856,16 @@ let FilterUtil = function () {
     }
 
     function removeShadowFilter(selection) {
-        selection.attr("filter", selection.attr("filter")
+        let currFilters = selection.attr("filter");
+        if (!currFilters) currFilters = "";
+        selection.attr("filter", currFilters
             .split(" ")
             .filter(d => d != "url(#" + SHADOW_ID + ")")
             .join(" "));
-        selection.attr("transform", selection.attr("transform")
+
+        let currTransforms = selection.attr("transform");
+        if (!currTransforms) currTransforms = "";
+        selection.attr("transform", currTransforms
             .split(" ")
             .filter(d => d != SHADOW_TRANSFORM)
             .join(" "));

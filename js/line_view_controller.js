@@ -191,6 +191,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .on('pointerenter', (e, d) => {
                 if (mActive) {
                     mPointerEnterCallback(e, d.id)
+                    FilterUtil.applyShadowFilter(mLineGroup.selectAll('[timeline-id="' + d.id + '"]'));
+                    FilterUtil.applyShadowFilter(mTailGroup.selectAll('[timeline-id="' + d.id + '"]'));
                 }
             })
             .on('mousemove', (e, d) => {
@@ -201,6 +203,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             .on('pointerout', (e, d) => {
                 if (mActive) {
                     mPointerOutCallback(e, d.id)
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[timeline-id="' + d.id + '"]'));
+                    FilterUtil.removeShadowFilter(mTailGroup.selectAll('[timeline-id="' + d.id + '"]'));
                 }
             })
 

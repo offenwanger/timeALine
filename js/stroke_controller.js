@@ -44,7 +44,8 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
                         x: p.xValue,
                         y: p.lineDist,
                     }
-                })
+                }),
+                strokeId: stroke.id
             };
         })
 
@@ -62,7 +63,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             return PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist);
         })
 
-        return { color: stroke.color, projectedPoints, timelineId: timeline.id };
+        return { color: stroke.color, projectedPoints, timelineId: timeline.id, strokeId: stroke.id };
     }
 
     function drawStrokes() {
@@ -79,11 +80,11 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         mStrokeGroup.selectAll(".canvas-annotation-stroke")
             .attr("stroke", d => d.color)
             .attr('d', d => PathMath.getPathD(d.projectedPoints))
+            .attr("stroke-id", d => d.strokeId)
             .attr("timeline-id", d => d.timelineId);
 
-
         let targetSelection = mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")
-            .data(Object.entries(mStrokesData).map(([id, data]) => { return { id, data } }));
+            .data(Object.values(mStrokesData));
         targetSelection.exit()
             .remove();
         targetSelection.enter()
@@ -98,12 +99,24 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerdown', function (e, d) {
                 if (mActive) {
                     mStrokeDragging = true;
-                    mStrokeDraggingId = d.id;
+                    mStrokeDraggingId = d.strokeId;
                     mDragStartCallback(mStrokeDraggingId, e);
                 }
             })
+            .on('pointerenter', (e, d) => {
+                if (mActive) {
+                    FilterUtil.applyShadowFilter(mStrokeGroup
+                        .selectAll('[stroke-id="' + d.strokeId + '"]'));
+                }
+            })
+            .on('pointerout', (e, d) => {
+                if (mActive) {
+                    FilterUtil.removeShadowFilter(mStrokeGroup
+                        .selectAll('[stroke-id="' + d.strokeId + '"]'));
+                }
+            });
         mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")
-            .attr('d', d => PathMath.getPathD(d.data.projectedPoints));
+            .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
 
     function onPointerMove(coords) {
