@@ -1115,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDataPointController.setActive(false);
         mTextController.setActive(false);
         mStrokeController.setActive(false);
+        mSelectionController.setActive(false);
         mLensController.resetMode();
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
