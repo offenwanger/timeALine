@@ -20,6 +20,7 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
     let mPinTickTargetGroup = interactionLayer.append('g')
         .attr("id", 'tick-target-g')
+        .style("visibility", "hidden");
 
     function updateModel(model) {
         mLinePoints = {};
@@ -45,13 +46,11 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
 
         timePins.forEach(binding => {
             let position = PathMath.getPositionForPercent(timeline.points, binding.linePercent);
-
-            let positionBefore = PathMath.getNormalForPercent(timeline.points, binding.linePercent - 1);
-            let degrees = MathUtil.vectorToRotation(MathUtil.vectorFromAToB(positionBefore, position)) - 90;
-
+            let degrees = MathUtil.vectorToRotation(
+                PathMath.getNormalForPercent(timeline.points, binding.linePercent));
 
             tickData.push({ position, degrees, binding });
-            tickTargetData.push({ position, degrees, binding });
+            tickTargetData.push({ position, degrees, binding, timelineId: timeline.id });
         });
 
 
@@ -86,11 +85,15 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
                     mDragStartCallback(event, d.binding);
                 }
             })
-            .on("pointerenter", (event, d) => {
-                mPointerEnterCallback(event, d.binding);
+            .on('pointerenter', (e, d) => {
+                if (mActive) {
+                    mPointerEnterCallback(e, d.binding, d.timelineId,);
+                }
             })
-            .on("pointerout", function (event, d) {
-                mPointerOutCallback(event, d.binding);
+            .on('pointerout', (e, d) => {
+                if (mActive) {
+                    mPointerOutCallback(e, d.binding, d.timelineId,);
+                }
             })
 
         mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
@@ -156,8 +159,10 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
+            mPinTickTargetGroup.style("visibility", "");
         } else if (!active && mActive) {
             mActive = false;
+            mPinTickTargetGroup.style("visibility", "hidden");
         }
     };
 
