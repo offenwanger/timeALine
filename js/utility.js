@@ -813,34 +813,42 @@ let FilterUtil = function () {
     const SHADOW_ID = "shadow-filter";
     const SHADOW_TRANSFORM = "translate(-2,-2)";
 
+    let mShadowFilter;
+
     function initializeShadowFilter(svg) {
         let defs = svg.select('defs').node()
             ? svg.select('defs')
             : svg.append('defs');
-        let filter = defs.append("filter")
+        mShadowFilter = defs.append("filter")
             .attr("id", SHADOW_ID)
-            .attr("filterUnits", "userSpaceOnUse")
-            .attr("x", 0)
-            .attr("y", 0);
-        filter.append("feOffset")
+            .attr("filterUnits", "userSpaceOnUse");
+        mShadowFilter.append("feOffset")
             .attr("result", "offOut")
             .attr("in", "SourceAlpha")
             .attr("dx", 2)
             .attr("dy", 2);
-        filter.append("feGaussianBlur")
+        mShadowFilter.append("feGaussianBlur")
             .attr("result", "blurOut")
             .attr("in", "offOut")
             .attr("stdDeviation", 1);
-        filter.append("feComponentTransfer")
+        mShadowFilter.append("feComponentTransfer")
             .append("feFuncA")
             .attr("in", "blurOut")
             .attr("result", "fadeOut")
             .attr("type", "linear")
             .attr("slope", 0.3);
-        filter.append("feBlend")
+        mShadowFilter.append("feBlend")
             .attr("in", "SourceGraphic")
             .attr("in2", "fadeOut")
             .attr("mode", "normal");
+    }
+
+    function setFilterDisplayArea(x, y, width, height) {
+        mShadowFilter
+            .attr("x", x)
+            .attr("y", y)
+            .attr("width", width)
+            .attr("height", height);
     }
 
     function applyShadowFilter(selection) {
@@ -875,6 +883,7 @@ let FilterUtil = function () {
         initializeShadowFilter,
         applyShadowFilter,
         removeShadowFilter,
+        setFilterDisplayArea,
     }
 }();
 

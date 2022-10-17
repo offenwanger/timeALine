@@ -8,7 +8,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     let mLineDragEndCallback = () => { };
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
-    let mMouseMoveCallback = () => { };
+    let mPointerMoveCallback = () => { };
 
     let mLineGroup = mVizLayer.append('g')
         .attr("id", 'line-view-g');
@@ -195,9 +195,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
                     FilterUtil.applyShadowFilter(mTailGroup.selectAll('[timeline-id="' + d.id + '"]'));
                 }
             })
-            .on('mousemove', (e, d) => {
+            .on('pointermove', (e, d) => {
                 if (mActive) {
-                    mMouseMoveCallback(e, d.id)
+                    mPointerMoveCallback(e, d.id)
                 }
             })
             .on('pointerout', (e, d) => {
@@ -296,7 +296,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;
     this.setLineDragEndCallback = (callback) => mLineDragEndCallback = callback;
     this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
-    this.setMouseMoveCallback = (callback) => mMouseMoveCallback = callback;
+    this.setPointerMoveCallback = (callback) => mPointerMoveCallback = callback;
     this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
 
     this.onPointerMove = onPointerMove;

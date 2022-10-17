@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mTooltipSetTo = ""
 
     FilterUtil.initializeShadowFilter(mSvg);
+    FilterUtil.setFilterDisplayArea(0, 0, mSvg.attr('width'), mSvg.attr('height'));
 
     let mModelController = new ModelController();
 
@@ -93,6 +94,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePin = timePin;
 
             pinDrag(timeline, timePin, linePoint.percent);
+        } else if (mMode == MODE_LENS) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            if (!timeline) { console.error("Bad timeline id! " + timelineId); return; }
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+            mLensController.focus(timelineId, linePoint.percent);
+            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         } else if (mMode == MODE_COMMENT || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         }
@@ -101,6 +109,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             pinDrag(timeline, mDraggingTimePin, linePoint.percent);
+        } else if (mMode == MODE_LENS) {
+            mLensController.focus(timelineId, linePoint.percent);
+            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         }
     })
     mLineViewController.setLineDragEndCallback((timelineId, linePoint) => {
@@ -139,9 +150,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             setLineDrawingColor(timeline.color);
-        } else if (mMode == MODE_LENS) {
-            mLensController.focus(timelineId, linePoint.percent);
-            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         } else if (mMode == MODE_SCISSORS) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             let points1 = [];
@@ -176,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         }
     })
-    mLineViewController.setMouseMoveCallback((event, timelineId) => {
+    mLineViewController.setPointerMoveCallback((event, timelineId) => {
         if (mMode == MODE_SELECTION) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
@@ -705,6 +713,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function setViewToTransform() {
         mVizLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
         mInteractionLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
+        FilterUtil.setFilterDisplayArea(-mViewTransform.x, -mViewTransform.y, mSvg.attr('width'), mSvg.attr('height'));
     }
 
     let mDrawerController = new DrawerController("#data-drawer");
