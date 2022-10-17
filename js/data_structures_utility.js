@@ -143,6 +143,9 @@ DataStructs.DataModel = function () {
     }
 
     function mapLinePercentToTime(timelineId, linePercent) {
+        // get rid of rounding errors for number close to 1 and 0;
+        linePercent = Math.round(linePercent * 10000) / 10000;
+
         if (isNaN(linePercent)) { console.error("Invalid percent:" + linePercent); return 0; }
         if (linePercent < 0) {
             console.error("Invalid linePercent!", linePercent);
