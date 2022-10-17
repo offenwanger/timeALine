@@ -62,7 +62,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             return PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist);
         })
 
-        return { color: stroke.color, projectedPoints };
+        return { color: stroke.color, projectedPoints, timelineId: timeline.id };
     }
 
     function drawStrokes() {
@@ -78,7 +78,8 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             .attr('fill', 'none')
         mStrokeGroup.selectAll(".canvas-annotation-stroke")
             .attr("stroke", d => d.color)
-            .attr('d', d => PathMath.getPathD(d.projectedPoints));
+            .attr('d', d => PathMath.getPathD(d.projectedPoints))
+            .attr("timeline-id", d => d.timelineId);
 
 
         let targetSelection = mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")

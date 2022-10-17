@@ -78,12 +78,14 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             annotationDataset.push(annotationData);
         })
 
-        let selection = mDisplayGroup.selectAll(".annotation-text_" + timeline.id).data(annotationDataset);
+        let selection = mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
+            .data(annotationDataset);
         selection.exit().remove();
         selection.enter().append("text")
-            .classed("annotation-text_" + timeline.id, true)
+            .classed("annotation-text", true)
+            .attr("timeline-id", timeline.id)
 
-        mDisplayGroup.selectAll(".annotation-text_" + timeline.id)
+        mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
             .attr("x", function (d) { return d.x + d.offsetX; })
             .attr("y", function (d) { return d.y + d.offsetY; })
             .call(setText, TEXT_WIDTH);
@@ -91,7 +93,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         let horizontalLineData = []
         let connectingLineData = []
         let interactionTargetData = []
-        mDisplayGroup.selectAll(".annotation-text_" + timeline.id)
+        mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
             .each(function (d) {
                 let boundingBox = this.getBBox();
                 let x1 = boundingBox.x;
@@ -124,33 +126,34 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             })
 
         setupInteractionTargets(timeline, interactionTargetData);
-
-        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line_' + timeline.id)
+        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line[timeline-id="' + timeline.id + '"]')
             .data(horizontalLineData);
         horizontalLines.exit().remove();
         horizontalLines.enter()
             .append('line')
-            .classed("horizontal-line_" + timeline.id, true)
+            .classed("horizontal-line", true)
+            .attr("timeline-id", timeline.id)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
             .attr('opacity', 0.6);
-        mDisplayGroup.selectAll('.horizontal-line_' + timeline.id)
+        mDisplayGroup.selectAll('.horizontal-line[timeline-id="' + timeline.id + '"]')
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y })
             .attr('x2', function (d) { return d.x2 })
             .attr('y2', function (d) { return d.y });
 
 
-        let connectingLines = mDisplayGroup.selectAll('.connecting-line_' + timeline.id)
+        let connectingLines = mDisplayGroup.selectAll('.connecting-line[timeline-id="' + timeline.id + '"]')
             .data(connectingLineData);
         connectingLines.exit().remove();
         connectingLines.enter()
             .append('line')
-            .classed("connecting-line_" + timeline.id, true)
+            .classed('connecting-line', true)
+            .attr("timeline-id", timeline.id)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
             .attr('opacity', 0.6);
-        mDisplayGroup.selectAll('.connecting-line_' + timeline.id)
+        mDisplayGroup.selectAll('.connecting-line[timeline-id="' + timeline.id + '"]')
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
@@ -159,12 +162,13 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function setupInteractionTargets(timeline, interactionTargetData) {
-        let interactionTargets = mInteractionGroup.selectAll('.text-interaction-target_' + timeline.id)
+        let interactionTargets = mInteractionGroup.selectAll('.text-interaction-target[timeline-id="' + timeline.id + '"]')
             .data(interactionTargetData);
         interactionTargets.exit().remove();
         interactionTargets.enter()
             .append('rect')
-            .classed('text-interaction-target_' + timeline.id, true)
+            .classed('text-interaction-target', true)
+            .attr('timeline-id', timeline.id)
             .attr('fill', 'white')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
@@ -204,14 +208,18 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                     inputbox.node().focus();
                 }
             })
-            .on('pointerenter', function (e, d) {
-                mPointerEnterCallback(d.binding, e);
+            .on('pointerenter', (e, d) => {
+                if (mActive) {
+                    mPointerEnterCallback(e, d.binding);
+                }
             })
-            .on('mouseout', function (e, d) {
-                mPointerOutCallback(d.binding, e);
+            .on('pointerout', (e, d) => {
+                if (mActive) {
+                    mPointerOutCallback(e, d.binding);
+                }
             });
 
-        mInteractionGroup.selectAll('.text-interaction-target_' + timeline.id)
+        mInteractionGroup.selectAll('.text-interaction-target[timeline-id="' + timeline.id + '"]')
             .attr("x", d => d.x)
             .attr("y", d => d.y)
             .attr("height", d => d.height)

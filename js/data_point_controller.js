@@ -36,7 +36,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             return {
                 id: d.axisBinding.id,
                 line: d.timeline.points,
-                axis: d.axisBinding
+                axis: d.axisBinding,
+                timelineId: d.timeline.id,
             }
         }), 'id'))
     }
@@ -55,7 +56,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.color })
-            .style('opacity', function (d) { return d.opacity });
+            .style('opacity', function (d) { return d.opacity })
+            .attr('timeline-id', function (d) { return d.timelineId });
 
         let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point')
             .data(drawingData);
@@ -74,12 +76,14 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 }
             })
             .on('pointerenter', (e, d) => {
-                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mPointerEnterCallback(d.binding, mouseCoords);
+                if (mActive) {
+                    mPointerEnterCallback(e, d.binding);
+                }
             })
             .on('pointerout', (e, d) => {
-                let mouseCoords = { x: d3.pointer(e)[0], y: d3.pointer(e)[1] };
-                mPointerOutCallback(d.binding, mouseCoords);
+                if (mActive) {
+                    mPointerOutCallback(e, d.binding);
+                }
             });
 
         mDataPointTargetGroup.selectAll('.data-target-point')
@@ -116,7 +120,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             x: pos.x,
             y: pos.y,
             opacity: 1,
-            color: binding.color ? binding.color : "black"
+            color: binding.color ? binding.color : "black",
+            timelineId: binding.timeline.id,
         };
     }
 
@@ -145,7 +150,14 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, basePose);
             let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, basePose);
 
-            axisLineData.push({ axisId: axis.id, x1: pos1.x, y1: pos1.y, x2: pos2.x, y2: pos2.y });
+            axisLineData.push({
+                axisId: axis.id,
+                x1: pos1.x,
+                y1: pos1.y,
+                x2: pos2.x,
+                y2: pos2.y,
+                timelineId: axisData.timelineId,
+            });
 
             axisControlData.push({
                 axisId: axis.id,
@@ -155,7 +167,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 y: pos1.y,
                 val: axis.val1,
                 normal,
-                basePose
+                basePose,
+                timelineId: axisData.timelineId,
             });
             axisControlData.push({
                 axisId: axis.id,
@@ -165,7 +178,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 y: pos2.y,
                 val: axis.val2,
                 normal,
-                basePose
+                basePose,
+                timelineId: axisData.timelineId,
             });
         })
 
@@ -181,7 +195,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
-            .attr('y2', function (d) { return d.y2 });
+            .attr('y2', function (d) { return d.y2 })
+            .attr('timeline-id', function (d) { return d.timelineId });
 
         let controlLabels = mAxisGroup.selectAll('.axis-control-label').data(axisControlData);
         controlLabels.exit().remove();
@@ -194,7 +209,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         mAxisGroup.selectAll('.axis-control-label')
             .attr('x', function (d) { return d.x })
             .attr('y', function (d) { return d.y })
-            .text(function (d) { return d.val });
+            .text(function (d) { return d.val })
+            .attr('timeline-id', function (d) { return d.timelineId });
 
         let controls = mAxisGroup.selectAll('.axis-control-circle').data(axisControlData);
         controls.exit().remove();
@@ -208,7 +224,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         mAxisGroup.selectAll('.axis-control-circle')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y })
-            .attr('fill', function (d) { return d.color });
+            .attr('fill', function (d) { return d.color })
+            .attr('timeline-id', function (d) { return d.timelineId });
 
         let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
         controlTargets.exit().remove();

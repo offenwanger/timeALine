@@ -106,15 +106,15 @@ function DeformController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function drawLines(data) {
-        let paths = mDeformGroup.selectAll('.timelinePath').data(data);
+        let paths = mDeformGroup.selectAll('.timeline-path').data(data);
         paths.enter().append('path')
-            .classed('timelinePath', true)
+            .classed('timeline-path', true)
             .attr('fill', 'none')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mDeformGroup.selectAll('.timelinePath')
+        mDeformGroup.selectAll('.timeline-path')
             .attr('stroke', d => d.color)
             .attr('d', d => PathMath.getPathD(d.points));
     }

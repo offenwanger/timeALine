@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mTooltip = new ToolTip("main-tooltip");
     let mTooltipSetTo = ""
 
+    FilterUtil.initializeShadowFilter(mSvg);
+
     let mModelController = new ModelController();
 
     let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
@@ -166,11 +168,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     mLineViewController.setPointerEnterCallback((event, timelineId) => {
-        lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
-        mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+        if (mMode == MODE_SELECTION) {
+            lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+            mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+        } else if (mMode == MODE_LINK) {
+            FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
+        }
     })
     mLineViewController.setMouseMoveCallback((event, timelineId) => {
-        lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+        if (mMode == MODE_SELECTION) {
+            lineViewControllerShowTime(timelineId, { x: event.clientX, y: event.clientY });
+        }
     });
     function lineViewControllerShowTime(timelineId, screenCoords) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
@@ -189,12 +197,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTooltipSetTo = timelineId;
     }
     mLineViewController.setPointerOutCallback((event, timelineId) => {
-        if (mTooltipSetTo == timelineId) {
-            mTooltip.hide();
-        }
+        if (mMode == MODE_SELECTION) {
+            if (mTooltipSetTo == timelineId) {
+                mTooltip.hide();
+            }
 
-        mMouseDropShadow.hide();
-        mDataTableController.highlightCells([]);
+            mMouseDropShadow.hide();
+            mDataTableController.highlightCells([]);
+        } else if (mMode == MODE_LINK) {
+            FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
+        }
     })
 
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
@@ -253,10 +265,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mModelController.updateText(cellId, text);
         modelUpdated();
     });
-    mTextController.setPointerEnterCallback((cellBindingData) => {
+    mTextController.setPointerEnterCallback((e, cellBindingData) => {
         mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
     })
-    mTextController.setPointerOutCallback((cellBindingData) => {
+    mTextController.setPointerOutCallback((e, cellBindingData) => {
         mDataTableController.highlightCells([]);
     })
     mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
@@ -452,7 +464,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axisId); return; }
 
             mDataPointController.drawPoints([boundData[0].timeline], boundData);
-            mDataPointController.drawAxes([{ id: axisId, line: boundData[0].timeline.points, axis: boundData[0].axisBinding }]);
+            mDataPointController.drawAxes([{ id: axisId, line: boundData[0].timeline.points, axis: boundData[0].axisBinding, timelineId: boundData[0].timeline.id }]);
         }
     });
     mDataPointController.setAxisDragEndCallback((axisId, controlNumber, newDist, coords) => {
@@ -462,10 +474,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         }
     });
-    mDataPointController.setPointerEnterCallback((cellBindingData, mouseCoords) => {
+    mDataPointController.setPointerEnterCallback((e, cellBindingData) => {
         mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
     })
-    mDataPointController.setPointerOutCallback((cellBindingData, mouseCoords) => {
+    mDataPointController.setPointerOutCallback((e, cellBindingData) => {
         mDataTableController.highlightCells([]);
     })
 

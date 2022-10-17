@@ -130,15 +130,15 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function drawLines(lineData) {
-        let paths = mLinesGroup.selectAll('.timelinePath').data(lineData);
+        let paths = mLinesGroup.selectAll('.timeline-path').data(lineData);
         paths.enter().append('path')
-            .classed('timelinePath', true)
+            .classed('timeline-path', true)
             .attr('fill', 'none')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
         paths.exit().remove();
-        mLinesGroup.selectAll('.timelinePath')
+        mLinesGroup.selectAll('.timeline-path')
             .attr('stroke', d => d.color)
             .attr('d', d => PathMath.getPathD(d.points));
     }

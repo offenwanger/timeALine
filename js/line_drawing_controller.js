@@ -55,13 +55,13 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
                     let dist = MathUtil.distanceFromAToB(pointData.point, coords);
                     if (dist < minPointData.dist) {
                         minPointData.dist = dist;
-                        minPointData.id = pointData.id
+                        minPointData.timelineId = pointData.timelineId
                         minPointData.isStartPoint = pointData.isStartPoint;
                     }
                     return minPointData;
                 }, { dist: EXTENSION_POINT_RADIUS });
 
-                if (mDragStartParams.startPoint || (minPointData.id && !minPointData.isStartPoint)) {
+                if (mDragStartParams.startPoint || (minPointData.timelineId && !minPointData.isStartPoint)) {
                     // if we ended on an end point or started on a start point, reverse the array so the first 
                     // points will be close to the end point, and the last points will be close to the start point
                     mDraggedPoints = mDraggedPoints.reverse();
@@ -70,12 +70,12 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
 
                 let startPointLineId = null;
                 if (mDragStartParams.startPoint) startPointLineId = mDragStartParams.startPoint;
-                if (minPointData.id && minPointData.isStartPoint) startPointLineId = minPointData.id;
+                if (minPointData.timelineId && minPointData.isStartPoint) startPointLineId = minPointData.timelineId;
 
                 let endPointLineId = null;
                 if (mDragStartParams.endPoint) endPointLineId = mDragStartParams.endPoint;
-                if (minPointData.id && !minPointData.isStartPoint) {
-                    endPointLineId = minPointData.id;
+                if (minPointData.timelineId && !minPointData.isStartPoint) {
+                    endPointLineId = minPointData.timelineId;
                 }
 
                 let result = getPointsFromLine(mDrawingLine, LINE_RESOLUTION);
@@ -103,18 +103,28 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
 
     function updateModel(model) {
         let timelines = model.getAllTimelines();
-        mStartPoints = timelines.map(item => {
-            return { id: item.id, point: item.points[0], isStartPoint: true, color: item.color };
+        mStartPoints = timelines.map(timeline => {
+            return {
+                timelineId: timeline.id,
+                point: timeline.points[0],
+                isStartPoint: true,
+                color: timeline.color
+            };
         })
-        mEndPoints = timelines.map(item => {
-            return { id: item.id, point: item.points[item.points.length - 1], isStartPoint: false, color: item.color };
+        mEndPoints = timelines.map(timeline => {
+            return {
+                timelineId: timeline.id,
+                point: timeline.points[timeline.points.length - 1],
+                isStartPoint: false,
+                color: timeline.color
+            };
         })
 
         let startPoints = mPointsGroup.selectAll('.draw-start-point').data(mStartPoints);
         startPoints.exit().remove();
         startPoints.enter().append("circle")
-            .classed("draw-start-point", true)
-            .attr('id', d => "start-point_" + d.id)
+            .classed('draw-start-point', true)
+            .attr('timeline-id', d => d.timelineId)
             .attr('r', EXTENSION_POINT_RADIUS)
             .attr('cursor', 'crosshair')
             .attr('fill', '#b51d1c')
@@ -122,9 +132,9 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerdown', function (e, d) {
                 if (mActive) {
                     mDragging = true;
-                    mDragStartParams.startPoint = d.id;
+                    mDragStartParams.startPoint = d.timelineId;
                     mPointsGroup.selectAll('.draw-start-point').style("visibility", "hidden");
-                    mPointsGroup.select('#end-point_' + d.id).style("visibility", "hidden");
+                    mPointsGroup.select('.draw-end-point[timeline-id="' + d.timelineId + '"]').style("visibility", "hidden");
                     mDrawingLine.attr('stroke', d.color);
                 }
             })
@@ -135,8 +145,8 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
         let endPoints = mPointsGroup.selectAll('.draw-end-point').data(mEndPoints);
         endPoints.exit().remove();
         endPoints.enter().append("circle")
-            .classed("draw-end-point", true)
-            .attr('id', d => "end-point_" + d.id)
+            .classed('draw-end-point', true)
+            .attr('timeline-id', d => d.timelineId)
             .attr('r', EXTENSION_POINT_RADIUS)
             .attr('cursor', 'crosshair')
             .attr('fill', '#1c1db5')
@@ -144,9 +154,9 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             .on('pointerdown', function (e, d) {
                 if (mActive) {
                     mDragging = true;
-                    mDragStartParams.endPoint = d.id;
+                    mDragStartParams.endPoint = d.timelineId;
                     mPointsGroup.selectAll('.draw-end-point').style("visibility", "hidden");
-                    mPointsGroup.select('#start-point_' + d.id).style("visibility", "hidden");
+                    mPointsGroup.select('.draw-start-point[timeline-id="' + d.timelineId + '"]').style("visibility", "hidden");
                     mDrawingLine.attr('stroke', d.color);
                 }
             })

@@ -37,7 +37,12 @@ before(function () {
             this.attr = function (name, val = "not set value") {
                 if (val != "not set value") {
                     this.attrs[name] = val;
-                    if (name == "id" && selectors) { selectors["#" + val] = this; }
+                    if (name == "id" && selectors) {
+                        selectors["#" + val] = this;
+                    }
+                    if (name == "timeline-id" && selectors) {
+                        selectors[this.lastSelector + '[timeline-id="' + val + '"]'] = this;
+                    }
                     return this;
                 } else return this.attrs[name];
             };
@@ -53,6 +58,7 @@ before(function () {
                 if (isTrue != null) {
                     this.classes[name] = isTrue;
                     if (selectors) selectors["." + name] = this;
+                    this.lastSelector = "." + name;
                     return this;
                 } else return this.classes[name];
             };
@@ -75,18 +81,16 @@ before(function () {
                 this.children.push(child)
                 return child;
             };
-            this.select = function (selector) {
-                if (selectors) {
-                    if (!selectors[selector]) selectors[selector] = new MockElement();
-                    return selectors[selector]
-                } else return new MockElement();
-            };
             this.selectAll = function (selector) {
                 if (selectors) {
-                    if (!selectors[selector]) selectors[selector] = new MockElement();
+                    if (!selectors[selector]) {
+                        selectors[selector] = new MockElement();
+                        selectors[selector].lastSelector = selector;
+                    }
                     return selectors[selector]
                 } else return new MockElement();
             };
+            this.select = this.selectAll;
             this.remove = () => { };
             this.filter = function () { return this; };
             this.innerData = null;
@@ -432,6 +436,7 @@ before(function () {
             MathUtil: utility.__get__("MathUtil"),
             DataUtil: utility.__get__("DataUtil"),
             ToolTip: utility.__get__("ToolTip"),
+            FilterUtil: utility.__get__("FilterUtil"),
             FileHandler: file_handling.__get__("FileHandler"),
         };
         returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
@@ -543,15 +548,15 @@ before(function () {
     }
 
     function clickLine(coords, lineId, integrationEnv) {
-        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
         let data = timeLineTargets.innerData.find(d => d.id == lineId);
         timeLineTargets.eventCallbacks['pointerdown'](coords, data);
         pointerUp(coords, integrationEnv);
     }
 
     function dragLine(points, lineId, integrationEnv) {
-        assert('.timelineTarget' in integrationEnv.enviromentVariables.d3.selectors, "No timeline targets!");
-        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+        assert('.timeline-target' in integrationEnv.enviromentVariables.d3.selectors, "No timeline targets!");
+        let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
         let data = timeLineTargets.innerData.find(d => d.id == lineId);
 
         let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;

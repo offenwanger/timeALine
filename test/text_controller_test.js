@@ -57,7 +57,7 @@ describe('Integration Test TextController', function () {
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
             expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
             expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
@@ -90,7 +90,7 @@ describe('Integration Test TextController', function () {
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
             expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
             expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
@@ -124,7 +124,7 @@ describe('Integration Test TextController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 2);
 
             let annotationData = textSet[1]
@@ -132,14 +132,14 @@ describe('Integration Test TextController', function () {
             expect(annotationData.offsetX).to.eql(10)
             expect(annotationData.offsetY).to.eql(10)
 
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
             let movingTextTargetData = textTargetSet.find(item => item.binding.cellBinding.id == movingTextId);
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].
                 eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, movingTextTargetData);
             IntegrationUtils.pointerMove({ x: 140, y: 120 }, integrationEnv);
 
             // Check that the correct annotation is updating
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
 
             annotationData = textSet.find(item => item.binding.cellBinding.id == movingTextId);
             expect(annotationData.offsetX).to.eql(20)
@@ -157,7 +157,7 @@ describe('Integration Test TextController', function () {
 
             IntegrationUtils.pointerUp({ x: 140, y: 120 }, integrationEnv);
 
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             annotationData = textSet.find(item => item.binding.cellBinding.id == movingTextId);
             expect(annotationData.offsetX).to.eql(20)
             expect(annotationData.offsetY).to.eql(20)

@@ -40,8 +40,10 @@ describe('Test TimePinController', function () {
             let timePinController = getTimePinController(() => { });
             timePinController.updateModel(model);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pin-tick[timeline-id="' + model.getAllTimelines()[0].id + '"]']
+                .innerData.length, 2, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pin-tick[timeline-id="' + model.getAllTimelines()[1].id + '"]']
+                .innerData.length, 1, "ticks were passed data");
         });
 
         it('should add time ticks with time', function () {
@@ -57,8 +59,10 @@ describe('Test TimePinController', function () {
             let timePinController = getTimePinController(() => { });
             timePinController.updateModel(model);
 
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[0].id].innerData.length, 2, "ticks were passed data");
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + model.getAllTimelines()[1].id].innerData.length, 1, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pin-tick[timeline-id="' + model.getAllTimelines()[0].id + '"]']
+                .innerData.length, 2, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pin-tick[timeline-id="' + model.getAllTimelines()[1].id + '"]']
+                .innerData.length, 1, "ticks were passed data");
         })
     });
 });
@@ -87,10 +91,10 @@ describe('Integration Test TimePinController', function () {
             IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 115, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + integrationEnv.ModelController.getModel().getAllTimelines()[0].id];
+            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pin-tick-target[timeline-id="' +
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]']
             pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[0]);
             assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Percent of time: 15%');
             pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[1]);
@@ -118,10 +122,10 @@ describe('Integration Test TimePinController', function () {
             IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.dragLine([{ x: 115, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + integrationEnv.ModelController.getModel().getAllTimelines()[0].id];
+            let pinTargets = integrationEnv.enviromentVariables.d3.selectors['.pin-tick-target[timeline-id="' +
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'];
             pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[0]);
             assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), 'Jan 11, 2021 12:00:00');
             pinTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, pinTargets.innerData[1]);
@@ -196,7 +200,7 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 0);
 
             // the tick was drawn
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.length == 1, true, "ticks were passed data");
         });
 
         it('should create and update a pin for data without time only when dropped', function () {
@@ -232,16 +236,16 @@ describe('Integration Test TimePinController', function () {
                 ]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 1);
             expect(textSet[0].offsetX).to.eql(10)
             expect(textSet[0].offsetY).to.eql(10)
             expect(textSet[0].x).to.eql(100)
             expect(textSet[0].y).to.eql(100)
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].
                 eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
@@ -262,7 +266,7 @@ describe('Integration Test TimePinController', function () {
                 ]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 1);
             expect(textSet[0].offsetX).to.eql(0)
             expect(textSet[0].offsetY).to.eql(20)
@@ -295,7 +299,7 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
 
             // the tick was drawn
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length == 1, true, "ticks were passed data");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.length == 1, true, "ticks were passed data");
         });
 
         it('should display a pin while dragging, but not update until done, with a timeline mapping', function () {
@@ -311,7 +315,7 @@ describe('Integration Test TimePinController', function () {
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
 
-            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
 
             let onLineDragStart = timeLineTargets.eventCallbacks.pointerdown;
@@ -322,9 +326,9 @@ describe('Integration Test TimePinController', function () {
             expect(timelineSegments.innerData.map(d => Math.round(d.label * 1000) / 1000)).to.eql([0.5, 0.5]);
 
             // the tick was drawn
-            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId], "pin ticks were not set")
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
-            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"], "pin ticks were not set")
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.length > 0, true, "ticks were passed data");
+            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.find(d => d.hasOwnProperty('binding'));
 
             assert(bindingTickData, "tick was not drawn");
 
@@ -334,10 +338,10 @@ describe('Integration Test TimePinController', function () {
             IntegrationUtils.pointerMove({ x: 125, y: 110 }, integrationEnv);
 
             // the tick was updated
-            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId], "pin ticks were not set")
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.length > 0, true, "ticks were passed data");
+            assert.isNotNull(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"], "pin ticks were not set")
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.length > 0, true, "ticks were passed data");
 
-            bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
             assert.equal(bindingTickData.position.x, 125);
             assert.equal(bindingTickData.position.y, 100);
@@ -384,7 +388,7 @@ describe('Integration Test TimePinController', function () {
             // we have three ticks in data and three drawn
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
 
-            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId];
+            let tickTargets = integrationEnv.enviromentVariables.d3.selectors['.pin-tick-target[timeline-id="' + timelineId + '"]']
             assert.equal(tickTargets.innerData.length, 3)
 
             // start drag
@@ -396,9 +400,9 @@ describe('Integration Test TimePinController', function () {
             // the timeline not been updated yet
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
             // but the visual has
-            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pinTickTarget_' + timelineId].innerData.length, 2)
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors['.pin-tick-target[timeline-id="' + timelineId + '"]'].innerData.length, 2)
 
-            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pinTick_" + timelineId].innerData.find(d => d.hasOwnProperty('binding'));
+            let bindingTickData = integrationEnv.enviromentVariables.d3.selectors[".pin-tick[timeline-id=\"" + timelineId + "\"]"].innerData.find(d => d.hasOwnProperty('binding'));
             assert(bindingTickData);
             assert.equal(bindingTickData.position.x, 110);
             assert.equal(bindingTickData.position.y, 100);
@@ -478,16 +482,16 @@ describe('Integration Test TimePinController', function () {
                 ["Jan 15, 2021", "sometext2"]
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 1);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 1);
             expect(textSet[0].offsetX).to.eql(10)
             expect(textSet[0].offsetY).to.eql(10)
             expect(textSet[0].x).to.eql(100)
             expect(textSet[0].y).to.eql(100)
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].innerData;
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target_" + timelineId].
+            integrationEnv.enviromentVariables.d3.selectors['.text-interaction-target[timeline-id="' + timelineId + '"]'].
                 eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
@@ -506,7 +510,7 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId, null);
 
             // check that it's positioning the text correctly
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" + timelineId].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             expect(textSet[0].offsetX).to.eql(0)
             expect(textSet[0].offsetY).to.eql(20)
             expect(textSet[0].x).to.eql(150)

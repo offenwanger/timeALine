@@ -809,6 +809,67 @@ let DataUtil = function () {
     }
 }();
 
+let FilterUtil = function () {
+    const SHADOW_ID = "shadow-filter";
+    const SHADOW_TRANSFORM = "translate(-2,-2)";
+
+    function initializeShadowFilter(svg) {
+        let defs = svg.select('defs').node()
+            ? svg.select('defs')
+            : svg.append('defs');
+        let filter = defs.append("filter")
+            .attr("id", SHADOW_ID)
+            .attr("filterUnits", "userSpaceOnUse")
+            .attr("x", 0)
+            .attr("y", 0);
+        filter.append("feOffset")
+            .attr("result", "offOut")
+            .attr("in", "SourceAlpha")
+            .attr("dx", 2)
+            .attr("dy", 2);
+        filter.append("feGaussianBlur")
+            .attr("result", "blurOut")
+            .attr("in", "offOut")
+            .attr("stdDeviation", 1);
+        filter.append("feComponentTransfer")
+            .append("feFuncA")
+            .attr("in", "blurOut")
+            .attr("result", "fadeOut")
+            .attr("type", "linear")
+            .attr("slope", 0.3);
+        filter.append("feBlend")
+            .attr("in", "SourceGraphic")
+            .attr("in2", "fadeOut")
+            .attr("mode", "normal");
+    }
+
+    function applyShadowFilter(selection) {
+        let currFilters = selection.attr("filter");
+        if (!currFilters) currFilters = "";
+        selection.attr("filter", currFilters + " url(#" + SHADOW_ID + ")");
+        let currTransforms = selection.attr("transform");
+        if (!currTransforms) currTransforms = "";
+        selection.attr("transform", currTransforms + " " + SHADOW_TRANSFORM);
+    }
+
+    function removeShadowFilter(selection) {
+        selection.attr("filter", selection.attr("filter")
+            .split(" ")
+            .filter(d => d != "url(#" + SHADOW_ID + ")")
+            .join(" "));
+        selection.attr("transform", selection.attr("transform")
+            .split(" ")
+            .filter(d => d != SHADOW_TRANSFORM)
+            .join(" "));
+    }
+
+    return {
+        initializeShadowFilter,
+        applyShadowFilter,
+        removeShadowFilter,
+    }
+}();
+
 let ToolTip = function (id) {
     let tooltipDiv = $("<div>");
     tooltipDiv.addClass("tooltip-div");

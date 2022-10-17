@@ -12,6 +12,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
 
     let mLineGroup = mVizLayer.append('g')
         .attr("id", 'line-view-g');
+    let mTailGroup = mVizLayer.append('g')
+        .attr("id", 'line-tail-g');
+
     let mTargetGroup = mInteractionLayer.append('g')
         .attr("id", 'line-view-target-g')
         .style('visibility', "hidden");
@@ -21,6 +24,10 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
 
     function updateModel(model) {
         let timelines = model.getAllTimelines();
+
+        // TODO: get rid of this
+        mTailGroup.selectAll('*').remove();
+
         drawLine(timelines, model);
 
         drawLineTargets(timelines);
@@ -36,6 +43,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
                 segment.color = timeline.color;
             });
             allSegments.push(...segments);
+
+            drawTails(timeline.id, timeline.points);
         });
 
         if (mLineStyle == LineStyle.STYLE_DASHED) {
@@ -44,22 +53,22 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             drawSemiOpaqueLines(allSegments);
         } else console.error("Unimplimented line style: " + mLineStyle)
 
-        let points = mLineGroup.selectAll(".pointMarkerCircle").data(timelines.map(path => path.points).flat())
+        let points = mLineGroup.selectAll(".point-marker").data(timelines.map(path => path.points).flat())
         points.enter()
             .append("circle")
-            .classed("pointMarkerCircle", true)
+            .classed("point-marker", true)
             .attr("r", "1px")
             .attr("fill", "#000000")
             .style("opacity", 0.5);
         points.exit().remove();
-        mLineGroup.selectAll(".pointMarkerCircle")
+        mLineGroup.selectAll(".point-marker")
             .attr("cx", function (d) { return d.x })
             .attr("cy", function (d) { return d.y })
     }
 
     function drawSingleTimeline(timeline, timeBindingValues, timeAttribute) {
         d3.selectAll(".warped-timeline-path").filter(function (d) { return d.timelineId == timeline.id; }).remove();
-        d3.selectAll(".timelinePath").filter(function (d) { return d.id == timeline.id; }).remove();
+        d3.selectAll(".timeline-path").filter(function (d) { return d.id == timeline.id; }).remove();
 
         let segments = getDrawingSegments(timeline, timeBindingValues, timeAttribute);
         segments.forEach(segment => {
@@ -72,6 +81,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         } else if (mLineStyle == LineStyle.STYLE_OPACITY) {
             drawSemiOpaqueLines(segments, false);
         } else console.error("Unimplimented line style: " + mLineStyle)
+
+        drawTails(timeline.id, timeline.points);
     }
 
     function drawSemiOpaqueLines(segmentData, overwrite = true) {
@@ -97,7 +108,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         mLineGroup.selectAll('.warped-timeline-path')
             .attr('stroke', d => d.color)
             .attr('opacity', d => d.opacity)
-            .attr('d', d => PathMath.getPathD(d.points));
+            .attr('d', d => PathMath.getPathD(d.points))
+            .attr('timeline-id', d => d.timelineId);
     }
 
     function drawDashedLines(segmentData, overwrite = true) {
@@ -123,7 +135,8 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         mLineGroup.selectAll('.warped-timeline-path')
             .attr('stroke', d => d.color)
             .style("stroke-dasharray", d => d.indicatorStroke + ", 4, 1, 4, 1, 4")
-            .attr('d', d => PathMath.getPathD(d.points));
+            .attr('d', d => PathMath.getPathD(d.points))
+            .attr('timeline-id', d => d.timelineId);
     }
 
     function getDrawingSegments(timeline, timeBindingValues, timeAttribute) {
@@ -160,9 +173,9 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     }
 
     function drawLineTargets(timelines) {
-        let targets = mTargetGroup.selectAll('.timelineTarget').data(timelines);
+        let targets = mTargetGroup.selectAll('.timeline-target').data(timelines);
         targets.enter().append('path')
-            .classed('timelineTarget', true)
+            .classed('timeline-target', true)
             .attr('fill', 'none')
             .attr('stroke', 'white')
             .attr('stroke-width', 50)
@@ -192,7 +205,44 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
             })
 
         targets.exit().remove();
-        mTargetGroup.selectAll('.timelineTarget').attr('d', (timeline) => PathMath.getPathD(timeline.points));
+        mTargetGroup.selectAll('.timeline-target').attr('d', (timeline) => PathMath.getPathD(timeline.points));
+    }
+
+    function drawTails(timelineId, linePoints) {
+        let tail1 = mTailGroup.select('.timeline-tail-1[timeline-id="' + timelineId + '"]').node()
+            ? mTailGroup.select('.timeline-tail-1[timeline-id="' + timelineId + '"]')
+            : mTailGroup.append('line')
+                .classed('timeline-tail-1', true)
+                .attr('stroke-width', 1.5)
+                .attr('stroke', 'grey')
+                .style("stroke-dasharray", ("5, 5"))
+                .attr('timeline-id', timelineId);
+
+        let tail2 = mTailGroup.select('.timeline-tail-2[timeline-id="' + timelineId + '"]').node()
+            ? mTailGroup.select('.timeline-tail-2[timeline-id="' + timelineId + '"]')
+            : mTailGroup.append('line')
+                .classed('timeline-tail-2', true)
+                .attr('stroke-width', 1.5)
+                .attr('stroke', 'grey')
+                .style("stroke-dasharray", ("5, 5"))
+                .attr('timeline-id', timelineId);
+
+        let startPoint = linePoints[0];
+        let direction1 = MathUtil.vectorFromAToB(linePoints[1], startPoint);
+        let tail1End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction1, startPoint);
+        tail1.attr('x1', startPoint.x)
+            .attr('y1', startPoint.y)
+            .attr('x2', tail1End.x)
+            .attr('y2', tail1End.y);
+
+        let endPoint = linePoints[linePoints.length - 1]
+        let direction2 = MathUtil.vectorFromAToB(linePoints[linePoints.length - 2], endPoint);
+        let tail2End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction2, endPoint);
+
+        tail2.attr('x1', endPoint.x)
+            .attr('y1', endPoint.y)
+            .attr('x2', tail2End.x)
+            .attr('y2', tail2End.y);
     }
 
     function setActive(active) {
@@ -215,7 +265,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         }
 
         d3.selectAll(".warped-timeline-path").remove();
-        d3.selectAll(".timelinePath").remove();
+        d3.selectAll(".timeline-path").remove();
 
         updateModel(model);
     }

@@ -13,8 +13,6 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
 
-    let mTailGroup = vizLayer.append('g')
-        .attr("id", 'tick-tail-g');
     let mPinTickGroup = vizLayer.append('g')
         .attr("id", 'tick-g');
 
@@ -26,14 +24,12 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
         mLinePoints = {};
         mBindings = {};
 
-        mTailGroup.selectAll('*').remove();
         mPinTickGroup.selectAll('*').remove();
         mPinTickTargetGroup.selectAll('*').remove();
 
         model.getAllTimelines().forEach(timeline => {
             mLinePoints[timeline.id] = timeline.points;
             mBindings[timeline.id] = timeline.timePins;
-            drawTails(timeline.id, timeline.points);
             drawPinTicks(timeline, timeline.timePins);
         });
     }
@@ -58,23 +54,28 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
         const pinTickLength = 10
         const pinTickTargetPadding = 10;
 
-        let ticks = mPinTickGroup.selectAll('.pinTick_' + timeline.id).data(tickData);
+        let ticks = mPinTickGroup.selectAll('.pin-tick[timeline-id="' + timeline.id + '"]').data(tickData);
         ticks.exit().remove();
-        ticks.enter().append('line').classed('pinTick_' + timeline.id, true);
-        mPinTickGroup.selectAll('.pinTick_' + timeline.id)
+        ticks.enter().append('g')
+            .classed('pin-tick', true)
+            .attr("timeline-id", timeline.id)
+            .append("line")
             .style("stroke", "black")
+            .style("stroke-width", pinTickWidth);
+        mPinTickGroup.selectAll('.pin-tick[timeline-id="' + timeline.id + '"]').select("line")
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
-            .style("stroke-width", (d) => pinTickWidth)
             .attr("x1", (d) => d.position.x)
             .attr("y1", (d) => d.position.y + pinTickLength / 2)
             .attr("x2", (d) => d.position.x)
-            .attr("y2", (d) => d.position.y - pinTickLength / 2);
+            .attr("y2", (d) => d.position.y - pinTickLength / 2)
+            .attr('timeline-id', timeline.id);
 
-        let targets = mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
+        let targets = mPinTickTargetGroup.selectAll('.pin-tick-target[timeline-id="' + timeline.id + '"]')
             .data(tickTargetData);
         targets.exit().remove();
         targets.enter().append('line')
-            .classed('pinTickTarget_' + timeline.id, true)
+            .classed('pin-tick-target', true)
+            .attr("timeline-id", timeline.id)
             .style("stroke", "white")
             .style("opacity", "0")
             .attr('stroke-linecap', 'round')
@@ -87,16 +88,16 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
-                    mPointerEnterCallback(e, d.binding, d.timelineId,);
+                    mPointerEnterCallback(e, d.binding);
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
-                    mPointerOutCallback(e, d.binding, d.timelineId,);
+                    mPointerOutCallback(e, d.binding);
                 }
             })
 
-        mPinTickTargetGroup.selectAll('.pinTickTarget_' + timeline.id)
+        mPinTickTargetGroup.selectAll('.pin-tick-target[timeline-id="' + timeline.id + '"]')
             .attr('transform', (d) => "rotate(" + d.degrees + " " + d.position.x + " " + d.position.y + ")")
             .style("stroke-width", pinTickTargetPadding + pinTickWidth)
             .attr("x1", (d) => d.position.x)
@@ -104,42 +105,6 @@ function TimePinController(vizLayer, overlayLayer, interactionLayer) {
             .attr("x2", (d) => d.position.x)
             .attr("y2", (d) => d.position.y - pinTickTargetPadding + pinTickLength / 2);
     }
-
-    function drawTails(timelineId, linePoints) {
-        let tail1 = mTailGroup.select('#timelineTail1_' + timelineId).node()
-            ? mTailGroup.select('#timelineTail1_' + timelineId)
-            : mTailGroup.append('line')
-                .attr('id', 'timelineTail1_' + timelineId)
-                .attr('stroke-width', 1.5)
-                .attr('stroke', 'grey')
-                .style("stroke-dasharray", ("5, 5"));
-
-        let tail2 = mTailGroup.select('#timelineTail2_' + timelineId).node()
-            ? mTailGroup.select('#timelineTail2_' + timelineId)
-            : mTailGroup.append('line')
-                .attr('id', 'timelineTail2_' + timelineId)
-                .attr('stroke-width', 1.5)
-                .attr('stroke', 'grey')
-                .style("stroke-dasharray", ("5, 5"));
-
-        let startPoint = linePoints[0];
-        let direction1 = MathUtil.vectorFromAToB(linePoints[1], startPoint);
-        let tail1End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction1, startPoint);
-        tail1.attr('x1', startPoint.x)
-            .attr('y1', startPoint.y)
-            .attr('x2', tail1End.x)
-            .attr('y2', tail1End.y);
-
-        let endPoint = linePoints[linePoints.length - 1]
-        let direction2 = MathUtil.vectorFromAToB(linePoints[linePoints.length - 2], endPoint);
-        let tail2End = MathUtil.getPointAtDistanceAlongVector(TAIL_LENGTH, direction2, endPoint);
-
-        tail2.attr('x1', endPoint.x)
-            .attr('y1', endPoint.y)
-            .attr('x2', tail2End.x)
-            .attr('y2', tail2End.y);
-    }
-
 
     function onPointerMove(coords) {
         if (mActive && mDragging) {

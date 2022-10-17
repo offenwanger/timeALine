@@ -575,8 +575,9 @@ describe('Integration Test ModelController', function () {
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
+            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
 
-            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timelineTarget'];
+            let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
             timeLineTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, data);
 
@@ -669,8 +670,8 @@ describe('Integration Test ModelController', function () {
             ], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" +
-                integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
             assert.equal(textSet.length, 2);
             assert.equal(textSet[0].x, 10);
             assert.equal(textSet[0].y, 10);
@@ -695,8 +696,8 @@ describe('Integration Test ModelController', function () {
                     then: function (func) {
                         this.promise = this.promise.then(func).then(() => {
                             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
-                            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text_" +
-                                integrationEnv.ModelController.getModel().getAllTimelines()[0].id].innerData;
+                            let textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
+                                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
                             assert.equal(textSet.length, 2);
                             assert.equal(textSet[0].x, 10);
                             assert.equal(textSet[0].y, 10);
