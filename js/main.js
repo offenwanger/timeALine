@@ -549,13 +549,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     })
 
-    let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer, () => { return mModelController.getModel().getAllTimelines(); });
-    mEraserController.setEraseCallback(lineData => {
-        let eraseIds = lineData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
-        let breakData = lineData.filter(d => d.segments.length > 1);
+    let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mEraserController.setEraseCallback(canvasMask => {
+        // check/erase lines
+        let model = mModelController.getModel();
+        let timelines = model.getAllTimelines();
 
-        eraseIds.forEach(id => mModelController.deleteTimeline(id));
-        breakData.forEach(d => mModelController.breakTimeline(d.id, d.segments));
+        let segmentsData = timelines.map(timeline => {
+            return {
+                id: timeline.id,
+                segments: PathMath.segmentPath(timeline.points, (point) => {
+                    return canvasMask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
+                })
+            }
+        }).filter(segmentData => segmentData.segments.some(segment => segment.label == SEGMENT_LABELS.DELETED));
+
+        let deletedTimelines = segmentsData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
+        let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
+
+        deletedTimelines.forEach(id => mModelController.deleteTimeline(id));
+        brokenTimelines.forEach(d => mModelController.breakTimeline(d.id, d.segments));
 
         modelUpdated();
     })

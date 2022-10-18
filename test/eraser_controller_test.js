@@ -23,167 +23,6 @@ describe('Test EraserController', function () {
             getEraserController();
         })
     });
-
-    describe('erase line tests', function () {
-        it('should start erase without error', function () {
-            let getTimelines = () => [{
-                id: "id1", points: [
-                    { x: 0, y: 0 },
-                    { x: 10, y: 15 },
-                    { x: 5, y: 20 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 15, y: 10 },
-                    { x: 15, y: 15 }]
-            }]
-            let eraserController = getEraserController(getTimelines);
-            eraserController.setActive(true);
-
-            eraserController.onPointerDown({ x: 10, y: 10 });
-        })
-
-        it('should erase start of line without error', function () {
-            let getTimelines = () => [{
-                id: "id1", points: [
-                    { x: -10, y: -10 },
-                    { x: -10, y: -15 },
-                    { x: -5, y: -20 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 20, y: 20 },
-                    { x: 40, y: 40 }]
-            }];
-            let eraserController = getEraserController(getTimelines);
-            eraserController.setActive(true);
-
-            let called = false;
-            eraserController.setEraseCallback((result) => {
-                assert.equal(result[0].id, "id2")
-                assert.equal(result[0].segments.length, 2)
-                assert.equal(result[0].segments[0].label, SEGMENT_LABELS.DELETED)
-                assert.equal(result[0].segments[0].points[0].x, 10)
-                assert.equal(result[0].segments[1].label, SEGMENT_LABELS.UNAFFECTED)
-                assert.equal(Math.round(result[0].segments[1].points[0].x), 31)
-                called = true;
-            });
-
-            eraserController.onPointerDown({ x: 10, y: 10 });
-            eraserController.onPointerMove({ x: 15, y: 15 });
-            eraserController.onPointerUp({ x: 15, y: 15 });
-
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
-
-            assert.equal(called, true);
-        });
-
-        it('should erase end of line without error', function () {
-            let eraserController = getEraserController(() => [{
-                id: "id1", points: [
-                    { x: 40, y: 40 },
-                    { x: 60, y: 60 },
-                    { x: 80, y: 80 }]
-            }, {
-                id: "id2", points: [
-                    { x: 10, y: 10 },
-                    { x: 20, y: 20 },
-                    { x: 30, y: 30 }]
-            }]);
-            eraserController.setActive(true);
-            let called = false;
-            eraserController.setEraseCallback((result) => {
-                assert.equal(result[0].id, "id1")
-                assert.equal(result[0].segments.length, 2)
-                assert.equal(result[0].segments[0].label, SEGMENT_LABELS.UNAFFECTED)
-                assert.equal(result[0].segments[0].points[0].x, 40)
-                assert.equal(result[0].segments[1].label, SEGMENT_LABELS.DELETED)
-                assert.equal(Math.round(result[0].segments[1].points[0].x), 75)
-                called = true;
-            });
-
-            eraserController.onPointerDown({ x: 80, y: 80 });
-            eraserController.onPointerMove({ x: 75, y: 80 });
-            eraserController.onPointerUp({ x: 75, y: 80 });
-
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
-
-            assert.equal(called, true);
-        });
-
-        it('should erase points in middle of line', function () {
-            let eraserController = getEraserController(() => [{
-                id: "1654867647735_5", points: [
-                    { x: 121, y: 306 },
-                    { x: 170.47430419921875, y: 313.05169677734375 },
-                    { x: 220.34288024902344, y: 316.6365661621094 },
-                    { x: 270.1659240722656, y: 320.81927490234375 },
-                    { x: 320.0511169433594, y: 323.1343994140625 },
-                    { x: 369.8844909667969, y: 319.5586242675781 },
-                    { x: 419.21697998046875, y: 311.4256286621094 },
-                    { x: 468.8236083984375, y: 305.245361328125 }]
-            }]);
-            eraserController.setActive(true);
-            let called = false;
-            eraserController.setEraseCallback((result) => {
-                assert.equal(result[0].segments.length, 3);
-                assert.equal(result[0].segments[0].label, SEGMENT_LABELS.UNAFFECTED);
-                assert.equal(result[0].segments[2].label, SEGMENT_LABELS.UNAFFECTED);
-                assert.equal(result[0].segments[1].label, SEGMENT_LABELS.DELETED);
-                called = true;
-            })
-
-            eraserController.onPointerDown({ x: 420, y: 313 });
-            eraserController.onPointerMove({ x: 410, y: 303 });
-            eraserController.onPointerUp({ x: 400, y: 293 });
-
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
-
-            assert.equal(called, true);
-        });
-
-        it('should create appropriate new points for erasing section with no points', function () {
-            let getTimelines = () => [{
-                id: "1654867647735_5", points: [
-                    { x: 0, y: 40 },
-                    { x: 0, y: 0 },
-                    { x: 40, y: 40 },
-                    { x: 40, y: 0 }]
-            }];
-            let eraserController = getEraserController(getTimelines);
-            eraserController.setActive(true);
-
-            let called = false;
-            eraserController.setEraseCallback((result) => {
-                assert.equal(result.length, 1);
-                assert.equal(result[0].segments.length, 3);
-                assert.equal(result[0].segments[0].points.length, 3);
-                assert.equal(result[0].segments[1].points.length, 2);
-                assert.equal(result[0].segments[2].points.length, 3);
-
-                expect(result[0].segments[1].points[0].x).to.be.closeTo(14.1, .1);
-                expect(result[0].segments[1].points[0].y).to.be.closeTo(14.1, .1);
-
-                expect(result[0].segments[1].points[1].x).to.be.closeTo(35.3, .1);
-                expect(result[0].segments[1].points[1].y).to.be.closeTo(35.3, .1);
-
-                called = true;
-            })
-
-            let clickPoint = { x: 21, y: 19 };
-            eraserController.onPointerDown(clickPoint);
-            eraserController.onPointerMove(clickPoint);
-            eraserController.onPointerUp(clickPoint);
-
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
-
-            assert.equal(called, true);
-        });
-    });
 });
 
 describe('Integration Test EraserController', function () {
@@ -197,6 +36,76 @@ describe('Integration Test EraserController', function () {
     });
 
     describe('erase line test', function () {
+        it('should erase start of line without error', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 20, y: 20 }, { x: 30, y: 30 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 40, y: 40 }, { x: 60, y: 40 }, { x: 80, y: 40 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "lines not drawn");
+            let timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
+            expect(timelinePoints[0]).to.eql({ x: 40, y: 40 });
+
+            IntegrationUtils.erase([{ x: 0, y: 40 }, { x: 35, y: 40 }, { x: 15, y: 40 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "incorrect line number");
+            timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
+            expect(timelinePoints[0]).to.eql({ x: 50, y: 40 });
+        });
+
+        it('should erase end of line without error', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 20, y: 20 }, { x: 30, y: 30 }], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 40, y: 40 }, { x: 60, y: 40 }, { x: 80, y: 40 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "lines not drawn");
+            let timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
+            expect(timelinePoints[timelinePoints.length - 1]).to.eql({ x: 80, y: 40 });
+
+            IntegrationUtils.erase([{ x: 80, y: 40 }, { x: 75, y: 40 }, { x: 90, y: 40 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "incorrect line number");
+            timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
+            expect(timelinePoints[timelinePoints.length - 1]).to.eql({ x: 70, y: 40 });
+
+        });
+
+        it('should erase points in middle of line', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 121, y: 306 },
+                { x: 170.47430419921875, y: 313.05169677734375 },
+                { x: 220.34288024902344, y: 316.6365661621094 },
+                { x: 270.1659240722656, y: 320.81927490234375 },
+                { x: 320.0511169433594, y: 323.1343994140625 },
+                { x: 369.8844909667969, y: 319.5586242675781 },
+                { x: 419.21697998046875, y: 311.4256286621094 },
+                { x: 468.8236083984375, y: 305.245361328125 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            let originalLength = PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points);
+
+            IntegrationUtils.erase([{ x: 420, y: 313 }, { x: 410, y: 303 }, { x: 400, y: 293 }], 10, integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "line not split");
+
+            let len1 = PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points);
+            let len2 = PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[1].points);
+            assert(originalLength > len1 + len2);
+        });
+
+        it('should create appropriate new points for erasing section with no points', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 0, y: 40 }, { x: 0, y: 0 }, { x: 40, y: 40 }, { x: 40, y: 0 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.erase([{ x: 21, y: 19 }], 10, integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "line not split");
+
+            let lines = integrationEnv.ModelController.getModel().getAllTimelines();
+
+            expect(lines[0].points[1].x).to.be.closeTo(7.1, .1);
+            expect(lines[0].points[1].y).to.be.closeTo(7.1, .1);
+
+            expect(lines[1].points[0].x).to.be.closeTo(34.1, .1);
+            expect(lines[1].points[0].y).to.be.closeTo(31.3, .1);
+        });
+
         it('should break line into two', function () {
             integrationEnv.mainInit();
             let longerLine = [

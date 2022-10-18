@@ -437,6 +437,7 @@ before(function () {
             DataUtil: utility.__get__("DataUtil"),
             ToolTip: utility.__get__("ToolTip"),
             FilterUtil: utility.__get__("FilterUtil"),
+            CanvasMask: utility.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
         };
         returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
