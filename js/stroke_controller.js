@@ -27,11 +27,17 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         mModel.getAllTimelines().forEach(timeline => {
             let oldtimeline = oldModel.getAllTimelines().find(t => t.id == timeline.id);
             let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
-            timeline.annotationStrokes.forEach(stroke => {
-                if (changedStrokes.includes(stroke.id)) {
-                    mStrokesData[stroke.id] = calculateStrokeData(timeline, stroke);
+            mModel.getStrokeData(timeline.id).forEach(strokeData => {
+                if (changedStrokes.includes(strokeData.id)) {
+                    mStrokesData[strokeData.id] = {
+                        color: strokeData.color,
+                        projectedPoints: strokeData.points.map(point =>
+                            PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist)),
+                        timelineId: timeline.id,
+                        strokeId: strokeData.id
+                    };
                 } else {
-                    mStrokesData[stroke.id] = oldStrokeData[stroke.id];
+                    mStrokesData[strokeData.id] = oldStrokeData[strokeData.id];
                 }
             })
         });
@@ -50,20 +56,6 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         })
 
         drawStrokes();
-    }
-
-    function calculateStrokeData(timeline, stroke) {
-        let timelineHasMapping = mModel.hasTimeMapping(timeline.id);
-        stroke.points.forEach(point => {
-            point.linePercent = mModel.mapTimeToLinePercent(timeline.id,
-                timelineHasMapping ? point.timeStamp : point.timePercent);
-        });
-
-        let projectedPoints = stroke.points.map(point => {
-            return PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist);
-        })
-
-        return { color: stroke.color, projectedPoints, timelineId: timeline.id, strokeId: stroke.id };
     }
 
     function drawStrokes() {

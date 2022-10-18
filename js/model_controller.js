@@ -385,27 +385,25 @@ function ModelController() {
 
         // split up the strokes (sometimes literally split them) into their segments
         segments.forEach(s => s.annotationStrokes = []);
-        timeline.annotationStrokes.forEach(stroke => {
-            let currSegment = findSegment(mModel.mapTimeToLinePercent(timelineId,
-                timelineHasMapping ? stroke.points[0].timeStamp : stroke.points[0].timePercent))
-            let currSet = [stroke.points[0].copy()];
+        mModel.getStrokeData(timeline.id).forEach(strokeData => {
+            let currSegment = findSegment(strokeData.points[0].linePercent)
+            let currSet = [strokeData.points[0].copy()];
 
-            stroke.points.forEach(point => {
-                linePercent = mModel.mapTimeToLinePercent(timelineId, timelineHasMapping ? point.timeStamp : point.timePercent);
-                if (linePercent > currSegment.endPercent || linePercent < currSegment.startPercent) {
+            strokeData.points.forEach(point => {
+                if (point.linePercent > currSegment.endPercent || point.linePercent < currSegment.startPercent) {
                     // outside the current segment, add the previous stroke part to the previous segment and reset.
                     if (currSet.length >= 2) {
-                        currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                        currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color));
                     }
                     currSet = [point.copy()];
-                    currSegment = findSegment(linePercent);
+                    currSegment = findSegment(point.linePercent);
                 } else {
                     currSet.push(point.copy());
                 }
             })
             // push the last stroke
             if (currSet.length >= 2) {
-                currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color));
             }
         });
 

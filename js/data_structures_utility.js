@@ -406,6 +406,29 @@ DataStructs.DataModel = function () {
             .find(s => s.id == strokeId);
     }
 
+    function getStrokeData(timelineId) {
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) { console.error("Invalid timeline id for getting cell binding data!", timelineId); return []; }
+        let timelineHasMapping = hasTimeMapping(timelineId);
+
+        let times = DataUtil.getUniqueList(
+            timeline.annotationStrokes.map(stroke => stroke.points
+                .map(p => timelineHasMapping ? p.timeStamp : p.timePercent))
+                .flat()
+                .sort());
+
+        let linePercents = times.length > 0 ? batchMapTimeToLinePercent(timelineId, times) : [];
+        let strokeData = timeline.annotationStrokes.map(stroke => {
+            let strokeCopy = stroke.copy();
+            strokeCopy.points.forEach(p => {
+                p.linePercent = linePercents[times.indexOf(timelineHasMapping ? p.timeStamp : p.timePercent)]
+            })
+            return strokeCopy;
+        });
+
+        return strokeData;
+    }
+
     function getTimeColumnByTableId(tableId) {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
@@ -435,6 +458,7 @@ DataStructs.DataModel = function () {
     this.getTimePinById = getTimePinById;
 
     this.getStrokeById = getStrokeById;
+    this.getStrokeData = getStrokeData;
 
     this.getTimeCellForPin = getTimeCellForPin;
     this.getTimeCellForDataCell = getTimeCellForDataCell;

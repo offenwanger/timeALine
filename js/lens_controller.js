@@ -349,11 +349,16 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         let timeline = mModel.getTimelineById(mTimelineId);
         let oldtimeline = oldModel ? oldModel.getTimelineById(mTimelineId) : null;
         let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
-        timeline.annotationStrokes.forEach(stroke => {
-            if (changedStrokes.includes(stroke.id)) {
-                mStrokesData[stroke.id] = calculateStrokeData(timeline, stroke);
+        mModel.getStrokeData(timeline.id).forEach(strokeData => {
+            if (changedStrokes.includes(strokeData.id)) {
+                mStrokesData[strokeData.id] = {
+                    color: strokeData.color,
+                    projectedPoints: strokeData.points.map(point => {
+                        return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], point.linePercent, point.lineDist);
+                    })
+                }
             } else {
-                mStrokesData[stroke.id] = oldStrokeData[stroke.id];
+                mStrokesData[strokeData.id] = oldStrokeData[strokeData.id];
             }
         })
 
@@ -373,16 +378,6 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
     function eraseStrokes() {
         mStrokeGroup.selectAll(".lens-annotation-stroke").remove();
-    }
-
-    function calculateStrokeData(timeline, stroke) {
-        let mapValue = mModel.hasTimeMapping(timeline.id) ? "timeStamp" : "timePercent";
-        let projectedPoints = stroke.points.map(point => {
-            let linePercent = mModel.mapTimeToLinePercent(timeline.id, point[mapValue]);
-            return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], linePercent, point.lineDist);
-        });
-
-        return { color: stroke.color, projectedPoints };
     }
 
 
