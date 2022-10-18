@@ -550,7 +550,10 @@ before(function () {
     function clickLine(coords, lineId, integrationEnv) {
         let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
         let data = timeLineTargets.innerData.find(d => d.id == lineId);
-        timeLineTargets.eventCallbacks['pointerdown'](coords, data);
+        timeLineTargets.eventCallbacks['pointerdown']({
+            clientX: coords.clientX ? coords.clientX : coords.x,
+            clientY: coords.clientY ? coords.clientY : coords.y
+        }, data);
         pointerUp(coords, integrationEnv);
     }
 

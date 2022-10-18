@@ -695,7 +695,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     function screenToSvgCoords(screenCoords) {
+        if (isNaN(parseInt(screenCoords.x)) || isNaN(parseInt(screenCoords.y))) {
+            console.error("Bad screen coords", screenCoords);
+            return { x: 0, y: 0 };
+        }
+
         let svgViewportPos = mSvg.node().getBoundingClientRect();
+        if (isNaN(parseInt(svgViewportPos.x)) || isNaN(parseInt(svgViewportPos.y))) {
+            console.error("Bad svg bounding box!", svgViewportPos);
+            return { x: 0, y: 0 };
+        }
+
+        if (isNaN(parseInt(mViewTransform.x)) || isNaN(parseInt(mViewTransform.y))) {
+            console.error("Bad veiw state!", mViewTransform);
+            return { x: 0, y: 0 };
+        }
+
         return {
             x: screenCoords.x - svgViewportPos.x - mViewTransform.x,
             y: screenCoords.y - svgViewportPos.y - mViewTransform.y

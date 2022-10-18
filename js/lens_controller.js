@@ -105,7 +105,22 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
 
     function screenToSvgCoords(coords) {
+        if (isNaN(parseInt(coords.x)) || isNaN(parseInt(coords.y))) {
+            console.error("Bad coords", coords);
+            return { x: 0, y: 0 };
+        }
+
         let svgElementCoords = svg.node().getBoundingClientRect();
+        if (isNaN(parseInt(svgElementCoords.x)) || isNaN(parseInt(svgElementCoords.y))) {
+            console.error("Bad svg bounding box!", svgElementCoords);
+            return { x: 0, y: 0 };
+        }
+
+        if (isNaN(parseInt(mViewTransform.x)) || isNaN(parseInt(mViewTransform.y))) {
+            console.error("Bad veiw state!", mViewTransform);
+            return { x: 0, y: 0 };
+        }
+
         let x = coords.x - svgElementCoords.x - mViewTransform.x;
         let y = coords.y - svgElementCoords.y - mViewTransform.y;
         return { x, y };
