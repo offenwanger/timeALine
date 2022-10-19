@@ -51,14 +51,17 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             };
         }
 
-        boundData.forEach(binding => {
+        boundData.sort((a, b) => a.linePercent - b.linePercent);
+        let positions = PathMath.getPositionForPercents(
+            timeline.points,
+            boundData.map(binding => binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0))
+        boundData.forEach((binding, index) => {
             let annotationData;
             if (!mDataCache[timeline.id].bindings[binding.cellBinding.id] || mDataCache[timeline.id].bindings[binding.cellBinding.id] != JSON.stringify(binding)) {
-                let linePercent = binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0;
-                let pos = PathMath.getPositionForPercent(timeline.points, linePercent);
                 let text = binding.dataCell.getValue();
                 let offsetX = binding.cellBinding.offset.x;
                 let offsetY = binding.cellBinding.offset.y;
+                let pos = positions[index];
                 annotationData = {
                     x: pos.x,
                     y: pos.y,

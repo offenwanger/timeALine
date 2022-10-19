@@ -339,35 +339,60 @@ let PathMath = function () {
         if (!points) { console.error("Invalid point array:  ", points); return { x: 0, y: 0 }; }
         if (points.length < 2) { console.error("Invalid point array, too short: ", points); return { x: 0, y: 0 }; }
 
-        if (percent <= 0) {
-            let direction = MathUtil.vectorFromAToB(points[1], points[0]);
-            let length = Math.abs(percent) * TAIL_LENGTH;
-            return MathUtil.getPointAtDistanceAlongVector(length, direction, points[0]);
-        } else if (percent >= 1) {
-            let direction = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]);
-            let length = (percent - 1) * TAIL_LENGTH;
-            return MathUtil.getPointAtDistanceAlongVector(length, direction, points[points.length - 1]);
-        } else {
-            let metaPoints = getMetaPoints(points);
-            let afterPoint = null;
-            for (let i = 0; i < metaPoints.length; i++) {
-                if (percent < metaPoints[i].percent) {
-                    afterPoint = metaPoints[i];
-                    break;
+        return getPositionForPercents(points, [percent])[0];
+    }
+
+    function getPositionForPercents(points, percents) {
+        if (!points) { console.error("Invalid point array:  ", points); return { x: 0, y: 0 }; }
+        if (points.length < 2) { console.error("Invalid point array, too short: ", points); return { x: 0, y: 0 }; }
+        percents = percents.map(percent => {
+            if (isNaN(parseInt(percent))) {
+                console.error("Invalid percent: ", percent);
+                return 0;
+            }
+            return percent;
+        })
+        percents.sort();
+
+        let returnable = [];
+
+        let metaPoints = getMetaPoints(points);
+        let metaPointIndex = 0;
+        for (let percentIndex = 0; percentIndex < percents.length; percentIndex++) {
+            if (percents[percentIndex] <= 0) {
+                let direction = MathUtil.vectorFromAToB(points[1], points[0]);
+                let length = Math.abs(percents[percentIndex]) * TAIL_LENGTH;
+                returnable.push(MathUtil.getPointAtDistanceAlongVector(length, direction, points[0]));
+            } else if (percents[percentIndex] >= 1) {
+                let direction = MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1]);
+                let length = (percents[percentIndex] - 1) * TAIL_LENGTH;
+                returnable.push(MathUtil.getPointAtDistanceAlongVector(length, direction, points[points.length - 1]));
+            } else {
+                let afterPoint = null;
+                while (metaPointIndex < metaPoints.length && percents[percentIndex] > metaPoints[metaPointIndex].percent) {
+                    metaPointIndex++;
                 }
-            }
-            if (afterPoint.index == 0) {
-                console.error("Code should be unreachable", percent, afterPoint);
-                afterPoint = metaPoints[1];
-            }
-            let beforePoint = metaPoints[afterPoint.index - 1];
+                if (metaPointIndex >= metaPoints.length) {
+                    console.error("Code should be unreachable", percents[percentIndex], metaPoints)
+                    metaPointIndex = metaPoints.length - 1;
+                }
+                afterPoint = metaPoints[metaPointIndex];
 
-            let percentBetween = (percent - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
-            let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
-            let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
+                if (afterPoint.index == 0) {
+                    console.error("Code should be unreachable", percents[percentIndex], afterPoint);
+                    afterPoint = metaPoints[1];
+                }
+                let beforePoint = metaPoints[afterPoint.index - 1];
 
-            return { x, y };
+                let percentBetween = (percents[percentIndex] - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
+                let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
+                let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
+
+                returnable.push({ x, y });
+            }
         }
+
+        return returnable;
     }
 
     function getNormalForPercent(points, percent) {
@@ -585,6 +610,7 @@ let PathMath = function () {
         getSubpathLength,
         equalsPath,
         getPositionForPercent,
+        getPositionForPercents,
         getNormalForPercent,
         getPositionForPercentAndDist,
         getClosestPointOnPath,

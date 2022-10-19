@@ -421,9 +421,9 @@ describe('Integration Test LineDrawingController', function () {
                 .innerData.map(item => Math.round(item.y))).to.eql([0, 0, 0]);
             let newTimelineId = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
             assert.equal(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData.length, 2)
-            assert.equal(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[0].x, 112.5)
+            assert.equal(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[1].x, 112.5)
             // this one had to move
-            expect(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[1].x).to.be.closeTo(100, 0.0001)
+            expect(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[0].x).to.be.closeTo(100, 0.0001)
             assert.equal(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[0].y, 100)
             assert.equal(selectors[".annotation-text[timeline-id=\"" + newTimelineId + "\"]"].innerData[1].y, 100)
 
@@ -463,7 +463,7 @@ describe('Integration Test LineDrawingController', function () {
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData.length, 3, "Annotations not created")
             expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"]
-                .innerData.map(item => Math.round(item.x))).to.eql([133, 100, 250]);
+                .innerData.map(item => Math.round(item.x))).to.eql([100, 133, 250]);
             expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"]
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100]);
         });
@@ -542,7 +542,7 @@ describe('Integration Test LineDrawingController', function () {
                 .innerData.map(item => Math.round(item.y))).to.eql([100]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"]
-                .innerData.map(item => Math.round(item.x))).to.eql([250, 200, 230]);
+                .innerData.map(item => Math.round(item.x))).to.eql([200, 230, 250]);
             expect(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"]
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100]);
 
@@ -578,7 +578,7 @@ describe('Integration Test LineDrawingController', function () {
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"]
-                .innerData.map(item => Math.round(item.x))).to.eql([250, 200, 230]);
+                .innerData.map(item => Math.round(item.x))).to.eql([200, 230, 250]);
             expect(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"]
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100]);
 
@@ -610,7 +610,7 @@ describe('Integration Test LineDrawingController', function () {
                 .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + mergedLineId + "\"]"]
-                .innerData.map(item => Math.round(item.x))).to.eql([17, 25, 150, 0, 110]);
+                .innerData.map(item => Math.round(item.x))).to.eql([0, 17, 25, 110, 150]);
             expect(selectors[".annotation-text[timeline-id=\"" + mergedLineId + "\"]"]
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100, 100, 100]);
 
