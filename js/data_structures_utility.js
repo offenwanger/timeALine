@@ -408,7 +408,7 @@ DataStructs.DataModel = function () {
 
     function getStrokeData(timelineId) {
         let timeline = getTimelineById(timelineId);
-        if (!timeline) { console.error("Invalid timeline id for getting cell binding data!", timelineId); return []; }
+        if (!timeline) { console.error("Invalid timeline id for getting stroke data!", timelineId); return []; }
         let timelineHasMapping = hasTimeMapping(timelineId);
 
         let times = DataUtil.getUniqueList(
