@@ -37,7 +37,7 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
         if (mActive && mDragging) {
             mDragging = false;
 
-            let eraserOutline = mEraserGroup.node().getBBox();
+            let eraserOutline = mEraserLine.node().getBBox();
             // eraser outline only takes the path coords into account, not the width
             let canvasWidth = eraserOutline.width + mBrushSize * 2;
             let canvasHeight = eraserOutline.height + mBrushSize * 2;
