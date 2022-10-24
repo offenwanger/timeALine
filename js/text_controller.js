@@ -22,9 +22,11 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     let mDragBinding = null;
 
     let mDataCache = {};
+    let mBoundingBoxData = [];
 
     function updateModel(model) {
         mDataCache = {};
+        mBoundingBoxData = [];
         mDisplayGroup.selectAll("*").remove();
         mInteractionGroup.selectAll("*").remove();
 
@@ -40,6 +42,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     function draw(timeline, boundData) {
         let annotationDataset = [];
         let linePadding = 2;
+
+        mBoundingBoxData = mBoundingBoxData.filter(d => d.timelineId != timeline.id);
 
         let timelineChanged = !mDataCache[timeline.id] || mDataCache[timeline.id].points != JSON.stringify(timeline.points);
         if (timelineChanged) {
@@ -104,6 +108,13 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 let x2 = boundingBox.x + boundingBox.width;
                 let y1 = boundingBox.y;
                 let y2 = boundingBox.y + boundingBox.height;
+
+                mBoundingBoxData.push({
+                    x1, x2, y1, y2,
+                    timelineId: timeline.id,
+                    cellBindingId: d.binding.cellBinding.id
+                });
+
                 let closeY, closeX;
                 if (Math.abs(d.y - y1) < Math.abs(d.y - y2)) {
                     closeY = y1 - linePadding;
@@ -334,6 +345,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     this.setDragEndCallback = (callback) => mDragEndCallback = callback;
     this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
     this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
+    this.getTextBoundingBoxes = () => mBoundingBoxData;
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

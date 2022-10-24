@@ -248,6 +248,148 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
         });
+
+        it('should erase pins on line', function () {
+            integrationEnv.mainInit();
+
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([
+                { x: 100, y: 100 },
+                { x: 200, y: 100 },
+            ], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 115, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
+
+            IntegrationUtils.mainPointerDown({ x: 110, y: 100 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 115, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerMove({ x: 120, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerMove({ x: 125, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerUp({ x: 125, y: 100 }, integrationEnv);
+            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+            integrationEnv.enviromentVariables.img.onload();
+
+            IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
+        });
+
+        it('should erase pins but not strokes on line', function () {
+            integrationEnv.mainInit();
+
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 },], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+            IntegrationUtils.drawLensColorLine([
+                { x: 10, y: 100 },
+                { x: 15, y: 100 },
+                { x: 20, y: 100 },
+                { x: 25, y: 102 },
+                { x: 45, y: 102 },
+                { x: 50, y: 102 },
+                { x: 55, y: 100 },
+                { x: 60, y: 100 }
+            ], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
+                .to.eql([110, 115, 120, 125, 145, 150, 155, 160]);
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }, { x: 175, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }, { x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 115, y: 100 }, { x: 105, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
+                .to.eql([124, 144, 153, 156, 171, 175, 178, 180]);
+
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
+
+            IntegrationUtils.mainPointerDown({ x: 100, y: 100 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 100, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerMove({ x: 150, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv)
+            IntegrationUtils.pointerUp({ x: 175, y: 100 }, integrationEnv);
+            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
+            integrationEnv.enviromentVariables.img.onload();
+
+            IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
+                .to.eql([110, 115, 120, 125, 145, 150, 155, 160]);
+        });
+
+        it('should erase line, pin, and stroke', function () {
+            integrationEnv.mainInit();
+
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 },], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+            IntegrationUtils.drawLensColorLine([
+                { x: 1, y: 100 },
+                { x: 10, y: 100 },
+                { x: 15, y: 100 },
+                { x: 20, y: 100 },
+                { x: 25, y: 102 },
+                { x: 45, y: 102 },
+                { x: 50, y: 102 },
+                { x: 55, y: 100 },
+                { x: 60, y: 100 },
+                { x: 80, y: 100 },
+                { x: 90, y: 100 },
+                { x: 99, y: 100 }
+            ], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
+                .to.eql([101, 110, 115, 120, 125, 145, 150, 155, 160, 180, 190, 199]);
+
+            IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.dragLine([{ x: 150, y: 100 }, { x: 175, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 125, y: 100 }, { x: 150, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 115, y: 100 }, { x: 105, y: 100 }], integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 3);
+
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
+                .to.eql([101, 124, 144, 153, 156, 171, 175, 178, 180, 190, 195, 200]);
+
+            IntegrationUtils.erase([{ x: 150, y: 90 }, { x: 150, y: 100 }, { x: 150, y: 110 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.timePins).flat().length, 2);
+            expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.timePins).flat().map(t => Math.round(100 * t.timePercent) / 100))
+                .to.eql([0.36, 0.12]);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.map(d => d.projectedPoints.map(p => Math.round(p.x))))
+                .to.eql([[101, 124], [171, 175, 178, 180, 190, 195, 200]]);
+        });
     })
 
     describe('erase line with data test', function () {
@@ -392,8 +534,8 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()
                 .map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.timePercent) / 100))))
                 .to.eql([
-                    [[0.25, 0.25, 0.5]],
-                    [[0.14, 0.14, 0.29, 0.43, 0.57, 0.71]],
+                    [[0.25, 0.5]],
+                    [[0.14, 0.29, 0.43, 0.57, 0.71]],
                     [[0, 0.08, 0.15, 0.19]]
                 ]);
         });
@@ -458,9 +600,9 @@ describe('Integration Test EraserController', function () {
 
             expect(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.annotationStrokes.map(s => s.points.map(p => Math.round(100 * p.timePercent) / 100))))
                 .to.eql([
-                    [[0.25, 0.25, 1], [1, 0.25]],
-                    [[0.33, 0.33, 0.67], [0.67, 0.33]],
-                    [[0.67, 0.67, 0]]
+                    [[0.25, 1], [1, 0.25]],
+                    [[0.33, 0.67], [0.67, 0.33]],
+                    [[0.67, 0.67, -0]]
                 ]);
         });
     });

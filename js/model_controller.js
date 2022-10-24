@@ -343,24 +343,18 @@ function ModelController() {
 
         // Assign the segments their correct line percents.
         segments[0].startPercent = 0;
+        segments[0].startTime = mModel.mapLinePercentToTime(timelineId, 0);
         segments[0].endPercent = PathMath.getSubpathLength(segments[0].points) / totalLength;
+        segments[0].endTime = mModel.mapLinePercentToTime(timelineId, segments[0].endPercent);
         for (let i = 1; i < segments.length; i++) {
             segments[i].startPercent = segments[i - 1].endPercent;
+            segments[i].startTime = segments[i - 1].endTime;
             segments[i].endPercent = PathMath.getSubpathLength(PathMath.mergeSegments(segments.slice(0, i + 1))) / totalLength;
+            segments[i].endTime = mModel.mapLinePercentToTime(timelineId, segments[i].endPercent);
         }
         // ensure the last segment does indeed go to one, avoid rounding errors.
         segments[segments.length - 1].endPercent = 1;
-
-        if (!timelineHasMapping) {
-            // If we don't have a mapping, assign the segments their correct time percents.
-            segments[0].startTimePercent = 0;
-            segments[0].endTimePercent = PathMath.getSubpathLength(segments[0].points) / totalLength;
-            for (let i = 1; i < segments.length; i++) {
-                segments[i].startTimePercent = segments[i - 1].endPercent;
-                segments[i].endTimePercent = PathMath.getSubpathLength(PathMath.mergeSegments(segments.slice(0, i + 1))) / totalLength;
-            }
-            segments[segments.length - 1].endTimePercent = 1;
-        }
+        segments[segments.length - 1].endTime = mModel.mapLinePercentToTime(timelineId, 1);
 
         // split up the time pins into their proper segments
         segments.forEach(s => s.timePins = []);
@@ -386,11 +380,13 @@ function ModelController() {
         // split up the strokes (sometimes literally split them) into their segments
         segments.forEach(s => s.annotationStrokes = []);
         mModel.getStrokeData(timeline.id).forEach(strokeData => {
-            let currSegment = findSegment(strokeData.points[0].linePercent)
-            let currSet = [strokeData.points[0].copy()];
-
-            strokeData.points.forEach(point => {
-                if (point.linePercent > currSegment.endPercent || point.linePercent < currSegment.startPercent) {
+            let currSegment = null;
+            let currSet = [];
+            strokeData.points.forEach((point, index) => {
+                if (index == 0) {
+                    currSegment = findSegment(point.linePercent);
+                    currSet.push(point.copy());
+                } else if (point.linePercent > currSegment.endPercent || point.linePercent < currSegment.startPercent) {
                     // outside the current segment, add the previous stroke part to the previous segment and reset.
                     if (currSet.length >= 2) {
                         currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color));
@@ -434,6 +430,7 @@ function ModelController() {
                     timePin.timeStamp = mModel.mapLinePercentToTime(timelineId, segment.startPercent);
                     segment.timePins.unshift(timePin);
                 }
+
                 if (maxTime > -Infinity &&
                     segment.endPercent < 1 && (
                         segment.timePins.length == 0 ||
@@ -455,6 +452,9 @@ function ModelController() {
             newTimeline.timePins = segment.timePins.map(pin => {
                 let timePin = pin.copy();
                 timePin.linePercent = (timePin.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                if (!timelineHasMapping) {
+                    timePin.timePercent = (timePin.timePercent - segment.startTime) / (segment.endTime - segment.startTime);
+                }
                 return timePin;
             });
 
@@ -468,8 +468,8 @@ function ModelController() {
             if (!timelineHasMapping) {
                 newTimeline.annotationStrokes.forEach(stroke => {
                     stroke.points.forEach(point => {
-                        point.timePercent = (point.timePercent - segment.startTimePercent) /
-                            (segment.endTimePercent - segment.startTimePercent);
+                        point.timePercent = (point.timePercent - segment.startTime) /
+                            (segment.endTime - segment.startTime);
                     })
                 });
             }
@@ -598,8 +598,6 @@ function ModelController() {
     }
 
     function eraseMaskedTimelines(eraserMask) {
-        undoStackPush();
-
         // check erase timelines
         let timelines = mModel.getAllTimelines();
         let segmentsData = timelines.map(timeline => {
@@ -672,6 +670,124 @@ function ModelController() {
             }
         })
         mModel.getCanvas().annotationStrokes = newStrokes;
+    }
+
+    function eraseMaskedDataPoints(eraserMask) {
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            let pointData = mModel.getCellBindingData(timeline.id).filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
+            pointData.sort((a, b) => a.linePercent - b.linePercent);
+            let percents = pointData.map(p => p.linePercent);
+            let dists = pointData.map(p => {
+                let { val1, val2, dist1, dist2 } = p.axisBinding;
+
+                if (val1 == val2) {
+                    console.error("Invalid binding values: " + val1 + ", " + val2);
+                    val1 = 0;
+                    if (val1 == val2) val2 = 1;
+                };
+
+                let dist = (dist2 - dist1) * (p.dataCell.getValue() - val1) / (val2 - val1) + dist1;
+                return dist;
+            });
+            let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists);
+
+            let coveredPoints = [];
+            pointData.forEach((binding, index) => {
+                if (eraserMask.isCovered(positions[index])) {
+                    coveredPoints.push(binding.cellBinding.id);
+                }
+            })
+
+            if (coveredPoints.length > 0) {
+                timeline.cellBindings = timeline.cellBindings
+                    .filter(cb => !coveredPoints.includes(cb.id));
+
+                pointData = pointData.filter(cbd => !coveredPoints.includes(cbd.cellBinding.id));
+
+                // remove axis without data
+                let axesColumns = DataUtil.getUniqueList(pointData.map(cbd => cbd.dataCell.columnId));
+                timeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
+            }
+        });
+    }
+
+    function eraseMaskedText(eraserMask, textBoundingBoxes) {
+        let hasTimeMappings = {};
+        textBoundingBoxes.forEach(box => {
+            let { x1, x2, y1, y2 } = box;
+            let points = [
+                { x: x1, y: y1 },
+                { x: x1, y: y2 },
+                { x: x2, y: y1 },
+                { x: x2, y: y2 },
+                { x: (x1 + x2) / 2, y: y1 },
+                { x: (x1 + x2) / 2, y: y2 },
+                { x: x1, y: (y1 + y2) / 2 },
+                { x: x2, y: (y1 + y2) / 2 },
+            ]
+            let score = points.reduce((score, currPoint) => {
+                if (eraserMask.isCovered(currPoint)) score++;
+                return score;
+            }, 0)
+            if (score > 4) {
+                if (!(box.timelineId in hasTimeMappings)) {
+                    hasTimeMappings[box.timelineId] = { timelineHasMapping: mModel.hasTimeMapping(box.timelineId) };
+                    if (hasTimeMappings[box.timelineId].timelineHasMapping) {
+                        let timeline = mModel.getTimelineById(box.timelineId);
+                        let bindingValues = mModel.getTimeBindingValues(timeline);
+                        hasTimeMappings[box.timelineId].startTime = bindingValues[0].timeStamp;
+                        hasTimeMappings[box.timelineId].endTime = bindingValues[bindingValues.length - 1].timeStamp
+                    }
+                }
+                let timeline = mModel.getTimelineById(box.timelineId);
+                timeline.cellBindings = timeline.cellBindings.filter(binding => binding.id != box.cellBindingId);
+            }
+        })
+        Object.entries(hasTimeMappings).forEach(([timelineId, data]) => {
+            if (data.timelineHasMapping && !mModel.hasTimeMapping(timelineId)) {
+                let timeline = mModel.getTimelineById(timelineId);
+                mapTimeStampsToTimePercents(timeline, data.startTime, data.endTime)
+            }
+        })
+    }
+
+    function eraseMaskedPins(eraserMask) {
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            let remainingPins = [];
+            let maybeUpdateMapping = false;
+            let startTime, endTime;
+            timeline.timePins.sort((a, b) => a.linePercent - b.linePercent);
+            let pinPositions = PathMath.getPositionForPercents(timeline.points, timeline.timePins.map(pin => pin.linePercent));
+            timeline.timePins.forEach((pin, index) => {
+                if (!eraserMask.isCovered(pinPositions[index])) {
+                    remainingPins.push(pin);
+                } else {
+                    maybeUpdateMapping = mModel.hasTimeMapping(timeline.id);
+                    if (maybeUpdateMapping) {
+                        let bindingValues = mModel.getTimeBindingValues(timeline);
+                        startTime = bindingValues[0].timeStamp
+                        endTime = bindingValues[bindingValues.length - 1].timeStamp;
+                    }
+                }
+            });
+
+            if (remainingPins.length != timeline.timePins.length) {
+                timeline.timePins = remainingPins;
+                let ids = remainingPins.map(p => p.id);
+                timeline.cellBindings.forEach(b => {
+                    if (b.timePinId && !ids.includes(b.timePinId)) {
+                        b.timePinId = null;
+                    }
+                })
+            }
+
+            // check if we had a mapping and now don't
+            if (maybeUpdateMapping && !mModel.hasTimeMapping(timeline.id)) {
+                mapTimeStampsToTimePercents(timeline, startTime, endTime)
+            }
+        });
     }
 
     function updateText(cellId, text) {
@@ -1103,6 +1219,9 @@ function ModelController() {
 
     this.eraseMaskedTimelines = eraseMaskedTimelines;
     this.eraseMaskedStrokes = eraseMaskedStrokes;
+    this.eraseMaskedDataPoints = eraseMaskedDataPoints;
+    this.eraseMaskedText = eraseMaskedText;
+    this.eraseMaskedPins = eraseMaskedPins;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
@@ -1124,4 +1243,5 @@ function ModelController() {
 
     this.undo = undo;
     this.redo = redo;
+    this.undoStackPush = undoStackPush;
 }

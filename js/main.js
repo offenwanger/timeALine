@@ -556,7 +556,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mEraserController.setEraseCallback(canvasMask => {
+        if (mMode == MODE_ERASER_TEXT ||
+            mMode == MODE_ERASER_TIMELINE ||
+            mMode == MODE_ERASER_STROKE ||
+            mMode == MODE_ERASER_POINT ||
+            mMode == MODE_ERASER_PIN ||
+            mMode == MODE_ERASER) {
+            mModelController.undoStackPush();
+        }
+
         // check/erase lines
+        if (mMode == MODE_ERASER_TEXT || mMode == MODE_ERASER) {
+            // text has to be erased first because we need the rendering information.
+            let boundingBoxes = mTextController.getTextBoundingBoxes();
+            mModelController.eraseMaskedText(canvasMask, boundingBoxes);
+        }
         if (mMode == MODE_ERASER_TIMELINE || mMode == MODE_ERASER) {
             mModelController.eraseMaskedTimelines(canvasMask);
         }
@@ -564,13 +578,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.eraseMaskedStrokes(canvasMask);
         }
         if (mMode == MODE_ERASER_POINT || mMode == MODE_ERASER) {
-            console.log("Finish me!")
+            mModelController.eraseMaskedDataPoints(canvasMask);
         }
-        if (mMode == MODE_ERASER_TEXT || mMode == MODE_ERASER) {
-            console.log("Finish me!")
-        }
-        if (mMode == MODE_ERASER_PIN || mMode == MODE_ERASER) {
-            console.log("Finish me!")
+        if (mMode == MODE_ERASER_PIN) {
+            // only do this if we are specifically erasing pins, because 
+            // pins will be deleted with the erased line section.
+            mModelController.eraseMaskedPins(canvasMask);
         }
 
         modelUpdated();
