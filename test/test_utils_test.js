@@ -107,7 +107,16 @@ before(function () {
                 let node = Object.assign({}, fakeSVGPath);
                 node.d = this.attrs.d;
                 node.getBoundingClientRect = () => { return { x: 0, y: 0 } };
-                node.getBBox = () => { return { x: 0, y: 0, width: 500, height: 500 } };
+                node.getBBox = () => {
+                    if (this.attrs.d) {
+                        let xMin = Math.min(...this.attrs.d.map(i => i.x))
+                        let yMin = Math.min(...this.attrs.d.map(i => i.y))
+                        let xMax = Math.max(...this.attrs.d.map(i => i.x))
+                        let yMax = Math.max(...this.attrs.d.map(i => i.y))
+                        return { x: xMin, y: yMin, width: xMax - xMin, height: yMax - yMin };
+                    }
+                    else return { x: 0, y: 0, width: 500, height: 500 }
+                };
                 return node;
             };
             this.each = function (func) {
@@ -277,13 +286,16 @@ before(function () {
         getContext: function () { return this; },
         drawImage: function (image) {
             this.blob = image;
-            this.eraserPath = this.blob.src.init[0][0].d;
+            this.canvasLine = this.blob.src.init[0][0].d;
         },
         getImageData: function (x, y, pixelsX, pixelsY) {
             // this will need to be piped if we want to test alternatives
             let brushSize = 10;
-            if (this.eraserPath.some(point => {
-                if (x >= point.x - brushSize && x <= point.x + brushSize && y >= point.y - brushSize && y <= point.y + brushSize) return true;
+            if (this.canvasLine.some(canvasPoint => {
+                if (x >= canvasPoint.x - brushSize &&
+                    x <= canvasPoint.x + brushSize &&
+                    y >= canvasPoint.y - brushSize &&
+                    y <= canvasPoint.y + brushSize) return true;
                 else return false;
             })) {
                 return { data: [1, 1, 1, 1] }
@@ -507,6 +519,18 @@ before(function () {
         clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
     }
 
+    function drawCanvasStroke(points, integrationEnv) {
+        clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
+
+        mainPointerDown(points[0], integrationEnv)
+        points.forEach(point => {
+            pointerMove(point, integrationEnv);
+        })
+        pointerUp(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, integrationEnv);
+
+        clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
+    }
+
     function drawLensColorLine(points, integrationEnv) {
         clickButton("#color-brush-button", integrationEnv.enviromentVariables.$);
 
@@ -618,6 +642,7 @@ before(function () {
     IntegrationUtils = {
         drawLine,
         drawLensColorLine,
+        drawCanvasStroke,
         mainPointerDown,
         pointerUp,
         pointerMove,

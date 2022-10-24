@@ -320,14 +320,14 @@ function ModelController() {
     }
     /* End Utilty Function */
 
-    function deleteTimeline(timelineId) {
-        undoStackPush();
+    function deleteTimeline(timelineId, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         mModel.setTimelines(mModel.getAllTimelines().filter(t => t.id != timelineId));
     }
 
-    function breakTimeline(timelineId, segments) {
-        undoStackPush();
+    function breakTimeline(timelineId, segments, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
@@ -596,6 +596,89 @@ function ModelController() {
             timeline.timePins.push(pin);
         }
     }
+
+    function eraseMaskedData(eraserMask) {
+        undoStackPush();
+
+        // check erase timelines
+        let timelines = mModel.getAllTimelines();
+        let segmentsData = timelines.map(timeline => {
+            return {
+                id: timeline.id,
+                segments: PathMath.segmentPath(timeline.points, point => {
+                    return eraserMask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
+                })
+            }
+        }).filter(segmentData => segmentData.segments.some(segment => segment.label == SEGMENT_LABELS.DELETED));
+
+        let deletedTimelines = segmentsData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
+        let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
+
+        deletedTimelines.forEach(id => deleteTimeline(id, false));
+        brokenTimelines.forEach(d => breakTimeline(d.id, d.segments, false));
+
+        eraseStrokes(eraserMask);
+    }
+
+    // Utility functions for erase //
+    function eraseStrokes(eraserMask) {
+        // check/erase strokes
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            let newStrokes = [];
+            let strokeData = mModel.getStrokeData(timeline.id);
+            strokeData.forEach(stroke => {
+                let currSet = [];
+                let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, stroke.points.map(s => s.linePercent), stroke.points.map(s => s.lineDist));
+                stroke.points.forEach((point, index) => {
+                    if (eraserMask.isCovered(positions[index])) {
+                        if (currSet.length >= 2) {
+                            newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                        }
+                        currSet = [];
+                    } else {
+                        // copy returns a regular stroke point. 
+                        currSet.push(point.copy());
+                    }
+                })
+                // push the last stroke
+                if (currSet.length == stroke.points.length) {
+                    // copy returns a regular stroke
+                    newStrokes.push(stroke.copy())
+                } else if (currSet.length >= 2) {
+                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                }
+            });
+
+            timeline.annotationStrokes = newStrokes;
+        })
+
+        let newStrokes = [];
+        mModel.getCanvas().annotationStrokes.forEach(stroke => {
+            let currSet = [];
+            stroke.points.forEach(point => {
+                if (eraserMask.isCovered({ x: point.xValue, y: point.lineDist })) {
+                    if (currSet.length >= 2) {
+                        newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                    }
+                    currSet = [];
+                } else {
+                    // copy returns a regular stroke point. 
+                    currSet.push(point.copy());
+                }
+            })
+            // push the last stroke
+            if (currSet.length == stroke.points.length) {
+                // copy returns a regular stroke
+                newStrokes.push(stroke.copy())
+            } else if (currSet.length >= 2) {
+                newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+            }
+        })
+        mModel.getCanvas().annotationStrokes = newStrokes;
+    }
+
+    // End of utility functions for erase //
 
     function updateText(cellId, text) {
         undoStackPush();
@@ -1023,6 +1106,8 @@ function ModelController() {
 
     this.bindCells = bindCells;
     this.updatePinBinding = updatePinBinding;
+
+    this.eraseMaskedData = eraseMaskedData;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;

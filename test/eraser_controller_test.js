@@ -140,7 +140,117 @@ describe('Integration Test EraserController', function () {
         });
     })
 
-    describe('erase line with text test', function () {
+    describe('erase data test', function () {
+        it('should erase strokes on a line', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+            IntegrationUtils.drawLensColorLine([{ x: 110, y: 100 }, { x: 120, y: 110 }, { x: 150, y: 102 }, { x: 160, y: 110 }], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }]);
+
+            IntegrationUtils.erase([{ x: 210, y: 150 }, { x: 220, y: 152 }, { x: 240, y: 152 }, { x: 250, y: 152 }, { x: 260, y: 152 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 0);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 0);
+        });
+
+        it('should split strokes on a line', function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+            IntegrationUtils.drawLensColorLine([
+                { x: 110, y: 100 },
+                { x: 115, y: 100 },
+                { x: 120, y: 100 },
+                { x: 125, y: 102 },
+                { x: 145, y: 102 },
+                { x: 150, y: 102 },
+                { x: 155, y: 100 },
+                { x: 160, y: 100 }
+            ], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 1);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 210, y: 150 },
+                    { x: 215, y: 150 },
+                    { x: 220, y: 150 },
+                    { x: 225, y: 152 },
+                    { x: 245, y: 152 },
+                    { x: 250, y: 152 },
+                    { x: 255, y: 150 },
+                    { x: 260, y: 150 }
+                ]);
+
+            IntegrationUtils.erase([{ x: 235, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 2);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
+        });
+
+        it('should erase strokes on canvas', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawCanvasStroke([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }]);
+
+            IntegrationUtils.erase([{ x: 240, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 0);
+        });
+
+        it('should split strokes on canvas', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawCanvasStroke([
+                { x: 210, y: 100 },
+                { x: 215, y: 100 },
+                { x: 220, y: 100 },
+                { x: 225, y: 102 },
+                { x: 245, y: 102 },
+                { x: 250, y: 102 },
+                { x: 255, y: 100 },
+                { x: 260, y: 100 }
+            ], integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+            expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
+                .to.eql([
+                    { x: 210, y: 100 },
+                    { x: 215, y: 100 },
+                    { x: 220, y: 100 },
+                    { x: 225, y: 102 },
+                    { x: 245, y: 102 },
+                    { x: 250, y: 102 },
+                    { x: 255, y: 100 },
+                    { x: 260, y: 100 }
+                ]);
+
+            IntegrationUtils.erase([{ x: 240, y: 102 }, { x: 230, y: 102 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
+        });
+    })
+
+    describe('erase line with data test', function () {
         it('should erase line and not move text with no time mapping', function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 100 }, { x: 400, y: 100 }], integrationEnv);

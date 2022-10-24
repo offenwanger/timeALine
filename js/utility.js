@@ -396,44 +396,64 @@ let PathMath = function () {
     }
 
     function getNormalForPercent(points, percent) {
+        if (isNaN(percent)) {
+            console.error("Invalid normal percent!", percent);
+            return { x: 0, y: 1 };
+        }
+
         if (points.length < 2) throw new Error("invalid point array! Too short!", points);
 
-        if (percent <= 0) {
-            return MathUtil.rotateVectorRight(
-                MathUtil.normalize(
-                    MathUtil.vectorFromAToB(points[0], points[1])));
-        } else if (percent >= 1) {
-            return MathUtil.rotateVectorRight(
-                MathUtil.normalize(
-                    MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1])));
-        } else {
-            let metaPoints = getMetaPoints(points);
-            let afterPoint = null;
-            for (let i = 0; i < metaPoints.length; i++) {
-                if (percent < metaPoints[i].percent) {
-                    afterPoint = metaPoints[i];
-                    break;
+        return getNormalsForPercents(points, [percent])[0];
+    }
+
+    function getNormalsForPercents(points, percents) {
+        percents = percents.filter((percent) => {
+            if (isNaN(percent)) {
+                console.error("Invalid normal percent!", percent);
+                return false;
+            } return true;
+        });
+
+        if (points.length < 2) throw new Error("invalid point array! Too short!", points);
+
+        return percents.map(percent => {
+            if (percent <= 0) {
+                return MathUtil.rotateVectorRight(
+                    MathUtil.normalize(
+                        MathUtil.vectorFromAToB(points[0], points[1])));
+            } else if (percent >= 1) {
+                return MathUtil.rotateVectorRight(
+                    MathUtil.normalize(
+                        MathUtil.vectorFromAToB(points[points.length - 2], points[points.length - 1])));
+            } else {
+                let metaPoints = getMetaPoints(points);
+                let afterPoint = null;
+                for (let i = 0; i < metaPoints.length; i++) {
+                    if (percent < metaPoints[i].percent) {
+                        afterPoint = metaPoints[i];
+                        break;
+                    }
                 }
+                if (afterPoint.index == 0) {
+                    console.error("Code should be unreachable", "percent:" + percent, afterPoint);
+                    afterPoint = metaPoints[1];
+                }
+                let beforePoint = metaPoints[afterPoint.index - 1];
+
+                let normalPositionBefore = MathUtil.addAToB(beforePoint.point, beforePoint.normal);
+                let normalPositionAfter = MathUtil.addAToB(afterPoint.point, afterPoint.normal);
+
+                let percentBetween = (percent - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
+                let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
+                let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
+                let normalX = percentBetween * (normalPositionAfter.x - normalPositionBefore.x) + normalPositionBefore.x;
+                let normalY = percentBetween * (normalPositionAfter.y - normalPositionBefore.y) + normalPositionBefore.y;
+
+                let normalVector = MathUtil.vectorFromAToB({ x, y }, { x: normalX, y: normalY });
+
+                return MathUtil.normalize(normalVector);
             }
-            if (afterPoint.index == 0) {
-                console.error("Code should be unreachable", "percent:" + percent, afterPoint);
-                afterPoint = metaPoints[1];
-            }
-            let beforePoint = metaPoints[afterPoint.index - 1];
-
-            let normalPositionBefore = MathUtil.addAToB(beforePoint.point, beforePoint.normal);
-            let normalPositionAfter = MathUtil.addAToB(afterPoint.point, afterPoint.normal);
-
-            let percentBetween = (percent - beforePoint.percent) / (afterPoint.percent - beforePoint.percent);
-            let x = percentBetween * (afterPoint.point.x - beforePoint.point.x) + beforePoint.point.x;
-            let y = percentBetween * (afterPoint.point.y - beforePoint.point.y) + beforePoint.point.y;
-            let normalX = percentBetween * (normalPositionAfter.x - normalPositionBefore.x) + normalPositionBefore.x;
-            let normalY = percentBetween * (normalPositionAfter.y - normalPositionBefore.y) + normalPositionBefore.y;
-
-            let normalVector = MathUtil.vectorFromAToB({ x, y }, { x: normalX, y: normalY });
-
-            return MathUtil.normalize(normalVector);
-        }
+        })
     }
 
     function getPositionForPercentAndDist(points, percent, dist) {
@@ -442,10 +462,32 @@ let PathMath = function () {
             return { x: 0, y: 0 };
         }
 
-        let basePose = getPositionForPercent(points, percent);
-        let normal = getNormalForPercent(points, percent);
+        return getPositionsForPercentsAndDists(points, [percent], [dist])[0];
+    }
 
-        return MathUtil.getPointAtDistanceAlongVector(dist, normal, basePose);
+    function getPositionsForPercentsAndDists(points, percents, dists) {
+        if (percents.length != dists.length) {
+            console.error("Invalid inputs, unequal percents and dists counts", percents.length, dists.length);
+            return [];
+        }
+
+        let filteredValues = [];
+        for (let i = 0; i < percents.length; i++) {
+            if (isNaN(percents[i]) || isNaN(dists[i])) {
+                console.error("Invalid percent, dist!", percents[i], dists[i]);
+            } else {
+                filteredValues.push([percents[i], dists[i]])
+            }
+        }
+        percents = filteredValues.map(v => v[0]);
+        dists = filteredValues.map(v => v[1]);
+
+        let basePoses = getPositionForPercents(points, percents);
+        let normals = getNormalsForPercents(points, percents);
+
+        return dists.map((dist, index) => {
+            return MathUtil.getPointAtDistanceAlongVector(dist, normals[index], basePoses[index])
+        });
     }
 
     function getPointsWithin(x, coords, points) {
@@ -613,6 +655,7 @@ let PathMath = function () {
         getPositionForPercents,
         getNormalForPercent,
         getPositionForPercentAndDist,
+        getPositionsForPercentsAndDists,
         getClosestPointOnPath,
         getPointsWithin,
         segmentPath,

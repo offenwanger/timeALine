@@ -51,10 +51,11 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
                 // this is required for unknown reasons
                 .attr("xmlns", "http://www.w3.org/2000/svg");
 
-            mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints.map(p => {
+            let canvasLine = mEraserLine.clone();
+            canvasLine.attr('d', PathMath.getPathD(mDraggedPoints.map(p => {
                 return { x: p.x - canvasX, y: p.y - canvasY };
             })));
-            exportSVG.append(() => mEraserLine.clone().node());
+            exportSVG.append(() => canvasLine.node());
             exportSVG = exportSVG.node();
 
             let blob = new Blob([exportSVG.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
