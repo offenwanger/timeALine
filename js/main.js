@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_LINE_DRAWING = "drawing";
     const MODE_LINE_DRAWING_EYEDROPPER = "drawingEyedropper";
     const MODE_ERASER = "eraser";
+    const MODE_ERASER_TIMELINE = "eraserTimeline";
+    const MODE_ERASER_STROKE = "eraserStroke";
+    const MODE_ERASER_POINT = "eraserPoint";
+    const MODE_ERASER_TEXT = "eraserText";
+    const MODE_ERASER_PIN = "eraserPin";
     const MODE_DEFORM = "deform";
     const MODE_SMOOTH = "smooth";
     const MODE_SCISSORS = "scissors";
@@ -552,7 +557,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mEraserController.setEraseCallback(canvasMask => {
         // check/erase lines
-        mModelController.eraseMaskedData(canvasMask);
+        if (mMode == MODE_ERASER_TIMELINE || mMode == MODE_ERASER) {
+            mModelController.eraseMaskedTimelines(canvasMask);
+        }
+        if (mMode == MODE_ERASER_STROKE || mMode == MODE_ERASER) {
+            mModelController.eraseMaskedStrokes(canvasMask);
+        }
+        if (mMode == MODE_ERASER_POINT || mMode == MODE_ERASER) {
+            console.log("Finish me!")
+        }
+        if (mMode == MODE_ERASER_TEXT || mMode == MODE_ERASER) {
+            console.log("Finish me!")
+        }
+        if (mMode == MODE_ERASER_PIN || mMode == MODE_ERASER) {
+            console.log("Finish me!")
+        }
+
         modelUpdated();
     })
 
@@ -923,6 +943,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mEraserController.setActive(true);
     });
     setupButtonTooltip("#eraser-button", "Erases all the things!")
+    setupSubModeButton("#eraser-button", "-timeline", MODE_ERASER_TIMELINE, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-timeline", "Erases timelines only")
+    setupSubModeButton("#eraser-button", "-stroke", MODE_ERASER_STROKE, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-timeline", "Erases strokes only")
+    setupSubModeButton("#eraser-button", "-point", MODE_ERASER_POINT, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-timeline", "Erases points only")
+    setupSubModeButton("#eraser-button", "-text", MODE_ERASER_TEXT, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-timeline", "Erases text only")
+    setupSubModeButton("#eraser-button", "-pin", MODE_ERASER_PIN, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-timeline", "Erases pins only")
 
     setupModeButton('#color-bucket-button', MODE_COLOR_BUCKET, () => {
         mLineViewController.setActive(true);

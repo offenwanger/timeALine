@@ -597,7 +597,7 @@ function ModelController() {
         }
     }
 
-    function eraseMaskedData(eraserMask) {
+    function eraseMaskedTimelines(eraserMask) {
         undoStackPush();
 
         // check erase timelines
@@ -616,13 +616,9 @@ function ModelController() {
 
         deletedTimelines.forEach(id => deleteTimeline(id, false));
         brokenTimelines.forEach(d => breakTimeline(d.id, d.segments, false));
-
-        eraseStrokes(eraserMask);
     }
 
-    // Utility functions for erase //
-    function eraseStrokes(eraserMask) {
-        // check/erase strokes
+    function eraseMaskedStrokes(eraserMask) {
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
             let newStrokes = [];
@@ -677,8 +673,6 @@ function ModelController() {
         })
         mModel.getCanvas().annotationStrokes = newStrokes;
     }
-
-    // End of utility functions for erase //
 
     function updateText(cellId, text) {
         undoStackPush();
@@ -1107,7 +1101,8 @@ function ModelController() {
     this.bindCells = bindCells;
     this.updatePinBinding = updatePinBinding;
 
-    this.eraseMaskedData = eraseMaskedData;
+    this.eraseMaskedTimelines = eraseMaskedTimelines;
+    this.eraseMaskedStrokes = eraseMaskedStrokes;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
