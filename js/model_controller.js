@@ -567,6 +567,41 @@ function ModelController() {
         timeline.cellBindings.push(newBinding);
     }
 
+    function addCanvasText(text, offset) {
+        undoStackPush();
+
+        if (mModel.getAllTables().length == 0) {
+            let newTable = new DataStructs.DataTable([
+                new DataStructs.DataColumn("Time", 0),
+                new DataStructs.DataColumn("", 1),
+            ]);
+            mModel.getAllTables().push(newTable);
+        }
+
+        let newRow = new DataStructs.DataRow();
+        newRow.index = mModel.getAllTables()[0].dataRows.length;
+        mModel.getAllTables()[0].dataRows.push(newRow);
+
+        let timeColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 0).id;
+        let timeCell = new DataStructs.TimeCell("", timeColId)
+        newRow.dataCells.push(timeCell);
+
+        let nextColId = mModel.getAllTables()[0].dataColumns.find(col => col.index == 1).id;
+        let textCell = new DataStructs.DataCell(DataTypes.TEXT, text, nextColId)
+        newRow.dataCells.push(textCell);
+
+        for (let i = 2; i < mModel.getAllTables()[0].dataColumns.length; i++) {
+            let colId = mModel.getAllTables()[0].dataColumns.find(col => col.index == i).id;
+            let cell = new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", colId)
+            newRow.dataCells.push(cell);
+        }
+
+        let newBinding = new DataStructs.CellBinding(textCell.id);
+        newBinding.offset = offset;
+
+        mModel.getCanvas().cellBindings.push(newBinding);
+    }
+
     function updatePinBinding(timelineId, pin) {
         undoStackPush();
 
@@ -731,17 +766,22 @@ function ModelController() {
                 return score;
             }, 0)
             if (score > 4) {
-                if (!(box.timelineId in hasTimeMappings)) {
-                    hasTimeMappings[box.timelineId] = { timelineHasMapping: mModel.hasTimeMapping(box.timelineId) };
-                    if (hasTimeMappings[box.timelineId].timelineHasMapping) {
-                        let timeline = mModel.getTimelineById(box.timelineId);
-                        let bindingValues = mModel.getTimeBindingValues(timeline);
-                        hasTimeMappings[box.timelineId].startTime = bindingValues[0].timeStamp;
-                        hasTimeMappings[box.timelineId].endTime = bindingValues[bindingValues.length - 1].timeStamp
+                if (box.isCanvasText) {
+                    mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings
+                        .filter(binding => binding.id != box.cellBindingId);
+                } else {
+                    if (!(box.timelineId in hasTimeMappings)) {
+                        hasTimeMappings[box.timelineId] = { timelineHasMapping: mModel.hasTimeMapping(box.timelineId) };
+                        if (hasTimeMappings[box.timelineId].timelineHasMapping) {
+                            let timeline = mModel.getTimelineById(box.timelineId);
+                            let bindingValues = mModel.getTimeBindingValues(timeline);
+                            hasTimeMappings[box.timelineId].startTime = bindingValues[0].timeStamp;
+                            hasTimeMappings[box.timelineId].endTime = bindingValues[bindingValues.length - 1].timeStamp
+                        }
                     }
+                    let timeline = mModel.getTimelineById(box.timelineId);
+                    timeline.cellBindings = timeline.cellBindings.filter(binding => binding.id != box.cellBindingId);
                 }
-                let timeline = mModel.getTimelineById(box.timelineId);
-                timeline.cellBindings = timeline.cellBindings.filter(binding => binding.id != box.cellBindingId);
             }
         })
         Object.entries(hasTimeMappings).forEach(([timelineId, data]) => {
@@ -915,6 +955,9 @@ function ModelController() {
         let index = mModel.getAllTables().findIndex(t => t.id == table.id);
         mModel.getAllTables()[index] = table;
 
+        // remove canvas cells that are no longer in the model
+        mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings.filter(
+            cellBinding => mModel.getCellById(cellBinding.cellId) ? true : false);
         affectedTimelines.forEach(timeline => {
             // remove cells bindings no longer in the model
             timeline.cellBindings = timeline.cellBindings.filter(
@@ -1225,6 +1268,7 @@ function ModelController() {
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
+    this.addCanvasText = addCanvasText;
     this.updateText = updateText;
     this.updateTextOffset = updateTextOffset;
     this.updateTimePinBinding = updateTimePinBinding;

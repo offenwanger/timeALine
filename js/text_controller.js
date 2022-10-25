@@ -31,15 +31,13 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         mInteractionGroup.selectAll("*").remove();
 
         model.getAllTimelines().forEach(timeline => {
-            draw(timeline, model.getCellBindingData(timeline.id).filter(b => b.dataCell.getType() == DataTypes.TEXT));
+            drawTimelineText(timeline, model.getCellBindingData(timeline.id).filter(b => b.dataCell.getType() == DataTypes.TEXT));
         })
+
+        drawCanvasText(model.getCanvasBindingData());
     }
 
-    function drawTimelineAnnotations(timeline, boundData) {
-        draw(timeline, boundData);
-    }
-
-    function draw(timeline, boundData) {
+    function drawTimelineText(timeline, boundData) {
         let annotationDataset = [];
         let linePadding = 2;
 
@@ -191,14 +189,71 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         setupInteractionTargets(timeline, interactionTargetData);
     }
 
+    function drawCanvasText(boundData) {
+        let annotationDataset = [];
+        mBoundingBoxData = mBoundingBoxData.filter(d => !d.isCanvasText);
+        boundData.forEach(binding => {
+            let annotationData = {
+                x: binding.cellBinding.offset.x,
+                y: binding.cellBinding.offset.y,
+                text: binding.dataCell.getValue(),
+                binding
+            };
+            annotationDataset.push(annotationData);
+        })
+
+        let selection = mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
+            .data(annotationDataset);
+        selection.exit().remove();
+        selection.enter().append("text")
+            .classed("annotation-text", true)
+            .attr("is-canvas-text", "canvas-text");
+
+        mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
+            .attr("x", function (d) { return d.x })
+            .attr("y", function (d) { return d.y })
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
+            .call(setText, TEXT_WIDTH);
+
+        let interactionTargetData = []
+        mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
+            .each(function (d) {
+                let boundingBox = this.getBBox();
+                let x1 = boundingBox.x;
+                let x2 = boundingBox.x + boundingBox.width;
+                let y1 = boundingBox.y;
+                let y2 = boundingBox.y + boundingBox.height;
+
+                mBoundingBoxData.push({
+                    x1, x2, y1, y2,
+                    isCanvasText: true,
+                    cellBindingId: d.binding.cellBinding.id
+                });
+                interactionTargetData.push(Object.assign({
+                    binding: d.binding,
+                    text: d.text,
+                    x: boundingBox.x,
+                    y: boundingBox.y,
+                    width: boundingBox.width,
+                    height: boundingBox.height
+                }));
+            })
+
+        setupInteractionTargets(null, interactionTargetData);
+    }
+
     function setupInteractionTargets(timeline, interactionTargetData) {
-        let interactionTargets = mInteractionGroup.selectAll('.text-interaction-target[timeline-id="' + timeline.id + '"]')
+        let targetSelector = timeline ?
+            '.text-interaction-target[timeline-id="' + timeline.id + '"]' :
+            '.text-interaction-target[is-canvas-text="canvas-text"]';
+
+        let interactionTargets = mInteractionGroup.selectAll(targetSelector)
             .data(interactionTargetData);
         interactionTargets.exit().remove();
         interactionTargets.enter()
             .append('rect')
             .classed('text-interaction-target', true)
-            .attr('timeline-id', timeline.id)
+            .attr(timeline ? 'timeline-id' : "is-canvas-text", timeline ? timeline.id : "canvas-text")
             .attr('fill', 'white')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
@@ -253,7 +308,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 }
             });
 
-        mInteractionGroup.selectAll('.text-interaction-target[timeline-id="' + timeline.id + '"]')
+        mInteractionGroup.selectAll(targetSelector)
             .attr("x", d => d.x)
             .attr("y", d => d.y)
             .attr("height", d => d.height)
@@ -337,7 +392,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     this.updateModel = updateModel;
-    this.drawTimelineAnnotations = drawTimelineAnnotations;
+    this.drawTimelineText = drawTimelineText;
+    this.drawCanvasText = drawCanvasText;
     this.setActive = setActive;
     this.setTextUpdatedCallback = (callback) => mTextUpdatedCallback = callback
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;

@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_DEFORM = "deform";
     const MODE_SMOOTH = "smooth";
     const MODE_SCISSORS = "scissors";
-    const MODE_COMMENT = "comment";
+    const MODE_TEXT = "text";
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
     const MODE_COLOR_BRUSH = "colorBrush";
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
             mLensController.focus(timelineId, linePoint.percent);
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
-        } else if (mMode == MODE_COMMENT || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
+        } else if (mMode == MODE_TEXT || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         }
     })
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
             mDraggingTimePin = null;
-        } else if (mMode == MODE_COMMENT) {
+        } else if (mMode == MODE_TEXT) {
             // TODO: Open the text input in new comment mode.
             // TODO: Create in pointer down instead and initiate a drag on the text 
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     });
     mTextController.setPointerEnterCallback((e, cellBindingData) => {
-        mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
+        mDataTableController.highlightCells([cellBindingData.dataCell.id]);
     })
     mTextController.setPointerOutCallback((e, cellBindingData) => {
         mDataTableController.highlightCells([]);
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
-        if (mMode == MODE_PIN) {
+        if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -284,29 +284,41 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData = cellBindingData.copy();
             cellBindingData.linePercent = linePoint.percent;
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
-            mTextController.drawTimelineAnnotations(timeline, [cellBindingData]);
+            mTextController.drawTimelineText(timeline, [cellBindingData]);
         }
 
         return coords;
     });
     mTextController.setDragCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_COMMENT || mMode == MODE_SELECTION) {
+        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timeline.id)
-                .filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
-            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            if (!cellBindingData.isCanvasBinding) {
+                let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timeline.id)
+                    .filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
+                let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
 
-            // copy the dataCell to avoid modification leaks
-            let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
-            cellBinding.offset = offset;
-            bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
+                // copy the dataCell to avoid modification leaks
+                let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
+                cellBinding.offset = offset;
+                bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
 
-            mTextController.drawTimelineAnnotations(
-                mModelController.getModel().getTimelineById(cellBindingData.timeline.id),
-                bindingData);
-        } else if (mMode == MODE_PIN) {
+                mTextController.drawTimelineText(
+                    mModelController.getModel().getTimelineById(cellBindingData.timeline.id),
+                    bindingData);
+            } else {
+                let bindingData = mModelController.getModel().getCanvasBindingData();
+                let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+
+                // copy the dataCell to avoid modification leaks
+                let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
+                cellBinding.offset = offset;
+                bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
+
+                mTextController.drawCanvasText(bindingData);
+            }
+        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -325,11 +337,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData = cellBindingData.copy();
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
             cellBindingData.linePercent = linePoint.percent;
-            mTextController.drawTimelineAnnotations(timeline, [cellBindingData]);
+            mTextController.drawTimelineText(timeline, [cellBindingData]);
         }
     });
     mTextController.setDragEndCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_COMMENT || mMode == MODE_SELECTION) {
+        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -337,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
             modelUpdated();
-        } else if (mMode == MODE_PIN) {
+        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -647,6 +659,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('fill', 'white')
         .attr('opacity', '0')
         .on('pointerdown', function (pointerEvent) {
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
             if (mMode == MODE_PAN) {
                 mPanning = true;
             } else if (mMode == MODE_COLOR_BUCKET) {
@@ -661,9 +675,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             } else if (mMode == MODE_LENS) {
                 mLensController.focus(null, null);
                 mLineHighlight.hide();
+            } else if (mMode == MODE_TEXT) {
+                mModelController.addCanvasText("<text>", coords);
+                modelUpdated();
             }
-
-            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
             mColorBrushController.onPointerDown(coords);
             mLineDrawingController.onPointerDown(coords);
@@ -933,7 +948,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
 
-    setupModeButton('#comment-button', MODE_COMMENT, () => {
+    setupModeButton('#comment-button', MODE_TEXT, () => {
         mLineViewController.setActive(true);
         mTextController.setActive(true);
     });

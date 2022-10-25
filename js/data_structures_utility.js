@@ -84,6 +84,34 @@ DataStructs.DataModel = function () {
         return returnable;
     }
 
+    function getCanvasBindingData() {
+        let returnable = [];
+        mCanvas.cellBindings.forEach(cellBinding => {
+            let table = getTableForCell(cellBinding.cellId);
+            if (!table) { console.error("Invalid cell binding! No table!"); return; }
+            let tableId = table.id;
+
+            let row = getRowByCellId(cellBinding.cellId);
+            if (!row) { console.error("Invalid cell binding! No row!"); return; }
+            let rowId = row.id;
+
+            let dataCell = getCellById(cellBinding.cellId);
+            if (!dataCell) { console.error("Failed to get cell for column"); return; }
+            if (dataCell.id != cellBinding.cellId) throw new ModelStateError("Got the wrong cell!");
+
+            let color = null;
+            if (cellBinding.color) {
+                color = cellBinding.color;
+            } else if (dataCell.color) {
+                color = dataCell.color;
+            }
+
+            returnable.push(new DataStructs.CanvasCellBindingData(cellBinding, dataCell, tableId, rowId, color));
+        })
+
+        return returnable;
+    }
+
     function getAllCellBindingData() {
         return mTimelines.map(timeline => getCellBindingData(timeline.id)).flat();
     }
@@ -336,7 +364,9 @@ DataStructs.DataModel = function () {
     }
 
     function getCellBindingById(cellBindingId) {
-        return mTimelines.map(t => t.cellBindings).flat().find(cb => cb.id == cellBindingId);
+        return mTimelines.map(t => t.cellBindings).flat()
+            .concat(mCanvas.cellBindings)
+            .find(cb => cb.id == cellBindingId);
     }
 
     function getTimeCellForRow(rowId) {
@@ -450,6 +480,7 @@ DataStructs.DataModel = function () {
 
     this.getCellBindingData = getCellBindingData;
     this.getAllCellBindingData = getAllCellBindingData;
+    this.getCanvasBindingData = getCanvasBindingData;
 
     this.getCellById = getCellById;
     this.getCellBindingById = getCellBindingById;
@@ -504,6 +535,26 @@ DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCel
         )
         b.linePercent = this.linePercent;
         b.axisBinding = this.axisBinding;
+        return b;
+    }
+}
+
+DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, rowId, color) {
+    this.cellBinding = cellBinding;
+    this.dataCell = dataCell;
+    this.tableId = tableId;
+    this.rowId = rowId;
+    this.color = color;
+    this.isCanvasBinding = true;
+
+    this.copy = function () {
+        let b = new DataStructs.CellBindingData(
+            this.cellBinding.copy(),
+            this.dataCell.copy(),
+            this.tableId,
+            this.rowId,
+            this.color,
+        )
         return b;
     }
 }
