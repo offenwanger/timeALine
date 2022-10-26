@@ -9,6 +9,15 @@ const DataTypes = {
     UNSPECIFIED: 'unspecified'
 }
 
+const Fonts = [
+    "Arial, sans-serif",
+    "OCR A Std, monospace",
+    "Brush Script MT, Brush Script Std, cursive",
+    // this should be at the bottom so when you toggle through 
+    // the first time the text returns to this as the last item
+    "Times, Times New Roman, serif"
+]
+
 const TimeBindingTypes = {
     TIMESTRAMP: 'timestamp',
 }

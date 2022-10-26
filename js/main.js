@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // Dragging variables
     let mDraggingTimePin = null;
     let mDraggingTimePinSettingTime = false;
-    let mDragStartPosition = null;
+
+    let mSelectedCellBindingId = null;
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -272,8 +273,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-
-        if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
+        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
+            showTextContextMenu(cellBindingData);
+        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -291,6 +293,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mTextController.setDragCallback((cellBindingData, startPos, coords) => {
         if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
+            hideTextContextMenu();
+
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -349,6 +353,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
             modelUpdated();
+
+            showTextContextMenu(cellBindingData);
         } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -376,6 +382,36 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePinSettingTime = false;
         }
     });
+    $(document).on("pointerdown", function (event) {
+        if ($(event.target).closest('#text-context-menu-div').length === 0 &&
+            $(event.target).closest('.text-interaction-target').length === 0) {
+            // if we didn't click on a button in the context div
+            hideTextContextMenu();
+        }
+    });
+
+    // Text controller utility functions
+    // TODO: make this general for all context menus
+    function showTextContextMenu(cellBindingData) {
+        let textBox = mTextController.getTextBoundingBoxes()
+            .find(b => b.cellBindingId == cellBindingData.cellBinding.id);
+        if (!textBox) {
+            console.error("textbox not found!", cellBindingData);
+            return;
+        }
+        let coords = svgCoordsToScreen({ x: textBox.x2, y: textBox.y1 })
+
+        $('#text-context-menu-div').css('top', coords.y);
+        $('#text-context-menu-div').css('left', coords.x);
+        $('#text-context-menu-div').show();
+        mSelectedCellBindingId = cellBindingData.cellBinding.id;
+    }
+    function hideTextContextMenu() {
+        $('#text-context-menu-div').hide();
+        mSelectedCellBindingId = null;
+    }
+
+    // end of text utility functions
 
     let mDataPointController = new DataPointController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mDataPointController.setPointDragStartCallback((cellBindingData, pointerEvent) => {
@@ -953,6 +989,63 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTextController.setActive(true);
     });
     setupButtonTooltip('#comment-button', "Creates text items on timelines or on the main view")
+    $("#toggle-font-button").on("click", () => {
+        if (!mSelectedCellBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        mModelController.toggleFont(mSelectedCellBindingId);
+        modelUpdated();
+    })
+    $("#toggle-font-weight-button").on("click", () => {
+        if (!mSelectedCellBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        mModelController.toggleFontWeight(mSelectedCellBindingId);
+        modelUpdated();
+    })
+    $("#toggle-font-italics-button").on("click", () => {
+        if (!mSelectedCellBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        mModelController.toggleFontItalics(mSelectedCellBindingId);
+        modelUpdated();
+    })
+    $("#increase-font-size-button").on("click", () => {
+        if (!mSelectedCellBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        let cellBinding = mModelController.getModel().getCellBindingById(mSelectedCellBindingId);
+        if (!cellBinding) {
+            console.error("Bad State! Cell binding not found", mSelectedCellBindingId);
+            return;
+        }
+
+        mModelController.setFontSize(mSelectedCellBindingId, Math.min(cellBinding.fontSize + 4, 64));
+        modelUpdated();
+    })
+    $("#decrease-font-size-button").on("click", () => {
+        if (!mSelectedCellBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        let cellBinding = mModelController.getModel().getCellBindingById(mSelectedCellBindingId);
+        if (!cellBinding) {
+            console.error("Bad State! Cell binding not found", mSelectedCellBindingId);
+            return;
+        }
+
+        mModelController.setFontSize(mSelectedCellBindingId, Math.max(cellBinding.fontSize - 4, 4));
+        modelUpdated();
+    })
 
     setupModeButton('#pin-button', MODE_PIN, () => {
         mLineViewController.setActive(true);

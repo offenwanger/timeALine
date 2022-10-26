@@ -61,6 +61,11 @@ body {
     display: none;
 }
 
+.mobile-menu-content {
+    display: flex;
+    flex-direction: column;
+}
+
 .sub-menu {
     display: flex;
     flex-direction: column;

@@ -68,14 +68,23 @@ let DataStructs = function () {
 
         this.id = getUniqueId();
         this.color = null
-        // text value display offset
-        this.offset = { x: 10, y: 10 };
         this.timePinId = null;
+
+        // text display values
+        this.offset = { x: 10, y: 10 };
+        this.font = null;
+        this.fontWeight = null;
+        this.fontItalics = null;
+        this.fontSize = 16;
 
         this.clone = function () {
             let binding = new CellBinding(this.cellId);
             binding.color = this.color;
             binding.offset = this.offset;
+            binding.font = this.font;
+            binding.fontWeight = this.fontWeight;
+            binding.fontItalics = this.fontItalics;
+            binding.fontSize = this.fontSize;
             binding.timePinId = this.timePinId;
             return binding;
         }
@@ -85,6 +94,10 @@ let DataStructs = function () {
             binding.id = this.id;
             binding.color = this.color;
             binding.offset = this.offset;
+            binding.font = this.font;
+            binding.fontWeight = this.fontWeight;
+            binding.fontItalics = this.fontItalics;
+            binding.fontSize = this.fontSize;
             binding.timePinId = this.timePinId;
             return binding;
         }
@@ -94,6 +107,10 @@ let DataStructs = function () {
         binding.id = obj.id;
         binding.color = obj.color;
         binding.offset = obj.offset;
+        binding.font = obj.font;
+        binding.fontWeight = obj.fontWeight;
+        binding.fontItalics = obj.fontItalics;
+        binding.fontSize = obj.fontSize ? obj.fontSize : 16;
         binding.timePinId = obj.timePinId;
         return binding;
     }

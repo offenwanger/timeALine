@@ -93,6 +93,10 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
             .attr("x", function (d) { return d.x + d.offsetX; })
             .attr("y", function (d) { return d.y + d.offsetY; })
+            .attr("font-family", function (d) { return d.binding.cellBinding.font; })
+            .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
+            .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
+            .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
             .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
             .call(setText, TEXT_WIDTH);
 
@@ -212,6 +216,10 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
             .attr("x", function (d) { return d.x })
             .attr("y", function (d) { return d.y })
+            .attr("font-family", function (d) { return d.binding.cellBinding.font; })
+            .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
+            .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
+            .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
             .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
             .call(setText, TEXT_WIDTH);
 

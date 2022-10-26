@@ -851,6 +851,31 @@ function ModelController() {
         cellBinding.timePinId = timePinId;
     }
 
+    function toggleFont(cellBindingId) {
+        undoStackPush();
+        let binding = mModel.getCellBindingById(cellBindingId);
+        binding.font = Fonts[(Fonts.indexOf(binding.font) + 1) % Fonts.length];
+    }
+
+    function toggleFontWeight(cellBindingId) {
+        undoStackPush();
+        let binding = mModel.getCellBindingById(cellBindingId);
+        binding.fontWeight = !binding.fontWeight;
+    }
+
+    function toggleFontItalics(cellBindingId) {
+        undoStackPush();
+        let binding = mModel.getCellBindingById(cellBindingId);
+        binding.fontItalics = !binding.fontItalics;
+    }
+
+    function setFontSize(cellBindingId, size) {
+        undoStackPush();
+        let binding = mModel.getCellBindingById(cellBindingId);
+        binding.fontSize = size;
+    }
+
+
     function addTimelineStroke(timelineId, points, color) {
         undoStackPush();
 
@@ -1272,6 +1297,10 @@ function ModelController() {
     this.updateText = updateText;
     this.updateTextOffset = updateTextOffset;
     this.updateTimePinBinding = updateTimePinBinding;
+    this.toggleFont = toggleFont;
+    this.toggleFontWeight = toggleFontWeight;
+    this.toggleFontItalics = toggleFontItalics;
+    this.setFontSize = setFontSize;
 
     this.addTimelineStroke = addTimelineStroke;
     this.addCanvasStroke = addCanvasStroke;
