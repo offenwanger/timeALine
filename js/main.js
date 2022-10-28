@@ -188,10 +188,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
+        } else if (mMode == MODE_TEXT) {
+            showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     })
     mLineViewController.setPointerMoveCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == MODE_SELECTION || mMode == MODE_TEXT) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     });
@@ -206,6 +208,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
+        } else if (mMode == MODE_TEXT) {
+            mMouseDropShadow.hide();
         }
     })
 
