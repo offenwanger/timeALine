@@ -170,5 +170,26 @@ describe('Integration Test TextController', function () {
                 .find(item => item.cellBinding.id == movingTextId)
                 .cellBinding.offset).to.eql({ x: 20, y: 20 });
         });
+
+
+        it('should add canvas text', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
+            IntegrationUtils.mainPointerDown({ x: 300, y: 320 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
+            IntegrationUtils.mainPointerDown({ x: 125, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 125, y: 320 }, integrationEnv);
+            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getCanvasBindingData().length, 3);
+
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[is-canvas-text=\"canvas-text\"]"].innerData;
+            assert.equal(textSet.length, 3);
+            expect(textSet.map(t => t.x)).to.eql([300, 300, 125]);
+            expect(textSet.map(t => t.y)).to.eql([200, 320, 200]);
+        });
     })
 });
