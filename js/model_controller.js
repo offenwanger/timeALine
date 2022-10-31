@@ -1263,6 +1263,13 @@ function ModelController() {
         mModel.getCanvas().imageBindings.push(newBinding);
     }
 
+    function updateImageOffset(imageBindingId, offset) {
+        undoStackPush();
+
+        let imageBinding = mModel.getImageBindingById(imageBindingId);
+        imageBinding.offset = offset;
+    }
+
     /****
      * Utility
      */
@@ -1366,6 +1373,7 @@ function ModelController() {
 
     this.addBoundImage = addBoundImage;
     this.addCanvasImage = addCanvasImage;
+    this.updateImageOffset = updateImageOffset;
 
     this.getModel = () => mModel.copy();
 

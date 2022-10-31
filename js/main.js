@@ -461,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            let offset = MathUtil.addAToB(imageBindingData.imageBinding.offset, MathUtil.subtractAFromB(startPos, coords));
             // copy the dataCell to avoid modification leaks
             imageBindingData = imageBindingData.copy();
             imageBindingData.imageBinding.offset = offset;
@@ -493,11 +493,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            let offset = MathUtil.addAToB(imageBindingData.imageBinding.offset, MathUtil.subtractAFromB(startPos, coords));
             mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
+            mModelController.getModel().getImageBindingById()
 
             modelUpdated();
 
+            imageBindingData.imageBinding.offset = offset;
             showImageContextMenu(imageBindingData);
         } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
             let timeline = imageBindingData.timeline;
@@ -533,6 +535,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             hideImageContextMenu();
         }
     });
+    mImageController.setDoubleClickCallback((imageBindingData, clickEvent) => {
+        showImageViewer(imageBindingData.imageBinding);
+    })
     // Text controller utility functions
     // TODO: make this general for all context menus
     function showImageContextMenu(imageBindingData) {
@@ -540,14 +545,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (imageBindingData.isCanvasBinding) {
             coords = svgCoordsToScreen({
                 x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width,
-                y: imageBindingData.offset.y
+                y: imageBindingData.imageBinding.offset.y
             });
         } else {
             let pos = PathMath.getPositionForPercent(imageBindingData.timeline.points, imageBindingData.linePercent);
             coords = svgCoordsToScreen({
                 x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width + pos.x,
-                y: imageBindingData.offset.y + pos.y
+                y: imageBindingData.imageBinding.offset.y + pos.y
             });
+        }
+
+        if (imageBindingData.isCanvasBinding) {
+            $("#image-link-button").show();
+            $("#image-unlink-button").hide();
+        } else {
+            $("#image-unlink-button").show();
+            $("#image-link-button").hide();
         }
 
         $('#image-context-menu-div').css('top', coords.y);
@@ -897,6 +910,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mEraserController.onPointerMove(coords);
         mTimePinController.onPointerMove(coords);
         mTextController.onPointerMove(coords);
+        mImageController.onPointerMove(coords);
         mDataPointController.onPointerMove(coords);
         mSmoothController.onPointerMove(coords);
         mStrokeController.onPointerMove(coords);
@@ -923,6 +937,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mEraserController.onPointerUp(coords);
         mTimePinController.onPointerUp(coords);
         mTextController.onPointerUp(coords);
+        mImageController.onPointerUp(coords);
         mDataPointController.onPointerUp(coords);
         mSmoothController.onPointerUp(coords);
         mStrokeController.onPointerUp(coords);
@@ -1504,6 +1519,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLensController.setColorBrushColor(color)
     }
     // End color utility functions
+
+    function showImageViewer(imageBinding) {
+        $("#full-image").attr("src", imageBinding.imageData);
+        $('#image-viewer').show();
+    }
+
+    $("#image-viewer .close").on("click", function () {
+        $('#image-viewer').hide();
+    });
 
     function MouseDropShadow(parent) {
         let shadow = parent.append('g')

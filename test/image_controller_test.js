@@ -113,7 +113,7 @@ describe('Integration Test ImageController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 3);
         });
 
-        it('should move image', function () {
+        it('should move line image', function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawLine([
@@ -144,46 +144,28 @@ describe('Integration Test ImageController', function () {
 
             let data = imageSet[1]
             let movingImageId = data.binding.imageBinding.id;
-            expect(data.binding.imageBinding.offsetX).to.eql(10)
-            expect(data.binding.imageBinding).to.eql(10)
+            expect(data.binding.imageBinding.offset.x).to.eql(10)
+            expect(data.binding.imageBinding.offset.y).to.eql(10)
 
             let imageTargetSet = integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].innerData;
-            let movingImageTargetData = imageTargetSet.find(item => item.binding.cellBinding.id == movingImageId);
+            let movingImageTargetData = imageTargetSet.find(item => item.binding.imageBinding.id == movingImageId);
             integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].
                 eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, movingImageTargetData);
             IntegrationUtils.pointerMove({ x: 140, y: 120 }, integrationEnv);
-
-            // Check that the correct annotation is updating
-            imageSet = integrationEnv.enviromentVariables.d3.selectors[".image-item"].innerData;
-
-            annotationData = imageSet.find(item => item.binding.cellBinding.id == movingImageId);
-            expect(annotationData.offsetX).to.eql(20)
-            expect(annotationData.offsetY).to.eql(20)
-            annotationData = imageSet.find(item => item.binding.cellBinding.id != movingImageId);
-            expect(annotationData.offsetX).to.eql(10)
-            expect(annotationData.offsetY).to.eql(10)
-            expect(integrationEnv.ModelController.getModel().getAllCellBindingData()
-                .filter(b => b.dataCell.getType() == DataTypes.TEXT)
-                .map(b => b.cellBinding.offset.x)).to.eql([10, 10])
-            expect(integrationEnv.ModelController.getModel().getAllCellBindingData()
-                .filter(b => b.dataCell.getType() == DataTypes.TEXT)
-                .map(b => b.cellBinding.offset.y)).to.eql([10, 10])
-
-
             IntegrationUtils.pointerUp({ x: 140, y: 120 }, integrationEnv);
 
-            imageSet = integrationEnv.enviromentVariables.d3.selectors[".image-item[timeline-id=\"" + timelineId + "\"]"].innerData;
-            annotationData = imageSet.find(item => item.binding.cellBinding.id == movingImageId);
-            expect(annotationData.offsetX).to.eql(20)
-            expect(annotationData.offsetY).to.eql(20)
-            integrationEnv.ModelController.getModel().getAllCellBindingData()
+            imageSet = integrationEnv.enviromentVariables.d3.selectors[".image-item"].innerData;
+            let imageData = imageSet.find(item => item.binding.imageBinding.id == movingImageId);
+            expect(imageData.binding.imageBinding.offset.x).to.eql(20)
+            expect(imageData.binding.imageBinding.offset.y).to.eql(20)
+            integrationEnv.ModelController.getModel().getAllImageBindings()
 
             // Check that the correct cell binding was updated
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 2);
 
-            expect(integrationEnv.ModelController.getModel().getAllCellBindingData()
-                .find(item => item.cellBinding.id == movingImageId)
-                .cellBinding.offset).to.eql({ x: 20, y: 20 });
+            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+                .find(item => item.imageBinding.id == movingImageId)
+                .imageBinding.offset).to.eql({ x: 20, y: 20 });
         });
 
         it('should add canvas image', function () {
@@ -210,6 +192,55 @@ describe('Integration Test ImageController', function () {
             expect(imageSet.map(t => t.y)).to.eql([150, 270, 150]);
 
             assert.equal(integrationEnv.ModelController.getModel().getCanvasImageBindings().length, 3);
+        });
+
+        it('should move canvas image', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
+            // first click
+            IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
+            lastThen("imgdata1");
+            // second click
+            IntegrationUtils.mainPointerDown({ x: 300, y: 320 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
+            lastThen("imgdata2");
+
+            let imageSet = integrationEnv.enviromentVariables.d3.selectors[".image-item"].innerData;
+            assert.equal(imageSet.length, 2);
+            expect(imageSet.map(t => t.x)).to.eql([250, 250]);
+            expect(imageSet.map(t => t.y)).to.eql([150, 270]);
+
+            assert.equal(integrationEnv.ModelController.getModel().getCanvasImageBindings().length, 2);
+
+            let data = imageSet[1]
+            let movingImageId = data.binding.imageBinding.id;
+            expect(data.binding.imageBinding.offset.x).to.eql(250)
+            expect(data.binding.imageBinding.offset.y).to.eql(270)
+
+            let imageTargetSet = integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].innerData;
+            let movingImageTargetData = imageTargetSet.find(item => item.binding.imageBinding.id == movingImageId);
+            integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].
+                eventCallbacks.pointerdown({ clientX: 260, clientY: 280 }, movingImageTargetData);
+            IntegrationUtils.pointerMove({ x: 140, y: 120 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 140, y: 120 }, integrationEnv);
+
+            imageSet = integrationEnv.enviromentVariables.d3.selectors[".image-item"].innerData;
+            let imageData = imageSet.find(item => item.binding.imageBinding.id == movingImageId);
+            expect(imageData.binding.imageBinding.offset.x).to.eql(130)
+            expect(imageData.binding.imageBinding.offset.y).to.eql(110)
+            integrationEnv.ModelController.getModel().getAllImageBindings()
+
+            // Check that the correct cell binding was updated
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 2);
+
+            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+                .find(item => item.imageBinding.id == movingImageId)
+                .imageBinding.offset).to.eql({ x: 130, y: 110 });
+            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+                .find(item => item.imageBinding.id != movingImageId)
+                .imageBinding.offset).to.eql({ x: 250, y: 150 });
         });
     })
 });

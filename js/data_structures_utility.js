@@ -361,6 +361,12 @@ DataStructs.DataModel = function () {
         return returnable;
     }
 
+    function getImageBindingById(imageBindingId) {
+        return mTimelines.map(t => t.imageBindings).flat()
+            .concat(mCanvas.imageBindings)
+            .find(ib => ib.id == imageBindingId);
+    }
+
     function getCanvasImageBindings() {
         return mCanvas.imageBindings.map(imageBinding => {
             return new DataStructs.ImageBindingData(imageBinding, null, NO_LINE_PERCENT, true);
@@ -558,6 +564,7 @@ DataStructs.DataModel = function () {
     this.getAllImageBindings = getAllImageBindings;
     this.getCanvasImageBindings = getCanvasImageBindings;
     this.getImageBindings = getImageBindings;
+    this.getImageBindingById = getImageBindingById;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;
@@ -630,9 +637,9 @@ DataStructs.ImageBindingData = function (imageBinding, timeline, linePercent = N
     this.isCanvasBinding = isCanvasBinding;
 
     this.copy = function () {
-        let b = new DataStructs.CellBindingData(
+        let b = new DataStructs.ImageBindingData(
             this.imageBinding.copy(),
-            this.timeline.copy(),
+            this.timeline ? this.timeline.copy() : null,
             this.linePercent,
             this.isCanvasBinding
         )

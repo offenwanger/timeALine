@@ -16,6 +16,7 @@
 
     <link href="css/main.css" rel="stylesheet">
     <link href="css/drawer.css" rel="stylesheet">
+    <link href="css/image-viewer.css" rel="stylesheet">
 
     <script src="js/constants.js" charset="utf-8"></script>
     <script src="js/utility.js" charset="utf-8"></script>
@@ -163,7 +164,10 @@
     <div id="image-context-menu-div" class="mobile-menu">
         <div class="mobile-menu-content">
             <input id="image-link-button" class="tool-button menu-button" type="image" src="img/link_button.png" />
-            <input id="image-time-edit-button" class="tool-button menu-button" type="image" src="img/link_button.png" />
+            <input id="image-unlink-button" class="tool-button menu-button" type="image"
+                src="img/break_link_button.png" />
+            <input id="image-time-edit-button" class="tool-button menu-button" type="image"
+                src="img/edit_time_button.png" />
         </div>
     </div>
 
@@ -172,6 +176,11 @@
     <div id="color-picker-div" style="display: none;">
         <div id="color-picker-wrapper"></div>
         <input type="text" id="color-picker-input" />
+    </div>
+
+    <div id="image-viewer">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="full-image">
     </div>
 
     <textarea id="input-box" type="text" style="top: -400px; left: -200px;"></textarea>
