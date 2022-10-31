@@ -267,23 +267,23 @@ function ModelController() {
         }
 
         // last thing create pins for cell bindings that lost their pins
-        newTimeline.cellBindings.forEach(cb => {
-            if (cb.timePinId) {
-                let pin = newTimeline.timePins.find(p => p.id == cb.timePinId);
+        newTimeline.cellBindings.concat(newTimeline.imageBindings).forEach(binding => {
+            if (binding.timePinId) {
+                let pin = newTimeline.timePins.find(p => p.id == binding.timePinId);
                 if (!pin) {
-                    if (!timelineHasMapping) { console.error("Bad state! Timeline has no mapping, pin should not have been eliminated!", cb); return }
+                    if (!timelineHasMapping) { console.error("Bad state! Timeline has no mapping, pin should not have been eliminated!", binding); return }
                     // the only way for this pin to have been elminated is if it had a time mapping which was incompatible
-                    let pin = startTimeline.timePins.concat(endTimeline.timePins).find(p => p.id == cb.timePinId);
-                    if (!pin) { console.error("Bad state! Pin not found!", cb.timePinId); return }
+                    let pin = startTimeline.timePins.concat(endTimeline.timePins).find(p => p.id == binding.timePinId);
+                    if (!pin) { console.error("Bad state! Pin not found!", binding.timePinId); return }
                     if (isNaN(parseInt(pin.timeStamp))) { console.error("Bad state! Pin should not have been eliminated!", pin); return }
                     let existingPin = newTimeline.timePins.find(p => p.timeStamp == pin.timeStamp);
                     if (!existingPin) {
                         let newPin = new DataStructs.TimePin(mModel.mapTimeToLinePercent(pin.timeStamp));
                         newPin.timeStamp = pin.timeStamp;
                         newTimeline.timePins.push(newPin);
-                        cb.timePinId = newPin.id;
+                        binding.timePinId = newPin.id;
                     } else {
-                        cb.timePinId = existingPin.id;
+                        binding.timePinId = existingPin.id;
                     }
                 }
             }
@@ -816,7 +816,7 @@ function ModelController() {
             if (remainingPins.length != timeline.timePins.length) {
                 timeline.timePins = remainingPins;
                 let ids = remainingPins.map(p => p.id);
-                timeline.cellBindings.forEach(b => {
+                timeline.cellBindings.concat(timeline.imageBindings).forEach(b => {
                     if (b.timePinId && !ids.includes(b.timePinId)) {
                         b.timePinId = null;
                     }
@@ -1046,6 +1046,23 @@ function ModelController() {
                 }
             }
         })
+
+        timeline.imageBindings.forEach(b => {
+            if (b.timePinId) {
+                if (b.timeStamp) {
+                    let timePin = mModel.getTimePinById(b.timePinId);
+                    let pinCopy = timePin.copy();
+                    pinCopy.timeStamp = b.timeStamp;
+                    let resultingPins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pinCopy, 'timeStamp');
+
+                    if (resultingPins.length == timeline.timePins.length) {
+                        timePin.timeStamp = b.timeStamp;
+                    }
+
+                    b.timePinId = null;
+                }
+            }
+        })
     }
     //// end of table Update Util functions ////
 
@@ -1208,6 +1225,44 @@ function ModelController() {
         }
     }
 
+    function addBoundImage(timelineId, imageData, time, timePin = null) {
+        undoStackPush();
+
+        let timeline = mModel.getTimelineById(timelineId);
+        if (!timeline) {
+            console.error("Bad timeline id for image!", timelineId);
+            return;
+        }
+
+        let newBinding = new DataStructs.ImageBinding(imageData);
+        newBinding.width = 100;
+        newBinding.height = 100;
+        if (time) {
+            newBinding.timeStamp = time;
+        }
+
+        if (timePin) {
+            newBinding.timePinId = timePin.id;
+            timeline.timePins.push(timePin);
+        }
+
+        timeline.imageBindings.push(newBinding);
+    }
+
+    function addCanvasImage(imageData, coords) {
+        undoStackPush();
+
+        let newBinding = new DataStructs.ImageBinding(imageData);
+        newBinding.width = 100;
+        newBinding.height = 100;
+        newBinding.offset = {
+            x: coords.x - 50,
+            y: coords.y - 50
+        };
+
+        mModel.getCanvas().imageBindings.push(newBinding);
+    }
+
     /****
      * Utility
      */
@@ -1308,6 +1363,9 @@ function ModelController() {
 
     this.updateAxisDist = updateAxisDist;
     this.updateAxisColor = updateAxisColor;
+
+    this.addBoundImage = addBoundImage;
+    this.addCanvasImage = addCanvasImage;
 
     this.getModel = () => mModel.copy();
 

@@ -9,12 +9,14 @@ let DataStructs = function () {
         this.color = "#FFFFFF";
         this.cellBindings = [];
         this.annotationStrokes = [];
+        this.imageBindings = [];
 
         this.copy = function () {
             let canvas = new Canvas();
             canvas.color = this.color;
             canvas.cellBindings = this.cellBindings.map(b => b.copy());
             canvas.annotationStrokes = this.annotationStrokes.map(b => b.copy());
+            canvas.imageBindings = this.imageBindings.map(b => b.copy());
             return canvas;
         }
     }
@@ -23,6 +25,8 @@ let DataStructs = function () {
         canvas.color = obj.color;
         obj.cellBindings.forEach(b => canvas.cellBindings.push(CellBinding.fromObject(b)));
         obj.annotationStrokes.forEach(b => canvas.annotationStrokes.push(Stroke.fromObject(b)));
+        if (obj.imageBindings) obj.imageBindings.forEach(
+            b => canvas.imageBindings.push(ImageBinding.fromObject(b)));
         return canvas;
     }
 
@@ -35,6 +39,7 @@ let DataStructs = function () {
         this.timePins = [];
         this.axisBindings = [];
         this.annotationStrokes = [];
+        this.imageBindings = [];
 
         this.copy = function () {
             let timeline = new Timeline();
@@ -48,10 +53,10 @@ let DataStructs = function () {
             timeline.timePins = this.timePins.map(b => b.copy());
             timeline.axisBindings = this.axisBindings.map(b => b.copy());
             timeline.annotationStrokes = this.annotationStrokes.map(b => b.copy());
+            timeline.imageBindings = this.imageBindings.map(b => b.copy());
             return timeline;
         }
     }
-
     Timeline.fromObject = function (obj) {
         let timeline = new Timeline(obj.points);
         timeline.id = obj.id;
@@ -59,7 +64,10 @@ let DataStructs = function () {
         obj.cellBindings.forEach(b => timeline.cellBindings.push(CellBinding.fromObject(b)));
         obj.timePins.forEach(b => timeline.timePins.push(TimePin.fromObject(b)));
         obj.axisBindings.forEach(b => timeline.axisBindings.push(AxisBinding.fromObject(b)));
-        obj.annotationStrokes ? obj.annotationStrokes.forEach(b => timeline.annotationStrokes.push(Stroke.fromObject(b))) : "";
+        if (obj.annotationStrokes) obj.annotationStrokes.forEach(
+            b => timeline.annotationStrokes.push(Stroke.fromObject(b)));
+        if (obj.imageBindings) obj.imageBindings.forEach(
+            b => timeline.imageBindings.push(ImageBinding.fromObject(b)));
         return timeline;
     }
 
@@ -114,6 +122,40 @@ let DataStructs = function () {
         binding.timePinId = obj.timePinId;
         return binding;
     }
+
+    function ImageBinding(imageData) {
+        this.imageData = imageData;
+
+        this.id = getUniqueId();
+        this.offset = { x: 10, y: 10 };
+        this.height = null;
+        this.width = null;
+        this.timeStamp = null;
+        this.timePinId = null;
+
+        this.copy = function () {
+            let binding = new ImageBinding(this.imageData);
+            binding.id = this.id;
+            binding.offset = this.offset;
+            binding.height = this.height;
+            binding.width = this.width;
+            binding.timeStamp = this.timeStamp;
+            binding.timePinId = this.timePinId;
+            return binding;
+        }
+
+    }
+    ImageBinding.fromObject = function (obj) {
+        let binding = new ImageBinding(obj.imageData);
+        binding.id = obj.id;
+        binding.offset = obj.offset;
+        binding.height = obj.height;
+        binding.width = obj.width;
+        binding.timeStamp = obj.timeStamp;
+        binding.timePinId = obj.timePinId;
+        return binding;
+    }
+
 
     /**
      * Time pins must have a line percent, but not necessarily anything else.
@@ -484,6 +526,7 @@ let DataStructs = function () {
         StrokePoint,
 
         CellBinding,
+        ImageBinding,
         AxisBinding,
         TimePin,
     }

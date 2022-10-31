@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_SMOOTH = "smooth";
     const MODE_SCISSORS = "scissors";
     const MODE_TEXT = "text";
+    const MODE_IMAGE = "image";
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
     const MODE_COLOR_BRUSH = "colorBrush";
@@ -45,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mDraggingTimePinSettingTime = false;
 
     let mSelectedCellBindingId = null;
+    let mSelectedImageBindingId = null;
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -107,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
             mLensController.focus(timelineId, linePoint.percent);
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
-        } else if (mMode == MODE_TEXT || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
+        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         }
     })
@@ -140,6 +142,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
 
             modelUpdated();
+        } else if (mMode == MODE_IMAGE) {
+            FileHandler.getImageFile().then((imageData) => {
+                if (mModelController.getModel().hasTimeMapping(timelineId)) {
+                    let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
+                    mModelController.addBoundImage(timelineId, imageData, time);
+                } else {
+                    let timePin = new DataStructs.TimePin(linePoint.percent);
+                    timePin.timePercent = mModelController.getModel()
+                        .mapLinePercentToTime(timelineId, linePoint.percent);
+
+                    mModelController.addBoundImage(timelineId, imageData, "", timePin);
+                }
+
+                modelUpdated();
+            })
         } else if (mMode == MODE_LINK) {
             mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
 
@@ -188,12 +205,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_TEXT) {
+        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     })
     mLineViewController.setPointerMoveCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION || mMode == MODE_TEXT) {
+        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     });
@@ -208,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_TEXT) {
+        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE) {
             mMouseDropShadow.hide();
         }
     })
@@ -284,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             // sets mDraggingTimePin
-            setDragPinForCellBindingDrag(cellBindingData, linePoint);
+            setDragPinForBindingDrag(cellBindingData, linePoint);
             pinDrag(timeline, mDraggingTimePin, linePoint.percent);
 
             cellBindingData = cellBindingData.copy();
@@ -417,6 +434,135 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     // end of text utility functions
 
+    let mImageController = new ImageController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mImageController.setDragStartCallback((imageBindingData, pointerEvent) => {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+            showImageContextMenu(imageBindingData);
+        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+            let linePoint = PathMath.getClosestPointOnPath(coords, imageBindingData.timeline.points);
+
+            // sets mDraggingTimePin
+            setDragPinForBindingDrag(imageBindingData, linePoint);
+            pinDrag(imageBindingData.timeline, mDraggingTimePin, linePoint.percent);
+
+            imageBindingData = imageBindingData.copy();
+            imageBindingData.linePercent = linePoint.percent;
+            imageBindingData.imageBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
+            mImageController.redrawImage(imageBindingData);
+        }
+
+        return coords;
+    });
+    mImageController.setDragCallback((imageBindingData, startPos, coords) => {
+        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+            hideImageContextMenu();
+
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, coords)) return;
+
+            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            // copy the dataCell to avoid modification leaks
+            imageBindingData = imageBindingData.copy();
+            imageBindingData.imageBinding.offset = offset;
+            mImageController.redrawImage(imageBindingData);
+        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+            let timeline = imageBindingData.timeline;
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+
+            if (mDraggingTimePinSettingTime) {
+                if (mModelController.getModel().hasTimeMapping(timeline.id)) {
+                    mDraggingTimePin.timeStamp = mModelController.getModel()
+                        .mapLinePercentToTime(timeline.id, linePoint.percent, false)
+                } else {
+                    mDraggingTimePin.timePercent = mModelController.getModel()
+                        .mapLinePercentToTime(timeline.id, linePoint.percent, true)
+                }
+            }
+
+            pinDrag(timeline, mDraggingTimePin, linePoint.percent);
+
+            imageBindingData = imageBindingData.copy();
+            imageBindingData.imageBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
+            imageBindingData.linePercent = linePoint.percent;
+            mImageController.redrawImage(imageBindingData);
+        }
+    });
+    mImageController.setDragEndCallback((imageBindingData, startPos, coords) => {
+        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, coords)) return;
+
+            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
+
+            modelUpdated();
+
+            showImageContextMenu(imageBindingData);
+        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+            let timeline = imageBindingData.timeline;
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+
+            let offset = MathUtil.subtractAFromB(linePoint, coords);
+            mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
+
+            if (mDraggingTimePinSettingTime) {
+                if (mModelController.getModel().hasTimeMapping(timeline.id)) {
+                    mDraggingTimePin.timeStamp = mModelController.getModel()
+                        .mapLinePercentToTime(timeline.id, linePoint.percent, false)
+                } else {
+                    mDraggingTimePin.timePercent = mModelController.getModel()
+                        .mapLinePercentToTime(timeline.id, linePoint.percent, true)
+                }
+            }
+
+            if (!imageBindingData.imageBinding.timeStamp) {
+                mModelController.updateTimePinBinding(imageBindingData.imageBinding.id, mDraggingTimePin.id)
+            }
+
+            // this will trigger a model update
+            pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
+            mDraggingTimePin = null;
+            mDraggingTimePinSettingTime = false;
+        }
+    });
+    $(document).on("pointerdown", function (event) {
+        if ($(event.target).closest('#image-context-menu-div').length === 0 &&
+            $(event.target).closest('.image-interaction-target').length === 0) {
+            // if we didn't click on a button in the context div
+            hideImageContextMenu();
+        }
+    });
+    // Text controller utility functions
+    // TODO: make this general for all context menus
+    function showImageContextMenu(imageBindingData) {
+        let coords;
+        if (imageBindingData.isCanvasBinding) {
+            coords = svgCoordsToScreen({
+                x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width,
+                y: imageBindingData.offset.y
+            });
+        } else {
+            let pos = PathMath.getPositionForPercent(imageBindingData.timeline.points, imageBindingData.linePercent);
+            coords = svgCoordsToScreen({
+                x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width + pos.x,
+                y: imageBindingData.offset.y + pos.y
+            });
+        }
+
+        $('#image-context-menu-div').css('top', coords.y);
+        $('#image-context-menu-div').css('left', coords.x);
+        $('#image-context-menu-div').show();
+        mSelectedImageBindingId = imageBindingData.imageBinding.id;
+    }
+    function hideImageContextMenu() {
+        $('#image-context-menu-div').hide();
+        mSelectedImageBindingId = null;
+    }
+
+    // end of text utility functions
+
+
     let mDataPointController = new DataPointController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mDataPointController.setPointDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
@@ -426,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
             // sets mDraggingTimePin
-            setDragPinForCellBindingDrag(cellBindingData, linePoint);
+            setDragPinForBindingDrag(cellBindingData, linePoint);
             pinDrag(timeline, mDraggingTimePin, linePoint.percent);
 
             cellBindingData.linePercent = linePoint.percent;
@@ -533,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     // UTILITY
-    function setDragPinForCellBindingDrag(cellBindingData, linePoint) {
+    function setDragPinForBindingDrag(cellBindingData, linePoint) {
         // check if a pin already exists for this text, whether or not it's valid
         let timePin;
 
@@ -718,6 +864,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             } else if (mMode == MODE_TEXT) {
                 mModelController.addCanvasText("<text>", coords);
                 modelUpdated();
+            } else if (mMode == MODE_IMAGE) {
+                FileHandler.getImageFile().then(imageData => {
+                    mModelController.addCanvasImage(imageData, coords);
+                    modelUpdated();
+                })
             }
 
             mColorBrushController.onPointerDown(coords);
@@ -856,6 +1007,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSmoothController.updateModel(mModelController.getModel());
         mDataTableController.updateModel(mModelController.getModel());
         mTextController.updateModel(mModelController.getModel());
+        mImageController.updateModel(mModelController.getModel());
         mDataPointController.updateModel(mModelController.getModel());
         mTimePinController.updateModel(mModelController.getModel());
         mLensController.updateModel(mModelController.getModel());
@@ -1051,11 +1203,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     })
 
+    setupModeButton('#image-button', MODE_IMAGE, () => {
+        mLineViewController.setActive(true);
+        mImageController.setActive(true);
+    });
+    setupButtonTooltip('#image-button', "Add images to the viz")
+
     setupModeButton('#pin-button', MODE_PIN, () => {
         mLineViewController.setActive(true);
         mTimePinController.setActive(true);
         mDataPointController.setActive(true);
         mTextController.setActive(true);
+        mImageController.setActive(true);
     });
     setupButtonTooltip('#pin-button', "Creates and moves time pins on timelines")
     // ---------------
@@ -1256,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineViewController.setActive(true);
         mDataPointController.setActive(true);
         mTextController.setActive(true);
+        mImageController.setActive(true);
 
         $("#selection-button").css('opacity', '0.3');
 
@@ -1285,6 +1445,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mColorBrushController.setActive(false);
         mDataPointController.setActive(false);
         mTextController.setActive(false);
+        mImageController.setActive(false);
         mStrokeController.setActive(false);
         mSelectionController.setActive(false);
         mLensController.resetMode();

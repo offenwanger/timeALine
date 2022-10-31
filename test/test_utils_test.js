@@ -127,6 +127,7 @@ before(function () {
             this.text = function () { return this; };
             this.clone = function () { return this; };
             this.raise = function () { return this };
+            this.lower = function () { return this };
         };
         this.mockElement = MockElement;
 
@@ -374,6 +375,7 @@ before(function () {
         let time_pin_controller = rewire('../js/time_pin_controller.js');
         let data_point_controller = rewire('../js/data_point_controller.js');
         let text_controller = rewire('../js/text_controller.js');
+        let image_controller = rewire('../js/image_controller.js');
         let file_handling = rewire('../js/file_handling.js');
 
         let utility = rewire('../js/utility.js');
@@ -433,6 +435,7 @@ before(function () {
             SelectionController: selection_controller.__get__("SelectionController"),
             TimePinController: time_pin_controller.__get__("TimePinController"),
             TextController: text_controller.__get__("TextController"),
+            ImageController: image_controller.__get__("ImageController"),
             DataPointController: data_point_controller.__get__("DataPointController"),
             BrushController: brush_controller.__get__("BrushController"),
             ColorBrushController: color_brush_controller.__get__("ColorBrushController"),

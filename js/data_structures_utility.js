@@ -118,7 +118,7 @@ DataStructs.DataModel = function () {
 
     function mapTimeToLinePercent(timelineId, time) {
         if (isNaN(time)) {
-            console.error("Invalid time: ", time);
+            console.error("Invalid for mapping time to line percent time: ", time);
             return 0;
         }
 
@@ -149,7 +149,7 @@ DataStructs.DataModel = function () {
         // validate times
         times = times.filter(time => {
             if (isNaN(time)) {
-                console.error("Invalid time: ", time);
+                console.error("Invalid for batch mapping time to line percent time: ", time);
                 return false;
             } else if (!timelineHasMapping && (time < 0 || time > 1)) {
                 // we can't check timestamps as they are unbounded.
@@ -174,7 +174,7 @@ DataStructs.DataModel = function () {
         // get rid of rounding errors for number close to 1 and 0;
         linePercent = Math.round(linePercent * 10000) / 10000;
 
-        if (isNaN(linePercent)) { console.error("Invalid percent:" + linePercent); return 0; }
+        if (isNaN(linePercent)) { console.error("Invalid percent for mapping line percent to time:" + linePercent); return 0; }
         if (linePercent < 0) {
             console.error("Invalid linePercent!", linePercent);
             linePercent = 0;
@@ -305,6 +305,66 @@ DataStructs.DataModel = function () {
         })
 
         return returnable;
+    }
+
+    function getAllImageBindings() {
+        return mTimelines.map(timeline => getImageBindings(timeline.id)).flat().concat(getCanvasImageBindings());
+    }
+
+    function getImageBindings(timelineId) {
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) { console.error("Invalid timeline id for getting image binding data!", timelineId); return []; }
+        let timelineHasMapping = hasTimeMapping(timelineId);
+        let returnable = [];
+        timeline.imageBindings.forEach(imageBinding => {
+            let linePercent;
+            if (imageBinding.timePinId) {
+                let timePin = timeline.timePins.find(pin => pin.id == imageBinding.timePinId);
+                if (timePin) {
+                    linePercent = timePin.linePercent;
+                } else {
+                    console.error("Time pin not found for image binding!", imageBinding);
+                    imageBinding.timePinId = null;
+                    linePercent = NO_LINE_PERCENT;
+                }
+            } else if (timelineHasMapping && imageBinding.timeStamp) {
+                linePercent = MAP_TIME;
+            } else if (imageBinding.timeStamp) {
+                let timePin = timeline.timePins.find(pin => pin.timeStamp == imageBinding.timeStamp);
+                if (timePin) {
+                    linePercent = timePin.linePercent;
+                } else {
+                    linePercent = NO_LINE_PERCENT;
+                }
+            } else {
+                linePercent = NO_LINE_PERCENT;
+            }
+
+            returnable.push(new DataStructs.ImageBindingData(imageBinding, timeline, linePercent));
+        });
+
+        let mapBindings = returnable.filter(ib => ib.linePercent == MAP_TIME);
+        if (mapBindings.length > 0) {
+            let timesForMapping = mapBindings.map(ib => ib.imageBinding.timeStamp);
+            timesForMapping.sort();
+            let linePercents = batchMapTimeToLinePercent(timeline.id, timesForMapping);
+            if (linePercents.length != timesForMapping.length) {
+                console.error("Mapping failed!", linePercents);
+                mapBindings.forEach(ib => { ib.linePercent = NO_LINE_PERCENT });
+                return returnable;
+            }
+            mapBindings.forEach(ib => {
+                ib.linePercent = linePercents[timesForMapping.indexOf(ib.imageBinding.timeStamp)];
+            });
+        }
+
+        return returnable;
+    }
+
+    function getCanvasImageBindings() {
+        return mCanvas.imageBindings.map(imageBinding => {
+            return new DataStructs.ImageBindingData(imageBinding, null, NO_LINE_PERCENT, true);
+        })
     }
 
     function mapBindingArrayInterval(bindings, values, fromKey, toKey) {
@@ -495,6 +555,10 @@ DataStructs.DataModel = function () {
     this.getTimeCellForDataCell = getTimeCellForDataCell;
     this.getBoundTimeCellValues = getBoundTimeCellValues;
 
+    this.getAllImageBindings = getAllImageBindings;
+    this.getCanvasImageBindings = getCanvasImageBindings;
+    this.getImageBindings = getImageBindings;
+
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;
     this.hasTimeMapping = hasTimeMapping;
@@ -554,6 +618,23 @@ DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, ro
             this.tableId,
             this.rowId,
             this.color,
+        )
+        return b;
+    }
+}
+
+DataStructs.ImageBindingData = function (imageBinding, timeline, linePercent = NO_LINE_PERCENT, isCanvasBinding = false) {
+    this.imageBinding = imageBinding;
+    this.timeline = timeline;
+    this.linePercent = linePercent;
+    this.isCanvasBinding = isCanvasBinding;
+
+    this.copy = function () {
+        let b = new DataStructs.CellBindingData(
+            this.imageBinding.copy(),
+            this.timeline.copy(),
+            this.linePercent,
+            this.isCanvasBinding
         )
         return b;
     }

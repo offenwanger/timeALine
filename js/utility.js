@@ -335,7 +335,7 @@ let PathMath = function () {
     }
 
     function getPositionForPercent(points, percent) {
-        if (isNaN(percent)) { console.error("Invalid percent: ", percent); return { x: 0, y: 0 }; }
+        if (isNaN(percent)) { console.error("Invalid percent to get position for: ", percent); return { x: 0, y: 0 }; }
         if (!points) { console.error("Invalid point array:  ", points); return { x: 0, y: 0 }; }
         if (points.length < 2) { console.error("Invalid point array, too short: ", points); return { x: 0, y: 0 }; }
 
@@ -347,7 +347,7 @@ let PathMath = function () {
         if (points.length < 2) { console.error("Invalid point array, too short: ", points); return { x: 0, y: 0 }; }
         percents = percents.map(percent => {
             if (isNaN(parseInt(percent))) {
-                console.error("Invalid percent: ", percent);
+                console.error("Invalid percent to batch get position for: ", percent);
                 return 0;
             }
             return percent;
