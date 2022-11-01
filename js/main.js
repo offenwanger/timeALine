@@ -199,23 +199,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     mLineViewController.setPointerEnterCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
             mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE) {
-            showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     })
     mLineViewController.setPointerMoveCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE) {
+        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     });
     mLineViewController.setPointerOutCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
             if (mTooltipSetTo == timelineId) {
                 mTooltip.hide();
             }
@@ -225,8 +223,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE) {
-            mMouseDropShadow.hide();
         }
     })
 
