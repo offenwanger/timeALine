@@ -208,11 +208,13 @@ DataStructs.DataModel = function () {
         let timeline = getTimelineById(timelineId);
         if (!timeline) { console.error("Invalid timeline id for testing time mapping!", timelineId); return false; }
 
-        let timePinTimeStamps = [...timeline.timePins
-            .filter(pin => pin.timeStamp)].map(b => b.timeStamp);
+        let timePinTimeStamps = timeline.timePins
+            .filter(pin => pin.timeStamp).map(b => b.timeStamp);
+        let imageBindingsTimeStamps = timeline.imageBindings
+            .filter(d => d.timeStamp).map(d => d.timeStamp);
         let boundTimeValues = getBoundTimeCellValues(timeline.id)
             .filter(time => !timePinTimeStamps.includes(time));
-        let times = DataUtil.getUniqueList(boundTimeValues.concat(timePinTimeStamps));
+        let times = DataUtil.getUniqueList(boundTimeValues.concat(timePinTimeStamps).concat(imageBindingsTimeStamps));
 
         if (times.length < 2) {
             return false;
@@ -307,11 +309,11 @@ DataStructs.DataModel = function () {
         return returnable;
     }
 
-    function getAllImageBindings() {
-        return mTimelines.map(timeline => getImageBindings(timeline.id)).flat().concat(getCanvasImageBindings());
+    function getAllImageBindingData() {
+        return mTimelines.map(timeline => getImageBindingData(timeline.id)).flat().concat(getCanvasImageBindings());
     }
 
-    function getImageBindings(timelineId) {
+    function getImageBindingData(timelineId) {
         let timeline = getTimelineById(timelineId);
         if (!timeline) { console.error("Invalid timeline id for getting image binding data!", timelineId); return []; }
         let timelineHasMapping = hasTimeMapping(timelineId);
@@ -561,9 +563,9 @@ DataStructs.DataModel = function () {
     this.getTimeCellForDataCell = getTimeCellForDataCell;
     this.getBoundTimeCellValues = getBoundTimeCellValues;
 
-    this.getAllImageBindings = getAllImageBindings;
+    this.getAllImageBindingData = getAllImageBindingData;
     this.getCanvasImageBindings = getCanvasImageBindings;
-    this.getImageBindings = getImageBindings;
+    this.getImageBindingData = getImageBindingData;
     this.getImageBindingById = getImageBindingById;
 
     this.mapLinePercentToTime = mapLinePercentToTime;

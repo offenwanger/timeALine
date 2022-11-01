@@ -138,6 +138,9 @@ function ModelController() {
             });
         }
 
+        // Merge the imageBindings
+        newTimeline.imageBindings.push(...endTimeline.imageBindings, ...startTimeline.imageBindings);
+
         let conversionRatio = originalStartLength / newLength;
         let diff = newLength - originalEndLength;
 
@@ -377,6 +380,18 @@ function ModelController() {
             segment.cellBindingsData.push(binding);
         });
 
+        // split up the image bindings into their proper segments
+        segments.forEach(s => s.imageBindingData = []);
+        let imageBindingData = mModel.getImageBindingData(timeline.id);
+        imageBindingData.forEach(binding => {
+            let linePercent = binding.linePercent;
+            if (linePercent == NO_LINE_PERCENT) linePercent = 0;
+
+            let segment = findSegment(linePercent);
+            if (!segment) { console.error("Something wierd here. Didn't find segment for linePercent", linePercent, binding.linePercent); return; };
+            segment.imageBindingData.push(binding);
+        });
+
         // split up the strokes (sometimes literally split them) into their segments
         segments.forEach(s => s.annotationStrokes = []);
         mModel.getStrokeData(timeline.id).forEach(strokeData => {
@@ -414,12 +429,16 @@ function ModelController() {
                 let validCellBindingsStamps = segment.cellBindingsData
                     .filter(c => c.timeCell.isValid())
                     .map(cbd => cbd.timeCell.getValue());
+                // check the imageBindings
+                let validImageBindingStamps = segment.imageBindingData
+                    .filter(i => i.imageBinding.timeStamp)
+                    .map(i => i.imageBinding.timeStamp);
                 // check the strokes
                 let strokeStamps = segment.annotationStrokes
                     .map(s => s.points.map(p => p.timeStamp))
                     .flat();
-                maxTime = Math.max(maxTime, ...validCellBindingsStamps, ...strokeStamps);
-                minTime = Math.min(minTime, ...validCellBindingsStamps, ...strokeStamps);
+                maxTime = Math.max(maxTime, ...validCellBindingsStamps, ...validImageBindingStamps, ...strokeStamps);
+                minTime = Math.min(minTime, ...validCellBindingsStamps, ...validImageBindingStamps, ...strokeStamps);
 
                 if (minTime < Infinity &&
                     segment.startPercent > 0 && (
@@ -460,6 +479,7 @@ function ModelController() {
 
             // update the axis mappings
             newTimeline.cellBindings = segment.cellBindingsData.map(b => b.cellBinding);
+            newTimeline.imageBindings = segment.imageBindingData.map(b => b.imageBinding);
             let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData.filter(cbd => cbd.dataCell.getType() == DataTypes.NUM).map(cbd => cbd.dataCell.columnId));
             newTimeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
 
@@ -624,7 +644,7 @@ function ModelController() {
             timeline.timePins = DataUtil.filterTimePinByChangedPin(timeline.timePins, pin, timeAttribute);
 
             let pinsIds = timeline.timePins.map(pin => pin.id);
-            timeline.cellBindings.forEach(b => {
+            timeline.cellBindings.concat(timeline.imageBindings).forEach(b => {
                 if (!pinsIds.includes(b.timePinId)) b.timePinId = null;
             })
         } else {
@@ -710,6 +730,14 @@ function ModelController() {
     function eraseMaskedDataPoints(eraserMask) {
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
+            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+            let startTime, endTime;
+            if (hadTimeMapping) {
+                let bindingValues = mModel.getTimeBindingValues(timeline);
+                startTime = bindingValues[0].timeStamp;
+                endTime = bindingValues[bindingValues.length - 1].timeStamp;
+            }
+
             let pointData = mModel.getCellBindingData(timeline.id).filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
             pointData.sort((a, b) => a.linePercent - b.linePercent);
             let percents = pointData.map(p => p.linePercent);
@@ -743,6 +771,11 @@ function ModelController() {
                 // remove axis without data
                 let axesColumns = DataUtil.getUniqueList(pointData.map(cbd => cbd.dataCell.columnId));
                 timeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
+            }
+
+            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                let timeline = mModel.getTimelineById(timeline.id);
+                mapTimeStampsToTimePercents(timeline, startTime, endTime)
             }
         });
     }
@@ -790,6 +823,84 @@ function ModelController() {
                 mapTimeStampsToTimePercents(timeline, data.startTime, data.endTime)
             }
         })
+    }
+
+    function eraseMaskedImages(eraserMask) {
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+            let startTime, endTime;
+            if (hadTimeMapping) {
+                let bindingValues = mModel.getTimeBindingValues(timeline);
+                startTime = bindingValues[0].timeStamp;
+                endTime = bindingValues[bindingValues.length - 1].timeStamp;
+            }
+
+            let imageData = mModel.getImageBindingData(timeline.id);
+            imageData.sort((a, b) => a.linePercent - b.linePercent);
+            let percents = imageData.map(p => p.linePercent);
+            let positions = PathMath.getPositionForPercents(timeline.points, percents);
+            imageData.forEach((img, index) => {
+                let pos = positions[index];
+                let x1 = pos.x + img.imageBinding.offset.x;
+                let x2 = pos.x + img.imageBinding.offset.x + img.imageBinding.width;
+                let y1 = pos.y + img.imageBinding.offset.y;
+                let y2 = pos.y + img.imageBinding.offset.y + img.imageBinding.height;
+
+                let points = [
+                    { x: x1, y: y1 },
+                    { x: x1, y: y2 },
+                    { x: x2, y: y1 },
+                    { x: x2, y: y2 },
+                    { x: (x1 + x2) / 2, y: y1 },
+                    { x: (x1 + x2) / 2, y: y2 },
+                    { x: x1, y: (y1 + y2) / 2 },
+                    { x: x2, y: (y1 + y2) / 2 },
+                ]
+                let score = points.reduce((score, currPoint) => {
+                    if (eraserMask.isCovered(currPoint)) score++;
+                    return score;
+                }, 0);
+
+                if (score > 4) {
+                    timeline.imageBindings = timeline.imageBindings
+                        .filter(binding => binding.id != img.imageBinding.id);
+                }
+            });
+
+            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                let timeline = mModel.getTimelineById(timeline.id);
+                mapTimeStampsToTimePercents(timeline, startTime, endTime)
+            }
+        });
+
+        let imageData = mModel.getCanvasImageBindings();
+        imageData.forEach(img => {
+            let x1 = img.imageBinding.offset.x;
+            let x2 = img.imageBinding.offset.x + img.imageBinding.width;
+            let y1 = img.imageBinding.offset.y;
+            let y2 = img.imageBinding.offset.y + img.imageBinding.height;
+
+            let points = [
+                { x: x1, y: y1 },
+                { x: x1, y: y2 },
+                { x: x2, y: y1 },
+                { x: x2, y: y2 },
+                { x: (x1 + x2) / 2, y: y1 },
+                { x: (x1 + x2) / 2, y: y2 },
+                { x: x1, y: (y1 + y2) / 2 },
+                { x: x2, y: (y1 + y2) / 2 },
+            ]
+            let score = points.reduce((score, currPoint) => {
+                if (eraserMask.isCovered(currPoint)) score++;
+                return score;
+            }, 0);
+
+            if (score > 4) {
+                mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings
+                    .filter(binding => binding.id != img.imageBinding.id);
+            }
+        });
     }
 
     function eraseMaskedPins(eraserMask) {
@@ -844,11 +955,20 @@ function ModelController() {
         cellBinding.offset = offset;
     }
 
-    function updateTimePinBinding(cellBindingId, timePinId) {
+    function updateTimePinBinding(bindingId, timePinId) {
         undoStackPush();
 
-        let cellBinding = mModel.getCellBindingById(cellBindingId);
-        cellBinding.timePinId = timePinId;
+        let binding = mModel.getCellBindingById(bindingId);
+        if (!binding) {
+            binding = mModel.getImageBindingById(bindingId);
+        }
+
+        if (!binding) {
+            console.error("Invalid binding id!", bindingId);
+            return;
+        }
+
+        binding.timePinId = timePinId;
     }
 
     function toggleFont(cellBindingId) {
@@ -1352,6 +1472,7 @@ function ModelController() {
     this.eraseMaskedDataPoints = eraseMaskedDataPoints;
     this.eraseMaskedText = eraseMaskedText;
     this.eraseMaskedPins = eraseMaskedPins;
+    this.eraseMaskedImages = eraseMaskedImages;
 
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;

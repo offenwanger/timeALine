@@ -73,7 +73,7 @@ describe('Integration Test ImageController', function () {
             expect(imageSet.map(r => Math.round(r.x)).sort((a, b) => a - b)).to.eql([20, 110, 160]);
             expect(imageSet.map(r => Math.round(r.y)).sort((a, b) => a - b)).to.eql([110, 110, 110]);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
 
         });
 
@@ -110,7 +110,7 @@ describe('Integration Test ImageController', function () {
             expect(imageSet.map(r => Math.round(r.x)).sort((a, b) => a - b)).to.eql([20, 110, 160]);
             expect(imageSet.map(r => Math.round(r.y)).sort((a, b) => a - b)).to.eql([110, 110, 110]);
 
-            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
         });
 
         it('should move line image', function () {
@@ -158,12 +158,12 @@ describe('Integration Test ImageController', function () {
             let imageData = imageSet.find(item => item.binding.imageBinding.id == movingImageId);
             expect(imageData.binding.imageBinding.offset.x).to.eql(20)
             expect(imageData.binding.imageBinding.offset.y).to.eql(20)
-            integrationEnv.ModelController.getModel().getAllImageBindings()
+            integrationEnv.ModelController.getModel().getAllImageBindingData()
 
             // Check that the correct cell binding was updated
-            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 2);
 
-            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData()
                 .find(item => item.imageBinding.id == movingImageId)
                 .imageBinding.offset).to.eql({ x: 20, y: 20 });
         });
@@ -230,15 +230,15 @@ describe('Integration Test ImageController', function () {
             let imageData = imageSet.find(item => item.binding.imageBinding.id == movingImageId);
             expect(imageData.binding.imageBinding.offset.x).to.eql(130)
             expect(imageData.binding.imageBinding.offset.y).to.eql(110)
-            integrationEnv.ModelController.getModel().getAllImageBindings()
+            integrationEnv.ModelController.getModel().getAllImageBindingData()
 
             // Check that the correct cell binding was updated
-            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindings().length, 2);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 2);
 
-            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData()
                 .find(item => item.imageBinding.id == movingImageId)
                 .imageBinding.offset).to.eql({ x: 130, y: 110 });
-            expect(integrationEnv.ModelController.getModel().getAllImageBindings()
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData()
                 .find(item => item.imageBinding.id != movingImageId)
                 .imageBinding.offset).to.eql({ x: 250, y: 150 });
         });

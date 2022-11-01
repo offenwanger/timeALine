@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_ERASER_POINT = "eraserPoint";
     const MODE_ERASER_TEXT = "eraserText";
     const MODE_ERASER_PIN = "eraserPin";
+    const MODE_ERASER_IMAGE = "eraserImage";
     const MODE_DEFORM = "deform";
     const MODE_SMOOTH = "smooth";
     const MODE_SCISSORS = "scissors";
@@ -439,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let linePoint = PathMath.getClosestPointOnPath(coords, imageBindingData.timeline.points);
 
             // sets mDraggingTimePin
-            setDragPinForBindingDrag(imageBindingData, linePoint);
+            setDragPinForBindingDrag(imageBindingData, linePoint, true);
             pinDrag(imageBindingData.timeline, mDraggingTimePin, linePoint.percent);
 
             imageBindingData = imageBindingData.copy();
@@ -688,38 +689,41 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     // UTILITY
-    function setDragPinForBindingDrag(cellBindingData, linePoint) {
+    function setDragPinForBindingDrag(bindingData, linePoint, isImage = false) {
         // check if a pin already exists for this text, whether or not it's valid
-        let timePin;
+        let timePinId = isImage ? bindingData.imageBinding.timePinId : bindingData.cellBinding.timePinId;
+        let timeIsValid = isImage ? bindingData.imageBinding.timeStamp : bindingData.timeCell.isValid();
+        let time = isImage ? bindingData.imageBinding.timeStamp : bindingData.timeCell.getValue();
 
-        if (cellBindingData.timeCell.isValid()) {
-            timePin = cellBindingData.timeline.timePins.find(pin => pin.timeStamp == cellBindingData.timeCell.getValue());
-        } else if (cellBindingData.cellBinding.timePinId) {
-            timePin = cellBindingData.timeline.timePins.find(pin => pin.id == cellBindingData.cellBinding.timePinId);
+        let timePin;
+        if (timeIsValid) {
+            timePin = bindingData.timeline.timePins.find(pin => pin.timeStamp == time);
+        } else if (timePinId) {
+            timePin = bindingData.timeline.timePins.find(pin => pin.id == timePinId);
         }
 
         // if not, create one.
         if (!timePin) {
             timePin = new DataStructs.TimePin(linePoint.percent);
 
-            let hasTimeMapping = mModelController.getModel().hasTimeMapping(cellBindingData.timeline.id);
-            if (cellBindingData.timeCell.isValid()) {
-                timePin.timeStamp = cellBindingData.timeCell.getValue();
+            let hasTimeMapping = mModelController.getModel().hasTimeMapping(bindingData.timeline.id);
+            if (timeIsValid) {
+                timePin.timeStamp = time;
             } else if (hasTimeMapping) {
                 timePin.timeStamp = mModelController.getModel()
-                    .mapLinePercentToTime(cellBindingData.timeline.id, linePoint.percent, false)
+                    .mapLinePercentToTime(bindingData.timeline.id, linePoint.percent, false)
             }
 
-            if (!cellBindingData.timeCell.isValid()) {
-                cellBindingData.timePinId = timePin.id;
+            if (!timeIsValid) {
+                bindingData.timePinId = timePin.id;
             }
 
             if (!hasTimeMapping) {
                 timePin.timePercent = mModelController.getModel()
-                    .mapLinePercentToTime(cellBindingData.timeline.id, linePoint.percent, true)
+                    .mapLinePercentToTime(bindingData.timeline.id, linePoint.percent, true)
             }
 
-            if (!cellBindingData.timeCell.isValid() || !hasTimeMapping) {
+            if (!timeIsValid || !hasTimeMapping) {
                 mDraggingTimePinSettingTime = true;
             }
         }
@@ -768,6 +772,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mMode == MODE_ERASER_STROKE ||
             mMode == MODE_ERASER_POINT ||
             mMode == MODE_ERASER_PIN ||
+            mMode == MODE_ERASER_IMAGE ||
             mMode == MODE_ERASER) {
             mModelController.undoStackPush();
         }
@@ -786,6 +791,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
         if (mMode == MODE_ERASER_POINT || mMode == MODE_ERASER) {
             mModelController.eraseMaskedDataPoints(canvasMask);
+        }
+        if (mMode == MODE_ERASER_IMAGE || mMode == MODE_ERASER) {
+            mModelController.eraseMaskedImages(canvasMask);
         }
         if (mMode == MODE_ERASER_PIN) {
             // only do this if we are specifically erasing pins, because 
@@ -1245,19 +1253,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupSubModeButton("#eraser-button", "-stroke", MODE_ERASER_STROKE, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-timeline", "Erases strokes only")
+    setupButtonTooltip("#eraser-button-stroke", "Erases strokes only")
     setupSubModeButton("#eraser-button", "-point", MODE_ERASER_POINT, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-timeline", "Erases points only")
+    setupButtonTooltip("#eraser-button-point", "Erases points only")
     setupSubModeButton("#eraser-button", "-text", MODE_ERASER_TEXT, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-timeline", "Erases text only")
+    setupButtonTooltip("#eraser-button-text", "Erases text only")
     setupSubModeButton("#eraser-button", "-pin", MODE_ERASER_PIN, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-timeline", "Erases pins only")
+    setupButtonTooltip("#eraser-button-pin", "Erases pins only")
+    setupSubModeButton("#eraser-button", "-image", MODE_ERASER_IMAGE, () => {
+        mEraserController.setActive(true);
+    });
+    setupButtonTooltip("#eraser-button-image", "Erases images only")
 
     setupModeButton('#color-bucket-button', MODE_COLOR_BUCKET, () => {
         mLineViewController.setActive(true);

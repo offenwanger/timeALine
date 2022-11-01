@@ -20,7 +20,7 @@ function ImageController(vizLayer, overlayLayer, interactionLayer) {
         .lower();
 
     function updateModel(model) {
-        let imageDrawingData = getDrawingData(model.getAllImageBindings());
+        let imageDrawingData = getDrawingData(model.getAllImageBindingData());
 
         let selection = mImageGroup.selectAll(".image-item").data(imageDrawingData);
         selection.exit().remove();
