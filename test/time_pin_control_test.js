@@ -541,10 +541,10 @@ describe('Integration Test TimePinController', function () {
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.clickLine({ x: 175, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
@@ -602,10 +602,10 @@ describe('Integration Test TimePinController', function () {
 
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.clickLine({ x: 175, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 

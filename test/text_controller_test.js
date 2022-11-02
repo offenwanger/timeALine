@@ -51,11 +51,11 @@ describe('Integration Test TextController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
 
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
@@ -84,11 +84,11 @@ describe('Integration Test TextController', function () {
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
@@ -117,10 +117,10 @@ describe('Integration Test TextController', function () {
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 40, y: 103 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
 
@@ -175,14 +175,14 @@ describe('Integration Test TextController', function () {
         it('should add canvas text', function () {
             integrationEnv.mainInit();
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
             IntegrationUtils.mainPointerDown({ x: 300, y: 320 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 320 }, integrationEnv);
             IntegrationUtils.mainPointerDown({ x: 125, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 125, y: 320 }, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getCanvasBindingData().length, 3);
 

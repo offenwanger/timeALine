@@ -654,9 +654,9 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 103 }, timelineId2, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[2, 0, 2, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
@@ -774,20 +774,20 @@ describe('Integration Test LineDrawingController', function () {
             let timelineId2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
             let timelineId3 = integrationEnv.ModelController.getModel().getAllTimelines()[2].id;
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 15, y: 103 }, timelineId1, integrationEnv);
             IntegrationUtils.clickLine({ x: 25, y: 103 }, timelineId1, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 103 }, timelineId2, integrationEnv);
             IntegrationUtils.clickLine({ x: 135, y: 103 }, timelineId2, integrationEnv);
             IntegrationUtils.clickLine({ x: 145, y: 103 }, timelineId2, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 103 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId1).map(b => b.dataCell.getValue()))

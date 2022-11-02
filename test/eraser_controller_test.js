@@ -399,14 +399,14 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 100, y: 100 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 10, y: 105 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 300, y: 101 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 350, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickLine({ x: 387, y: 110 }, timelineId, integrationEnv);
-            IntegrationUtils.clickButton("#comment-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
             let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
             assert.equal(textSet.length, 6, "Annotations not created")

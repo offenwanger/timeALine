@@ -1159,11 +1159,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
 
-    setupModeButton('#comment-button', MODE_TEXT, () => {
+    setupModeButton('#text-button', MODE_TEXT, () => {
         mLineViewController.setActive(true);
         mTextController.setActive(true);
     });
-    setupButtonTooltip('#comment-button', "Creates text items on timelines or on the main view")
+    setupButtonTooltip('#text-button', "Creates text items on timelines or on the main view")
     $("#toggle-font-button").on("click", () => {
         if (!mSelectedCellBindingId) {
             console.error("Button should not be clickable!");
