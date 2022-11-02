@@ -746,21 +746,18 @@ describe('Integration Test ModelController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 4, 1], [1, 0, 4, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId1).map(b => b.dataCell.getValue()))
                 .to.eql([1, "Text 1", "Text 2", 1.5, 2]);
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[4, 0, 5, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 102 }, timelineId2, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId2).map(b => b.dataCell.getValue()))
                 .to.eql([2, "Text 3"]);
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId3).map(b => b.dataCell.getValue()))
                 .to.eql(["Text 3", "Text 4", "Text 5"]);
 
@@ -768,7 +765,6 @@ describe('Integration Test ModelController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId3).map(b => b.dataCell.getValue()))
                 .to.eql(["Text 3", "Text 4", "Text 5"]);
 
