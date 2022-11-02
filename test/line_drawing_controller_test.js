@@ -498,23 +498,19 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 4, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[4, 0, 5, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 102 }, timelineId2, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             // extra bind to make sure we don't bind overlapping data
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);
             expect(integrationEnv.ModelController.getModel().getCellBindingData(timelineId1).map(b => b.dataCell.getValue()))
@@ -652,7 +648,6 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 1, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 103 }, timelineId2, integrationEnv);
@@ -661,7 +656,6 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[2, 0, 2, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
             let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId3 + "\"]"].innerData;

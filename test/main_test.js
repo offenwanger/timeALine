@@ -669,7 +669,6 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 3, 1]];
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
 

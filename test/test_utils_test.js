@@ -607,7 +607,6 @@ before(function () {
 
         IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
         IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv);
-        IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
 
         assert(integrationEnv.ModelController.getModel().getAllCellBindingData().length > 0, "Nothing bound!");
     }
