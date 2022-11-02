@@ -1282,13 +1282,62 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip("#image-link-button", "Attach image to line")
 
-    $("#image-time-edit-button").on("click", () => {
+    $("#image-time-edit-button").on("click", (event) => {
         if (!mSelectedImageBindingId) {
             console.error("Button should not be clickable!");
             return;
         }
 
-        console.log("finish me!");
+        let imageBinding = mModelController.getModel().getImageBindingById(mSelectedImageBindingId);
+        if (!imageBinding) {
+            console.error("Image binding not found for id!", mSelectedImageBindingId);
+            return;
+        }
+
+        let screenCoords = { x: event.clientX, y: event.clientY };
+        let inputbox = d3.select("#input-box");
+
+        inputbox.on('input', null)
+            .style("top", Math.floor(screenCoords.y) + "px")
+            .style("left", Math.floor(screenCoords.x) + "px")
+            .on('input', function (e) {
+                let value = inputbox.property("value");
+                let isValid = value && (!isNaN(new Date(value)) || !isNaN(new Date(parseInt(value))));
+                if (isValid) {
+                    inputbox.style("background-color", "")
+                } else {
+                    inputbox.style("background-color", "lightpink")
+                }
+                inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
+            }).on('change', function (e) {
+                inputbox
+                    .style("top", "-400px")
+                    .style("left", "-200px")
+            }).on('blur', function (e) {
+                let value = inputbox.property("value");
+                let isValid = value && (!isNaN(new Date(value)) || !isNaN(new Date(parseInt(value))));
+                if (isValid) {
+                    let time = new Date(value);
+                    if (isNaN(time)) {
+                        time = new Date(parseInt(value));
+                    }
+                    if (isNaN(time)) {
+                        console.error("Time was valid then it wasn't!")
+                        return;
+                    }
+                    mModelController.updateImageTime(imageBinding.id, time.getTime());
+                    modelUpdated();
+                }
+                inputbox
+                    .style("top", "-400px")
+                    .style("left", "-200px")
+            });
+
+        inputbox.property("value", imageBinding.timeStamp ? DataUtil.getFormattedDate(imageBinding.timeStamp) : "");
+        inputbox.style("height", inputbox.property("scrollHeight") + "px");
+        inputbox.style("width", 200 + "px");
+
+        inputbox.node().focus();
     })
     setupButtonTooltip("#image-time-edit-button", "Edit the time assigned to the image")
 

@@ -1390,6 +1390,39 @@ function ModelController() {
         imageBinding.offset = offset;
     }
 
+    function updateImageTime(imageBindingId, time) {
+        let imageBinding = mModel.getImageBindingById(imageBindingId);
+        if (!imageBinding) {
+            console.error("invalid image binding id to set time", imageBindingId);
+            return;
+        }
+
+        let timeline = mModel.getAllTimelines().find(t => t.imageBindings.some(i => i.id == imageBindingId));
+        let hadTimeMapping, startTime, endTime;
+        if (timeline) {
+            hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+        }
+
+        if (hadTimeMapping) {
+            let bindingValues = mModel.getTimeBindingValues(timeline);
+            startTime = bindingValues[0].timeStamp;
+            endTime = bindingValues[bindingValues.length - 1].timeStamp;
+        }
+
+        if (DataUtil.isNumeric(time)) {
+            imageBinding.timeStamp = time;
+
+            if (timeline && !hadTimeMapping && mModel.hasTimeMapping(timeline.id)) {
+                mapTimePercentsToTimeStamps(timeline);
+            }
+        } else {
+            imageBinding.timeStamp = null;
+            if (timeline && hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                mapTimeStampsToTimePercents(timeline, startTime, endTime);
+            }
+        }
+    }
+
     function imageBindingToCanvasBinding(imageBindingId) {
         let timeline = mModel.getAllTimelines().find(t => t.imageBindings.some(i => i.id == imageBindingId));
         if (!timeline) {
@@ -1571,6 +1604,7 @@ function ModelController() {
     this.addBoundImage = addBoundImage;
     this.addCanvasImage = addCanvasImage;
     this.updateImageOffset = updateImageOffset;
+    this.updateImageTime = updateImageTime;
     this.imageBindingToCanvasBinding = imageBindingToCanvasBinding;
     this.imageBindingToLineBinding = imageBindingToLineBinding;
 
