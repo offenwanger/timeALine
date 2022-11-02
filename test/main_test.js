@@ -545,6 +545,97 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);
         })
     })
+
+    describe('Image context menu tests', function () {
+        let lastThen = () => { console.error("not set") };
+        beforeEach(function () {
+            integrationEnv.enviromentVariables.FileHandler.getImageFile = function () {
+                return {
+                    then: function (func) { lastThen = func; }
+                }
+            };
+        });
+
+        it('should unlink an image', function () {
+            integrationEnv.mainInit();
+
+            // Draw the line
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
+            // create a canvas image
+            IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
+            lastThen("imgdata1");
+            // and two line images
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
+            lastThen("thisistotallyimagedata1")
+            let unlinkImageId = integrationEnv.ModelController.getModel().getAllTimelines()[0].imageBindings[0].id;
+
+            IntegrationUtils.clickLine({ x: 170, y: 102 }, timelineId, integrationEnv);
+            lastThen("thisistotallyimagedata1")
+            IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
+
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData().map(b => b.isCanvasBinding)).to.eql([false, false, true]);
+
+            let imageTargetSet = integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].innerData;
+            let movingImageTargetData = imageTargetSet.find(item => item.binding.imageBinding.id == unlinkImageId);
+            integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].
+                eventCallbacks.pointerdown({ clientX: 160, clientY: 120 }, movingImageTargetData);
+            IntegrationUtils.pointerUp({ x: 160, y: 120 }, integrationEnv);
+
+            IntegrationUtils.clickButton("#image-unlink-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData().map(b => b.isCanvasBinding)).to.eql([false, true, true]);
+        })
+
+        it('should link an image', function () {
+            integrationEnv.mainInit();
+
+            // Draw the line
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
+            // create a canvas image
+            IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
+            lastThen("imgdata");
+            let unlinkImageId = integrationEnv.ModelController.getModel().getCanvas().imageBindings[0].id;
+
+            IntegrationUtils.mainPointerDown({ x: 200, y: 200 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 200, y: 200 }, integrationEnv);
+            lastThen("imgdata");
+            // and two line images
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
+            lastThen("thisistotallyimagedata")
+            IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
+
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData().map(b => b.isCanvasBinding)).to.eql([false, true, true]);
+
+            let imageTargetSet = integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].innerData;
+            let movingImageTargetData = imageTargetSet.find(item => item.binding.imageBinding.id == unlinkImageId);
+            integrationEnv.enviromentVariables.d3.selectors[".image-interaction-target"].
+                eventCallbacks.pointerdown({ clientX: 160, clientY: 120 }, movingImageTargetData);
+            IntegrationUtils.pointerUp({ x: 160, y: 120 }, integrationEnv);
+
+            IntegrationUtils.clickButton("#image-link-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.pointerMove({ x: 150, y: 100 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 140, y: 100 }, integrationEnv);
+            IntegrationUtils.clickLine({ x: 140, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
+            expect(integrationEnv.ModelController.getModel().getAllImageBindingData().map(b => b.isCanvasBinding)).to.eql([false, false, true]);
+        })
+    })
     describe('Data Highlight test', function () {
         it('should highlight timeline bound points', function () {
             integrationEnv.mainInit();

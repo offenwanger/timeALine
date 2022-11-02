@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     const MODE_SCISSORS = "scissors";
     const MODE_TEXT = "text";
     const MODE_IMAGE = "image";
+    const MODE_IMAGE_LINK = "imageLink"
     const MODE_PIN = "pin";
     const MODE_LENS = "lens";
     const MODE_COLOR_BRUSH = "colorBrush";
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mSelectedCellBindingId = null;
     let mSelectedImageBindingId = null;
+    let mLinkingBinding = null;
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -57,6 +59,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     FilterUtil.initializeShadowFilter(mSvg);
     FilterUtil.setFilterDisplayArea(0, 0, mSvg.attr('width'), mSvg.attr('height'));
+
+    let mLinkLine = mInteractionLayer.append("line")
+        .attr('stroke-width', 0.5)
+        .attr('stroke', 'black')
+        .attr('opacity', 0.6);
 
     let mModelController = new ModelController();
 
@@ -112,6 +119,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        } else if (mMode == MODE_IMAGE_LINK) {
+            let timeline = mModelController.getModel().getTimelineById(timelineId);
+            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+            let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+
+            mModelController.imageBindingToLineBinding(timelineId, mSelectedImageBindingId, linePoint);
+
+            modelUpdated();
+            setDefaultMode();
         }
     })
     mLineViewController.setLineDragCallback((timelineId, linePoint) => {
@@ -162,6 +178,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
 
             modelUpdated();
+            setDefaultMode();
         } else if (mMode == MODE_COLOR_BUCKET) {
             mModelController.updateTimelineColor(timelineId, mBucketColor);
             modelUpdated();
@@ -405,6 +422,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             $(event.target).closest('.text-interaction-target').length === 0) {
             // if we didn't click on a button in the context div
             hideTextContextMenu();
+        }
+
+        if (mMode == MODE_IMAGE_LINK) {
+            setDefaultMode();
         }
     });
 
@@ -898,13 +919,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on('pointermove', function (e) {
         let pointerEvent = e.originalEvent;
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+
         if (mMode == MODE_PAN && mPanning) {
             mViewTransform.x = mViewTransform.x + pointerEvent.movementX
             mViewTransform.y = mViewTransform.y + pointerEvent.movementY
             setViewToTransform();
-        }
+        } else if (mMode == MODE_IMAGE_LINK) {
+            if (!mLinkingBinding) {
+                console.error("No image linking binding set!");
+                setDefaultMode();
+                return;
+            }
 
-        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+            showLinkLine(mLinkingBinding.offset, coords);
+        }
 
         mColorBrushController.onPointerMove(coords);
         mLineViewController.onPointerMove(coords);
@@ -1228,6 +1257,42 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip('#image-button', "Add images to the viz")
 
+    $("#image-unlink-button").on("click", () => {
+        if (!mSelectedImageBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        mModelController.imageBindingToCanvasBinding(mSelectedImageBindingId);
+        mSelectedImageBindingId = null;
+
+        setDefaultMode();
+        modelUpdated();
+    })
+    setupButtonTooltip("#image-unlink-button", "Detach image from line")
+
+    setupModeButton('#image-link-button', MODE_IMAGE_LINK, () => {
+        if (!mSelectedImageBindingId) {
+            console.error("Button should not be clickable!");
+            setDefaultMode();
+            return;
+        }
+        mLinkingBinding = mModelController.getModel().getImageBindingById(mSelectedImageBindingId);
+        mLineViewController.setActive(true);
+    });
+    setupButtonTooltip("#image-link-button", "Attach image to line")
+
+    $("#image-time-edit-button").on("click", () => {
+        if (!mSelectedImageBindingId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        console.log("finish me!");
+    })
+    setupButtonTooltip("#image-time-edit-button", "Edit the time assigned to the image")
+
+
     setupModeButton('#pin-button', MODE_PIN, () => {
         mLineViewController.setActive(true);
         mTimePinController.setActive(true);
@@ -1442,6 +1507,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         $("#selection-button").css('opacity', '0.3');
 
+        hideImageContextMenu();
+        hideTextContextMenu();
+
+        mLinkingBinding = null;
+        hideLinkLine();
+
         $('#mode-indicator-div').html("");
         let modeImg = $("<img>");
         modeImg.attr("id", "mode-img");
@@ -1536,6 +1607,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $("#image-viewer .close").on("click", function () {
         $('#image-viewer').hide();
     });
+
+    function showLinkLine(coords1, coords2) {
+        mLinkLine.attr('x1', coords1.x).attr('y1', coords1.y)
+            .attr('x2', coords2.x).attr('y2', coords2.y);
+        mLinkLine.style("visibility", '');
+    }
+
+    function hideLinkLine() {
+        mLinkLine.style("visibility", 'hidden');
+    }
 
     function MouseDropShadow(parent) {
         let shadow = parent.append('g')

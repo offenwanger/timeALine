@@ -1390,6 +1390,82 @@ function ModelController() {
         imageBinding.offset = offset;
     }
 
+    function imageBindingToCanvasBinding(imageBindingId) {
+        let timeline = mModel.getAllTimelines().find(t => t.imageBindings.some(i => i.id == imageBindingId));
+        if (!timeline) {
+            console.error("No timeline found for image binding!");
+            return;
+        }
+
+        let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+        let startTime, endTime;
+        if (hadTimeMapping) {
+            let bindingValues = mModel.getTimeBindingValues(timeline);
+            startTime = bindingValues[0].timeStamp;
+            endTime = bindingValues[bindingValues.length - 1].timeStamp;
+        }
+
+        let imageData = mModel.getImageBindingData(timeline.id).find(d => d.imageBinding.id == imageBindingId);
+        if (!imageData) {
+            console.error("could not find the image binding for id!", imageBindingId);
+            return;
+        }
+
+        let position = PathMath.getPositionForPercent(timeline.points, imageData.linePercent);
+        let imageBinding = imageData.imageBinding;
+        imageBinding.offset.x += position.x;
+        imageBinding.offset.y += position.y;
+        imageBinding.timePinId = null;
+        mModel.getCanvas().imageBindings.push(imageBinding);
+        timeline.imageBindings = timeline.imageBindings.filter(i => i.id != imageBindingId);
+
+        if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+            let timeline = mModel.getTimelineById(timeline.id);
+            mapTimeStampsToTimePercents(timeline, startTime, endTime)
+        }
+    }
+
+    function imageBindingToLineBinding(timelineId, imageBindingId, linePoint) {
+        let timeline = mModel.getTimelineById(timelineId);
+        if (!timeline) {
+            console.error("Bad timeline id to link image binding to!", timelineId);
+            return;
+        }
+
+        let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+
+        let imageData = mModel.getCanvasImageBindings().find(d => d.imageBinding.id == imageBindingId);
+        if (!imageData) {
+            console.error("could not find the image binding for id!", imageBindingId);
+            return;
+        }
+
+        let imageBinding = imageData.imageBinding;
+        imageBinding.offset.x -= linePoint.x;
+        imageBinding.offset.y -= linePoint.y;
+        mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings.filter(b => b.id != imageBindingId);
+
+        if (hadTimeMapping && !imageData.imageBinding.timeStamp) {
+            imageBinding.timeStamp = mModel.mapLinePercentToTime(timeline.id, linePoint.percent);
+        } else if (!hadTimeMapping) {
+            // make a pin to link it to the clicked point.
+            let timePin = new DataStructs.TimePin(linePoint.percent);
+            timePin.timePercent = mModel.mapLinePercentToTime(timeline.id, linePoint.percent);
+            if (imageData.imageBinding.timeStamp) {
+                timePin.timeStamp = imageData.imageBinding.timeStamp;
+            }
+            imageBinding.timePinId = timePin.id;
+            timeline.timePins.push(timePin);
+        }
+
+        timeline.imageBindings.push(imageBinding);
+
+        if (!hadTimeMapping && mModel.hasTimeMapping(timeline.id)) {
+            mapTimePercentsToTimeStamps(timeline);
+        }
+    }
+
+
     /****
      * Utility
      */
@@ -1495,6 +1571,8 @@ function ModelController() {
     this.addBoundImage = addBoundImage;
     this.addCanvasImage = addCanvasImage;
     this.updateImageOffset = updateImageOffset;
+    this.imageBindingToCanvasBinding = imageBindingToCanvasBinding;
+    this.imageBindingToLineBinding = imageBindingToLineBinding;
 
     this.getModel = () => mModel.copy();
 
