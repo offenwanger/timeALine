@@ -24,7 +24,8 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
         .attr('x', 0)
         .attr('y', 0)
         .attr('fill', 'white')
-        .attr('opacity', '0.2');
+        .attr('opacity', '0.2')
+        .style("visibility", 'hidden');
 
     function onPointerDown(coords) {
         if (mActive) {

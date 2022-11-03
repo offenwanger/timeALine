@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('height', window.innerHeight);
 
     let mVizLayer = mSvg.append("g").attr("id", "main-viz-layer");
-    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-canvas-interaction-layer");
+    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-overlay-layer");
     let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
 
     let mLensSvg = d3.select('#lens-view').append('svg')
@@ -60,10 +60,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
     FilterUtil.initializeShadowFilter(mSvg);
     FilterUtil.setFilterDisplayArea(0, 0, mSvg.attr('width'), mSvg.attr('height'));
 
+    let mMainOverlay = mVizOverlayLayer.append('rect')
+        .attr('id', "main-viz-overlay")
+        .attr('x', 0)
+        .attr('y', 0)
+        .attr('height', mSvg.attr('height'))
+        .attr('width', mSvg.attr('width'))
+        .attr('fill', 'white')
+        .attr('opacity', '0');
+
     let mLinkLine = mInteractionLayer.append("line")
         .attr('stroke-width', 0.5)
         .attr('stroke', 'black')
         .attr('opacity', 0.6);
+
+    window.addEventListener("resize", () => {
+        mSvg.attr('width', window.innerWidth)
+            .attr('height', window.innerHeight);
+        mMainOverlay.attr('width', window.innerWidth)
+            .attr('height', window.innerHeight);
+    });
 
     let mModelController = new ModelController();
 
@@ -874,48 +890,40 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mBrushController = BrushController.getInstance(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
-    mVizOverlayLayer.append('rect')
-        .attr('id', "main-viz-overlay")
-        .attr('x', 0)
-        .attr('y', 0)
-        .attr('height', mSvg.attr('height'))
-        .attr('width', mSvg.attr('width'))
-        .attr('fill', 'white')
-        .attr('opacity', '0')
-        .on('pointerdown', function (pointerEvent) {
-            let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+    mMainOverlay.on('pointerdown', function (pointerEvent) {
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
-            if (mMode == MODE_PAN) {
-                mPanning = true;
-            } else if (mMode == MODE_COLOR_BUCKET) {
-                mModelController.updateCanvasColor(mBucketColor);
+        if (mMode == MODE_PAN) {
+            mPanning = true;
+        } else if (mMode == MODE_COLOR_BUCKET) {
+            mModelController.updateCanvasColor(mBucketColor);
+            modelUpdated();
+        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+            setColorBrushColor(mModelController.getModel().getCanvas().color);
+        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            setColorBucketColor(mModelController.getModel().getCanvas().color);
+        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            setLineDrawingColor(mModelController.getModel().getCanvas().color);
+        } else if (mMode == MODE_LENS) {
+            mLensController.focus(null, null);
+            mLineHighlight.hide();
+        } else if (mMode == MODE_TEXT) {
+            mModelController.addCanvasText("<text>", coords);
+            modelUpdated();
+        } else if (mMode == MODE_IMAGE) {
+            FileHandler.getImageFile().then(imageData => {
+                mModelController.addCanvasImage(imageData, coords);
                 modelUpdated();
-            } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
-                setColorBrushColor(mModelController.getModel().getCanvas().color);
-            } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
-                setColorBucketColor(mModelController.getModel().getCanvas().color);
-            } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
-                setLineDrawingColor(mModelController.getModel().getCanvas().color);
-            } else if (mMode == MODE_LENS) {
-                mLensController.focus(null, null);
-                mLineHighlight.hide();
-            } else if (mMode == MODE_TEXT) {
-                mModelController.addCanvasText("<text>", coords);
-                modelUpdated();
-            } else if (mMode == MODE_IMAGE) {
-                FileHandler.getImageFile().then(imageData => {
-                    mModelController.addCanvasImage(imageData, coords);
-                    modelUpdated();
-                })
-            }
+            })
+        }
 
-            mColorBrushController.onPointerDown(coords);
-            mLineDrawingController.onPointerDown(coords);
-            mDeformController.onPointerDown(coords);
-            mEraserController.onPointerDown(coords);
-            mSmoothController.onPointerDown(coords);
-            mSelectionController.onPointerDown(coords);
-        })
+        mColorBrushController.onPointerDown(coords);
+        mLineDrawingController.onPointerDown(coords);
+        mDeformController.onPointerDown(coords);
+        mEraserController.onPointerDown(coords);
+        mSmoothController.onPointerDown(coords);
+        mSelectionController.onPointerDown(coords);
+    })
 
     $(document).on('pointermove', function (e) {
         let pointerEvent = e.originalEvent;
@@ -1767,5 +1775,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     //     console.log(e.type)
     // });
 
+    mMainOverlay.raise();
     setDefaultMode();
 });

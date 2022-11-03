@@ -10,10 +10,9 @@ function DeformController(vizLayer, overlayLayer, interactionLayer) {
         .style("visibility", 'hidden');
 
     let mCover = overlayLayer.append('rect')
+        .attr('id', "deform-cover")
         .attr('x', 0)
         .attr('y', 0)
-        .attr('width', overlayLayer.node().getBBox().width)
-        .attr('height', overlayLayer.node().getBBox().height)
         .attr('fill', 'white')
         .attr('opacity', '0.8')
         .style("visibility", 'hidden');

@@ -13,10 +13,9 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     let mSelectedDataPoints = [];
 
     let mCover = overlayLayer.append('rect')
+        .attr('id', "selection-cover")
         .attr('x', 0)
         .attr('y', 0)
-        .attr('width', overlayLayer.node().getBBox().width)
-        .attr('height', overlayLayer.node().getBBox().height)
         .attr('fill', 'white')
         .attr('opacity', '0.8')
         .style("visibility", 'hidden');
@@ -106,7 +105,9 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     function dragStart(e, d) {
         mDragStartPos = mDragStartCallback(d.id, e);
         mDraggingTimeline = d;
-        mCover.style("visibility", '');
+        mCover.style("visibility", '')
+            .attr('width', overlayLayer.node().getBBox().width)
+            .attr('height', overlayLayer.node().getBBox().height);
         mLine.attr('stroke', d.color)
             .attr('d', PathMath.getPathD(d.points))
             .style('visibility', "");

@@ -13,6 +13,7 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
     let mLinesGroup = mSmoothGroup.append('g');
 
     let mCover = overlayLayer.append('rect')
+        .attr('id', "smooth-cover")
         .attr('x', 0)
         .attr('y', 0)
         .attr('fill', 'white')
