@@ -405,6 +405,7 @@ before(function () {
             handsontables: [],
             Handsontable: returnable.snagTable(MockHandsontable),
             window: {
+                eventListeners: {},
                 innerWidth: 500,
                 innerHeight: 500,
                 createObjectURL: (item) => item,
@@ -418,7 +419,8 @@ before(function () {
                             }
                         }
                     }]
-                }
+                },
+                addEventListener: function (event, func) { this.eventListeners[event] = func; }
             },
             Blob: function () { this.init = arguments },
             URL: { objectUrls: [], createObjectURL: function (object) { this.objectUrls.push(object); return "thisistotallyanObjectURL"; } },
