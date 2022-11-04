@@ -471,7 +471,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mImageController = new ImageController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mImageController.setDragStartCallback((imageBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+        if (mMode == MODE_PAN) {
+            mPanning = true;
+        } else if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
             showImageContextMenu(imageBindingData);
         } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
             let linePoint = PathMath.getClosestPointOnPath(coords, imageBindingData.timeline.points);
@@ -1450,6 +1452,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     setupModeButton("#panning-button", MODE_PAN, () => {
         mLensController.setPanActive(true);
+        mImageController.setActive(true);
     });
     setupButtonTooltip("#panning-button", "Pans the main view and the lens view")
 
