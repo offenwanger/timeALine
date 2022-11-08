@@ -643,6 +643,27 @@ before(function () {
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
     }
 
+    function loadTestViz(viz, integrationEnv, callback) {
+        let data = fs.readFileSync(__dirname + "/" + viz, "utf-8");
+        integrationEnv.enviromentVariables.window.fileText = data;
+        let originalFunc = integrationEnv.enviromentVariables.FileHandler.getJSONModel;
+        integrationEnv.enviromentVariables.FileHandler.getJSONModel = function () {
+            return {
+                promise: originalFunc(),
+                catch: function (func) { this.promise = this.promise.catch(func); return this; },
+                then: function (func) {
+                    this.promise = this.promise.then(func).then(() => {
+                        callback();
+                    }).catch((err) => {
+                        console.error("failed!", err);
+                    })
+                    return this;
+                }
+            }
+        };
+        integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+    }
+
     IntegrationUtils = {
         drawLine,
         drawLensColorLine,
@@ -657,5 +678,6 @@ before(function () {
         bindDataToLine,
         dragLine,
         erase,
+        loadTestViz,
     }
 });

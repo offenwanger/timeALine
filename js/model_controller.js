@@ -299,7 +299,7 @@ function ModelController() {
     function getCapTimePin(timeline, capStart) {
         let timelineHasMapping = mModel.hasTimeMapping(timeline.id);
         let boundValues = mModel.getBoundTimeCellValues(timeline.id)
-            .concat(timeline.annotationStrokes.map(s => s.points.map(p => timelineHasMapping ? p.timeStamp : p.timePercent)));
+            .concat(timeline.annotationStrokes.map(s => s.points.map(p => timelineHasMapping ? p.timeStamp : p.timePercent)).flat());
         if (boundValues.length > 1) {
             let capTimeStamp = capStart ? boundValues[0] : boundValues[boundValues.length - 1];
 
