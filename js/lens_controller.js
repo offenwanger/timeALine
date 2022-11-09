@@ -43,7 +43,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 if (timelineHasMapping) {
                     point.timeStamp = model.mapLinePercentToTime(mTimelineId, linePercent);
                 } else {
-                    point.timePercent = model.mapLinePercentToTime(mTimelineId, linePercent);;
+                    point.timePercent = model.mapLinePercentToTime(mTimelineId, linePercent);
                 }
                 return point;
             })
