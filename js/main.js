@@ -1415,12 +1415,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip("#color-bucket-button-color-picker", "Choose color to color things with");
 
     $('#color-picker-wrapper').farbtastic((color) => {
-        if (mMode == MODE_COLOR_BRUSH || mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
-            setColorBrushColor(color);
-        } else if (mMode == MODE_COLOR_BUCKET || mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
-            setColorBucketColor(color);
-        } else if (mMode == MODE_LINE_DRAWING || mMode == MODE_LINE_DRAWING_EYEDROPPER) {
-            setLineDrawingColor(color);
+        if (color != "#NaNNaNNaN") {
+            if (mMode == MODE_COLOR_BRUSH || mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+                setColorBrushColor(color);
+            } else if (mMode == MODE_COLOR_BUCKET || mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+                setColorBucketColor(color);
+            } else if (mMode == MODE_LINE_DRAWING || mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+                setLineDrawingColor(color);
+            }
+            setColorPickerInputColor(color);
         }
     });
     $(document).on("click", function (event) {
@@ -1440,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mMode == MODE_LINE_DRAWING || MODE_LINE_DRAWING_EYEDROPPER) {
             setLineDrawingColor($("#color-picker-input").val());
         }
+        setColorPickerInputColor($("#color-picker-input").val());
     })
     // set color to a random color
     setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
