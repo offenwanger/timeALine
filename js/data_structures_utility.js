@@ -153,7 +153,7 @@ DataStructs.DataModel = function () {
                 return false;
             } else if (!timelineHasMapping && (time < 0 || time > 1)) {
                 // we can't check timestamps as they are unbounded.
-                console.error("Invalid state! Expected time percent and value invalid", time, timeline);
+                console.error("Invalid state! Provided value invalid for time percent", time, timeline);
                 return false;
             }
             return true;
@@ -171,16 +171,15 @@ DataStructs.DataModel = function () {
     }
 
     function mapLinePercentToTime(timelineId, linePercent) {
-        // get rid of rounding errors for number close to 1 and 0;
-        linePercent = Math.round(linePercent * 10000) / 10000;
-
         if (isNaN(linePercent)) { console.error("Invalid percent for mapping line percent to time:" + linePercent); return 0; }
         if (linePercent < 0) {
-            console.error("Invalid linePercent!", linePercent);
+            // only log an error if it was much less, otherwise it's probably just a rounding error
+            if (linePercent < -0.001) console.error("Invalid linePercent!", linePercent);
             linePercent = 0;
         }
         if (linePercent > 1) {
-            console.error("Invalid linePercent!", linePercent);
+            // only log an error if it was much more, otherwise it's probably just a rounding error
+            if (linePercent > 1.001) console.error("Invalid linePercent!", linePercent);
             linePercent = 1;
         }
 

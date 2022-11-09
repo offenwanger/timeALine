@@ -1127,15 +1127,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
     setupButtonTooltip("#redo-button", "Redo last undone action");
 
-    $("#upload-button").on("click", () => {
-        FileHandler.getJSONModel().catch(err => {
-            console.error("Error while getting file: ", err)
-        }).then(result => {
-            mModelController.setModelFromObject(result);
-            modelUpdated();
-        }).catch(err => {
-            console.error("Error while setting the model: ", err)
-        });
+    $("#upload-button").on("click", async () => {
+        let model;
+        try {
+            model = await FileHandler.getJSONModel();
+        } catch (e) {
+            if (e.message.includes("The user aborted a request")) return;
+            console.error("Error fetching model", e); return;
+        }
+
+        mModelController.setModelFromObject(model);
+        modelUpdated();
     })
     setupButtonTooltip("#upload-button", "Upload a previously downloaded file");
 

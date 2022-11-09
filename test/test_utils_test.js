@@ -10,6 +10,12 @@ let expect = chai.expect;
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
 
+    let consoleError = console.error;
+    console.error = function (message) {
+        consoleError(...arguments);
+        assert.fail("Error", "No Error" + message);
+    }
+
     function fakeD3() {
         let selectors = {};
 
@@ -191,7 +197,13 @@ before(function () {
             this.css = function () { return this };
             this.hide = function () { return this };
             this.show = function () { return this };
-            this.html = function (html) { if (html) this.innerHtml = html; return this.innerHtml; };
+            this.html = function (html) {
+                if (html) {
+                    this.innerHtml = html
+                } else {
+                    return this.innerHtml
+                }
+            };
             this.width = function () { return 100 };
             this.height = function () { return 100 };
             this.scrollTop = function () { return 100 };
@@ -643,25 +655,10 @@ before(function () {
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
     }
 
-    function loadTestViz(viz, integrationEnv, callback) {
+    async function loadTestViz(viz, integrationEnv) {
         let data = fs.readFileSync(__dirname + "/" + viz, "utf-8");
         integrationEnv.enviromentVariables.window.fileText = data;
-        let originalFunc = integrationEnv.enviromentVariables.FileHandler.getJSONModel;
-        integrationEnv.enviromentVariables.FileHandler.getJSONModel = function () {
-            return {
-                promise: originalFunc(),
-                catch: function (func) { this.promise = this.promise.catch(func); return this; },
-                then: function (func) {
-                    this.promise = this.promise.then(func).then(() => {
-                        callback();
-                    }).catch((err) => {
-                        console.error("failed!", err);
-                    })
-                    return this;
-                }
-            }
-        };
-        integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+        await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
     }
 
     IntegrationUtils = {

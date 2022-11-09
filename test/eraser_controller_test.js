@@ -536,7 +536,7 @@ describe('Integration Test EraserController', function () {
                 .to.eql([
                     [[0.25, 0.5]],
                     [[0.14, 0.29, 0.43, 0.57, 0.71]],
-                    [[0, 0.08, 0.15, 0.19]]
+                    [[0.08, 0.15, 0.19]]
                 ]);
         });
 
@@ -602,7 +602,7 @@ describe('Integration Test EraserController', function () {
                 .to.eql([
                     [[0.25, 1], [1, 0.25]],
                     [[0.33, 0.67], [0.67, 0.33]],
-                    [[0.67, 0.67, -0]]
+                    [[0.67, 0.67, 0]]
                 ]);
         });
     });

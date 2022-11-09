@@ -876,30 +876,28 @@ describe('Integration Test LineDrawingController', function () {
 
 
     describe('line merging with full data tests', function () {
-        it('should extend large timeline without error', function (done) {
+        it('should extend large timeline without error', async function () {
             integrationEnv.mainInit();
-            IntegrationUtils.loadTestViz("test_viz_1.json", integrationEnv, () => {
-                assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
-                assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 6);
-                assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 15);
-                assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
+            await IntegrationUtils.loadTestViz("test_viz_1.json", integrationEnv)
 
-                IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
-                integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({ clientX: 1033, clientY: 355 }, {
-                    timelineId: integrationEnv.ModelController.getModel().getAllTimelines()[0].id
-                });
-                IntegrationUtils.pointerMove({ x: 1033, y: 355 }, integrationEnv);
-                IntegrationUtils.pointerMove({ x: 1033, y: 100 }, integrationEnv);
-                IntegrationUtils.pointerMove({ x: 1033, y: 101 }, integrationEnv);
-                IntegrationUtils.pointerMove({ x: 1033, y: 100 }, integrationEnv);
-                IntegrationUtils.pointerUp({ x: 1033, y: 102 }, integrationEnv);
-                IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 6);
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 15);
+            assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
 
-                assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
-                assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 6);
-
-                done();
+            IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({ clientX: 1033, clientY: 355 }, {
+                timelineId: integrationEnv.ModelController.getModel().getAllTimelines()[0].id
             });
+            IntegrationUtils.pointerMove({ x: 1033, y: 355 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 1033, y: 100 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 1033, y: 101 }, integrationEnv);
+            IntegrationUtils.pointerMove({ x: 1033, y: 100 }, integrationEnv);
+            IntegrationUtils.pointerUp({ x: 1033, y: 102 }, integrationEnv);
+            IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 6);
         });
     });
 });

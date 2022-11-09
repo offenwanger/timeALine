@@ -556,37 +556,25 @@ describe('Integration Test ModelController', function () {
     describe('data tooltips test', function () {
         it('should show a tooltip with a date', function () {
             integrationEnv.mainInit();
-            IntegrationUtils.drawLine([
-                { x: 100, y: 100 },
-                { x: 125, y: 200 },
-                { x: 150, y: 100 },
-            ], integrationEnv);
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 125, y: 200 }, { x: 150, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
-
-
-            IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "July 1 2022"], [0, 1, "", "Text1"],
-                [1, 0, "", "July 11 2022"], [1, 1, "", "Text2"],
-                [2, 0, "", "July 21 2022"], [2, 1, "", "Text3"],
-            ]);
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 2, 1]];
-            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 125, y: 200 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
-            IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["July 1 2022", "Text1"],
+                ["July 11 2022", "Text2"],
+                ["July 21 2022", "Text3"]
+            ], integrationEnv);
 
             let timeLineTargets = integrationEnv.enviromentVariables.d3.selectors['.timeline-target'];
             let data = timeLineTargets.innerData.find(d => d.id == integrationEnv.ModelController.getModel().getAllTimelines()[0].id);
             timeLineTargets.eventCallbacks['pointerenter']({ clientX: 125, clientY: 200 }, data);
 
-            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:31:12")));
+            assert.equal(integrationEnv.enviromentVariables.$.selectors["#main-tooltip"].html(), DataUtil.getFormattedDate(new Date("Jul 10, 2022 23:32:16")));
         });
     });
 
     describe('Import Export Test', function () {
-        it('should serialize and unserialize to the same object (except for the Ids)', function (done) {
+        it('should serialize and unserialize to the same object (except for the Ids)', async function () {
             // Running this as an integration test to test the upload/download buttons code
             integrationEnv.mainInit();
             let timeline = integrationEnv.ModelController.newTimeline([
@@ -626,25 +614,17 @@ describe('Integration Test ModelController', function () {
 
             // clear the data
             integrationEnv.ModelController.setModelFromObject({ canvas: new DataStructs.Canvas(), timelines: [], dataTables: [] });
-            let originalFunc = integrationEnv.ModelController.setModelFromObject;
+            assert.equal(integrationEnv.ModelController.getModelAsObject().timelines.length, 0);
+            assert.equal(integrationEnv.ModelController.getModelAsObject().dataTables.length, 0);
 
-            integrationEnv.ModelController.setModelFromObject = function (result) {
-                assert.equal(integrationEnv.ModelController.getModelAsObject().timelines.length, 0);
-                assert.equal(integrationEnv.ModelController.getModelAsObject().dataTables.length, 0);
+            await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
 
-                originalFunc.call(integrationEnv.ModelController, result);
-
-                // Do both directions to make sure we aren't missing anything. 
-                TestUtils.deepEquals(integrationEnv.ModelController.getModelAsObject(), originalModel);
-                TestUtils.deepEquals(originalModel, integrationEnv.ModelController.getModelAsObject());
-
-                done();
-            }
-
-            integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+            // Do both directions to make sure we aren't missing anything. 
+            TestUtils.deepEquals(integrationEnv.ModelController.getModelAsObject(), originalModel);
+            TestUtils.deepEquals(originalModel, integrationEnv.ModelController.getModelAsObject());
         });
 
-        it('should draw correctly from unserialized data', function (done) {
+        it('should draw correctly from unserialized data', async function () {
             // Running this as an integration test to test the upload/download buttons code
             integrationEnv.mainInit();
             let line1Points = [
@@ -687,32 +667,16 @@ describe('Integration Test ModelController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
 
-            let originalFunc = integrationEnv.enviromentVariables.FileHandler.getJSONModel;
-            // inject test code into async function call set
-            integrationEnv.enviromentVariables.FileHandler.getJSONModel = function () {
-                return {
-                    promise: originalFunc(),
-                    catch: function (func) { this.promise = this.promise.catch(func); return this; },
-                    then: function (func) {
-                        this.promise = this.promise.then(func).then(() => {
-                            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
-                            let textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
-                                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
-                            assert.equal(textSet.length, 2);
-                            assert.equal(textSet[0].x, 10);
-                            assert.equal(textSet[0].y, 10);
-                            assert.equal(textSet[1].x, 10);
-                            assert.equal(textSet[1].y, 10);
-                            done();
-                        }).catch((err) => {
-                            console.error("failed!", err);
-                        })
-                        return this;
-                    }
-                }
-            };
+            await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
 
-            integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
+            textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
+            assert.equal(textSet.length, 2);
+            assert.equal(textSet[0].x, 10);
+            assert.equal(textSet[0].y, 10);
+            assert.equal(textSet[1].x, 10);
+            assert.equal(textSet[1].y, 10);
         });
     });
     describe('Data Binding Test', function () {
