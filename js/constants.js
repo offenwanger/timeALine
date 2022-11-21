@@ -20,9 +20,9 @@ const Fonts = [
 
 const DataDisplayStyles = {
     POINTS: "points",
+    LINE: "line",
     AREA: "area",
-    STREAM: "stream",
-    LINE: "line"
+    STREAM: "stream"
 }
 
 const SEGMENT_LABELS = {

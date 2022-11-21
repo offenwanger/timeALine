@@ -134,6 +134,7 @@ before(function () {
             this.clone = function () { return this; };
             this.raise = function () { return this };
             this.lower = function () { return this };
+            this.empty = function () { return false };
         };
         this.mockElement = MockElement;
 

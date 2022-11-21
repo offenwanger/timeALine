@@ -491,7 +491,55 @@ let PathMath = function () {
     }
 
     function interpolatePoints(points, interpolationValues) {
-        console.error("finish me")
+        let metaPoints = getMetaPoints(points);
+        let interpolatedPoints = [];
+
+        interpolationValues.filter(iv => {
+            if (!DataUtil.isNumeric(iv.percent) || !DataUtil.isNumeric(iv.dist)) {
+                console.error("Invalid interpolation value", iv);
+                return false;
+            }
+            return true;
+        })
+        interpolationValues.forEach(iv => {
+            if (iv.percent < -0.001 || iv.percent > 1.001) {
+                console.error("Invalid interpolation value percent", iv);
+            }
+            if (iv.percent < 0) iv.percent = 0;
+            if (iv.percent > 1) iv.percent = 1;
+        });
+
+        interpolationValues.sort((a, b) => a.percent - b.percent);
+        let interpolationQueue = [...interpolationValues]
+        for (let i = 0; i < metaPoints.length; i++) {
+            while (interpolationQueue.length > 0 && interpolationQueue[0].percent <= metaPoints[i].percent) {
+                interpolatedPoints.push(interpolationQueue.shift());
+            }
+            if (interpolationQueue.length == 0) {
+                // if we've emptied the queue, we're done.
+                break;
+            }
+
+            // only interpolate when we're between interpolation points
+            if (interpolatedPoints.length > 0 && interpolationQueue.length > 0) {
+                let p1 = interpolatedPoints[interpolatedPoints.length - 1];
+                let p2 = interpolationQueue[0];
+                // if a metapoint equals an interpolation point skip it. 
+                if (metaPoints[i].percent == p1.percent || metaPoints[i].percent == p2.percent) continue;
+
+                let percentBetween = (metaPoints[i].percent - p1.percent) / (p2.percent - p1.percent);
+                let interpolatedDist = percentBetween * (p2.dist - p1.dist) + p1.dist;
+
+                interpolatedPoints.push({
+                    percent: metaPoints[i].percent,
+                    dist: interpolatedDist
+                })
+            }
+        }
+
+        return getPositionsForPercentsAndDists(points,
+            interpolatedPoints.map(p => p.percent),
+            interpolatedPoints.map(p => p.dist));
     }
 
     function getPointsWithin(x, coords, points) {
@@ -980,6 +1028,8 @@ let FilterUtil = function () {
     }
 
     function applyShadowFilter(selection) {
+        if (selection.empty()) return;
+
         // avoid double adds
         removeShadowFilter(selection);
 
@@ -992,6 +1042,8 @@ let FilterUtil = function () {
     }
 
     function removeShadowFilter(selection) {
+        if (selection.empty()) return;
+
         let currFilters = selection.attr("filter");
         if (!currFilters) currFilters = "";
         selection.attr("filter", currFilters

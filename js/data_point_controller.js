@@ -23,6 +23,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
 
+    let mLineGroup = vizLayer.append('g')
+        .attr("id", 'data-line-display-g');
     let mDataPointGroup = vizLayer.append('g')
         .attr("id", 'data-point-display-g');
     let mAxisGroup = vizLayer.append('g')
@@ -171,7 +173,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, origin);
         let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, origin);
 
-        return { timelineId: timeline.id, axis, normal, origin, pos1, pos2 };
+        let { val1, val2 } = axis;
+        if (axis.style == DataDisplayStyles.AREA || axis.style == DataDisplayStyles.STREAM) {
+            val2 = Math.max(Math.abs(val1), Math.abs(val2));
+            val1 = 0;
+        }
+
+        return { timelineId: timeline.id, axis, normal, origin, pos1, pos2, val1, val2 };
     }
 
     function drawPoints(drawingData) {
@@ -188,7 +196,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.binding.color })
             .attr('timeline-id', function (d) { return d.binding.timeline.id })
-            .attr('binding-id', function (d) { return d.binding.cellBinding.id });
+            .attr('binding-id', function (d) { return d.binding.cellBinding.id })
+            .attr('axis-id', function (d) { return d.binding.axisBinding ? d.binding.axisBinding.id : null });
 
         let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point')
             .data(drawingData);
@@ -226,19 +235,52 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cy', function (d) { return d.y });
     }
 
-    function drawLines() {
-        console.error("Finish me");
-
+    function drawLines(drawingData) {
+        let paths = mLineGroup.selectAll('.data-line-path').data(drawingData);
+        paths.exit().remove();
+        paths.enter().append('path')
+            .classed('data-line-path', true)
+            .attr('fill', 'none')
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+        mLineGroup.selectAll('.data-line-path')
+            .attr('stroke', d => d.axis.color1)
+            .attr('d', d => d.line)
+            .attr('timeline-id', d => d.timelineId)
+            .attr('axis-id', d => d.axis.id);
     }
 
-    function drawAreas() {
-        console.error("Finish me");
-
+    function drawAreas(drawingData) {
+        let paths = mLineGroup.selectAll('.data-area-path').data(drawingData);
+        paths.exit().remove();
+        paths.enter().append('path')
+            .classed('data-area-path', true)
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+        mLineGroup.selectAll('.data-area-path')
+            .attr('stroke', d => d.axis.color2)
+            .attr('fill', d => d.axis.color1)
+            .attr('d', d => d.line)
+            .attr('timeline-id', d => d.timelineId)
+            .attr('axis-id', d => d.axis.id);
     }
 
-    function drawStreams() {
-        console.error("Finish me");
-
+    function drawStreams(drawingData) {
+        let paths = mLineGroup.selectAll('.data-stream-path').data(drawingData);
+        paths.exit().remove();
+        paths.enter().append('path')
+            .classed('data-stream-path', true)
+            .attr('stroke-linejoin', 'round')
+            .attr('stroke-linecap', 'round')
+            .attr('stroke-width', 1.5)
+        mLineGroup.selectAll('.data-stream-path')
+            .attr('stroke', d => d.axis.color2)
+            .attr('fill', d => d.axis.color1)
+            .attr('d', d => d.line)
+            .attr('timeline-id', d => d.timelineId)
+            .attr('axis-id', d => d.axis.id);
     }
 
     function drawAxes(axesData) {
@@ -265,7 +307,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 color: axisData.axis.color1 ? axisData.axis.color1 : "black",
                 x: axisData.pos1.x,
                 y: axisData.pos1.y,
-                val: axisData.axis.val1,
+                val: axisData.val1,
             });
             axisControlData.push({
                 axisId: axisData.axis.id,
@@ -277,7 +319,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 color: axisData.axis.color2 ? axisData.axis.color2 : "black",
                 x: axisData.pos2.x,
                 y: axisData.pos2.y,
-                val: axisData.axis.val2,
+                val: axisData.val2,
             });
         })
 
@@ -340,18 +382,27 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mAxisDraggingData = d;
                     mAxisDragging = true;
                     mAxisDragStartCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, e)
+
+                    FilterUtil.removeShadowFilter(mAxisGroup
+                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                 }
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
                     FilterUtil.applyShadowFilter(mAxisGroup
                         .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.applyShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                    FilterUtil.applyShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
                     FilterUtil.removeShadowFilter(mAxisGroup
                         .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                 }
             });
 
