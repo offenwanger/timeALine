@@ -218,6 +218,7 @@ let DataStructs = function () {
         this.val2 = 1;
         this.dist2 = 1;
         this.color2 = "#FF0000";
+        this.style = DataDisplayStyles.POINTS;
         this.linePercent = 1;
         this.clone = function () {
             let newAxis = new AxisBinding(this.columnId);
@@ -227,6 +228,7 @@ let DataStructs = function () {
             newAxis.val2 = this.val2;
             newAxis.dist2 = this.dist2;
             newAxis.color2 = this.color2;
+            newAxis.style = this.style;
             newAxis.linePercent = this.linePercent;
             return newAxis;
         }
@@ -240,8 +242,22 @@ let DataStructs = function () {
             binding.val2 = this.val2;
             binding.dist2 = this.dist2;
             binding.color2 = this.color2;
+            binding.style = this.style;
             binding.linePercent = this.linePercent;
             return binding;
+        }
+
+        this.equals = function (other) {
+            if (!other) return false;
+            if (this.columnId != other.columnId) return false;
+            if (this.linePercent != other.linePercent) return false;
+            if (this.val1 != other.val1) return false;
+            if (this.dist1 != other.dist1) return false;
+            if (this.color1 != other.color1) return false;
+            if (this.val2 != other.val2) return false;
+            if (this.dist2 != other.dist2) return false;
+            if (this.color2 != other.color2) return false;
+            if (this.style != other.style) return false;
         }
     }
     AxisBinding.fromObject = function (obj) {
@@ -253,6 +269,7 @@ let DataStructs = function () {
         binding.val2 = obj.val2;
         binding.dist2 = obj.dist2;
         binding.color2 = obj.color2;
+        binding.style = obj.style ? obj.style : DataDisplayStyles.POINTS;
         binding.linePercent = obj.linePercent;
         return binding;
     }

@@ -1324,7 +1324,7 @@ function ModelController() {
 
         let axis = mModel.getAxisById(axisId);
 
-        if (!axis) throw Error("Invalid axis id: " + axisId);
+        if (!axis) { console.error("Bad axis id for dist update!", axisId); return; }
         if (oneOrTwo == 1) {
             axis.dist1 = dist;
         } else {
@@ -1336,13 +1336,22 @@ function ModelController() {
         undoStackPush();
 
         let axis = mModel.getAxisById(axisId);
+        if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
 
-        if (!axis) throw Error("Invalid axis id: " + axisId);
         if (oneOrTwo == 1) {
             axis.color1 = color;
         } else {
             axis.color2 = color;
         }
+    }
+
+    function toggleDataStyle(axisId) {
+        undoStackPush();
+        let axis = mModel.getAxisById(axisId);
+        if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
+
+        let styles = Object.keys(DataDisplayStyles);
+        axis.style = styles[(styles.indexOf(axis.style) + 1) % styles.length];
     }
 
     function addBoundImage(timelineId, imageData, time, timePin = null) {
@@ -1600,6 +1609,7 @@ function ModelController() {
 
     this.updateAxisDist = updateAxisDist;
     this.updateAxisColor = updateAxisColor;
+    this.toggleDataStyle = toggleDataStyle;
 
     this.addBoundImage = addBoundImage;
     this.addCanvasImage = addCanvasImage;

@@ -1,6 +1,11 @@
 function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     const TAIL_POINT_COUNT = 20;
 
+    let mModel = new DataStructs.DataModel();
+    let mPointDrawingData = null;
+    let mLineDrawingData = null;
+    let mAxisDrawingData = null;
+
     let mActive = false;
 
     let mPointDragging = false;
@@ -29,21 +34,147 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         .attr("id", 'data-axis-target-g');
 
     function updateModel(model) {
-        let timelines = model.getAllTimelines();
-        let boundData = model.getAllCellBindingData().filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
-        drawPoints(timelines, boundData);
-        drawAxes(DataUtil.getUniqueList(boundData.filter(d => d.axisBinding).map(d => {
-            return {
-                id: d.axisBinding.id,
-                line: d.timeline.points,
-                axis: d.axisBinding,
-                timelineId: d.timeline.id,
-            }
-        }), 'id'))
+        let oldModel = mModel;
+        mModel = model;
+
+        let oldPointDrawingData = mPointDrawingData;
+        let oldLineDrawingData = mLineDrawingData;
+        let oldAxisDrawingData = mAxisDrawingData;
+        mPointDrawingData = {};
+        mLineDrawingData = {};
+        mAxisDrawingData = {};
+
+        mModel.getAllTimelines().forEach(timeline => {
+            let changedCellBindingIds = DataUtil.timelineDataPointsChanged(timeline.id, model, oldModel);
+            let recalculationData = [];
+
+            let cellBindingData = mModel.getCellBindingData(timeline.id)
+                .filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
+
+            cellBindingData.forEach(bindingData => {
+                if (changedCellBindingIds.includes(bindingData.cellBinding.id)) {
+                    recalculationData.push(bindingData);
+                } else {
+                    mPointDrawingData[bindingData.cellBinding.id] = oldPointDrawingData[bindingData.cellBinding.id];
+                }
+            });
+            let newData = getPointDrawingData(timeline, recalculationData);
+            newData.forEach(dataItem => {
+                mPointDrawingData[dataItem.binding.cellBinding.id] = dataItem;
+            })
+
+            let axisIds = timeline.axisBindings.map(b => b.id);
+            axisIds.forEach(axisId => {
+                let cells = cellBindingData.filter(cbd => cbd.axisBinding.id == axisId);
+                if (cells.length == 0) { console.error("No cells found for axis id!", axisId); return; }
+                let axis = cells[0].axisBinding;
+                let otherAxis = oldModel.getAxisById(axis.id);
+
+                if (otherAxis && axis.equals(otherAxis)) {
+                    mAxisDrawingData[axis.id] = oldAxisDrawingData[axis.id];
+                } else {
+                    mAxisDrawingData[axis.id] = getAxisDrawingData(timeline, axis);
+                }
+
+                if (axis.style != DataDisplayStyles.POINTS) {
+                    if (cells.some(cbd => changedCellBindingIds.includes(cbd.cellBinding.id))) {
+                        let pointDrawingData = cells.map(cbd => mPointDrawingData[cbd.cellBinding.id]);
+                        mLineDrawingData[axisId] = getLineDrawingData(axis, timeline, pointDrawingData);
+                    } else {
+                        mLineDrawingData[axisId] = oldLineDrawingData[axisId];
+                    }
+                }
+            })
+        });
+
+        drawLines(Object.values(mLineDrawingData).filter(drawingData => drawingData.axis.style == DataDisplayStyles.LINE));
+        drawStreams(Object.values(mLineDrawingData).filter(drawingData => drawingData.axis.style == DataDisplayStyles.STREAM));
+        drawAreas(Object.values(mLineDrawingData).filter(drawingData => drawingData.axis.style == DataDisplayStyles.AREA));
+        drawPoints(Object.values(mPointDrawingData));
+        drawAxes(Object.values(mAxisDrawingData));
     }
 
-    function drawPoints(timelines, boundData) {
-        let drawingData = timelines.map(t => getTimelineDrawingData(t, boundData.filter(b => b.timeline.id == t.id))).flat();
+    function drawDataSet(cellBindingData) {
+        if (cellBindingData.length == 0) { console.error("No data provided for drawing!"); return; }
+        let timeline = cellBindingData[0].timeline
+        let pointDrawingData = getPointDrawingData(timeline, cellBindingData);
+        drawPoints(pointDrawingData);
+
+        let axis = cellBindingData[0].axisBinding;
+        let axisData = getAxisDrawingData(timeline, axis);
+        drawAxes([axisData]);
+
+        let lineData;
+        if (axis.style != DataDisplayStyles.POINTS) {
+            lineData = getLineDrawingData(axis, timeline, pointDrawingData);
+        }
+        if (axis.style == DataDisplayStyles.LINE) { drawLines([lineData]); } else { drawLines([]); }
+        if (axis.style == DataDisplayStyles.STREAM) { drawStreams([lineData]); } else { drawStreams([]); }
+        if (axis.style == DataDisplayStyles.AREA) { drawAreas([lineData]); } else { drawAreas([]); }
+    }
+
+    function getPointDrawingData(timeline, cellBindings) {
+        cellBindings.sort((a, b) => a.linePercent - b.linePercent);
+        let percents = cellBindings.map(b => b.linePercent);
+        let dists = cellBindings.map(b => {
+            let { val1, val2, dist1, dist2 } = b.axisBinding;
+            if (b.axisBinding.style == DataDisplayStyles.AREA || b.axisBinding.style == DataDisplayStyles.STREAM) {
+                val2 = Math.max(Math.abs(val1), Math.abs(val2));
+                val1 = 0;
+            }
+            if (val1 == val2) { console.error("Invalid axis values: " + val1 + ", " + val2); val1 = 0; if (val1 == val2) val2 = 1; };
+            let dist = (dist2 - dist1) * (b.dataCell.getValue() - val1) / (val2 - val1) + dist1;
+            return dist;
+        })
+        let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists);
+        return cellBindings.map((bindingData, index) => {
+            return {
+                binding: bindingData,
+                dist: dists[index],
+                x: positions[index].x,
+                y: positions[index].y,
+            }
+        });
+    }
+
+    function getLineDrawingData(axis, timeline, pointDrawingData) {
+        let returnable = {
+            axis: axis,
+            timelineId: timeline.id
+        }
+
+        let linePoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
+            return { percent: p.binding.linePercent, dist: p.dist }
+        }));
+
+        if (axis.style == DataDisplayStyles.LINE) {
+            returnable.line = PathMath.getPathD(linePoints);
+        } else if (axis.style == DataDisplayStyles.AREA) {
+            let bottomPoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
+                return { percent: p.binding.linePercent, dist: axis.dist1 }
+            }));
+            returnable.line = PathMath.getPathD(linePoints.concat(bottomPoints.reverse()));
+        } else if (axis.style == DataDisplayStyles.STREAM) {
+            let bottomPoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
+                return { percent: p.binding.linePercent, dist: axis.dist1 - (p.dist - axis.dist1) }
+            }));
+            returnable.line = PathMath.getPathD(linePoints.concat(bottomPoints.reverse()));
+        }
+
+        return returnable;
+    }
+
+    function getAxisDrawingData(timeline, axis) {
+        let origin = PathMath.getPositionForPercent(timeline.points, axis.linePercent);
+        let normal = PathMath.getNormalForPercent(timeline.points, axis.linePercent);
+
+        let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, origin);
+        let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, origin);
+
+        return { timelineId: timeline.id, axis, normal, origin, pos1, pos2 };
+    }
+
+    function drawPoints(drawingData) {
         let selection = mDataPointGroup.selectAll('.data-display-point').data(drawingData);
         selection.exit().remove();
         selection.enter()
@@ -55,9 +186,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         mDataPointGroup.selectAll('.data-display-point')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y })
-            .attr('fill', function (d) { return d.color })
-            .style('opacity', function (d) { return d.opacity })
-            .attr('timeline-id', function (d) { return d.timelineId })
+            .attr('fill', function (d) { return d.binding.color })
+            .attr('timeline-id', function (d) { return d.binding.timeline.id })
             .attr('binding-id', function (d) { return d.binding.cellBinding.id });
 
         let targetSelection = mDataPointTargetGroup.selectAll('.data-target-point')
@@ -96,95 +226,58 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cy', function (d) { return d.y });
     }
 
-    //// point draw utility ////
-    function getTimelineDrawingData(timeline, boundData) {
-        let drawingData = boundData.filter(b => b.linePercent != NO_LINE_PERCENT && b.linePercent >= 0 && b.linePercent <= 1).map(b => getDrawingData(timeline, b));
-        let tail1Data = boundData.filter((b, index) => (b.linePercent == NO_LINE_PERCENT && index % 2 == 0) || b.linePercent < 0).map(b => getDrawingData(timeline, b));
-        let tail2Data = boundData.filter((b, index) => (b.linePercent == NO_LINE_PERCENT && index % 2 == 1) || b.linePercent > 1).map(b => getDrawingData(timeline, b));
+    function drawLines() {
+        console.error("Finish me");
 
-        drawingData.push(...filterAndFade(tail1Data, TAIL_POINT_COUNT));
-        drawingData.push(...filterAndFade(tail2Data, TAIL_POINT_COUNT));
-
-        return drawingData;
     }
 
-    function getDrawingData(timeline, binding) {
-        let { val1, val2, dist1, dist2 } = binding.axisBinding;
+    function drawAreas() {
+        console.error("Finish me");
 
-        if (val1 == val2) {
-            console.error("Invalid binding values: " + val1 + ", " + val2);
-            val1 = 0;
-            if (val1 == val2) val2 = 1;
-        };
-
-        let dist = (dist2 - dist1) * (binding.dataCell.getValue() - val1) / (val2 - val1) + dist1;
-        let pos = PathMath.getPositionForPercentAndDist(timeline.points, binding.linePercent, dist);
-
-        return {
-            binding,
-            x: pos.x,
-            y: pos.y,
-            opacity: 1,
-            color: binding.color ? binding.color : "black",
-            timelineId: binding.timeline.id,
-        };
     }
 
-    function filterAndFade(tailArr, count) {
-        let n = Math.ceil(tailArr.length / count);
-        let shuffled = tailArr.sort(function () { return .5 - Math.random() });
-        let selected = shuffled.slice(0, n);
-        let fade = 1;
-        selected.forEach(pointData => {
-            fade -= 1 / n;
-            pointData.opacity = fade;
-        })
-        return selected;
+    function drawStreams() {
+        console.error("Finish me");
+
     }
-    //// end point draw utility ////
 
     function drawAxes(axesData) {
         let axisLineData = []
         let axisControlData = []
 
         axesData.forEach(axisData => {
-            let axis = axisData.axis;
-            let basePose = PathMath.getPositionForPercent(axisData.line, axis.linePercent);
-            let normal = PathMath.getNormalForPercent(axisData.line, axis.linePercent);
-
-            let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, basePose);
-            let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, basePose);
-
             axisLineData.push({
-                axisId: axis.id,
-                x1: pos1.x,
-                y1: pos1.y,
-                x2: pos2.x,
-                y2: pos2.y,
+                axisId: axisData.axis.id,
+                x1: axisData.pos1.x,
+                y1: axisData.pos1.y,
+                x2: axisData.pos2.x,
+                y2: axisData.pos2.y,
                 timelineId: axisData.timelineId,
             });
 
             axisControlData.push({
-                axisId: axis.id,
-                ctrl: 1,
-                color: axis.color1 ? axis.color1 : "black",
-                x: pos1.x,
-                y: pos1.y,
-                val: axis.val1,
-                normal,
-                basePose,
+                axisId: axisData.axis.id,
+                normal: axisData.normal,
+                origin: axisData.origin,
                 timelineId: axisData.timelineId,
+
+                ctrl: 1,
+                color: axisData.axis.color1 ? axisData.axis.color1 : "black",
+                x: axisData.pos1.x,
+                y: axisData.pos1.y,
+                val: axisData.axis.val1,
             });
             axisControlData.push({
-                axisId: axis.id,
-                ctrl: 2,
-                color: axis.color2 ? axis.color2 : "black",
-                x: pos2.x,
-                y: pos2.y,
-                val: axis.val2,
-                normal,
-                basePose,
+                axisId: axisData.axis.id,
+                normal: axisData.normal,
+                origin: axisData.origin,
                 timelineId: axisData.timelineId,
+
+                ctrl: 2,
+                color: axisData.axis.color2 ? axisData.axis.color2 : "black",
+                x: axisData.pos2.x,
+                y: axisData.pos2.y,
+                val: axisData.axis.val2,
             });
         })
 
@@ -274,7 +367,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
         if (mAxisDragging) {
             let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.basePose;
+            let origin = mAxisDraggingData.origin;
             let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
             let dist = MathUtil.distanceFromAToB(origin, newPosition);
             dist = newPosition.neg ? -1 * dist : dist;
@@ -291,7 +384,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             mPointDraggingBinding = null;
         } else if (mAxisDragging) {
             let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.basePose;
+            let origin = mAxisDraggingData.origin;
             let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
             let dist = MathUtil.distanceFromAToB(origin, newPosition);
             dist = newPosition.neg ? -1 * dist : dist;
@@ -316,8 +409,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     this.updateModel = updateModel;
-    this.drawPoints = drawPoints;
-    this.drawAxes = drawAxes;
+    this.drawDataSet = drawDataSet;
     this.setActive = setActive;
     this.setPointDragStartCallback = (callback) => mPointDragStartCallback = callback;
     this.setPointDragCallback = (callback) => mPointDragCallback = callback;

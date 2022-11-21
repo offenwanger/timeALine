@@ -490,6 +490,10 @@ let PathMath = function () {
         });
     }
 
+    function interpolatePoints(points, interpolationValues) {
+        console.error("finish me")
+    }
+
     function getPointsWithin(x, coords, points) {
         let returnable = [];
         for (let i = 0; i < points.length; i++) {
@@ -661,6 +665,7 @@ let PathMath = function () {
         segmentPath,
         mergeSegments,
         cloneSegments,
+        interpolatePoints,
     }
 }();
 
@@ -825,16 +830,7 @@ let DataUtil = function () {
                     timeline2.annotationStrokes.map(s => s.id)));
         }
 
-        let pinChanged = timeline1.timePins.length != timeline2.timePins.length ||
-            timeline1.timePins.some(pin => {
-                // check if at least one pin has changed.
-                let oldPin = timeline2.timePins.find(p => p.id == pin.id);
-                // pin set mismatch, that's a change.
-                if (!oldPin) return true;
-                // otherwise check if the line percent has changed.
-                if (oldPin.linePercent != pin.linePercent) return true;
-                return false;
-            });
+        let pinChanged = timelinesPinsChanged(timeline1, timeline2);
         if (pinChanged) {
             return DataUtil.getUniqueList(
                 timeline1.annotationStrokes.map(s => s.id).concat(
@@ -858,6 +854,68 @@ let DataUtil = function () {
         return changedIds;
     }
 
+
+    function timelineDataPointsChanged(timelineId, model1, model2) {
+        let timeline1 = model1.getAllTimelines().find(t => t.id == timelineId);
+        let timeline2 = model2.getAllTimelines().find(t => t.id == timelineId);
+
+        if (!timeline1) {
+            if (!timeline2) { console.error("If they're both duds why are you asking?", timeline1, timeline2); return []; }
+            // one timeline is a dud, they're all changes
+            return timeline2.cellBindings.map(s => s.id);
+        }
+
+        if (!timeline2) {
+            if (!timeline1) { console.error("If they're both duds why are you asking?", timeline1, timeline2); return []; }
+            // one timeline is a dud, they're all changes
+            return timeline1.cellBindings.map(s => s.id);
+        }
+
+        if (!PathMath.equalsPath(timeline1.points, timeline2.points)) {
+            return DataUtil.getUniqueList(
+                timeline1.cellBindings.map(s => s.id).concat(
+                    timeline2.cellBindings.map(s => s.id)));
+        }
+
+        let pinChanged = timelinesPinsChanged(timeline1, timeline2);
+        if (pinChanged) {
+            return DataUtil.getUniqueList(
+                timeline1.cellBindings.map(s => s.id).concat(
+                    timeline2.cellBindings.map(s => s.id)));
+        }
+
+        let timelineData1 = model1.getCellBindingData(timelineId);
+        let timelineData2 = model2.getCellBindingData(timelineId);
+        let allIds = DataUtil.getUniqueList(
+            timeline1.cellBindings.map(s => s.id).concat(
+                timeline2.cellBindings.map(s => s.id)));
+
+        let changedIds = allIds.filter(id => {
+            let binding1 = timelineData1.find(b => b.cellBinding.id == id);
+            let binding2 = timelineData2.find(b => b.cellBinding.id == id);
+            // if either is missing this has changed.
+            if (!binding1 || !binding2) return true;
+            // if the path has changed it's changed.
+            if (!binding1.equals(binding2)) return true;
+            // no change
+            return false;
+        });
+        return changedIds;
+    }
+
+    function timelinesPinsChanged(timeline1, timeline2) {
+        return timeline1.timePins.length != timeline2.timePins.length ||
+            timeline1.timePins.some(pin => {
+                // check if at least one pin has changed.
+                let oldPin = timeline2.timePins.find(p => p.id == pin.id);
+                // pin set mismatch, that's a change.
+                if (!oldPin) return true;
+                // otherwise check if the line percent has changed.
+                if (oldPin.linePercent != pin.linePercent) return true;
+                return false;
+            });
+    }
+
     return {
         inferDataAndType,
         getUniqueList,
@@ -875,6 +933,7 @@ let DataUtil = function () {
 
         filterTimePinByChangedPin,
         timelineStrokesChanged,
+        timelineDataPointsChanged,
     }
 }();
 

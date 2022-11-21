@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mSelectedCellBindingId = null;
     let mSelectedImageBindingId = null;
+    let mSelectedAxisId = null;
     let mLinkingBinding = null;
 
     let mMouseDropShadow = new MouseDropShadow(mVizLayer);
@@ -433,17 +434,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePinSettingTime = false;
         }
     });
-    $(document).on("pointerdown", function (event) {
-        if ($(event.target).closest('#text-context-menu-div').length === 0 &&
-            $(event.target).closest('.text-interaction-target').length === 0) {
-            // if we didn't click on a button in the context div
-            hideTextContextMenu();
-        }
-
-        if (mMode == MODE_IMAGE_LINK) {
-            setDefaultMode();
-        }
-    });
 
     // Text controller utility functions
     // TODO: make this general for all context menus
@@ -564,13 +554,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePinSettingTime = false;
         }
     });
-    $(document).on("pointerdown", function (event) {
-        if ($(event.target).closest('#image-context-menu-div').length === 0 &&
-            $(event.target).closest('.image-interaction-target').length === 0) {
-            // if we didn't click on a button in the context div
-            hideImageContextMenu();
-        }
-    });
     mImageController.setDoubleClickCallback((imageBindingData, clickEvent) => {
         showImageViewer(imageBindingData.imageBinding);
     })
@@ -625,7 +608,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             pinDrag(timeline, mDraggingTimePin, linePoint.percent);
 
             cellBindingData.linePercent = linePoint.percent;
-            mDataPointController.drawPoints([timeline], [cellBindingData]);
+            mDataPointController.drawDataSet([cellBindingData]);
         }
 
         return coords;
@@ -648,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             pinDrag(timeline, mDraggingTimePin, linePoint.percent);
 
             cellBindingData.linePercent = linePoint.percent;
-            mDataPointController.drawPoints([cellBindingData.timeline], [cellBindingData]);
+            mDataPointController.drawDataSet([cellBindingData]);
         }
     });
     mDataPointController.setPointDragEndCallback((cellBindingData, coords) => {
@@ -677,7 +660,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mDataPointController.setAxisDragStartCallback((axisId, controlNumber, event) => {
-        if (mMode == MODE_COLOR_BUCKET) {
+        if (mMode == MODE_SELECTION) {
+            let model = mModelController.getModel();
+            showAxisContextMenu(model.getAxisById(axisId), model.getTimelineByAxisId(axisId));
+        } else if (mMode == MODE_COLOR_BUCKET) {
             mModelController.updateAxisColor(axisId, controlNumber, mBucketColor);
             modelUpdated();
         } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
@@ -696,6 +682,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     mDataPointController.setAxisDragCallback((axisId, controlNumber, newDist, coords) => {
         if (mMode == MODE_SELECTION) {
+            hideAxisContextMenu();
+
             let boundData = mModelController.getModel().getAllCellBindingData().filter(cbd => {
                 return cbd.dataCell.getType() == DataTypes.NUM && cbd.axisBinding && cbd.axisBinding.id == axisId;
             });
@@ -709,15 +697,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axisId); return; }
 
-            mDataPointController.drawPoints([boundData[0].timeline], boundData);
-            mDataPointController.drawAxes([{ id: axisId, line: boundData[0].timeline.points, axis: boundData[0].axisBinding, timelineId: boundData[0].timeline.id }]);
+            mDataPointController.drawDataSet(boundData);
         }
     });
     mDataPointController.setAxisDragEndCallback((axisId, controlNumber, newDist, coords) => {
         if (mMode == MODE_SELECTION) {
             mModelController.updateAxisDist(axisId, controlNumber, newDist);
-
             modelUpdated();
+
+            let model = mModelController.getModel();
+            showAxisContextMenu(model.getAxisById(axisId), model.getTimelineByAxisId(axisId));
         }
     });
     mDataPointController.setPointerEnterCallback((e, cellBindingData) => {
@@ -768,6 +757,28 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mDraggingTimePin = timePin;
+    }
+
+    function showAxisContextMenu(axis, timeline) {
+        let basePose = PathMath.getPositionForPercent(timeline.points, axis.linePercent);
+        let normal = PathMath.getNormalForPercent(timeline.points, axis.linePercent);
+
+        let pos1 = MathUtil.getPointAtDistanceAlongVector(axis.dist1, normal, basePose);
+        let pos2 = MathUtil.getPointAtDistanceAlongVector(axis.dist2, normal, basePose);
+
+        let coords = svgCoordsToScreen({
+            x: Math.max(pos1.x, pos2.x),
+            y: Math.min(pos1.y, pos2.y)
+        });
+
+        $('#axis-context-menu-div').css('top', coords.y);
+        $('#axis-context-menu-div').css('left', coords.x);
+        $('#axis-context-menu-div').show();
+        mSelectedAxisId = axis.id;
+    }
+    function hideAxisContextMenu() {
+        $('#axis-context-menu-div').hide();
+        mSelectedAxisId = null;
     }
 
     // END UTILITY
@@ -926,6 +937,30 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSmoothController.onPointerDown(coords);
         mSelectionController.onPointerDown(coords);
     })
+
+    $(document).on("pointerdown", function (event) {
+        if ($(event.target).closest('#text-context-menu-div').length === 0 &&
+            $(event.target).closest('.text-interaction-target').length === 0) {
+            // if we didn't click on a button in the context div
+            hideTextContextMenu();
+        }
+
+        if ($(event.target).closest('#image-context-menu-div').length === 0 &&
+            $(event.target).closest('.image-interaction-target').length === 0) {
+            // if we didn't click on a button in the context div
+            hideImageContextMenu();
+        }
+
+        if ($(event.target).closest('#axis-context-menu-div').length === 0 &&
+            $(event.target).closest('.axis-target-circle').length === 0) {
+            // if we didn't click on a button in the context div
+            hideAxisContextMenu();
+        }
+
+        if (mMode == MODE_IMAGE_LINK) {
+            setDefaultMode();
+        }
+    });
 
     $(document).on('pointermove', function (e) {
         let pointerEvent = e.originalEvent;
@@ -1469,6 +1504,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     setupButtonTooltip('#link-button', "Attaches data to timelines")
 
+    $("#toggle-data-style-button").on("click", () => {
+        if (!mSelectedAxisId) {
+            console.error("Button should not be clickable!");
+            return;
+        }
+
+        mModelController.toggleDataStyle(mSelectedAxisId);
+        modelUpdated();
+    });
+
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([
             new DataStructs.DataColumn("Time", 0),
@@ -1575,6 +1620,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         hideImageContextMenu();
         hideTextContextMenu();
+        hideAxisContextMenu();
 
         mLinkingBinding = null;
         hideLinkLine();

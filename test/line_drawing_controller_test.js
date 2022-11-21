@@ -65,9 +65,9 @@ describe('Integration Test LineDrawingController', function () {
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => item.x)).to.eql([100, 125, 120]);
+                .innerData.map(item => item.x)).to.eql([100, 120, 125]);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => item.y)).to.eql([70, 0, 35]);
+                .innerData.map(item => item.y)).to.eql([70, 35, 0]);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"].innerData.length, 3, "Annotations not created")
             expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"]
@@ -101,9 +101,9 @@ describe('Integration Test LineDrawingController', function () {
             // the data should have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.x))).to.eql([100, 125, 120]);
+                .innerData.map(item => Math.round(item.x))).to.eql([100, 120, 125]);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.y))).to.eql([70, 0, 35]);
+                .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0]);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"].innerData.length, 3, "Annotations not created")
             expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"]
@@ -135,9 +135,9 @@ describe('Integration Test LineDrawingController', function () {
             // the data should still have not moved
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.x))).to.eql([100, 125, 120]);
+                .innerData.map(item => Math.round(item.x))).to.eql([100, 120, 125]);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.y))).to.eql([70, 0, 35]);
+                .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0]);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"].innerData.length, 3, "Annotations not created")
             expect(integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timeline.id + "\"]"]
@@ -456,7 +456,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
                 // this last data display point had to move to 
-                .innerData.map(item => Math.round(item.x))).to.eql([0, 210, 200]);
+                .innerData.map(item => Math.round(item.x))).to.eql([0, 200, 210]);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
                 .innerData.map(item => Math.round(item.y))).to.eql([0, 0, 0]);
 
@@ -523,9 +523,9 @@ describe('Integration Test LineDrawingController', function () {
             let selectors = integrationEnv.enviromentVariables.d3.selectors;
             assert.equal(selectors['.data-display-point'].innerData.length, 4);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.x))).to.eql([0, 50, 42, 100]);
+                .innerData.map(item => Math.round(item.x))).to.eql([0, 42, 50, 100]);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0, 0]);
+                .innerData.map(item => Math.round(item.y))).to.eql([70, 0, 35, 0]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + timelineId1 + "\"]"]
                 .innerData.map(item => Math.round(item.x))).to.eql([17, 25]);
@@ -564,9 +564,9 @@ describe('Integration Test LineDrawingController', function () {
             selectors = integrationEnv.enviromentVariables.d3.selectors;
             assert.equal(selectors['.data-display-point'].innerData.length, 3);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.x))).to.eql([0, 110, 42]);
+                .innerData.map(item => Math.round(item.x))).to.eql([0, 42, 110]);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0]);
+                .innerData.map(item => Math.round(item.y))).to.eql([70, 0, 35]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + mergedLineId + "\"]"]
                 .innerData.map(item => Math.round(item.x))).to.eql([17, 25, 150]);
@@ -601,9 +601,9 @@ describe('Integration Test LineDrawingController', function () {
             selectors = integrationEnv.enviromentVariables.d3.selectors;
             assert.equal(selectors['.data-display-point'].innerData.length, 3);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.x))).to.eql([0, 110, 42]);
+                .innerData.map(item => Math.round(item.x))).to.eql([0, 42, 110]);
             expect(selectors['.data-display-point']
-                .innerData.map(item => Math.round(item.y))).to.eql([70, 35, 0]);
+                .innerData.map(item => Math.round(item.y))).to.eql([70, 0, 35]);
 
             expect(selectors[".annotation-text[timeline-id=\"" + mergedLineId + "\"]"]
                 .innerData.map(item => Math.round(item.x))).to.eql([0, 17, 25, 110, 150]);

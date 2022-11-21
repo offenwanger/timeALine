@@ -18,8 +18,11 @@ const Fonts = [
     "Times, Times New Roman, serif"
 ]
 
-const TimeBindingTypes = {
-    TIMESTRAMP: 'timestamp',
+const DataDisplayStyles = {
+    POINTS: "points",
+    AREA: "area",
+    STREAM: "stream",
+    LINE: "line"
 }
 
 const SEGMENT_LABELS = {

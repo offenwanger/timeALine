@@ -491,6 +491,10 @@ DataStructs.DataModel = function () {
         return mTimelines.map(t => t.axisBindings).flat().find(b => b.id == axisId);
     }
 
+    function getTimelineByAxisId(axisId) {
+        return mTimelines.find(t => t.axisBindings.some(b => b.id == axisId));
+    }
+
     function getTimePinById(pinId) {
         return mTimelines.map(t => t.timePins).flat().find(pin => pin.id == pinId);
     }
@@ -553,6 +557,7 @@ DataStructs.DataModel = function () {
     this.getCellBindingById = getCellBindingById;
 
     this.getAxisById = getAxisById;
+    this.getTimelineByAxisId = getTimelineByAxisId;
     this.getTimePinById = getTimePinById;
 
     this.getStrokeById = getStrokeById;
@@ -581,7 +586,6 @@ DataStructs.DataModel = function () {
     }
 }
 
-
 DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCell, tableId, rowId, color, linePercent = NO_LINE_PERCENT, axisBinding = null) {
     this.cellBinding = cellBinding;
     this.timeline = timeline;
@@ -609,6 +613,28 @@ DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCel
         b.axisBinding = this.axisBinding;
         return b;
     }
+
+    this.equals = function (other) {
+        if (!other) return false;
+        if (this.isCanvasBinding != other.isCanvasBinding) return false;
+
+        if (this.cellBinding.id != other.cellBinding.id) return false;
+        if (this.cellBinding.cellId != other.cellBinding.cellId) return false;
+        if (this.cellBinding.color != other.cellBinding.color) return false;
+        if (this.cellBinding.timePinId != other.cellBinding.timePinId) return false;
+        if (this.cellBinding.font != other.cellBinding.font) return false;
+        if (this.cellBinding.fontWeight != other.cellBinding.fontWeight) return false;
+        if (this.cellBinding.fontItalics != other.cellBinding.fontItalics) return false;
+        if (this.cellBinding.fontSize != other.cellBinding.fontSize) return false;
+        if (this.cellBinding.offset.x != other.cellBinding.offset.x) return false;
+        if (this.cellBinding.offset.y != other.cellBinding.offset.y) return false;
+
+        if (!this.axisBinding && other.axisBinding || this.axisBinding && !other.axisBinding) return false;
+        if (this.axisBinding && !this.axisBinding.equals(other.axisBinding)) return false;
+
+        if (this.dataCell.getValue() != other.dataCell.getValue()) return false;
+        if (this.timeCell.getValue() != other.timeCell.getValue()) return false;
+    }
 }
 
 DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, rowId, color) {
@@ -628,6 +654,24 @@ DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, ro
             this.color,
         )
         return b;
+    }
+
+    this.equals = function (other) {
+        if (!other) return false;
+        if (this.isCanvasBinding != other.isCanvasBinding) return false;
+
+        if (this.cellBinding.cellId != other.cellBinding.cellId) return false;
+        if (this.cellBinding.id != other.cellBinding.id) return false;
+        if (this.cellBinding.color != other.cellBinding.color) return false;
+        if (this.cellBinding.timePinId != other.cellBinding.timePinId) return false;
+        if (this.cellBinding.font != other.cellBinding.font) return false;
+        if (this.cellBinding.fontWeight != other.cellBinding.fontWeight) return false;
+        if (this.cellBinding.fontItalics != other.cellBinding.fontItalics) return false;
+        if (this.cellBinding.fontSize != other.cellBinding.fontSize) return false;
+        if (this.cellBinding.offset.x != other.cellBinding.offset.x) return false;
+        if (this.cellBinding.offset.y != other.cellBinding.offset.y) return false;
+
+        if (this.dataCell.getValue() != other.dataCell.getValue()) return false;
     }
 }
 
