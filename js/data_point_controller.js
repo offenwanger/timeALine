@@ -23,12 +23,16 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
 
-    let mLineGroup = vizLayer.append('g')
-        .attr("id", 'data-line-display-g');
     let mDataPointGroup = vizLayer.append('g')
         .attr("id", 'data-point-display-g');
     let mAxisGroup = vizLayer.append('g')
         .attr("id", 'data-axis-display-g');
+    let mLineGroup = vizLayer.append('g')
+        .attr("id", 'data-line-display-g')
+        .lower();
+    let mAreaGroup = vizLayer.append('g')
+        .attr("id", 'data-area-display-g')
+        .lower();
 
     let mDataPointTargetGroup = interactionLayer.append('g')
         .attr("id", 'data-point-target-g');
@@ -252,14 +256,14 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function drawAreas(drawingData) {
-        let paths = mLineGroup.selectAll('.data-area-path').data(drawingData);
+        let paths = mAreaGroup.selectAll('.data-area-path').data(drawingData);
         paths.exit().remove();
         paths.enter().append('path')
             .classed('data-area-path', true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-        mLineGroup.selectAll('.data-area-path')
+        mAreaGroup.selectAll('.data-area-path')
             .attr('stroke', d => d.axis.color2)
             .attr('fill', d => d.axis.color1)
             .attr('d', d => d.line)
@@ -268,14 +272,14 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function drawStreams(drawingData) {
-        let paths = mLineGroup.selectAll('.data-stream-path').data(drawingData);
+        let paths = mAreaGroup.selectAll('.data-stream-path').data(drawingData);
         paths.exit().remove();
         paths.enter().append('path')
             .classed('data-stream-path', true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke-width', 1.5)
-        mLineGroup.selectAll('.data-stream-path')
+        mAreaGroup.selectAll('.data-stream-path')
             .attr('stroke', d => d.axis.color2)
             .attr('fill', d => d.axis.color1)
             .attr('d', d => d.line)
@@ -386,6 +390,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     FilterUtil.removeShadowFilter(mAxisGroup
                         .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
                     FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                     FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                 }
             })
@@ -394,6 +399,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     FilterUtil.applyShadowFilter(mAxisGroup
                         .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
                     FilterUtil.applyShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                    FilterUtil.applyShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                     FilterUtil.applyShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
                 }
             })

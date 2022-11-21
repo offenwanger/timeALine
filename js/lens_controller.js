@@ -281,6 +281,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 cbd.dataCell.getType() == DataTypes.NUM)
         let numData = cellBindingData.map(cbd => {
             let { val1, val2, dist1, dist2 } = cbd.axisBinding;
+            if (cbd.axisBinding.style == DataDisplayStyles.AREA || cbd.axisBinding.style == DataDisplayStyles.STREAM) {
+                val2 = Math.max(Math.abs(val1), Math.abs(val2));
+                val1 = 0;
+            }
             if (val1 == val2) {
                 console.error("Invalid binding values: " + val1 + ", " + val2);
                 val1 = 0;

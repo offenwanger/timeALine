@@ -76,7 +76,7 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
         mModel = model;
 
         // TODO: hacky. Fix.
-        mSelectedTimelines = mSelectedTimelines.map(t => mModel.getTimelineById(t.id));
+        mSelectedTimelines = mSelectedTimelines.map(t => t ? mModel.getTimelineById(t.id) : null).filter(t => t);
         if (mSelectedTimelines[0]) {
             setTimelineControls(mSelectedTimelines[0])
         } else {
