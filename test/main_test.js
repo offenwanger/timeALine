@@ -723,9 +723,9 @@ describe('Test Main - Integration Test', function () {
                 should.not.exist(td.style.filter)
             }
 
-            let cirleData = integrationEnv.enviromentVariables.d3.selectors['.data-target-point'];
-            data = cirleData.innerData[1];
-            cirleData.eventCallbacks['pointerenter']({ x: 150, y: 102 }, data);
+            let circleData = integrationEnv.enviromentVariables.d3.selectors['.data-target-point'];
+            data = circleData.innerData[1];
+            circleData.eventCallbacks['pointerenter']({ x: 150, y: 102 }, data);
             // all data showing again
             for (let i = 0; i < 6; i++) {
                 if (i == 1) {
