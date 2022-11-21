@@ -1350,7 +1350,7 @@ function ModelController() {
         let axis = mModel.getAxisById(axisId);
         if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
 
-        let styles = Object.keys(DataDisplayStyles);
+        let styles = Object.values(DataDisplayStyles);
         axis.style = styles[(styles.indexOf(axis.style) + 1) % styles.length];
     }
 
