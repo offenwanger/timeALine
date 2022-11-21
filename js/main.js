@@ -1830,6 +1830,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     //     console.log(e.type, screenToSvgCoords({ x: e.clientX, y: e.clientY }))
     // });
 
+    mLineViewController.raise();
     mMainOverlay.raise();
     setDefaultMode();
 });

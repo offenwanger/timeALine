@@ -261,6 +261,11 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
         mActive = active;
     };
 
+    function raise() {
+        mLineGroup.raise();
+        mTailGroup.raise();
+    }
+
     function toggleStyle(model) {
         if (mLineStyle == LineStyle.STYLE_DASHED) {
             mLineStyle = LineStyle.STYLE_OPACITY;
@@ -291,6 +296,7 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     this.updateModel = updateModel;
     this.drawSingleTimeline = drawSingleTimeline;
     this.setActive = setActive;
+    this.raise = raise;
     this.toggleStyle = toggleStyle;
     this.setLineDragStartCallback = (callback) => mLineDragStartCallback = callback;
     this.setLineDragCallback = (callback) => mLineDragCallback = callback;
