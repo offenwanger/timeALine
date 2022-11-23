@@ -313,8 +313,24 @@ function DataTableController() {
         let topRow = Math.max(0, Math.min(...selected.map(s => Math.min(s[0], s[2]))))
         let bottomRow = Math.max(...selected.map(s => Math.max(s[0], s[2])))
 
-        let selectionTop = mHoTables[tableId].getCell(topRow, 0).getBoundingClientRect().top;
-        let selectionBottom = mHoTables[tableId].getCell(bottomRow, 0).getBoundingClientRect().bottom;
+        let leftCol = Math.max(0, Math.min(...selected.map(s => Math.min(s[1], s[3]))))
+        let rightCol = Math.max(...selected.map(s => Math.max(s[1], s[3])))
+
+        let selectionTop, selectionBottom;
+        let cell = mHoTables[tableId].getCell(topRow, leftCol);
+        if (!cell) cell = mHoTables[tableId].getCell(topRow, rightCol);
+        if (!cell) {
+            selectionTop = 0;
+        } else {
+            selectionTop = cell.getBoundingClientRect().top;
+        }
+        cell = mHoTables[tableId].getCell(bottomRow, leftCol);
+        if (!cell) cell = mHoTables[tableId].getCell(bottomRow, rightCol);
+        if (!cell) {
+            selectionBottom = 0;
+        } else {
+            selectionBottom = cell.getBoundingClientRect().bottom;
+        }
 
         mSelectionCallback(data, selectionTop, selectionBottom)
     }

@@ -1536,6 +1536,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     setupButtonTooltip("#add-datasheet-button", "Adds a new datasheet")
 
+    $("#upload-datasheet-button").on("click", async () => {
+        let csv = await FileHandler.getCSVDataFile();
+        mModelController.addTableFromCSV(csv.data);
+        modelUpdated();
+    })
+    setupButtonTooltip("#upload-datasheet-button", "Upload a csv datasheet")
+
     function setupModeButton(buttonId, mode, callback) {
         $(buttonId).on("click", () => {
             if (mMode == mode) {

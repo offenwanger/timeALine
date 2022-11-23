@@ -1024,41 +1024,32 @@ function ModelController() {
     }
 
     function addTableFromCSV(array2d) {
+        console.log(array2d)
         undoStackPush();
 
-        // TODO validate array
-
         let table = new DataStructs.DataTable();
-
-        let firstColIsTime = false;
-        let count = 0
-        array2d.forEach((row) => {
-            let item = row[0];
-            if (!isNaN(Date.parse(item))) count++;
-        });
-        if (count > array2d.length / 2) firstColIsTime = true;
-
         array2d[0].forEach((cell, index) => {
-            let startIndex = 0
             if (index == 0) {
                 table.dataColumns.push(new DataStructs.DataColumn("Time", index));
-                if (!firstColIsTime) {
-                    startIndex = 1;
-                    table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
-                }
             } else {
-                table.dataColumns.push(DataStructs.DataColumn("Col" + index + startIndex));
+                table.dataColumns.push(new DataStructs.DataColumn("Col " + index, index));
             }
         })
 
         array2d.forEach((row, index) => {
             let dataRow = new DataStructs.DataRow();
             dataRow.index = index;
-            row.forEach((cell, index) => {
-                dataRow.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, cell, table.dataColumns[index]));
+            row.forEach((cellValue, index) => {
+                if (index == 0) {
+                    dataRow.dataCells.push(new DataStructs.TimeCell(cellValue, table.dataColumns[0].id));
+                } else {
+                    dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, cellValue, table.dataColumns[index].id));
+                }
             });
             table.dataRows.push(dataRow)
         });
+
+        mModel.getAllTables().push(table);
     }
 
     function tableUpdated(table, change, changeData) {
