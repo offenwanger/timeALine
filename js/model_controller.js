@@ -1024,7 +1024,6 @@ function ModelController() {
     }
 
     function addTableFromCSV(array2d) {
-        console.log(array2d)
         undoStackPush();
 
         let table = new DataStructs.DataTable();
