@@ -964,6 +964,34 @@ let DataUtil = function () {
             });
     }
 
+    function svgToCanvas(svgElement, x, y, width, height, backgroundColor = null) {
+        return new Promise((resolve, reject) => {
+            let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
+                .attr('width', width)
+                .attr('height', height)
+                .style("background-color", backgroundColor)
+                // this is required for unknown reasons
+                .attr("xmlns", "http://www.w3.org/2000/svg");
+
+            exportSVG.append("g")
+                .attr("transform", "translate(" + -x + "," + -y + ")")
+                .append(function () { return svgElement; });
+
+            let svgURL = new XMLSerializer().serializeToString(exportSVG.node());
+            let image = new Image();
+            image.onload = function () {
+                let canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                let context = canvas.getContext('2d');
+                context.drawImage(image, 0, 0, width, height);
+                resolve(canvas);
+            }
+            image.onerror = function () { reject("The image export failed. Chrome refuses to give further information. Sorry."); }
+            image.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(svgURL);
+        })
+    }
+
     return {
         inferDataAndType,
         getUniqueList,
@@ -982,6 +1010,8 @@ let DataUtil = function () {
         filterTimePinByChangedPin,
         timelineStrokesChanged,
         timelineDataPointsChanged,
+
+        svgToCanvas,
     }
 }();
 

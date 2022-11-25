@@ -285,7 +285,14 @@ before(function () {
             } else if (item == "svg") {
                 return {
                     attr: function (name, val) { this[name] = val; return this; },
-                    append: function (appendeeFunc) { this.outerHTML = appendeeFunc(); },
+                    style: function (name, val) { this[name] = val; return this; },
+                    append: function (appendeeFunc) {
+                        if (typeof appendeeFunc == 'function') {
+                            this.outerHTML = appendeeFunc();
+                        } else {
+                            return this;
+                        }
+                    },
                     node: function () { return this; },
                 }
             }
@@ -300,12 +307,20 @@ before(function () {
         getContext: function () { return this; },
         drawImage: function (image) {
             this.blob = image;
-            this.canvasLine = this.blob.src.init[0][0].d;
         },
         getImageData: function (x, y, pixelsX, pixelsY) {
+            let data = JSON.parse(decodeURIComponent(this.blob.src.split(",")[1]));
+            let transformX = parseInt(data.transform.split("(")[1].split(",")[0]);
+            let transformY = parseInt(data.transform.split(",")[1].split(")")[0]);
+            let canvasLine = data.d.map(p => {
+                return {
+                    x: p.x + transformX,
+                    y: p.y + transformY
+                }
+            });
             // this will need to be piped if we want to test alternatives
             let brushSize = 10;
-            if (this.canvasLine.some(canvasPoint => {
+            if (canvasLine.some(canvasPoint => {
                 if (x >= canvasPoint.x - brushSize &&
                     x <= canvasPoint.x + brushSize &&
                     y >= canvasPoint.y - brushSize &&
@@ -436,13 +451,34 @@ before(function () {
                 addEventListener: function (event, func) { this.eventListeners[event] = func; }
             },
             Blob: function () { this.init = arguments },
-            URL: { objectUrls: [], createObjectURL: function (object) { this.objectUrls.push(object); return "thisistotallyanObjectURL"; } },
+            URL: {
+                objectUrls: [],
+                createObjectURL: function (object) {
+                    this.objectUrls.push(object); return "thisistotallyanObjectURL";
+                },
+                revokeObjectURL: () => { },
+            },
             img: {},
             Image: function () {
-                returnable.enviromentVariables.img = this;
-                this.getSrc = function () { return this.src; }
-                // gets set after creation
-                this.onload = null;
+                return new Proxy({}, {
+                    get(obj, prop) {
+                        return obj[prop];
+                    },
+                    set(obj, prop, value) {
+                        obj[prop] = value;
+                        if (prop == "src" && obj.onload) {
+                            obj.onload();
+                        }
+                    }
+                })
+            },
+            XMLSerializer: function () {
+                this.serializeToString = function (obj) {
+                    return JSON.stringify({
+                        d: obj.outerHTML.d,
+                        transform: obj.transform
+                    })
+                }
             },
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
@@ -568,9 +604,11 @@ before(function () {
     }
 
     function pointerUp(coords, integrationEnv) {
-        integrationEnv.documentCallbacks
+        let results = integrationEnv.documentCallbacks
             .filter(c => c.event == "pointerup")
-            .map(c => c.callback).forEach(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
+            .map(c => c.callback)
+            .map(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
+        return Promise.all(results.filter(p => p != null && typeof p === 'object' && typeof p.then === 'function' && typeof p.catch === 'function'))
     }
 
     function pointerMove(coords, integrationEnv) {
@@ -643,15 +681,12 @@ before(function () {
         })).flat())
     }
 
-    function erase(points, radius, integrationEnv) {
+    async function erase(points, radius, integrationEnv) {
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
 
         mainPointerDown(points[0], integrationEnv);
         points.forEach(point => pointerMove(point, integrationEnv))
-        pointerUp(points[points.length - 1], integrationEnv);
-
-        assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-        integrationEnv.enviromentVariables.img.onload();
+        await pointerUp(points[points.length - 1], integrationEnv);
 
         clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
     }
@@ -659,7 +694,7 @@ before(function () {
     async function loadTestViz(viz, integrationEnv) {
         let data = fs.readFileSync(__dirname + "/" + viz, "utf-8");
         integrationEnv.enviromentVariables.window.fileText = data;
-        await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+        await integrationEnv.enviromentVariables.$.selectors["#upload-button-json"].eventCallbacks.click();
     }
 
     IntegrationUtils = {

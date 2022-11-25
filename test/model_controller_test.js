@@ -609,7 +609,7 @@ describe('Integration Test ModelController', function () {
 
             let originalModel = integrationEnv.ModelController.getModelAsObject();
 
-            integrationEnv.enviromentVariables.$.selectors['#download-button'].eventCallbacks.click();
+            integrationEnv.enviromentVariables.$.selectors['#download-button-json'].eventCallbacks.click();
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
 
             // clear the data
@@ -617,7 +617,7 @@ describe('Integration Test ModelController', function () {
             assert.equal(integrationEnv.ModelController.getModelAsObject().timelines.length, 0);
             assert.equal(integrationEnv.ModelController.getModelAsObject().dataTables.length, 0);
 
-            await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+            await integrationEnv.enviromentVariables.$.selectors["#upload-button-json"].eventCallbacks.click();
 
             // Do both directions to make sure we aren't missing anything. 
             TestUtils.deepEquals(integrationEnv.ModelController.getModelAsObject(), originalModel);
@@ -658,16 +658,16 @@ describe('Integration Test ModelController', function () {
             assert.equal(textSet[1].x, 10);
             assert.equal(textSet[1].y, 10);
 
-            integrationEnv.enviromentVariables.$.selectors['#download-button'].eventCallbacks.click();
+            integrationEnv.enviromentVariables.$.selectors['#download-button-json'].eventCallbacks.click();
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
 
             // clear the data
-            IntegrationUtils.erase(line1Points, 10, integrationEnv);
-            IntegrationUtils.erase(line2Points, 10, integrationEnv);
+            await IntegrationUtils.erase(line1Points, 10, integrationEnv);
+            await IntegrationUtils.erase(line2Points, 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
 
-            await integrationEnv.enviromentVariables.$.selectors["#upload-button"].eventCallbacks.click();
+            await integrationEnv.enviromentVariables.$.selectors["#upload-button-json"].eventCallbacks.click();
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +

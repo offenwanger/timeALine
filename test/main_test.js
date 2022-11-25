@@ -457,7 +457,7 @@ describe('Test Main - Integration Test', function () {
     });
 
     describe('Data linking - eraser test', function () {
-        it('should correctly add end time pins', function () {
+        it('should correctly add end time pins', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }, { x: 200, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -475,7 +475,7 @@ describe('Test Main - Integration Test', function () {
             IntegrationUtils.clickLine({ x: 190, y: 10 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            IntegrationUtils.erase([
+            await IntegrationUtils.erase([
                 { x: 60, y: 10 },
                 { x: 60, y: 100 },
                 { x: 140, y: 100 },
@@ -498,7 +498,7 @@ describe('Test Main - Integration Test', function () {
             expect(timePins.map(pins => pins.map(pin => Math.round(pin.linePercent * 100) / 100))).to.eql([[1], [0, 1], [0]]);
         });
 
-        it('should eliminate and split cell bindings', function () {
+        it('should eliminate and split cell bindings', async function () {
             integrationEnv.mainInit();
 
             // Draw the line
@@ -539,7 +539,7 @@ describe('Test Main - Integration Test', function () {
                 .to.eql([NO_LINE_PERCENT, NO_LINE_PERCENT, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 1, 1])
 
             // this erases a chunk between .26 and .32 percent of the line
-            IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 150, y: 102 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 10);

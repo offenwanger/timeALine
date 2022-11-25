@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mSelectedAxisId = null;
     let mLinkingBinding = null;
 
-    let mMouseDropShadow = new MouseDropShadow(mVizLayer);
+    let mMouseDropShadow = new MouseDropShadow(mInteractionLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
 
     let mTooltip = new ToolTip("main-tooltip");
@@ -82,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .attr('height', window.innerHeight);
     });
 
+    let mWorkspace;
     let mModelController = new ModelController();
 
     let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
@@ -1008,11 +1009,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
+        // sync pointer ups
         mColorBrushController.onPointerUp(coords);
         mLineViewController.onPointerUp(coords);
         mLineDrawingController.onPointerUp(coords);
         mDeformController.onPointerUp(coords);
-        mEraserController.onPointerUp(coords);
         mTimePinController.onPointerUp(coords);
         mTextController.onPointerUp(coords);
         mImageController.onPointerUp(coords);
@@ -1020,6 +1021,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSmoothController.onPointerUp(coords);
         mStrokeController.onPointerUp(coords);
         mSelectionController.onPointerUp(coords);
+
+        // async pointer ups
+        // the promise is mainly for testing purposes, but also 
+        // highlights that these may happen in any order.
+        return Promise.all([
+            mEraserController.onPointerUp(coords)
+        ])
     });
 
     function screenToSvgCoords(screenCoords) {
@@ -1120,6 +1128,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         $("body").css("background-color", mModelController.getModel().getCanvas().color);
+
+        if (mWorkspace) {
+            mWorkspace.writeVersion(mModelController.getModelAsObject());
+        }
     }
 
     // Setup main view buttons' events
@@ -1163,23 +1175,112 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip("#redo-button", "Redo last undone action");
 
     $("#upload-button").on("click", async () => {
+        setDefaultMode();
+        showSubMenu("#upload-button");
+    })
+    setupButtonTooltip("#upload-button", "Shows menu to load previous work");
+
+    $("#upload-button-folder").on("click", async () => {
+        try {
+            setDefaultMode();
+
+            mWorkspace = await FileHandler.getWorkspace(false);
+            workspaceSet();
+
+            let model = await mWorkspace.getCurrentVersion();
+            mModelController.setModelFromObject(model);
+            modelUpdated();
+        } catch (e) {
+            if (e.message.includes("The user aborted a request")) return;
+            if (e.message.includes("Missing folders")) {
+                alert("Cannot open workspace: " + e.message)
+                return;
+            };
+            console.error("Error fetching model", e); return;
+        }
+    })
+    setupButtonTooltip("#upload-button-folder", "Select and load a viz from a workspace folder");
+
+    $("#upload-button-json").on("click", async () => {
         let model;
         try {
             model = await FileHandler.getJSONModel();
+            mModelController.setModelFromObject(model);
+            modelUpdated();
+            setDefaultMode();
         } catch (e) {
             if (e.message.includes("The user aborted a request")) return;
-            console.error("Error fetching model", e); return;
+            console.error("Error loading workspace", e); return;
         }
-
-        mModelController.setModelFromObject(model);
-        modelUpdated();
     })
-    setupButtonTooltip("#upload-button", "Upload a previously downloaded file");
+    setupButtonTooltip("#upload-button-json", "Replace current viz with a previously downloaded json file");
 
     $("#download-button").on("click", () => {
+        setDefaultMode();
+        showSubMenu("#download-button");
+    })
+    setupButtonTooltip("#download-button", "Shows menu with options to save your work");
+
+    $("#download-button-folder").on("click", async () => {
+        try {
+            mWorkspace = await FileHandler.getWorkspace(true);
+            mWorkspace.writeVersion(mModelController.getModelAsObject());
+
+            workspaceSet();
+        } catch (e) {
+            if (e.message.includes("The user aborted a request")) return;
+            if (e.message.includes("Folder not empty")) {
+                alert("Cannot open workspace: " + e.message)
+                return;
+            };
+            console.error("Error saving workspace", e); return;
+        }
+    })
+    setupButtonTooltip("#download-button-folder", "Set the workspace folder for this visualization");
+
+    $("#download-button-json").on("click", () => {
         FileHandler.downloadJSON(mModelController.getModelAsObject());
     })
-    setupButtonTooltip("#download-button", "Package your image into a json file which can be uploaded later");
+    setupButtonTooltip("#download-button-json", "Package your image into a json file which can be uploaded later");
+
+    $("#download-button-svg").on("click", () => {
+        let viz = mVizLayer.clone(true);
+        viz.selectAll('g').each(function () {
+            if (this.childElementCount == 0) {
+                d3.select(this).remove();
+            }
+        });
+        let { x, y, width, height } = viz.node().getBBox();
+
+        let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
+            .attr('width', width)
+            .attr('height', height)
+            .attr('viewBox', x + " " + y + " " + width + " " + height)
+            .style("background-color", mModelController.getModel().getCanvas().color)
+            .attr("xmlns", "http://www.w3.org/2000/svg");
+        exportSVG.append(function () { return viz.node() });
+        FileHandler.downloadSVG(exportSVG.node())
+    })
+    setupButtonTooltip("#download-button-svg", "Download your viz as svg");
+
+    $("#download-button-png").on("click", async () => {
+        let viz = mVizLayer.clone(true);
+        viz.selectAll('g').each(function () {
+            if (this.childElementCount == 0) {
+                d3.select(this).remove();
+            }
+        });
+
+        let { x, y, height, width } = viz.node().getBBox();
+        x -= 10;
+        y -= 10;
+        height += 20;
+        width += 20;
+
+        let canvas = await DataUtil.svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
+        FileHandler.downloadPNG(canvas)
+    })
+    setupButtonTooltip("#download-button-png", "Download your viz as png");
     // ---------------
     setupModeButton("#line-drawing-button", MODE_LINE_DRAWING, () => {
         mLineDrawingController.setActive(true);
@@ -1564,9 +1665,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
 
-                $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
-                $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
-                $(buttonId + '-sub-menu').show();
+                showSubMenu(buttonId);
             }
         })
     }
@@ -1578,9 +1677,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             } else {
                 // clear everything and show your own submenu
                 clearMode();
-                $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
-                $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
-                $(buttonId + '-sub-menu').show();
+                showSubMenu(buttonId);
 
                 callback();
                 mMode = mode;
@@ -1598,6 +1695,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 $('#mode-indicator-div').show();
             }
         })
+    }
+
+    function showSubMenu(buttonId) {
+        $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
+        $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
+        $(buttonId + '-sub-menu').show();
     }
 
     function setupButtonTooltip(buttonId, text) {
@@ -1648,7 +1751,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
     setDefaultMode();
 
-    function clearMode(hideSubMenus = true) {
+    function clearMode() {
         mLineViewController.setActive(false);
         mLineDrawingController.setActive(false);
         mEraserController.setActive(false);
@@ -1726,6 +1829,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $("#image-viewer .close").on("click", function () {
         $('#image-viewer').hide();
     });
+
+    function workspaceSet() {
+        $("#download-button").attr("src", "img/download_button.png")
+        $("#download-button-folder").attr("src", "img/folder_button.png")
+    }
 
     function showLinkLine(coords1, coords2) {
         mLinkLine.attr('x1', coords1.x).attr('y1', coords1.y)

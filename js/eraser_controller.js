@@ -33,7 +33,7 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
         }
     }
 
-    function onPointerUp() {
+    async function onPointerUp() {
         if (mActive && mDragging) {
             mDragging = false;
 
@@ -44,42 +44,14 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
             let canvasX = eraserOutline.x - mBrushSize;
             let canvasY = eraserOutline.y - mBrushSize;
 
-            // raterize erase shape
-            let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
-                .attr('width', canvasWidth)
-                .attr('height', canvasHeight)
-                // this is required for unknown reasons
-                .attr("xmlns", "http://www.w3.org/2000/svg");
+            let canvas = await DataUtil.svgToCanvas(mEraserLine.clone().node(), canvasX, canvasY, canvasWidth, canvasHeight);
+            let mask = new CanvasMask(canvas, canvasX, canvasY, canvasWidth, canvasHeight);
 
-            let canvasLine = mEraserLine.clone();
-            canvasLine.attr('d', PathMath.getPathD(mDraggedPoints.map(p => {
-                return { x: p.x - canvasX, y: p.y - canvasY };
-            })));
-            exportSVG.append(() => canvasLine.node());
-            exportSVG = exportSVG.node();
+            mEraseCallback(mask);
 
-            let blob = new Blob([exportSVG.outerHTML], { type: 'image/svg+xml;charset=utf-8' });
-
-            let URL = window.URL || window.webkitURL || window;
-            let blobURL = URL.createObjectURL(blob);
-
-            let image = new Image();
-            image.onload = () => {
-                let canvas = document.createElement('canvas');
-                canvas.width = canvasWidth;
-                canvas.height = canvasHeight;
-                let context = canvas.getContext('2d');
-                context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-
-                let mask = new CanvasMask(canvas, canvasX, canvasY, canvasWidth, canvasHeight);
-
-                mEraseCallback(mask);
-
-                // reset
-                mDraggedPoints = [];
-                mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
-            };
-            image.src = blobURL;
+            // reset
+            mDraggedPoints = [];
+            mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
     }
 

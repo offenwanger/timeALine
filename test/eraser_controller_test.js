@@ -36,7 +36,7 @@ describe('Integration Test EraserController', function () {
     });
 
     describe('erase line test', function () {
-        it('should erase start of line without error', function () {
+        it('should erase start of line without error', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 20, y: 20 }, { x: 30, y: 30 }], integrationEnv);
             IntegrationUtils.drawLine([{ x: 40, y: 40 }, { x: 60, y: 40 }, { x: 80, y: 40 }], integrationEnv);
@@ -44,14 +44,14 @@ describe('Integration Test EraserController', function () {
             let timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
             expect(timelinePoints[0]).to.eql({ x: 40, y: 40 });
 
-            IntegrationUtils.erase([{ x: 0, y: 40 }, { x: 35, y: 40 }, { x: 15, y: 40 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 0, y: 40 }, { x: 35, y: 40 }, { x: 15, y: 40 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "incorrect line number");
             timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
             expect(timelinePoints[0]).to.eql({ x: 50, y: 40 });
         });
 
-        it('should erase end of line without error', function () {
+        it('should erase end of line without error', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 10, y: 10 }, { x: 20, y: 20 }, { x: 30, y: 30 }], integrationEnv);
             IntegrationUtils.drawLine([{ x: 40, y: 40 }, { x: 60, y: 40 }, { x: 80, y: 40 }], integrationEnv);
@@ -59,7 +59,7 @@ describe('Integration Test EraserController', function () {
             let timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
             expect(timelinePoints[timelinePoints.length - 1]).to.eql({ x: 80, y: 40 });
 
-            IntegrationUtils.erase([{ x: 80, y: 40 }, { x: 75, y: 40 }, { x: 90, y: 40 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 80, y: 40 }, { x: 75, y: 40 }, { x: 90, y: 40 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "incorrect line number");
             timelinePoints = integrationEnv.ModelController.getModel().getAllTimelines()[1].points;
@@ -67,7 +67,7 @@ describe('Integration Test EraserController', function () {
 
         });
 
-        it('should erase points in middle of line', function () {
+        it('should erase points in middle of line', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([
                 { x: 121, y: 306 },
@@ -81,7 +81,7 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
             let originalLength = PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points);
 
-            IntegrationUtils.erase([{ x: 420, y: 313 }, { x: 410, y: 303 }, { x: 400, y: 293 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 420, y: 313 }, { x: 410, y: 303 }, { x: 400, y: 293 }], 10, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "line not split");
 
             let len1 = PathMath.getPathLength(integrationEnv.ModelController.getModel().getAllTimelines()[0].points);
@@ -89,12 +89,12 @@ describe('Integration Test EraserController', function () {
             assert(originalLength > len1 + len2);
         });
 
-        it('should create appropriate new points for erasing section with no points', function () {
+        it('should create appropriate new points for erasing section with no points', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 40 }, { x: 0, y: 0 }, { x: 40, y: 40 }, { x: 40, y: 0 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 21, y: 19 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 21, y: 19 }], 10, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2, "line not split");
 
             let lines = integrationEnv.ModelController.getModel().getAllTimelines();
@@ -106,7 +106,7 @@ describe('Integration Test EraserController', function () {
             expect(lines[1].points[0].y).to.be.closeTo(31.3, .1);
         });
 
-        it('should break line into two', function () {
+        it('should break line into two', async function () {
             integrationEnv.mainInit();
             let longerLine = [
                 { x: 100, y: 100 },
@@ -120,17 +120,17 @@ describe('Integration Test EraserController', function () {
             IntegrationUtils.drawLine(longerLine, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
         });
 
-        it('should erase whole line', function () {
+        it('should erase whole line', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }, { x: 120, y: 80 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([
+            await IntegrationUtils.erase([
                 { x: 100, y: 100 },
                 { x: 110, y: 100 },
                 { x: 120, y: 90 },
@@ -141,7 +141,7 @@ describe('Integration Test EraserController', function () {
     })
 
     describe('erase data test', function () {
-        it('should erase strokes on a line', function () {
+        it('should erase strokes on a line', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -157,13 +157,13 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
                 .to.eql([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }]);
 
-            IntegrationUtils.erase([{ x: 210, y: 150 }, { x: 220, y: 152 }, { x: 240, y: 152 }, { x: 250, y: 152 }, { x: 260, y: 152 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 210, y: 150 }, { x: 220, y: 152 }, { x: 240, y: 152 }, { x: 250, y: 152 }, { x: 260, y: 152 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 0);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 0);
         });
 
-        it('should split strokes on a line', function () {
+        it('should split strokes on a line', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -197,13 +197,13 @@ describe('Integration Test EraserController', function () {
                     { x: 260, y: 150 }
                 ]);
 
-            IntegrationUtils.erase([{ x: 235, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 235, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".lens-annotation-stroke"].innerData.length, 2);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
         });
 
-        it('should erase strokes on canvas', function () {
+        it('should erase strokes on canvas', async function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawCanvasStroke([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }], integrationEnv);
@@ -212,12 +212,12 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints)
                 .to.eql([{ x: 210, y: 150 }, { x: 220, y: 160 }, { x: 250, y: 152 }, { x: 260, y: 160 }]);
 
-            IntegrationUtils.erase([{ x: 240, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 240, y: 152 }, { x: 230, y: 152 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 0);
         });
 
-        it('should split strokes on canvas', function () {
+        it('should split strokes on canvas', async function () {
             integrationEnv.mainInit();
 
             IntegrationUtils.drawCanvasStroke([
@@ -244,12 +244,12 @@ describe('Integration Test EraserController', function () {
                     { x: 260, y: 100 }
                 ]);
 
-            IntegrationUtils.erase([{ x: 240, y: 102 }, { x: 230, y: 102 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 240, y: 102 }, { x: 230, y: 102 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
         });
 
-        it('should erase pins on line', function () {
+        it('should erase pins on line', async function () {
             integrationEnv.mainInit();
 
             integrationEnv.mainInit();
@@ -272,9 +272,7 @@ describe('Integration Test EraserController', function () {
             IntegrationUtils.pointerMove({ x: 115, y: 100 }, integrationEnv)
             IntegrationUtils.pointerMove({ x: 120, y: 100 }, integrationEnv)
             IntegrationUtils.pointerMove({ x: 125, y: 100 }, integrationEnv)
-            IntegrationUtils.pointerUp({ x: 125, y: 100 }, integrationEnv);
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
+            await IntegrationUtils.pointerUp({ x: 125, y: 100 }, integrationEnv);
 
             IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
@@ -283,7 +281,7 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
         });
 
-        it('should erase pins but not strokes on line', function () {
+        it('should erase pins but not strokes on line', async function () {
             integrationEnv.mainInit();
 
             integrationEnv.mainInit();
@@ -327,9 +325,7 @@ describe('Integration Test EraserController', function () {
             IntegrationUtils.pointerMove({ x: 100, y: 100 }, integrationEnv)
             IntegrationUtils.pointerMove({ x: 150, y: 100 }, integrationEnv)
             IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv)
-            IntegrationUtils.pointerUp({ x: 175, y: 100 }, integrationEnv);
-            assert.isNotNull(integrationEnv.enviromentVariables.img.onload);
-            integrationEnv.enviromentVariables.img.onload();
+            await IntegrationUtils.pointerUp({ x: 175, y: 100 }, integrationEnv);
 
             IntegrationUtils.clickButton("#eraser-button-pin", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickButton("#eraser-button", integrationEnv.enviromentVariables.$);
@@ -339,7 +335,7 @@ describe('Integration Test EraserController', function () {
                 .to.eql([110, 115, 120, 125, 145, 150, 155, 160]);
         });
 
-        it('should erase line, pin, and stroke', function () {
+        it('should erase line, pin, and stroke', async function () {
             integrationEnv.mainInit();
 
             integrationEnv.mainInit();
@@ -380,7 +376,7 @@ describe('Integration Test EraserController', function () {
             expect(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData[0].projectedPoints.map(p => Math.round(p.x)))
                 .to.eql([101, 124, 144, 153, 156, 171, 175, 178, 180, 190, 195, 200]);
 
-            IntegrationUtils.erase([{ x: 150, y: 90 }, { x: 150, y: 100 }, { x: 150, y: 110 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 150, y: 90 }, { x: 150, y: 100 }, { x: 150, y: 110 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().map(t => t.timePins).flat().length, 2);
@@ -393,7 +389,7 @@ describe('Integration Test EraserController', function () {
     })
 
     describe('erase line with data test', function () {
-        it('should erase line and not move text with no time mapping', function () {
+        it('should erase line and not move text with no time mapping', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 0, y: 100 }, { x: 400, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -415,7 +411,7 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
 
-            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
 
@@ -434,7 +430,7 @@ describe('Integration Test EraserController', function () {
     })
 
     describe('erase line with strokes test', function () {
-        it('should break strokes into two', function () {
+        it('should break strokes into two', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -468,14 +464,14 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 2);
         });
 
-        it('should break strokes into three', function () {
+        it('should break strokes into three', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 400, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -522,11 +518,11 @@ describe('Integration Test EraserController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 150, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
 
-            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
 
@@ -541,7 +537,7 @@ describe('Integration Test EraserController', function () {
         });
 
 
-        it('should break strokes into six', function () {
+        it('should break strokes into six', async function () {
             integrationEnv.mainInit();
             IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 300, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
@@ -588,12 +584,12 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
 
-            IntegrationUtils.erase([{ x: 190, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 190, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 3);
 
-            IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
+            await IntegrationUtils.erase([{ x: 250, y: 100 }], 10, integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 3);
             assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 5);
