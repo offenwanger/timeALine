@@ -1,6 +1,10 @@
 function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
+    const BRUSH_SIZE_MIN = 0.75;
+    const BRUSH_SIZE_MAX = 200;
+
     let mActive = false;
     let mColor = '#000000'
+    let mRadius = 0.75;
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -17,7 +21,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
         .attr('stroke', '#000000')
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round')
-        .attr('stroke-width', 1.5)
+        .attr('stroke-width', mRadius * 2)
 
     let mCover = overlayLayer.append('rect')
         .attr('id', "color-brush-cover")
@@ -26,6 +30,11 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
         .attr('fill', 'white')
         .attr('opacity', '0.2')
         .style("visibility", 'hidden');
+
+    let mBrush = vizLayer.append("circle")
+        .attr("id", "timeline-drawing-brush")
+        .attr('fill', '#000000')
+        .attr('r', mRadius);
 
     function onPointerDown(coords) {
         if (mActive) {
@@ -38,18 +47,28 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
             mDraggedPoints.push(coords);
             mColorLine.attr('d', PathMath.getPathD(mDraggedPoints));
         }
+        mBrush.attr("cx", coords.x).attr("cy", coords.y);
     }
 
     function onPointerUp(coords) {
         if (mActive && mDragging && mDraggedPoints.length > 1) {
             let result = [...mDraggedPoints]
-            mDrawFinishedCallback(result, mColor);
+            mDrawFinishedCallback(result, mColor, mRadius);
         }
 
         mDragging = false;
         mDraggedPoints = [];
         mColorLine.attr('d', PathMath.getPathD([]));
     }
+
+    $(document).on("wheel", function (e) {
+        e = e.originalEvent;
+        if (mActive) {
+            mRadius = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mRadius + e.wheelDelta / 50));
+            mBrush.attr("r", mRadius);
+            mColorLine.attr("stroke-width", mRadius * 2);
+        }
+    });
 
     function setActive(active) {
         if (active && !mActive) {
@@ -58,21 +77,38 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
             mCover.style("visibility", '')
                 .attr('width', overlayLayer.node().getBBox().width)
                 .attr('height', overlayLayer.node().getBBox().height);
+            mBrush.style('visibility', "");
         } else if (!active && mActive) {
             mActive = false;
             mDrawingGroup.style('visibility', "hidden");
             mCover.style('visibility', "hidden");
+            mBrush.style('visibility', "hidden");
         }
     }
 
     function setColor(color) {
         mColor = color;
         mColorLine.attr('stroke', color);
+        mBrush.attr("fill", mColor);
+    }
+
+    function increaseBrushRadius() {
+        mRadius = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mRadius * 1.30));
+        mBrush.attr("r", mRadius);
+        mColorLine.attr("stroke-width", mRadius * 2);
+    }
+
+    function decreaseBrushRadius() {
+        mRadius = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mRadius * 0.70));
+        mBrush.attr("r", mRadius);
+        mColorLine.attr("stroke-width", mRadius * 2);
     }
 
     this.setActive = setActive;
     this.setColor = setColor;
     this.getColor = () => mColor;
+    this.increaseBrushRadius = increaseBrushRadius;
+    this.decreaseBrushRadius = decreaseBrushRadius;
     this.setDrawFinishedCallback = (callback) => mDrawFinishedCallback = callback;
 
     this.onPointerDown = onPointerDown;

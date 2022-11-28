@@ -473,16 +473,17 @@ let DataStructs = function () {
         return cell;
     }
 
-    function Stroke(points, color) {
+    function Stroke(points, color, width) {
         if (!Array.isArray(points)) throw new Error("Invalid stroke array: " + points);
 
         this.points = points;
         this.color = color;
+        this.width = width ? width : 1.5;
 
         this.id = getUniqueId();
 
         this.copy = function () {
-            let stroke = new Stroke(this.points.map(p => p.copy()), this.color);
+            let stroke = new Stroke(this.points.map(p => p.copy()), this.color, this.width);
             stroke.id = this.id;
             return stroke;
         }
@@ -491,6 +492,7 @@ let DataStructs = function () {
             if (this.id != otherStroke.id) return false;
             if (this.points.length != otherStroke.points.length) return false;
             if (this.color != otherStroke.color) return false;
+            if (this.width != otherStroke.width) return false;
             for (let i = 0; i < this.points.length; i++) {
                 if (this.points[i].timeStamp) {
                     if (this.points[i].timeStamp != otherStroke.points[i].timeStamp) return false;
@@ -503,7 +505,7 @@ let DataStructs = function () {
         }
     }
     Stroke.fromObject = function (obj) {
-        let stroke = new Stroke(obj.points.map(p => StrokePoint.fromObject(p)), obj.color);
+        let stroke = new Stroke(obj.points.map(p => StrokePoint.fromObject(p)), obj.color, obj.width);
         stroke.id = obj.id;
         return stroke;
     }

@@ -31,6 +31,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
                 if (changedStrokes.includes(strokeData.id)) {
                     mStrokesData[strokeData.id] = {
                         color: strokeData.color,
+                        width: strokeData.width,
                         projectedPoints: strokeData.points.map(point =>
                             PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist)),
                         timelineId: timeline.id,
@@ -45,6 +46,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         mModel.getCanvas().annotationStrokes.forEach(stroke => {
             mStrokesData[stroke.id] = {
                 color: stroke.color,
+                width: stroke.width,
                 projectedPoints: stroke.points.map(p => {
                     return {
                         x: p.xValue,
@@ -67,10 +69,10 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             .classed("canvas-annotation-stroke", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
-            .attr('stroke-width', 1.5)
             .attr('fill', 'none')
         mStrokeGroup.selectAll(".canvas-annotation-stroke")
             .attr("stroke", d => d.color)
+            .attr('stroke-width', d => d.width)
             .attr('d', d => PathMath.getPathD(d.projectedPoints))
             .attr("stroke-id", d => d.strokeId)
             .attr("timeline-id", d => d.timelineId);
@@ -85,7 +87,6 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('stroke', 'black')
-            .attr('stroke-width', 6)
             .attr('fill', 'none')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
@@ -108,7 +109,8 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
                 }
             });
         mStrokeTargetGroup.selectAll(".canvas-annotation-stroke-target")
-            .attr('d', d => PathMath.getPathD(d.projectedPoints));
+            .attr('d', d => PathMath.getPathD(d.projectedPoints))
+            .attr('stroke-width', d => Math.max(6, d.width));
     }
 
     function onPointerMove(coords) {

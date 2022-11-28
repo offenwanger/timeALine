@@ -805,13 +805,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mColorBrushController.setDrawFinishedCallback((points, color) => {
+    mColorBrushController.setDrawFinishedCallback((points, color, radius) => {
         let strokePoints = points.map(p => {
             let strokePoint = new DataStructs.StrokePoint(p.y);
             strokePoint.xValue = p.x;
             return strokePoint;
         })
-        mModelController.addCanvasStroke(strokePoints, color);
+        mModelController.addCanvasStroke(strokePoints, color, radius * 2);
 
         modelUpdated();
     })
@@ -1335,6 +1335,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         toggleColorPicker(e);
     });
     setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
+    $("#color-brush-button-grow").on("click", () => {
+        mColorBrushController.increaseBrushRadius();
+        mLensController.increaseBrushRadius();
+    })
+    $("#color-brush-button-shrink").on("click", () => {
+        mColorBrushController.decreaseBrushRadius();
+        mLensController.decreaseBrushRadius();
+    })
+
 
     setupModeButton('#text-button', MODE_TEXT, () => {
         mLineViewController.setActive(true);

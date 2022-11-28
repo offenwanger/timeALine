@@ -33,7 +33,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mPanning = false;
 
     let mLensColorBrushController = new ColorBrushController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mLensColorBrushController.setDrawFinishedCallback((points, color) => {
+    mLensColorBrushController.setDrawFinishedCallback((points, color, radius) => {
         if (mTimelineId) {
             let model = mModelController.getModel();
             let timelineHasMapping = model.hasTimeMapping(mTimelineId);
@@ -48,7 +48,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 return point;
             })
 
-            mModelController.addTimelineStroke(mTimelineId, mappedPoints, color);
+            mModelController.addTimelineStroke(mTimelineId, mappedPoints, color, radius * 2);
 
             modelUpdated();
         }
@@ -232,7 +232,6 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         mLineGroup.selectAll("#lens-line")
             .data([null]).enter().append("line")
             .attr("id", "lens-line")
-            // TODO: switch this out for a chosen color at some point
             .attr("stroke-width", 1.5)
             .attr("x1", 0)
             .attr("y1", 0)
@@ -357,6 +356,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             if (changedStrokes.includes(strokeData.id)) {
                 mStrokesData[strokeData.id] = {
                     color: strokeData.color,
+                    width: strokeData.width,
                     projectedPoints: strokeData.points.map(point => {
                         return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], point.linePercent, point.lineDist);
                     })
@@ -374,10 +374,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             .classed("lens-annotation-stroke", true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
-            .attr('stroke-width', 1.5)
             .attr('fill', 'none')
         mStrokeGroup.selectAll(".lens-annotation-stroke")
             .attr("stroke", d => d.color)
+            .attr('stroke-width', d => d.width)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
     function eraseStrokes() {
@@ -425,6 +425,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
     this.setPanActive = setPanActive;
     this.setColorBrushActive = setColorBrushActive;
+    this.increaseBrushRadius = function () { mLensColorBrushController.increaseBrushRadius(); }
+    this.decreaseBrushRadius = function () { mLensColorBrushController.decreaseBrushRadius(); }
     this.resetMode = resetMode;
 
     this.setColorBrushColor = setColorBrushColor;

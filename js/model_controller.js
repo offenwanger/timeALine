@@ -230,7 +230,7 @@ function ModelController() {
         }
 
         startTimeline.annotationStrokes.forEach(stroke => {
-            let newStoke = new DataStructs.Stroke([], stroke.color);
+            let newStoke = new DataStructs.Stroke([], stroke.color, stroke.width);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
                 if (!startTimelineHasMapping && endTimelineHasMapping) {
@@ -246,7 +246,7 @@ function ModelController() {
         })
 
         endTimeline.annotationStrokes.forEach(stroke => {
-            let newStoke = new DataStructs.Stroke([], stroke.color);
+            let newStoke = new DataStructs.Stroke([], stroke.color, stroke.width);
             newStoke.points = stroke.points.map(p => {
                 let point = p.copy();
                 if (!endTimelineHasMapping && startTimelineHasMapping) {
@@ -404,7 +404,7 @@ function ModelController() {
                 } else if (point.linePercent > currSegment.endPercent || point.linePercent < currSegment.startPercent) {
                     // outside the current segment, add the previous stroke part to the previous segment and reset.
                     if (currSet.length >= 2) {
-                        currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color));
+                        currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color, strokeData.width));
                     }
                     currSet = [point.copy()];
                     currSegment = findSegment(point.linePercent);
@@ -414,7 +414,7 @@ function ModelController() {
             })
             // push the last stroke
             if (currSet.length >= 2) {
-                currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color));
+                currSegment.annotationStrokes.push(new DataStructs.Stroke(currSet, strokeData.color, strokeData.width));
             }
         });
 
@@ -682,7 +682,7 @@ function ModelController() {
                 stroke.points.forEach((point, index) => {
                     if (eraserMask.isCovered(positions[index])) {
                         if (currSet.length >= 2) {
-                            newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                            newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
                         }
                         currSet = [];
                     } else {
@@ -695,7 +695,7 @@ function ModelController() {
                     // copy returns a regular stroke
                     newStrokes.push(stroke.copy())
                 } else if (currSet.length >= 2) {
-                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.wdith));
                 }
             });
 
@@ -708,7 +708,7 @@ function ModelController() {
             stroke.points.forEach(point => {
                 if (eraserMask.isCovered({ x: point.xValue, y: point.lineDist })) {
                     if (currSet.length >= 2) {
-                        newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                        newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
                     }
                     currSet = [];
                 } else {
@@ -721,7 +721,7 @@ function ModelController() {
                 // copy returns a regular stroke
                 newStrokes.push(stroke.copy())
             } else if (currSet.length >= 2) {
-                newStrokes.push(new DataStructs.Stroke(currSet, stroke.color));
+                newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
             }
         })
         mModel.getCanvas().annotationStrokes = newStrokes;
@@ -996,16 +996,16 @@ function ModelController() {
     }
 
 
-    function addTimelineStroke(timelineId, points, color) {
+    function addTimelineStroke(timelineId, points, color, width) {
         undoStackPush();
 
-        mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color));
+        mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
-    function addCanvasStroke(points, color) {
+    function addCanvasStroke(points, color, width) {
         undoStackPush();
 
-        mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color));
+        mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
     function updateStrokeColor(storkeId, color) {
