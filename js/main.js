@@ -1552,11 +1552,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $('#color-picker-wrapper').farbtastic((color) => {
         if (color != "#NaNNaNNaN") {
-            if (mMode == MODE_COLOR_BRUSH || mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+            color = color + getOpacityInput();
+            if (mMode == MODE_COLOR_BRUSH) {
                 setColorBrushColor(color);
-            } else if (mMode == MODE_COLOR_BUCKET || mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+            } else if (mMode == MODE_COLOR_BUCKET) {
                 setColorBucketColor(color);
-            } else if (mMode == MODE_LINE_DRAWING || mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+            } else if (mMode == MODE_LINE_DRAWING) {
                 setLineDrawingColor(color);
             }
             setColorPickerInputColor(color);
@@ -1572,19 +1573,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     $("#color-picker-input").on('input', (e) => {
-        if (mMode == MODE_COLOR_BRUSH || MODE_COLOR_BRUSH_EYEDROPPER) {
+        if (mMode == MODE_COLOR_BRUSH) {
             setColorBrushColor($("#color-picker-input").val());
-        } else if (mMode == MODE_COLOR_BUCKET || MODE_COLOR_BUCKET_EYEDROPPER) {
+        } else if (mMode == MODE_COLOR_BUCKET) {
             setColorBucketColor($("#color-picker-input").val());
-        } else if (mMode == MODE_LINE_DRAWING || MODE_LINE_DRAWING_EYEDROPPER) {
+        } else if (mMode == MODE_LINE_DRAWING) {
             setLineDrawingColor($("#color-picker-input").val());
         }
         setColorPickerInputColor($("#color-picker-input").val());
     })
+    $("#opacity-input").on('change', function () {
+        let opacity = getOpacityInput();
+        let color = $("#color-picker-input").val().substring(0, 7) + opacity;
+
+        if (mMode == MODE_COLOR_BRUSH) {
+            setColorBrushColor(color);
+        } else if (mMode == MODE_COLOR_BUCKET) {
+            setColorBucketColor(color);
+        } else if (mMode == MODE_LINE_DRAWING) {
+            setLineDrawingColor(color);
+        }
+        setColorPickerInputColor(color);
+    })
+
     // set color to a random color
-    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
-    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
-    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0'))
+    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
+    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
+    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
 
     // ---------------
     setupModeButton('#lens-button', MODE_LENS, () => {
@@ -1796,6 +1811,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#color-picker-input').val(color);
         $('#color-picker-input').css('background-color', color);
         $.farbtastic('#color-picker-wrapper').setColor(color);
+        if (typeof color == 'string') {
+            setOpacityInput(color.substring(7, 9))
+        }
     }
 
     function setColorBucketColor(color) {
@@ -1818,6 +1836,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#mode-img').css('background-color', color);
         mColorBrushController.setColor(color)
         mLensController.setColorBrushColor(color)
+    }
+
+    function getOpacityInput() {
+        let val = parseInt($('#opacity-input').val());
+        if (isNaN(val)) val = 255;
+        return val.toString(16).padStart(2, '0')
+    }
+
+    function setOpacityInput(value) {
+        if (value.length == 2) {
+            let val = parseInt(value, 16);
+            if (!isNaN(val)) {
+                $('#opacity-input').val(val)
+            }
+        } else {
+            $('#opacity-input').val(255)
+        }
     }
     // End color utility functions
 

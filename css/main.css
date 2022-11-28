@@ -56,6 +56,18 @@ body {
     text-shadow: 0.07em 0 black, 0 0.07em black, -0.07em 0 black, 0 -0.07em black;
 }
 
+#opacity-input {
+    width: 195px;
+    height: 25px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+}
+
+#opacity-input:hover {
+    opacity: 1;
+}
+
 .mobile-menu {
     position: absolute;
     display: none;
