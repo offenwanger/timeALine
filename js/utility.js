@@ -819,13 +819,24 @@ let DataUtil = function () {
         let rgb1 = color1.match(/\w\w/g).map((c) => parseInt(c, 16));
         let rgb2 = color2.match(/\w\w/g).map((c) => parseInt(c, 16));
 
-        if (rgb1.length != 3 || rgb2.length != 3 || rgb1.some(n => isNaN(n)) || rgb2.some(n => isNaN(n))) {
+        if ((rgb1.length != 3 && rgb1.length != 4) ||
+            (rgb2.length != 3 && rgb2.length != 4) ||
+            rgb1.some(n => isNaN(n)) ||
+            rgb2.some(n => isNaN(n))) {
             console.error("Invalid hex color!", color1, color2);
             return "#000000";
         }
 
+        if (rgb1.length == 3) {
+            rgb1.push(255)
+        }
+
+        if (rgb2.length == 3) {
+            rgb2.push(255)
+        }
+
         let avgRGB = []
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             avgRGB[i] = Math.round(rgb1[i] + ((rgb2[i] - rgb1[i]) * percent)).toString(16).padStart(2, '0');
         }
         return '#' + avgRGB.join("");
