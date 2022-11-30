@@ -1148,7 +1148,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#undo-button").on("click", () => { doUndo(); })
     $(document).keydown(function (e) {
-        if (e.ctrlKey && e.which == 90) {
+        if ((e.ctrlKey || e.metaKey) && e.which == 90) {
             doUndo();
         }
     });
@@ -1162,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#redo-button").on("click", () => { doRedo(); })
     $(document).keydown(function (e) {
-        if ((e.ctrlKey && e.keyCode == 89) || (e.ctrlKey && e.shiftKey && e.which == 90)) {
+        if (((e.ctrlKey || e.metaKey) && e.keyCode == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.which == 90)) {
             doRedo();
         }
     });
