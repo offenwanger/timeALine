@@ -1497,6 +1497,87 @@ function ModelController() {
         }
     }
 
+    function deleteCellBinding(cellBindingId) {
+        undoStackPush();
+
+        if (mModel.getCanvas().cellBindings.map(b => b.id).includes(cellBindingId)) {
+            mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings.filter(b => b.id != cellBindingId);
+        } else {
+            let timeline = mModel.getTimelineByCellBinding(cellBindingId);
+            if (!timeline) {
+                console.error("Bad cell binding id! No timeline found!", cellBindingId);
+                return;
+            }
+
+            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+            let startTime, endTime;
+            if (hadTimeMapping) {
+                let bindingValues = mModel.getTimeBindingValues(timeline);
+                startTime = bindingValues[0].timeStamp;
+                endTime = bindingValues[bindingValues.length - 1].timeStamp;
+            }
+
+            timeline.cellBindings = timeline.cellBindings.filter(b => b.id != cellBindingId);
+
+            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                mapTimeStampsToTimePercents(timeline, startTime, endTime);
+            }
+        }
+    }
+
+    function deleteImageBinding(imageBindingId) {
+        undoStackPush();
+
+        if (mModel.getCanvas().imageBindings.map(b => b.id).includes(imageBindingId)) {
+            mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings.filter(b => b.id != imageBindingId);
+        } else {
+            let timeline = mModel.getTimelineByImageBinding(imageBindingId);
+            if (!timeline) {
+                console.error("Bad image binding id! No timeline found!", imageBindingId);
+                return;
+            }
+
+            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+            let startTime, endTime;
+            if (hadTimeMapping) {
+                let bindingValues = mModel.getTimeBindingValues(timeline);
+                startTime = bindingValues[0].timeStamp;
+                endTime = bindingValues[bindingValues.length - 1].timeStamp;
+            }
+
+            timeline.imageBindings = timeline.imageBindings.filter(b => b.id != imageBindingId);
+
+            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                mapTimeStampsToTimePercents(timeline, startTime, endTime);
+            }
+        }
+    }
+
+    function deleteDataSet(axisId) {
+        undoStackPush();
+
+        let timeline = mModel.getTimelineByAxisId(axisId);
+        if (!timeline) {
+            console.error("Bad axis id! No timeline found!", axisId);
+            return;
+        }
+
+        let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
+        let startTime, endTime;
+        if (hadTimeMapping) {
+            let bindingValues = mModel.getTimeBindingValues(timeline);
+            startTime = bindingValues[0].timeStamp;
+            endTime = bindingValues[bindingValues.length - 1].timeStamp;
+        }
+
+        let removeBindings = mModel.getCellBindingData(timeline.id).filter(b => b.axisBinding.id == axisId).map(b => b.cellBinding.id);
+        timeline.cellBindings = timeline.cellBindings.filter(b => !removeBindings.includes(b.id));
+        timeline.axisBindings = timeline.axisBindings.filter(b => b.id != axisId);
+
+        if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+            mapTimeStampsToTimePercents(timeline, startTime, endTime);
+        }
+    }
 
     /****
      * Utility
@@ -1607,6 +1688,10 @@ function ModelController() {
     this.updateImageTime = updateImageTime;
     this.imageBindingToCanvasBinding = imageBindingToCanvasBinding;
     this.imageBindingToLineBinding = imageBindingToLineBinding;
+
+    this.deleteCellBinding = deleteCellBinding;
+    this.deleteImageBinding = deleteImageBinding;
+    this.deleteDataSet = deleteDataSet;
 
     this.getModel = () => mModel.copy();
 

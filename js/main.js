@@ -958,6 +958,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             hideAxisContextMenu();
         }
 
+        if ($(event.target).closest('#color-picker-div').length === 0 &&
+            $(event.target).closest("#color-brush-button-color-picker").length === 0 &&
+            $(event.target).closest("#color-bucket-button-color-picker").length === 0 &&
+            $(event.target).closest("#line-drawing-button-color-picker").length === 0) {
+            // if we didn't click on the div or an open button
+            $('#color-picker-div').hide();
+        }
+
         if (mMode == MODE_IMAGE_LINK) {
             setDefaultMode();
         }
@@ -1029,6 +1037,58 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mEraserController.onPointerUp(coords)
         ])
     });
+
+    $(document).keydown(function (e) {
+        if ((e.ctrlKey || e.metaKey) && /* z */ e.which == 90) {
+            doUndo();
+        }
+
+        if (((e.ctrlKey || e.metaKey) && /* y */ e.keyCode == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && /* y */ e.which == 90)) {
+            doRedo();
+        }
+
+        if (/* delete */ e.which == 46) {
+            deleteSelected();
+        }
+    });
+
+    function doUndo() {
+        let undone = mModelController.undo();
+        if (undone) {
+            modelUpdated();
+        };
+    }
+
+    function doRedo() {
+        let redone = mModelController.redo();
+        if (redone) {
+            modelUpdated();
+        }
+    }
+
+    function deleteSelected() {
+        let selectedCount = [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]
+            .reduce((count, item) => item == null ? count : count + 1, 0);
+        if (selectedCount > 1) {
+            console.error("Multiple selected items!", [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]);
+            return;
+        };
+
+        if (mSelectedCellBindingId != null) {
+            mModelController.deleteCellBinding(mSelectedCellBindingId);
+        } else if (mSelectedImageBindingId != null) {
+            mModelController.deleteImageBinding(mSelectedImageBindingId);
+        } else if (mSelectedAxisId != null) {
+            mModelController.deleteDataSet(mSelectedAxisId);
+        }
+
+        if (selectedCount == 1) {
+            modelUpdated();
+            hideAxisContextMenu();
+            hideTextContextMenu();
+            hideImageContextMenu();
+        }
+    }
 
     function screenToSvgCoords(screenCoords) {
         if (isNaN(parseInt(screenCoords.x)) || isNaN(parseInt(screenCoords.y))) {
@@ -1147,31 +1207,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip("#datasheet-toggle-button", "Opens and closes the datasheets and lens view");
 
     $("#undo-button").on("click", () => { doUndo(); })
-    $(document).keydown(function (e) {
-        if ((e.ctrlKey || e.metaKey) && e.which == 90) {
-            doUndo();
-        }
-    });
-    function doUndo() {
-        let undone = mModelController.undo();
-        if (undone) {
-            modelUpdated();
-        };
-    }
     setupButtonTooltip("#undo-button", "Undo last action");
 
     $("#redo-button").on("click", () => { doRedo(); })
-    $(document).keydown(function (e) {
-        if (((e.ctrlKey || e.metaKey) && e.keyCode == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.which == 90)) {
-            doRedo();
-        }
-    });
-    function doRedo() {
-        let redone = mModelController.redo();
-        if (redone) {
-            modelUpdated();
-        }
-    }
     setupButtonTooltip("#redo-button", "Redo last undone action");
 
     $("#upload-button").on("click", async () => {
@@ -1407,6 +1445,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mModelController.setFontSize(mSelectedCellBindingId, Math.max(cellBinding.fontSize - 4, 4));
         modelUpdated();
     })
+    $("#delete-text-button").on("click", deleteSelected);
+    setupButtonTooltip("#delete-text-button", "Unlink this text from the visual");
 
     setupModeButton('#image-button', MODE_IMAGE, () => {
         mLineViewController.setActive(true);
@@ -1427,6 +1467,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     })
     setupButtonTooltip("#image-unlink-button", "Detach image from line")
+    $("#delete-image-button").on("click", deleteSelected);
+    setupButtonTooltip("#delete-image-button", "Delete this image");
 
     setupModeButton('#image-link-button', MODE_IMAGE_LINK, () => {
         if (!mSelectedImageBindingId) {
@@ -1572,15 +1614,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
             setColorPickerInputColor(color);
         }
     });
-    $(document).on("click", function (event) {
-        if ($(event.target).closest('#color-picker-div').length === 0 &&
-            $(event.target).closest("#color-brush-button-color-picker").length === 0 &&
-            $(event.target).closest("#color-bucket-button-color-picker").length === 0 &&
-            $(event.target).closest("#line-drawing-button-color-picker").length === 0) {
-            // if we didn't click on the div or an open button
-            $('#color-picker-div').hide();
-        }
-    });
     $("#color-picker-input").on('input', (e) => {
         if (mMode == MODE_COLOR_BRUSH) {
             setColorBrushColor($("#color-picker-input").val());
@@ -1638,6 +1671,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mModelController.toggleDataStyle(mSelectedAxisId);
         modelUpdated();
     });
+    setupButtonTooltip("#toggle-data-style-button", "Toggle the data display style");
+    $("#delete-axis-button").on("click", deleteSelected);
+    setupButtonTooltip("#delete-axis-button", "Unlink all data points in this set");
 
     $("#add-datasheet-button").on("click", () => {
         let newTable = new DataStructs.DataTable([

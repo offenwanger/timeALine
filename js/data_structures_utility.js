@@ -289,6 +289,14 @@ DataStructs.DataModel = function () {
         return timeBindingValues;
     }
 
+    function getTimelineByCellBinding(cellBindingId) {
+        return mTimelines.find(t => t.cellBindings.some(b => b.id == cellBindingId));
+    }
+
+    function getTimelineByImageBinding(imageBindingId) {
+        return mTimelines.find(t => t.imageBindings.some(b => b.id == imageBindingId));
+    }
+
     /* End Mapping Utility function */
     function getBoundTimeCellValues(timelineId) {
         let timeline = getTimelineById(timelineId);
@@ -576,6 +584,9 @@ DataStructs.DataModel = function () {
     this.mapTimeToLinePercent = mapTimeToLinePercent;
     this.hasTimeMapping = hasTimeMapping;
     this.getTimeBindingValues = getTimeBindingValues;
+
+    this.getTimelineByCellBinding = getTimelineByCellBinding;
+    this.getTimelineByImageBinding = getTimelineByImageBinding;
 
     this.copy = function () {
         let model = new DataStructs.DataModel();
