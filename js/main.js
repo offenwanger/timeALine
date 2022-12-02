@@ -1324,7 +1324,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineDrawingController.setActive(true);
     });
     setupButtonTooltip("#line-drawing-button", "Draws timelines")
-    setupButtonTooltip('#line-drawing-button', "Draws annotations on the diagram and in the lens view")
+    $("#line-drawing-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/timeline_drawing.mp4");
+    })
     setupSubModeButton('#line-drawing-button', '-eyedropper', MODE_LINE_DRAWING_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#line-drawing-button-eyedropper', "Copies the color from anything that can be colored")
     $("#line-drawing-button-color-picker").on("click", (e) => {
@@ -1342,6 +1344,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     setupButtonTooltip("#line-manipulation-button", "Smooths and deforms timelines")
+    $("#line-manipulation-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/deform.mp4");
+    })
     setupSubModeButton("#line-manipulation-button", "-deform", MODE_DEFORM, () => {
         mDeformController.setActive(true);
     });
@@ -1354,7 +1359,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupModeButton('#scissors-button', MODE_SCISSORS, () => {
         mLineViewController.setActive(true);
     });
-    setupButtonTooltip('#scissors-button', "Snips timelines")
+    setupButtonTooltip('#scissors-button', "Splits timelines")
+    $('#scissors-button').on("dblclick", function () {
+        showVideoViewer("img/tutorial/scissors.mp4");
+    })
 
     $("#toggle-timeline-style-button").on("click", () => {
         mLineViewController.toggleStyle(mModelController.getModel());
@@ -1366,6 +1374,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLensController.setColorBrushActive(true);
     });
     setupButtonTooltip('#color-brush-button', "Draws annotations on the diagram and in the lens view")
+    $('#color-brush-button',).on("dblclick", function () {
+        showVideoViewer("img/tutorial/stroke_annotation.mp4");
+    })
     setupSubModeButton('#color-brush-button', '-eyedropper', MODE_COLOR_BRUSH_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#color-brush-button-eyedropper', "Copies the color from anything that can be colored")
     $("#color-brush-button-color-picker").on("click", (e) => {
@@ -1373,6 +1384,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         toggleColorPicker(e);
     });
     setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
+
     $("#color-brush-button-grow").on("click", () => {
         mColorBrushController.increaseBrushRadius();
         mLensController.increaseBrushRadius();
@@ -1388,6 +1400,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTextController.setActive(true);
     });
     setupButtonTooltip('#text-button', "Creates text items on timelines or on the main view")
+    $('#text-button',).on("dblclick", function () {
+        showVideoViewer("img/tutorial/text.mp4");
+    })
     $("#toggle-font-button").on("click", () => {
         if (!mSelectedCellBindingId) {
             console.error("Button should not be clickable!");
@@ -1453,6 +1468,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mImageController.setActive(true);
     });
     setupButtonTooltip('#image-button', "Add images to the viz")
+    $('#image-button').on("dblclick", function () {
+        showVideoViewer("img/tutorial/image.mp4");
+    })
+
 
     $("#image-unlink-button").on("click", () => {
         if (!mSelectedImageBindingId) {
@@ -1549,16 +1568,27 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mImageController.setActive(true);
     });
     setupButtonTooltip('#pin-button', "Creates and moves time pins on timelines")
+    $('#pin-button',).on("dblclick", function () {
+        showVideoViewer("img/tutorial/pin.mp4");
+    })
+
     // ---------------
     $("#selection-button").on("click", () => {
         setDefaultMode();
     })
     setupButtonTooltip("#selection-button", "Select and move items around")
+    $("#selection-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/selection.mp4");
+    })
+
 
     setupModeButton("#eraser-button", MODE_ERASER, () => {
         mEraserController.setActive(true);
     });
     setupButtonTooltip("#eraser-button", "Erases all the things!")
+    $("#eraser-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/eraser.mp4");
+    })
     setupSubModeButton("#eraser-button", "-timeline", MODE_ERASER_TIMELINE, () => {
         mEraserController.setActive(true);
     });
@@ -1592,7 +1622,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mStrokeController.setActive(true);
     });
     setupButtonTooltip('#color-bucket-button', "Colors all the things!")
-    setupButtonTooltip('#color-bucket-button', "Draws annotations on the diagram and in the lens view")
+    $("#color-bucket-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/bucket.mp4");
+    })
     setupSubModeButton('#color-bucket-button', '-eyedropper', MODE_COLOR_BUCKET_EYEDROPPER, setEyeDropperActive);
     setupButtonTooltip('#color-bucket-button-eyedropper', "Copies the color from anything that can be colored")
     $("#color-bucket-button-color-picker").on("click", (e) => {
@@ -1648,12 +1680,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineViewController.setActive(true);
     });
     setupButtonTooltip('#lens-button', "Displayed the clicked section of timeline in the lens view")
+    $("#lens-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/lens.mp4");
+    })
 
     setupModeButton("#panning-button", MODE_PAN, () => {
         mLensController.setPanActive(true);
         mImageController.setActive(true);
     });
     setupButtonTooltip("#panning-button", "Pans the main view and the lens view")
+    $("#panning-button").on("dblclick", function () {
+        showVideoViewer("img/tutorial/pan.mp4");
+    })
+
 
     // setup other buttons
 
@@ -1902,7 +1941,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // End color utility functions
 
     function showImageViewer(imageBinding) {
+        $("#full-image").show();
+        $("#video-viewer").hide();
+
         $("#full-image").attr("src", imageBinding.imageData);
+        $('#image-viewer').show();
+    }
+
+    function showVideoViewer(videoURL) {
+        $("#full-image").hide();
+        $("#video-viewer").show();
+
+        $("#video-viewer").empty();
+        $("#video-viewer").append($("<source>").attr("src", videoURL));
+        $("#video-viewer")[0].load();
         $('#image-viewer').show();
     }
 
