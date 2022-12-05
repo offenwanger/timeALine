@@ -2,7 +2,6 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
     let mLineStyle = LineStyle.STYLE_DASHED;
 
     let mActive = false;
-    let mLineClickedCallback = () => { };
     let mLineDragStartCallback = () => { };
     let mLineDragCallback = () => { };
     let mLineDragEndCallback = () => { };
@@ -282,14 +281,14 @@ function LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer) {
 
     function onPointerMove(coords) {
         if (mDragging && mActive) {
-            mLineDragCallback(mDraggingData.id, PathMath.getClosestPointOnPath(coords, mDraggingData.points));
+            mLineDragCallback(mDraggingData.id, coords);
         }
     }
 
     function onPointerUp(coords) {
         if (mDragging && mActive) {
             mDragging = false;
-            mLineDragEndCallback(mDraggingData.id, PathMath.getClosestPointOnPath(coords, mDraggingData.points));
+            mLineDragEndCallback(mDraggingData.id, coords);
         }
     }
 

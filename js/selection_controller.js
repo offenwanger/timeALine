@@ -4,13 +4,9 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     let mModel = null;
 
     let mLineModifiedCallback = () => { };
-    let mDragStartCallback = (timelineId, e) => { return { x: e.x, y: e.y } }
+    let mDragStartCallback = (timelineId, e) => { return { x: e.clientX, y: e.clientY } }
 
-    let mSelectedTimelines = [];
-    let mSelectedStrokes = [];
-    let mSelectedTimePins = [];
-    let mSelectedText = [];
-    let mSelectedDataPoints = [];
+    let mSelectedTimeline = null;
 
     let mCover = overlayLayer.append('rect')
         .attr('id', "selection-cover")
@@ -23,35 +19,32 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     let mSelectionGroup = interactionLayer.append('g')
         .attr("id", 'selection-g')
         .style("visibility", 'hidden');
-    let mStartPoint = mSelectionGroup.append("circle")
+    let mStartRotatePoint = mSelectionGroup.append("circle")
         .attr("id", "line-selection-start-point")
         .attr('r', 5)
         .attr('cursor', 'pointer')
-        .attr('fill', '#b51d1c')
+        .attr('fill', '#1c1db5')
         .attr("stroke", "black")
-        .on('pointerdown', startNodeDragStart)
         .style("visibility", 'hidden');
-    let mStartPointTarget = mSelectionGroup.append("circle")
+    let mStartRotatePointTarget = mSelectionGroup.append("circle")
         .attr("id", "line-selection-start-point-target")
         .attr('r', 20)
         .attr('fill', '#000000')
         .attr('cursor', 'pointer')
         .attr('opacity', 0)
-        .on('pointerdown', startNodeDragStart)
         .style("visibility", 'hidden');
-    let mRotatePoint = mSelectionGroup.append("circle")
+    let mEndRotatePoint = mSelectionGroup.append("circle")
         .attr("id", "line-selection-end-point")
         .attr('r', 5)
         .attr('fill', '#1c1db5')
         .attr("stroke", "black")
         .style("visibility", 'hidden');
-    let mRotatePointTarget = mSelectionGroup.append("circle")
+    let mEndRotatePointTarget = mSelectionGroup.append("circle")
         .attr("id", "line-selection-end-point-target")
         .attr('r', 20)
         .attr('fill', '#000000')
         .attr('cursor', 'pointer')
         .attr('opacity', 0)
-        .on('pointerdown', onRotatePointDragStart)
         .style("visibility", 'hidden');
 
     let mLine = mSelectionGroup.append('path')
@@ -62,151 +55,169 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
         .attr('stroke-width', 1.5)
         .style("visibility", 'hidden');
 
-    let mMarqueeGroup = overlayLayer.append("g")
-        .attr("id", 'marquee-group')
-        .style("visibility", 'hidden');
-
     let mDragging = false;
-    let mDraggingRotation = false;
-    let mDragStartPos = null;
-    let mDraggingTimeline = null;
+
+    let mRotatingStart = false;
+    let mRotatingEnd = false;
     let mRotatatingPointsMapping = null;
+
+    let mStartPos = null;
 
     function updateModel(model) {
         mModel = model;
 
-        // TODO: hacky. Fix.
-        mSelectedTimelines = mSelectedTimelines.map(t => t ? mModel.getTimelineById(t.id) : null).filter(t => t);
-        if (mSelectedTimelines[0]) {
-            setTimelineControls(mSelectedTimelines[0])
+        if (mSelectedTimeline) mSelectedTimeline = mModel.getTimelineById(mSelectedTimeline.id);
+
+        if (mSelectedTimeline) {
+            setTimelineControls(mSelectedTimeline)
         } else {
-            mStartPoint.style("visibility", 'hidden');
-            mStartPointTarget.style("visibility", 'hidden');
-            mRotatePoint.style("visibility", 'hidden');
-            mRotatePointTarget.style("visibility", 'hidden');
+            // deselect
+            mStartRotatePoint.style("visibility", 'hidden');
+            mStartRotatePointTarget.style("visibility", 'hidden');
+            mEndRotatePoint.style("visibility", 'hidden');
+            mEndRotatePointTarget.style("visibility", 'hidden');
         }
     }
 
-    function startNodeDragStart(e, d) {
+    mStartRotatePointTarget.on('pointerdown', function (e, d) {
         if (mActive) {
-            mDragging = true;
-            dragStart(e, d);
+            mRotatingStart = true;
+            rotationStart(e, d);
         }
-    }
+    });
 
-    function onRotatePointDragStart(e, d) {
+    mEndRotatePointTarget.on('pointerdown', function (e, d) {
         if (mActive) {
-            mDraggingRotation = true;
-            mRotatatingPointsMapping = pointsToPercentDistMapping(d.points);
-            dragStart(e, d);
+            mRotatingEnd = true;
+            rotationStart(e, d);
         }
-    }
+    });
 
-    function dragStart(e, d) {
-        mDragStartPos = mDragStartCallback(d.id, e);
-        mDraggingTimeline = d;
+    function rotationStart(e, d) {
+        mStartPos = mDragStartCallback(d.id, e);
+        mRotatatingPointsMapping = pointsToPercentDistMapping(d.points);
+
         mCover.style("visibility", '')
             .attr('width', overlayLayer.node().getBBox().width)
             .attr('height', overlayLayer.node().getBBox().height);
         mLine.attr('stroke', d.color)
             .attr('d', PathMath.getPathD(d.points))
             .style('visibility', "");
-        mStartPoint.style("visibility", 'hidden');
-        mStartPointTarget.style("visibility", 'hidden');
-        mRotatePoint.style("visibility", 'hidden');
-        mRotatePointTarget.style("visibility", 'hidden');
+        mStartRotatePoint.style("visibility", 'hidden');
+        mStartRotatePointTarget.style("visibility", 'hidden');
+        mEndRotatePoint.style("visibility", 'hidden');
+        mEndRotatePointTarget.style("visibility", 'hidden');
     }
 
     function onPointerDown(coords) {
         // background clicked
         if (mActive) {
-            mSelectedTimelines = [];
+            mSelectedTimeline = null;
 
-            mStartPoint.style("visibility", 'hidden');
-            mStartPointTarget.style("visibility", 'hidden');
-            mRotatePoint.style("visibility", 'hidden');
-            mRotatePointTarget.style("visibility", 'hidden');
+            mStartRotatePoint.style("visibility", 'hidden');
+            mStartRotatePointTarget.style("visibility", 'hidden');
+            mEndRotatePoint.style("visibility", 'hidden');
+            mEndRotatePointTarget.style("visibility", 'hidden');
         }
     }
 
-    function onTimelinePointerDown(timelineId, coords) {
+    function onTimelineDragStart(timelineId, coords) {
         if (mActive) {
-            let timeline = mModel.getTimelineById(timelineId);
-            mSelectedTimelines = [];
-            mSelectedTimelines.push(timeline);
+            mDragging = true;
+            mStartPos = coords;
+            mSelectedTimeline = mModel.getTimelineById(timelineId)
+            setTimelineControls(mSelectedTimeline);
 
-            setTimelineControls(timeline);
-
-            mStartPoint.style("visibility", '');
-            mStartPointTarget.style("visibility", '');
-            mRotatePoint.style("visibility", '');
-            mRotatePointTarget.style("visibility", '');
+            mCover.style("visibility", '')
+                .attr('width', overlayLayer.node().getBBox().width)
+                .attr('height', overlayLayer.node().getBBox().height);
+            mLine.attr('stroke', mSelectedTimeline.color)
+                .attr('d', PathMath.getPathD(mSelectedTimeline.points))
+                .style('visibility', "");
+            mStartRotatePoint.style("visibility", 'hidden');
+            mStartRotatePointTarget.style("visibility", 'hidden');
+            mEndRotatePoint.style("visibility", 'hidden');
+            mEndRotatePointTarget.style("visibility", 'hidden');
         }
     }
 
     function setTimelineControls(timeline) {
-        mStartPoint
+        mStartRotatePoint
             .attr('cx', timeline.points[0].x)
             .attr('cy', timeline.points[0].y);
-        mStartPointTarget.datum(timeline)
+        mStartRotatePointTarget.datum(timeline)
             .attr('cx', timeline.points[0].x)
             .attr('cy', timeline.points[0].y);
 
-        mRotatePoint
+        mEndRotatePoint
             .attr('cx', timeline.points[timeline.points.length - 1].x)
             .attr('cy', timeline.points[timeline.points.length - 1].y);
-        mRotatePointTarget.datum(timeline)
+        mEndRotatePointTarget.datum(timeline)
             .attr('cx', timeline.points[timeline.points.length - 1].x)
             .attr('cy', timeline.points[timeline.points.length - 1].y);
     }
 
     function onPointerMove(coords) {
         if (mActive && mDragging) {
-            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-            let points = mDraggingTimeline.points.map((point) => {
+            let diff = MathUtil.subtractAFromB(mStartPos, coords);
+            let points = mSelectedTimeline.points.map((point) => {
                 return { x: point.x + diff.x, y: point.y + diff.y };
             });
             mLine.attr('d', PathMath.getPathD(points));
         }
 
-        if (mActive && mDraggingRotation) {
-            let lineStart = mDraggingTimeline.points[0];
+        if (mActive && mRotatingEnd) {
+            let lineStart = mSelectedTimeline.points[0];
             let points = percentDistMappingToPoints(mRotatatingPointsMapping, lineStart, coords)
             mLine.attr('d', PathMath.getPathD(points));
         }
 
+        if (mActive && mRotatingStart) {
+            let lineEnd = mSelectedTimeline.points[mSelectedTimeline.points.length - 1];
+            let points = percentDistMappingToPoints(mRotatatingPointsMapping, coords, lineEnd)
+            mLine.attr('d', PathMath.getPathD(points));
+        }
     }
 
     function onPointerUp(coords) {
         if (mActive && mDragging) {
-            let diff = MathUtil.subtractAFromB(mDragStartPos, coords);
-            let points = mDraggingTimeline.points.map((point) => {
-                return { x: point.x + diff.x, y: point.y + diff.y };
-            });
+            let diff = MathUtil.subtractAFromB(mStartPos, coords);
 
-            mLineModifiedCallback(mDraggingTimeline.id, mDraggingTimeline.points, points);
+            if (MathUtil.distanceFromAToB(mStartPos, coords) > 3) {
+                let points = mSelectedTimeline.points.map((point) => {
+                    return { x: point.x + diff.x, y: point.y + diff.y };
+                });
+
+                mLineModifiedCallback(mSelectedTimeline.id, mSelectedTimeline.points, points);
+            }
         }
 
-        if (mActive && mDraggingRotation) {
-            let lineStart = mDraggingTimeline.points[0];
-            let points = percentDistMappingToPoints(mRotatatingPointsMapping, lineStart, coords)
+        if (mActive && mRotatingEnd) {
+            let lineStart = mSelectedTimeline.points[0];
+            let points = percentDistMappingToPoints(mRotatatingPointsMapping, lineStart, coords);
+            mLineModifiedCallback(mSelectedTimeline.id, mSelectedTimeline.points, points);
+        }
 
-            mLineModifiedCallback(mDraggingTimeline.id, mDraggingTimeline.points, points);
+        if (mActive && mRotatingStart) {
+            let lineEnd = mSelectedTimeline.points[mSelectedTimeline.points.length - 1];
+            let points = percentDistMappingToPoints(mRotatatingPointsMapping, coords, lineEnd)
+            mLineModifiedCallback(mSelectedTimeline.id, mSelectedTimeline.points, points);
         }
 
         // reset
-        if (mActive && (mDragging || mDraggingRotation)) {
-            mDraggingRotation = false;
+        if (mActive && (mDragging || mRotatingEnd || mRotatingStart)) {
+            mRotatingEnd = false;
+            mRotatingStart = false;
             mDragging = false;
-            mDraggingTimeline = null;
-            mDragStartPos = null
+            mStartPos = null
             mRotatatingPointsMapping = null;
+
             mCover.style("visibility", 'hidden');
             mLine.style("visibility", 'hidden');
-            mStartPoint.style("visibility", '');
-            mStartPointTarget.style("visibility", '');
-            mRotatePoint.style("visibility", '');
-            mRotatePointTarget.style("visibility", '');
+            mStartRotatePoint.style("visibility", '');
+            mStartRotatePointTarget.style("visibility", '');
+            mEndRotatePoint.style("visibility", '');
+            mEndRotatePointTarget.style("visibility", '');
         }
     }
 
@@ -257,11 +268,9 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mMarqueeGroup.style('visibility', "");
             mSelectionGroup.style('visibility', "").raise();
         } else if (!active && mActive) {
             mActive = false;
-            mMarqueeGroup.style('visibility', "hidden");
             mSelectionGroup.style('visibility', "hidden");
         }
 
@@ -273,7 +282,7 @@ function SelectionController(vizLayer, overlayLayer, interactionLayer) {
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
 
-    this.onTimelinePointerDown = onTimelinePointerDown;
+    this.onTimelineDragStart = onTimelineDragStart;
 
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setLineModifiedCallback = (callback) => mLineModifiedCallback = callback;

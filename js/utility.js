@@ -1,7 +1,7 @@
 let MathUtil = function () {
     function vectorFromAToB(a, b) {
         if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
-            console.error("Invalid vectors!", a, b);
+            console.error("Invalid vectors for vectorFromAToB:", a, b);
             return { x: 0, y: 0 };
         }
 
@@ -10,7 +10,7 @@ let MathUtil = function () {
 
     function distanceFromAToB(a, b) {
         if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
-            console.error("Invalid vectors!", a, b);
+            console.error("Invalid vectors for distanceFromAToB: ", a, b);
             return 0;
         }
 
@@ -22,7 +22,7 @@ let MathUtil = function () {
 
     function addAToB(a, b) {
         if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
-            console.error("Invalid vectors!", a, b);
+            console.error("Invalid vectors for addAToB: ", a, b);
             return { x: 0, y: 0 };
         }
 
@@ -34,7 +34,7 @@ let MathUtil = function () {
 
     function subtractAFromB(a, b) {
         if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
-            console.error("Invalid vectors!", a, b);
+            console.error("Invalid vectors for subtractAFromB: ", a, b);
             return { x: 0, y: 0 };
         }
 
@@ -46,7 +46,7 @@ let MathUtil = function () {
 
     function pointsEqual(a, b) {
         if (!a || !isNumeric(a.x) || !isNumeric(a.y) || !b || !isNumeric(b.x) || !isNumeric(b.y)) {
-            console.error("Invalid vectors!", a, b);
+            console.error("Invalid vectors for pointsEqual: ", a, b);
             return false;
         }
 
@@ -55,7 +55,7 @@ let MathUtil = function () {
 
     function vectorLength(v) {
         if (!v || !isNumeric(v.x) || !isNumeric(v.y)) {
-            console.error("Invalid vector!", v);
+            console.error("Invalid vectors for vectorLength: ", v);
             return 0;
         }
 
@@ -64,13 +64,13 @@ let MathUtil = function () {
 
     function normalize(vector) {
         if (!vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
-            console.error("Invalid vector!", vector);
+            console.error("Invalid vector for normalize: ", vector);
             return { x: 0, y: 0 };
         }
 
         let length = vectorLength(vector);
         if (length == 0) {
-            console.error("Invalid vector!", vector)
+            console.error("Invalid vector for vectorLength: ", vector)
             return vector;
         }
 
@@ -79,7 +79,7 @@ let MathUtil = function () {
 
     function getPointAtDistanceAlongVector(distance, vector, origin = { x: 0, y: 0 }) {
         if (!origin || !isNumeric(origin.x) || !isNumeric(origin.y) || !isNumeric(distance)) {
-            console.error("Invalid values!", origin, distance);
+            console.error("Invalid values for getPointAtDistanceAlongVector: ", origin, distance);
             return { x: 0, y: 0 };
         }
 
@@ -91,7 +91,7 @@ let MathUtil = function () {
         if (!point || !isNumeric(point.x) || !isNumeric(point.y) ||
             !origin || !isNumeric(origin.x) || !isNumeric(origin.y) ||
             !vector || !isNumeric(vector.x) || !isNumeric(vector.y)) {
-            console.error("Invalid values!", point, vector, origin);
+            console.error("Invalid values for projectPointOntoVector: ", point, vector, origin);
             return { x: 0, y: 0, neg: 0 };
         }
 
@@ -211,7 +211,7 @@ let PathMath = function () {
 
     function getHash(points) {
         if (!Array.isArray(points)) {
-            console.error("Bad point array: ", points);
+            console.error("Bad point array for getHash: ", points);
             return "";
         };
 
@@ -220,7 +220,7 @@ let PathMath = function () {
 
     function getPathData(points) {
         if (!Array.isArray(points)) {
-            console.error("Bad point array: ", points);
+            console.error("Bad point array for getPathData: ", points);
             return {};
         };
 
@@ -258,7 +258,7 @@ let PathMath = function () {
 
     function getPathD(points) {
         if (!Array.isArray(points)) {
-            console.error("Bad point array: ", points);
+            console.error("Bad point array for getPathD: ", points);
             return "";
         };
 
@@ -294,7 +294,7 @@ let PathMath = function () {
 
     function getClosestPointOnPath(coords, points) {
         if (!Array.isArray(points)) {
-            console.error("Bad point array: ", points);
+            console.error("Bad point array for getClosestPointOnPath: ", points);
             return { x: 0, y: 0, percent: 0, length: 0 };
         };
 

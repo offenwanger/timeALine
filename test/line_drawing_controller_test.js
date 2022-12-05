@@ -456,7 +456,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.enviromentVariables.d3.selectors['.data-display-point'].innerData.length, 3);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
                 // this last data display point had to move to 
-                .innerData.map(item => Math.round(item.x))).to.eql([0, 200, 210]);
+                .innerData.map(item => Math.round(item.x)).sort()).to.eql([0, 200, 210]);
             expect(integrationEnv.enviromentVariables.d3.selectors['.data-display-point']
                 .innerData.map(item => Math.round(item.y))).to.eql([0, 0, 0]);
 

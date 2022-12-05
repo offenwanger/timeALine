@@ -188,6 +188,7 @@ before(function () {
             this.addClass = function (cls) { selectors["." + cls] = this };
             this.attr = function (attr, val) { if (attr == "id") selectors["#" + val] = this };
             this.outerWidth = function () { return 100; };
+            this.innerHeight = function () { return 100; };
             this.outerHeight = function () { return 20; };
             this.append = function () { return this };
             this.empty = function () { };

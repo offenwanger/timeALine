@@ -25,27 +25,12 @@ describe('Test SelectionController', function () {
     });
 
     describe('drag controls tests', function () {
-        it('should rotate the line', function () {
+        it('should rotate the line from the start point', function () {
             let selectionController = getSelectionController();
 
             let lineData = {
                 id: "1656511643611_1",
-                points: [
-                    { x: 0, y: 0 },
-                    { x: 10, y: 10 },
-                    { x: 5, y: 10 },
-                    { x: 10, y: 15 },
-                    { x: 15, y: 20 },
-                    { x: 20, y: 20 },
-                    { x: 15, y: 15 },
-                    { x: 10, y: 10 },
-                    { x: 15, y: 5 },
-                    { x: 25, y: 5 },
-                    { x: 25, y: 10 },
-                    { x: 25, y: 15 },
-                    { x: 20, y: 15 },
-                    { x: 10, y: 10 }
-                ],
+                points: [{ x: 10, y: 10 }, { x: 5, y: 10 }, { x: 10, y: 15 }, { x: 25, y: 5 }, { x: 25, y: 10 }, { x: 25, y: 15 }, { x: 20, y: 15 }, { x: 0, y: 0 }],
                 color: "#FF0000",
             };
 
@@ -60,7 +45,38 @@ describe('Test SelectionController', function () {
                 called = true;
             })
 
-            selectionController.onTimelinePointerDown("1656511643611_1", { x: 20, y: -20 });
+            selectionController.onTimelineDragStart("1656511643611_1", { x: 20, y: -20 });
+            selectionController.onPointerUp({ x: 20, y: -20 });
+            let endPoint = integrationEnv.enviromentVariables.d3.selectors['#line-selection-start-point-target'];
+            endPoint.eventCallbacks.pointerdown({ clientX: 10, clientY: 10 }, lineData);
+            selectionController.onPointerMove({ x: 20, y: -20 });
+            selectionController.onPointerUp({ x: 20, y: -20 });
+
+            assert.equal(called, true);
+        });
+
+        it('should rotate the line from the end point', function () {
+            let selectionController = getSelectionController();
+
+            let lineData = {
+                id: "1656511643611_1",
+                points: [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 5, y: 10 }, { x: 10, y: 15 }, { x: 15, y: 20 }, { x: 20, y: 20 }, { x: 15, y: 15 }, { x: 10, y: 10 }, { x: 15, y: 5 }, { x: 25, y: 5 }, { x: 25, y: 10 }, { x: 25, y: 15 }, { x: 20, y: 15 }, { x: 10, y: 10 }],
+                color: "#FF0000",
+            };
+
+            selectionController.updateModel({ getTimelineById: () => lineData });
+            selectionController.setActive(true);
+
+            let called = false;
+            selectionController.setLineModifiedCallback((lineId, oldPoints, result) => {
+                assert.equal(result.length, lineData.points.length);
+                expect(result.map(p => Math.round(p.x))).to.eql(lineData.points.map(p => p.y * 2));
+                expect(result.map(p => Math.round(p.y))).to.eql(lineData.points.map(p => p.x == 0 ? 0 : p.x * -2));
+                called = true;
+            })
+
+            selectionController.onTimelineDragStart("1656511643611_1", { x: 20, y: -20 });
+            selectionController.onPointerUp({ x: 20, y: -20 });
             let endPoint = integrationEnv.enviromentVariables.d3.selectors['#line-selection-end-point-target'];
             endPoint.eventCallbacks.pointerdown({ clientX: 10, clientY: 10 }, lineData);
             selectionController.onPointerMove({ x: 20, y: -20 });
@@ -90,12 +106,9 @@ describe('Integration Test SelectionController', function () {
             ], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
-            let dragStart = integrationEnv.enviromentVariables.d3.selectors['#line-selection-start-point-target'].eventCallbacks.pointerdown;
-
             IntegrationUtils.clickButton("#selection-button", integrationEnv.enviromentVariables.$);
-            dragStart({ clientX: 100, clientY: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0]);
-            IntegrationUtils.pointerMove({ x: 150, y: 200 }, integrationEnv);
-            IntegrationUtils.pointerUp({ x: 150, y: 200 }, integrationEnv);
+            IntegrationUtils.dragLine([{ x: 100, y: 100 }, { x: 150, y: 200 }, { x: 150, y: 200 }],
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
             IntegrationUtils.clickButton("#selection-button", integrationEnv.enviromentVariables.$);
 
             let linePoints = integrationEnv.ModelController.getModel().getAllTimelines()[0].points;

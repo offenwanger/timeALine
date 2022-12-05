@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mLineViewController = new LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
         if (mMode == MODE_SELECTION) {
-            mSelectionController.onTimelinePointerDown(timelineId, screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY }));
+            mSelectionController.onTimelineDragStart(timelineId, screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY }));
         } if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             if (!timeline) {
@@ -148,16 +148,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
             setDefaultMode();
         }
     })
-    mLineViewController.setLineDragCallback((timelineId, linePoint) => {
+    mLineViewController.setLineDragCallback((timelineId, coords) => {
         if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
-            pinDrag(timeline, mDraggingTimePin, linePoint.percent);
+            pinDrag(timeline, mDraggingTimePin, PathMath.getClosestPointOnPath(coords, timeline.points).percent);
         } else if (mMode == MODE_LENS) {
+            let linePoint = PathMath.getClosestPointOnPath(coords,
+                mModelController.getModel().getTimelineById(timelineId).points);
             mLensController.focus(timelineId, linePoint.percent);
             mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         }
     })
-    mLineViewController.setLineDragEndCallback((timelineId, linePoint) => {
+    mLineViewController.setLineDragEndCallback((timelineId, coords) => {
+        let linePoint = PathMath.getClosestPointOnPath(coords,
+            mModelController.getModel().getTimelineById(timelineId).points);
         if (mMode == MODE_PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
