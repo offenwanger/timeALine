@@ -1333,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
         });
         viz.select('#timeline-drawing-brush').remove();
-        
+
         let { x, y, width, height } = viz.node().getBBox();
 
         let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -1861,6 +1861,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function showSubMenu(buttonId) {
         $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
         $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
+        if ($(buttonId).offset().top + $(buttonId + '-sub-menu').innerHeight() > window.innerHeight) {
+            $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top - ($(buttonId + '-sub-menu').innerHeight() - 50));
+        }
         $(buttonId + '-sub-menu').show();
     }
 
