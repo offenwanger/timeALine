@@ -38,18 +38,21 @@ function ModelController() {
         if (capTimePin) timeline.timePins.push(capTimePin);
 
         timeline.points = newPoints;
+        let updateLinePercent;
         if (extendStart) {
-            let diff = newLength - originalLength;
-            timeline.timePins.forEach(binding => {
+            updateLinePercent = (binding) => {
+                let diff = newLength - originalLength;
                 let originalLengthAlongLine = binding.linePercent * originalLength;
                 binding.linePercent = (originalLengthAlongLine + diff) / newLength;
-            })
+            }
         } else {
-            let conversionRatio = originalLength / newLength;
-            timeline.timePins.forEach(binding => {
+            updateLinePercent = (binding) => {
+                let conversionRatio = originalLength / newLength;
                 binding.linePercent *= conversionRatio;
-            })
+            }
         }
+        timeline.timePins.forEach(updateLinePercent)
+        timeline.axisBindings.forEach(updateLinePercent)
 
         if (!mModel.hasTimeMapping(timeline.id)) {
             if (extendStart) {
@@ -109,6 +112,9 @@ function ModelController() {
         if (numericDataCells.length > 0) {
             // if there is no numeric data there should be no axis, otherwise merge them
             newTimeline.axisBindings = [...startTimeline.axisBindings];
+            newTimeline.axisBindings.forEach(axis => {
+                axis.linePercent = axis.linePercent * originalStartLength / newLength;
+            });
             endTimeline.axisBindings.forEach(axis => {
                 let newAxis = newTimeline.axisBindings.find(ab => ab.columnId == axis.columnId);
                 if (newAxis) {
@@ -477,11 +483,21 @@ function ModelController() {
                 return timePin;
             });
 
-            // update the axis mappings
+            // add the data mappings
             newTimeline.cellBindings = segment.cellBindingsData.map(b => b.cellBinding);
             newTimeline.imageBindings = segment.imageBindingData.map(b => b.imageBinding);
-            let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData.filter(cbd => cbd.dataCell.getType() == DataTypes.NUM).map(cbd => cbd.dataCell.columnId));
+
+            // update the axis mappings
+            let axesColumns = DataUtil.getUniqueList(segment.cellBindingsData
+                .filter(cbd => cbd.dataCell.getType() == DataTypes.NUM)
+                .map(cbd => cbd.dataCell.columnId));
             newTimeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
+            newTimeline.axisBindings.forEach(axisBinding => {
+                axisBinding.linePercent = (axisBinding.linePercent - segment.startPercent) / (segment.endPercent - segment.startPercent);
+                // don't use whole numbers to avoid divide by 0 bugs
+                if (axisBinding.linePercent < 0.0001) axisBinding.linePercent = 0.0001;
+                if (axisBinding.linePercent > 0.9999) axisBinding.linePercent = 0.9999;
+            });
 
             // update the annotation stroke mappings
             newTimeline.annotationStrokes = [...segment.annotationStrokes];
@@ -1309,17 +1325,16 @@ function ModelController() {
         }))
     }
 
-    function updateAxisDist(axisId, oneOrTwo, dist) {
+    function updateAxisPosition(axisId, dist1, dist2, linePercent) {
         undoStackPush();
 
-        let axis = mModel.getAxisById(axisId);
+        let currentAxis = mModel.getAxisById(axisId);
 
-        if (!axis) { console.error("Bad axis id for dist update!", axisId); return; }
-        if (oneOrTwo == 1) {
-            axis.dist1 = dist;
-        } else {
-            axis.dist2 = dist;
-        }
+        if (!currentAxis) { console.error("Bad axis id for dist update!", axisId); return; }
+
+        currentAxis.dist1 = dist1;
+        currentAxis.dist2 = dist2;
+        currentAxis.linePercent = linePercent;
     }
 
     function updateAxisColor(axisId, oneOrTwo, color) {
@@ -1678,7 +1693,7 @@ function ModelController() {
     this.addCanvasStroke = addCanvasStroke;
     this.updateStrokeColor = updateStrokeColor;
 
-    this.updateAxisDist = updateAxisDist;
+    this.updateAxisPosition = updateAxisPosition;
     this.updateAxisColor = updateAxisColor;
     this.toggleDataStyle = toggleDataStyle;
 

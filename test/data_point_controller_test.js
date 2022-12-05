@@ -81,9 +81,9 @@ describe('Integration Test DataPointController', function () {
 
             let axisControlCircles = integrationEnv.enviromentVariables.d3.selectors['.axis-target-circle'];
             assert.equal(axisControlCircles.innerData.length, 4);
-            expect(axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axisId == axis1Id).x).to.be.closeTo(93.6, 0.1);
-            expect(axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axisId == axis1Id).y).to.be.closeTo(-19.3, 0.1);
-            let data = axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axisId == axis1Id);
+            expect(axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axis.id == axis1Id).x).to.be.closeTo(93.6, 0.1);
+            expect(axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axis.id == axis1Id).y).to.be.closeTo(-19.3, 0.1);
+            let data = axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axis.id == axis1Id);
             axisControlCircles.eventCallbacks.pointerdown({ x: 100, y: -20 }, data);
 
             IntegrationUtils.clickButton("#toggle-data-style-button", integrationEnv.enviromentVariables.$);
@@ -92,7 +92,7 @@ describe('Integration Test DataPointController', function () {
             expect(lineData.innerData[0].line.map(p => Math.round(p.x))).to.eql([-19, -7, 5, 6, 17, 45, 61, 62, 53, 63, 75, 87, 60, 64, 72, 80, 82, 84]);
             expect(lineData.innerData[0].line.map(p => Math.round(p.y))).to.eql([-88, -79, -70, -69, -61, -53, -48, -46, -25, -27, -30, -33, -38, -42, -51, -61, -63, -65]);
 
-            data = axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axisId == axis2Id);
+            data = axisControlCircles.innerData.find(d => d.ctrl == 1 && d.axis.id == axis2Id);
             axisControlCircles.eventCallbacks.pointerdown({ x: 100, y: -20 }, data);
             IntegrationUtils.clickButton("#toggle-data-style-button", integrationEnv.enviromentVariables.$);
             lineData = integrationEnv.enviromentVariables.d3.selectors['.data-line-path'];

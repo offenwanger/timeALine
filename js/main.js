@@ -660,54 +660,88 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePinSettingTime = false;
         }
     });
-    mDataPointController.setAxisDragStartCallback((axisId, controlNumber, event) => {
+    mDataPointController.setAxisDragStartCallback((axis, controlNumber, event) => {
         if (mMode == MODE_SELECTION) {
             let model = mModelController.getModel();
-            showAxisContextMenu(model.getAxisById(axisId), model.getTimelineByAxisId(axisId));
+            showAxisContextMenu(axis, model.getTimelineByAxisId(axis.id));
         } else if (mMode == MODE_COLOR_BUCKET) {
-            mModelController.updateAxisColor(axisId, controlNumber, mBucketColor);
+            mModelController.updateAxisColor(axis.id, controlNumber, mBucketColor);
             modelUpdated();
         } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
-            let axis = mModelController.getModel().getAxisById(axisId);
-            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setColorBrushColor(color);
         } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
-            let axis = mModelController.getModel().getAxisById(axisId);
-            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setColorBucketColor(color);
         } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
-            let axis = mModelController.getModel().getAxisById(axisId);
-            let color = controlNumber == 1 ? axis.color1 : axis.color2;
+            let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setLineDrawingColor(color);
         }
     })
-    mDataPointController.setAxisDragCallback((axisId, controlNumber, newDist, coords) => {
+    mDataPointController.setAxisDragCallback((axis, controlNumber, coords) => {
         if (mMode == MODE_SELECTION) {
             hideAxisContextMenu();
+            let model = mModelController.getModel();
 
-            let boundData = mModelController.getModel().getAllCellBindingData().filter(cbd => {
-                return cbd.dataCell.getType() == DataTypes.NUM && cbd.axisBinding && cbd.axisBinding.id == axisId;
+            // copy to avoid leaks
+            axis = axis.copy();
+
+            let timeline = model.getTimelineByAxisId(axis.id);
+            if (controlNumber == null) {
+                let closestPoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+                axis.linePercent = closestPoint.percent;
+            } else {
+                let origin = PathMath.getPositionForPercent(timeline.points, axis.linePercent);
+                let normal = PathMath.getNormalForPercent(timeline.points, axis.linePercent);
+                let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
+                let dist = MathUtil.distanceFromAToB(origin, newPosition);
+                dist = newPosition.neg ? -1 * dist : dist;
+                if (controlNumber == 1) {
+                    axis.dist1 = dist;
+                } else {
+                    axis.dist2 = dist;
+                }
+            }
+
+            let boundData = model.getAllCellBindingData().filter(cbd => {
+                return cbd.dataCell.getType() == DataTypes.NUM && cbd.axisBinding && cbd.axisBinding.id == axis.id;
             });
             boundData.forEach(cbd => {
-                if (controlNumber == 1) {
-                    cbd.axisBinding.dist1 = newDist;
-                } else {
-                    cbd.axisBinding.dist2 = newDist;
-                }
+                cbd.axisBinding = axis;
             })
-
-            if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axisId); return; }
+            if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axis.id); return; }
 
             mDataPointController.drawDataSet(boundData);
         }
     });
-    mDataPointController.setAxisDragEndCallback((axisId, controlNumber, newDist, coords) => {
-        if (mMode == MODE_SELECTION) {
-            mModelController.updateAxisDist(axisId, controlNumber, newDist);
-            modelUpdated();
-
+    mDataPointController.setAxisDragEndCallback((axis, controlNumber, coords) => {
+        if (mMode == MODE_SELECTION) {// copy to avoid leaks
             let model = mModelController.getModel();
-            showAxisContextMenu(model.getAxisById(axisId), model.getTimelineByAxisId(axisId));
+
+            // copy to avoid leaks
+            axis = axis.copy();
+
+            let timeline = model.getTimelineByAxisId(axis.id);
+            if (controlNumber == null) {
+                let closestPoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+                axis.linePercent = closestPoint.percent;
+            } else {
+                let origin = PathMath.getPositionForPercent(timeline.points, axis.linePercent);
+                let normal = PathMath.getNormalForPercent(timeline.points, axis.linePercent);
+                let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
+                let dist = MathUtil.distanceFromAToB(origin, newPosition);
+                dist = newPosition.neg ? -1 * dist : dist;
+                if (controlNumber == 1) {
+                    axis.dist1 = dist;
+                } else {
+                    axis.dist2 = dist;
+                }
+            }
+
+            mModelController.updateAxisPosition(axis.id, axis.dist1, axis.dist2, axis.linePercent);
+
+            modelUpdated();
+            showAxisContextMenu(axis, timeline);
         }
     });
     mDataPointController.setPointerEnterCallback((e, cellBindingData) => {

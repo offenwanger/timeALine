@@ -16,9 +16,9 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
     let mAxisDragging = false;
     let mAxisDraggingData = null;
-    let mAxisDragStartCallback = (axisId, controlPoint, event) => { };
-    let mAxisDragCallback = (axisId, controlPoint, dist, coords) => { };
-    let mAxisDragEndCallback = (axisId, controlPoint, dist, coords) => { };
+    let mAxisDragStartCallback = (axis, controlPoint, event) => { };
+    let mAxisDragCallback = (axis, controlPoint, coords) => { };
+    let mAxisDragEndCallback = (axis, controlPoint, coords) => { };
 
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
@@ -293,7 +293,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
         axesData.forEach(axisData => {
             axisLineData.push({
-                axisId: axisData.axis.id,
+                axis: axisData.axis,
                 x1: axisData.pos1.x,
                 y1: axisData.pos1.y,
                 x2: axisData.pos2.x,
@@ -302,7 +302,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             });
 
             axisControlData.push({
-                axisId: axisData.axis.id,
+                axis: axisData.axis,
                 normal: axisData.normal,
                 origin: axisData.origin,
                 timelineId: axisData.timelineId,
@@ -314,7 +314,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 val: axisData.val1,
             });
             axisControlData.push({
-                axisId: axisData.axis.id,
+                axis: axisData.axis,
                 normal: axisData.normal,
                 origin: axisData.origin,
                 timelineId: axisData.timelineId,
@@ -332,7 +332,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         lines.enter()
             .append('line')
             .classed("axis-line", true)
-            .attr('id', function (d) { return "axis-line_" + d.axisId })
+            .attr('id', function (d) { return "axis-line_" + d.axis.id })
             .attr('stroke-width', 1.5)
             .attr('stroke', 'black');
         mAxisGroup.selectAll('.axis-line')
@@ -340,7 +340,52 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
             .attr('y2', function (d) { return d.y2 })
-            .attr('timeline-id', function (d) { return d.timelineId });
+            .attr('timeline-id', function (d) { return d.timelineId })
+            .attr('axis-id', function (d) { return d.axis.id });
+        let lineTargets = mAxisTargetGroup.selectAll('.axis-line-target').data(axisLineData);
+        lineTargets.exit().remove();
+        lineTargets.enter()
+            .append('line')
+            .classed('axis-line-target', true)
+            .attr('fill', 'none')
+            .attr('stroke', 'white')
+            .attr('stroke-width', 50)
+            .attr('stroke-linecap', 'round')
+            .attr('opacity', '0')
+            .on('pointerdown', (e, d) => {
+                if (mActive) {
+                    mAxisDraggingData = d;
+                    mAxisDragging = true;
+                    mAxisDragStartCallback(mAxisDraggingData.axis, null, e)
+
+                    FilterUtil.removeShadowFilter(mAxisGroup
+                        .selectAll('[axis-id="' + d.axis.id + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                }
+            })
+            .on('pointerenter', (e, d) => {
+                if (mActive) {
+                    FilterUtil.applyShadowFilter(mAxisGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.applyShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.applyShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.applyShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                }
+            })
+            .on('pointerout', (e, d) => {
+                if (mActive) {
+                    FilterUtil.removeShadowFilter(mAxisGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                }
+            });
+        mAxisTargetGroup.selectAll('.axis-line-target')
+            .attr('x1', function (d) { return d.x1 })
+            .attr('y1', function (d) { return d.y1 })
+            .attr('x2', function (d) { return d.x2 })
+            .attr('y2', function (d) { return d.y2 });
+
 
         let controlLabels = mAxisGroup.selectAll('.axis-control-label').data(axisControlData);
         controlLabels.exit().remove();
@@ -354,7 +399,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('y', function (d) { return d.y })
             .text(function (d) { return d.val })
             .attr('timeline-id', function (d) { return d.timelineId })
-            .attr('axis-id', function (d) { return d.axisId })
+            .attr('axis-id', function (d) { return d.axis.id })
             .attr('axis-ctrl', function (d) { return d.ctrl });
 
         let controls = mAxisGroup.selectAll('.axis-control-circle').data(axisControlData);
@@ -362,7 +407,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         controls.enter()
             .append('circle')
             .classed("axis-control-circle", true)
-            .attr('id', function (d) { return "axis-control_" + d.axisId + "_" + d.ctrl })
+            .attr('id', function (d) { return "axis-control_" + d.axis.id + "_" + d.ctrl })
             .attr('r', 3.0)
             .attr('stroke', 'black')
         mAxisGroup.selectAll('.axis-control-circle')
@@ -370,7 +415,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.color })
             .attr('timeline-id', function (d) { return d.timelineId })
-            .attr('axis-id', function (d) { return d.axisId })
+            .attr('axis-id', function (d) { return d.axis.id })
             .attr('axis-ctrl', function (d) { return d.ctrl });
 
         let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
@@ -385,30 +430,30 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 if (mActive) {
                     mAxisDraggingData = d;
                     mAxisDragging = true;
-                    mAxisDragStartCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, e)
+                    mAxisDragStartCallback(mAxisDraggingData.axis, mAxisDraggingData.ctrl, e)
 
                     FilterUtil.removeShadowFilter(mAxisGroup
-                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
-                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
-                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axisId + '"]'));
-                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                        .selectAll('[axis-id="' + d.axis.id + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                 }
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
                     FilterUtil.applyShadowFilter(mAxisGroup
-                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
-                    FilterUtil.applyShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
-                    FilterUtil.applyShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axisId + '"]'));
-                    FilterUtil.applyShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                        .selectAll('[axis-id="' + d.axis.id + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.applyShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.applyShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.applyShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                 }
             })
             .on('pointerout', (e, d) => {
                 if (mActive) {
                     FilterUtil.removeShadowFilter(mAxisGroup
-                        .selectAll('[axis-id="' + d.axisId + '"][axis-ctrl="' + d.ctrl + '"]'));
-                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axisId + '"]'));
-                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axisId + '"]'));
+                        .selectAll('[axis-id="' + d.axis.id + '"][axis-ctrl="' + d.ctrl + '"]'));
+                    FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                 }
             });
 
@@ -423,12 +468,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         }
 
         if (mAxisDragging) {
-            let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.origin;
-            let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
-            let dist = MathUtil.distanceFromAToB(origin, newPosition);
-            dist = newPosition.neg ? -1 * dist : dist;
-            mAxisDragCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist, coords);
+            mAxisDragCallback(mAxisDraggingData.axis, mAxisDraggingData.ctrl, coords);
         }
     }
 
@@ -440,12 +480,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             mPointDragging = false;
             mPointDraggingBinding = null;
         } else if (mAxisDragging) {
-            let normal = mAxisDraggingData.normal;
-            let origin = mAxisDraggingData.origin;
-            let newPosition = MathUtil.projectPointOntoVector(coords, normal, origin);
-            let dist = MathUtil.distanceFromAToB(origin, newPosition);
-            dist = newPosition.neg ? -1 * dist : dist;
-            mAxisDragEndCallback(mAxisDraggingData.axisId, mAxisDraggingData.ctrl, dist, coords);
+            mAxisDragEndCallback(mAxisDraggingData.axis, mAxisDraggingData.ctrl, coords);
 
             // cleanup
             mAxisDragging = false;
