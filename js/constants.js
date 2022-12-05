@@ -25,6 +25,11 @@ const DataDisplayStyles = {
     STREAM: "stream"
 }
 
+const DataDisplayAlignments = {
+    DYNAMIC: "dynamic",
+    FIXED: "fixed"
+}
+
 const SEGMENT_LABELS = {
     UNAFFECTED: 'unaffected',
     DELETED: 'deleted',

@@ -790,7 +790,6 @@ function ModelController() {
             }
 
             if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
-                let timeline = mModel.getTimelineById(timeline.id);
                 mapTimeStampsToTimePercents(timeline, startTime, endTime)
             }
         });
@@ -1350,6 +1349,15 @@ function ModelController() {
         }
     }
 
+    function updateAxisDataAlignment(axisId, alignment) {
+        undoStackPush();
+
+        let axis = mModel.getAxisById(axisId);
+        if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
+
+        axis.alignment = alignment;
+    }
+
     function toggleDataStyle(axisId) {
         undoStackPush();
         let axis = mModel.getAxisById(axisId);
@@ -1695,6 +1703,7 @@ function ModelController() {
 
     this.updateAxisPosition = updateAxisPosition;
     this.updateAxisColor = updateAxisColor;
+    this.updateAxisDataAlignment = updateAxisDataAlignment;
     this.toggleDataStyle = toggleDataStyle;
 
     this.addBoundImage = addBoundImage;

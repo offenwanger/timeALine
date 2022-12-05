@@ -465,7 +465,7 @@ let PathMath = function () {
         return getPositionsForPercentsAndDists(points, [percent], [dist])[0];
     }
 
-    function getPositionsForPercentsAndDists(points, percents, dists) {
+    function getPositionsForPercentsAndDists(points, percents, dists, fixedNormal = null) {
         if (percents.length != dists.length) {
             console.error("Invalid inputs, unequal percents and dists counts", percents.length, dists.length);
             return [];
@@ -483,14 +483,17 @@ let PathMath = function () {
         dists = filteredValues.map(v => v[1]);
 
         let basePoses = getPositionForPercents(points, percents);
-        let normals = getNormalsForPercents(points, percents);
+        let normals;
+        if (fixedNormal == null) {
+            normals = getNormalsForPercents(points, percents);
+        }
 
         return dists.map((dist, index) => {
-            return MathUtil.getPointAtDistanceAlongVector(dist, normals[index], basePoses[index])
+            return MathUtil.getPointAtDistanceAlongVector(dist, fixedNormal ? fixedNormal : normals[index], basePoses[index])
         });
     }
 
-    function interpolatePoints(points, interpolationValues) {
+    function interpolatePoints(points, interpolationValues, fixedNormal = null) {
         let metaPoints = getMetaPoints(points);
         let interpolatedPoints = [];
 
@@ -539,7 +542,8 @@ let PathMath = function () {
 
         return getPositionsForPercentsAndDists(points,
             interpolatedPoints.map(p => p.percent),
-            interpolatedPoints.map(p => p.dist));
+            interpolatedPoints.map(p => p.dist),
+            fixedNormal);
     }
 
     function getPointsWithin(x, coords, points) {

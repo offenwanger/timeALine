@@ -214,11 +214,12 @@ let DataStructs = function () {
         this.id = getUniqueId();
         this.val1 = 0;
         this.dist1 = 0;
-        this.color1 = "#000000";
+        this.color1 = "#550000";
         this.val2 = 1;
         this.dist2 = 1;
         this.color2 = "#FF0000";
         this.style = DataDisplayStyles.POINTS;
+        this.alignment = DataDisplayAlignments.DYNAMIC;
         this.linePercent = 1;
         this.clone = function () {
             let newAxis = new AxisBinding(this.columnId);
@@ -229,6 +230,7 @@ let DataStructs = function () {
             newAxis.dist2 = this.dist2;
             newAxis.color2 = this.color2;
             newAxis.style = this.style;
+            newAxis.alignment = this.alignment;
             newAxis.linePercent = this.linePercent;
             return newAxis;
         }
@@ -243,6 +245,7 @@ let DataStructs = function () {
             binding.dist2 = this.dist2;
             binding.color2 = this.color2;
             binding.style = this.style;
+            binding.alignment = this.alignment;
             binding.linePercent = this.linePercent;
             return binding;
         }
@@ -258,6 +261,7 @@ let DataStructs = function () {
             if (this.dist2 != other.dist2) return false;
             if (this.color2 != other.color2) return false;
             if (this.style != other.style) return false;
+            if (this.alignment != other.alignment) return false;
         }
     }
     AxisBinding.fromObject = function (obj) {
@@ -270,6 +274,7 @@ let DataStructs = function () {
         binding.dist2 = obj.dist2;
         binding.color2 = obj.color2;
         binding.style = obj.style ? obj.style : DataDisplayStyles.POINTS;
+        binding.alignment = obj.alignment ? obj.alignment : DataDisplayAlignments.DYNAMIC;
         binding.linePercent = obj.linePercent;
         return binding;
     }

@@ -806,6 +806,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             y: Math.min(pos1.y, pos2.y)
         });
 
+        if (axis.alignment == DataDisplayAlignments.DYNAMIC) {
+            $('#dynamic-normals-axis-button').show();
+            $('#fixed-normals-axis-button').hide();
+        } else {
+            $('#dynamic-normals-axis-button').hide();
+            $('#fixed-normals-axis-button').show();
+        }
+
         $('#axis-context-menu-div').css('top', coords.y);
         $('#axis-context-menu-div').css('left', coords.x);
         $('#axis-context-menu-div').show();
@@ -1164,6 +1172,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mDrawerController = new DrawerController("#data-drawer");
     mDrawerController.setOnDrawerClosed(() => {
         mDataTableController.deselectCells();
+        $('#link-button-div').hide();
     });
 
     function pinDrag(timeline, timePin, linePercent) {
@@ -1736,15 +1745,29 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#link-button', "Attaches data to timelines")
 
     $("#toggle-data-style-button").on("click", () => {
-        if (!mSelectedAxisId) {
-            console.error("Button should not be clickable!");
-            return;
-        }
-
+        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
         mModelController.toggleDataStyle(mSelectedAxisId);
         modelUpdated();
     });
     setupButtonTooltip("#toggle-data-style-button", "Toggle the data display style");
+    $('#dynamic-normals-axis-button').on("click", () => {
+        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
+        mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.FIXED);
+
+        $('#dynamic-normals-axis-button').hide();
+        $('#fixed-normals-axis-button').show();
+        modelUpdated();
+    });
+    setupButtonTooltip('#dynamic-normals-axis-button', "Change the data alignment relative to the line.");
+    $('#fixed-normals-axis-button').on("click", () => {
+        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
+        mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.DYNAMIC);
+
+        $('#fixed-normals-axis-button').hide();
+        $('#dynamic-normals-axis-button').show();
+        modelUpdated();
+    });
+    setupButtonTooltip('#fixed-normals-axis-button', "Change the data alignment relative to the line.");
     $("#delete-axis-button").on("click", deleteSelected);
     setupButtonTooltip("#delete-axis-button", "Unlink all data points in this set");
 

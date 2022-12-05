@@ -36,7 +36,9 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
     let mDataPointTargetGroup = interactionLayer.append('g')
         .attr("id", 'data-point-target-g');
-    let mAxisTargetGroup = interactionLayer.append('g')
+    let mAxisLineTargetGroup = interactionLayer.append('g')
+        .attr("id", 'data-axis-target-g');
+    let mAxisCircleTargetGroup = interactionLayer.append('g')
         .attr("id", 'data-axis-target-g');
 
     function updateModel(model) {
@@ -56,7 +58,6 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
 
             let cellBindingData = mModel.getCellBindingData(timeline.id)
                 .filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
-
             cellBindingData.forEach(bindingData => {
                 if (changedCellBindingIds.includes(bindingData.cellBinding.id)) {
                     recalculationData.push(bindingData);
@@ -64,16 +65,8 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mPointDrawingData[bindingData.cellBinding.id] = oldPointDrawingData[bindingData.cellBinding.id];
                 }
             });
-            let newData = getPointDrawingData(timeline, recalculationData);
-            newData.forEach(dataItem => {
-                mPointDrawingData[dataItem.binding.cellBinding.id] = dataItem;
-            })
 
-            let axisIds = timeline.axisBindings.map(b => b.id);
-            axisIds.forEach(axisId => {
-                let cells = cellBindingData.filter(cbd => cbd.axisBinding.id == axisId);
-                if (cells.length == 0) { console.error("No cells found for axis id!", axisId); return; }
-                let axis = cells[0].axisBinding;
+            timeline.axisBindings.forEach(axis => {
                 let otherAxis = oldModel.getAxisById(axis.id);
 
                 if (otherAxis && axis.equals(otherAxis)) {
@@ -82,12 +75,19 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mAxisDrawingData[axis.id] = getAxisDrawingData(timeline, axis);
                 }
 
+                let newData = getPointDrawingData(timeline, recalculationData.filter(cbd => cbd.axisBinding.id == axis.id));
+                newData.forEach(dataItem => {
+                    mPointDrawingData[dataItem.binding.cellBinding.id] = dataItem;
+                })
+
                 if (axis.style != DataDisplayStyles.POINTS) {
-                    if (cells.some(cbd => changedCellBindingIds.includes(cbd.cellBinding.id))) {
-                        let pointDrawingData = cells.map(cbd => mPointDrawingData[cbd.cellBinding.id]);
-                        mLineDrawingData[axisId] = getLineDrawingData(axis, timeline, pointDrawingData);
+                    if (newData.length > 0) {
+                        let pointDrawingData = cellBindingData
+                            .filter(cbd => cbd.axisBinding.id == axis.id)
+                            .map(cbd => mPointDrawingData[cbd.cellBinding.id]);
+                        mLineDrawingData[axis.id] = getLineDrawingData(axis, timeline, pointDrawingData);
                     } else {
-                        mLineDrawingData[axisId] = oldLineDrawingData[axisId];
+                        mLineDrawingData[axis.id] = oldLineDrawingData[axis.id];
                     }
                 }
             })
@@ -132,7 +132,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             let dist = (dist2 - dist1) * (b.dataCell.getValue() - val1) / (val2 - val1) + dist1;
             return dist;
         })
-        let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists);
+
+        let fixedNormal = null;
+        if (cellBindings.length > 0 && cellBindings[0].axisBinding.alignment == DataDisplayAlignments.FIXED) {
+            fixedNormal = PathMath.getNormalForPercent(timeline.points, cellBindings[0].axisBinding.linePercent)
+        }
+
+        let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists, fixedNormal);
         return cellBindings.map((bindingData, index) => {
             return {
                 binding: bindingData,
@@ -149,21 +155,26 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             timelineId: timeline.id
         }
 
+        let fixedNormal = null;
+        if (axis.alignment == DataDisplayAlignments.FIXED) {
+            fixedNormal = PathMath.getNormalForPercent(timeline.points, axis.linePercent)
+        }
+
         let linePoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
             return { percent: p.binding.linePercent, dist: p.dist }
-        }));
+        }), fixedNormal);
 
         if (axis.style == DataDisplayStyles.LINE) {
             returnable.line = PathMath.getPathD(linePoints);
         } else if (axis.style == DataDisplayStyles.AREA) {
             let bottomPoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
                 return { percent: p.binding.linePercent, dist: axis.dist1 }
-            }));
+            }), fixedNormal);
             returnable.line = PathMath.getPathD(linePoints.concat(bottomPoints.reverse()));
         } else if (axis.style == DataDisplayStyles.STREAM) {
             let bottomPoints = PathMath.interpolatePoints(timeline.points, pointDrawingData.map(p => {
                 return { percent: p.binding.linePercent, dist: axis.dist1 - (p.dist - axis.dist1) }
-            }));
+            }), fixedNormal);
             returnable.line = PathMath.getPathD(linePoints.concat(bottomPoints.reverse()));
         }
 
@@ -342,7 +353,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('y2', function (d) { return d.y2 })
             .attr('timeline-id', function (d) { return d.timelineId })
             .attr('axis-id', function (d) { return d.axis.id });
-        let lineTargets = mAxisTargetGroup.selectAll('.axis-line-target').data(axisLineData);
+        let lineTargets = mAxisLineTargetGroup.selectAll('.axis-line-target').data(axisLineData);
         lineTargets.exit().remove();
         lineTargets.enter()
             .append('line')
@@ -377,10 +388,11 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                 if (mActive) {
                     FilterUtil.removeShadowFilter(mAxisGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                     FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                     FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                 }
             });
-        mAxisTargetGroup.selectAll('.axis-line-target')
+        mAxisLineTargetGroup.selectAll('.axis-line-target')
             .attr('x1', function (d) { return d.x1 })
             .attr('y1', function (d) { return d.y1 })
             .attr('x2', function (d) { return d.x2 })
@@ -418,7 +430,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
             .attr('axis-id', function (d) { return d.axis.id })
             .attr('axis-ctrl', function (d) { return d.ctrl });
 
-        let controlTargets = mAxisTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
+        let controlTargets = mAxisCircleTargetGroup.selectAll('.axis-target-circle').data(axisControlData);
         controlTargets.exit().remove();
         controlTargets.enter()
             .append('circle')
@@ -453,11 +465,12 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     FilterUtil.removeShadowFilter(mAxisGroup
                         .selectAll('[axis-id="' + d.axis.id + '"][axis-ctrl="' + d.ctrl + '"]'));
                     FilterUtil.removeShadowFilter(mLineGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
+                    FilterUtil.removeShadowFilter(mAreaGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                     FilterUtil.removeShadowFilter(mDataPointGroup.selectAll('[axis-id="' + d.axis.id + '"]'));
                 }
             });
 
-        mAxisTargetGroup.selectAll('.axis-target-circle')
+        mAxisCircleTargetGroup.selectAll('.axis-target-circle')
             .attr('cx', function (d) { return d.x })
             .attr('cy', function (d) { return d.y });
     }
@@ -492,11 +505,13 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         if (active && !mActive) {
             mActive = true;
             mDataPointTargetGroup.style('visibility', "");
-            mAxisTargetGroup.style('visibility', "");
+            mAxisLineTargetGroup.style('visibility', "");
+            mAxisCircleTargetGroup.style('visibility', "");
         } else if (!active && mActive) {
             mActive = false;
             mDataPointTargetGroup.style('visibility', "hidden");
-            mAxisTargetGroup.style('visibility', "hidden");
+            mAxisLineTargetGroup.style('visibility', "hidden");
+            mAxisCircleTargetGroup.style('visibility', "hidden");
         }
     }
 
