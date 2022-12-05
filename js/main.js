@@ -1326,11 +1326,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#download-button-svg").on("click", () => {
         let viz = mVizLayer.clone(true);
+        viz.attr("transform", "translate(" + 0 + "," + 0 + ")");
         viz.selectAll('g').each(function () {
             if (this.childElementCount == 0) {
                 d3.select(this).remove();
             }
         });
+        viz.select('#timeline-drawing-brush').remove();
+        
         let { x, y, width, height } = viz.node().getBBox();
 
         let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
@@ -1346,11 +1349,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $("#download-button-png").on("click", async () => {
         let viz = mVizLayer.clone(true);
+        viz.attr("transform", "translate(" + 0 + "," + 0 + ")");
         viz.selectAll('g').each(function () {
             if (this.childElementCount == 0) {
                 d3.select(this).remove();
             }
         });
+        viz.select('#timeline-drawing-brush').remove();
 
         let { x, y, height, width } = viz.node().getBBox();
         x -= 10;
