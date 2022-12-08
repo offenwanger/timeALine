@@ -267,8 +267,42 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mStrokeController.setDragStartCallback((strokeId, pointerEvent) => {
+        if (mMode == MODE_SELECTION) {
+            if (mModelController.isCanvasStroke(strokeId)) {
+                let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+                let stroke = mModelController.getModel().getStrokeById(strokeId);
+                mDragStartPosition = coords;
+                mStrokeController.redrawCanvasStroke(stroke);
+            }
+        }
+    });
+    mStrokeController.setDragCallback((strokeId, coords) => {
+        if (mMode == MODE_SELECTION) {
+            if (mModelController.isCanvasStroke(strokeId)) {
+                let stroke = mModelController.getModel().getStrokeById(strokeId);
+                let diff = MathUtil.subtractAFromB(mDragStartPosition, coords);
+                stroke.points.forEach(p => {
+                    p.xValue += diff.x;
+                    p.lineDist += diff.y;
+                })
+                mStrokeController.redrawCanvasStroke(stroke);
+            }
+        }
+    });
     mStrokeController.setDragEndCallback((strokeId, coords) => {
-        if (mMode == MODE_COLOR_BUCKET) {
+        if (mMode == MODE_SELECTION) {
+            if (mModelController.isCanvasStroke(strokeId)) {
+                let stroke = mModelController.getModel().getStrokeById(strokeId);
+                let diff = MathUtil.subtractAFromB(mDragStartPosition, coords);
+                mModelController.updateStrokePoints(strokeId, stroke.points.map(p => {
+                    p.xValue += diff.x;
+                    p.lineDist += diff.y;
+                    return p;
+                }));
+                modelUpdated();
+            }
+        } else if (mMode == MODE_COLOR_BUCKET) {
             mModelController.updateStrokeColor(strokeId, mBucketColor);
             modelUpdated();
         } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
@@ -1893,6 +1927,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDataPointController.setActive(true);
         mTextController.setActive(true);
         mImageController.setActive(true);
+        mStrokeController.setActive(true);
 
         $("#selection-button").css('opacity', '0.3');
 

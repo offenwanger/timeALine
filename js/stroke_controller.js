@@ -60,6 +60,21 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         drawStrokes();
     }
 
+    function redrawCanvasStroke(stroke) {
+        mStrokesData[stroke.id] = {
+            color: stroke.color,
+            width: stroke.width,
+            projectedPoints: stroke.points.map(p => {
+                return {
+                    x: p.xValue,
+                    y: p.lineDist,
+                }
+            }),
+            strokeId: stroke.id
+        };
+        drawStrokes();
+    }
+
     function drawStrokes() {
         let selection = mStrokeGroup.selectAll(".canvas-annotation-stroke").data(Object.values(mStrokesData));
         selection.exit()
@@ -139,6 +154,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     this.updateModel = updateModel;
+    this.redrawCanvasStroke = redrawCanvasStroke;
     this.setActive = setActive;
 
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;

@@ -1023,13 +1023,31 @@ function ModelController() {
         mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
-    function updateStrokeColor(storkeId, color) {
+    function updateStrokeColor(strokeId, color) {
         undoStackPush();
 
-        let stroke = mModel.getStrokeById(storkeId);
-        if (!stroke) { console.error("Bad stroke id!", storkeId); return; }
+        let stroke = mModel.getStrokeById(strokeId);
+        if (!stroke) { console.error("Bad stroke id!", strokeId); return; }
         stroke.color = color;
     }
+
+
+    function updateStrokePoints(strokeId, points) {
+        undoStackPush();
+
+        let stroke = mModel.getStrokeById(strokeId);
+        if (!stroke) { console.error("Bad stroke id!", storkeId); return; }
+        stroke.points = points;
+
+    }
+
+    function isCanvasStroke(strokeId) {
+        if (mModel.getCanvas().annotationStrokes.find(s => s.id == strokeId)) return true;
+        if (mModel.getAllTimelines().map(t => t.annotationStrokes).flat().find(s => s.id == strokeId)) return false;
+        // neither of the other two happened.
+        console.error("Bad stroke id!", strokeId); return;
+    }
+
 
     function addTable(table) {
         undoStackPush();
@@ -1700,6 +1718,8 @@ function ModelController() {
     this.addTimelineStroke = addTimelineStroke;
     this.addCanvasStroke = addCanvasStroke;
     this.updateStrokeColor = updateStrokeColor;
+    this.updateStrokePoints = updateStrokePoints;
+    this.isCanvasStroke = isCanvasStroke;
 
     this.updateAxisPosition = updateAxisPosition;
     this.updateAxisColor = updateAxisColor;
