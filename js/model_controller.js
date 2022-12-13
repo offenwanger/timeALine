@@ -711,7 +711,7 @@ function ModelController() {
                     // copy returns a regular stroke
                     newStrokes.push(stroke.copy())
                 } else if (currSet.length >= 2) {
-                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.wdith));
+                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
                 }
             });
 
