@@ -4,7 +4,7 @@ function BrushController(vizLayer, overlayLayer, interactionLayer) {
 
     let mActive = false;
     let mFreeze = false;
-    let mBrushSize = 10;
+    let mBrushSize = 50;
 
     let mBrushGroup = interactionLayer.append('g')
         .attr("id", 'brush-g')

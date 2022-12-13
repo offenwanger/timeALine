@@ -4,7 +4,7 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
 
     let mActive = false;
     let mColor = '#000000'
-    let mRadius = 0.75;
+    let mRadius = 2;
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -34,7 +34,8 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     let mBrush = vizLayer.append("circle")
         .attr("id", "timeline-drawing-brush")
         .attr('fill', '#000000')
-        .attr('r', mRadius);
+        .attr('r', mRadius)
+        .style("visibility", 'hidden');
 
     function onPointerDown(coords) {
         if (mActive) {
