@@ -1223,6 +1223,7 @@ function ModelController() {
             if (cell.isTimeCell) return false;
             // don't bind empty cells. 
             if (cell.val !== 0 && !cell.val) return false;
+            if (typeof cell.val == 'string' && cell.val.trim() == "") return false;
             // filter out already bound cells
             if (alreadyBoundCells.includes(cell.id)) return false;
 
