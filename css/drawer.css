@@ -88,5 +88,6 @@
 }
 
 #table-list {
+    padding-top: 0px;
     overflow-x: auto;
 }
