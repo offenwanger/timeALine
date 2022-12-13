@@ -36,10 +36,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mVizOverlayLayer = mSvg.append("g").attr("id", "main-overlay-layer");
     let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
 
-    let mLensSvg = d3.select('#lens-view').append('svg')
-        .attr('width', $("#lens-view").width())
-        .attr('height', $("#lens-view").height());
-
     let mPanning = false;
     let mViewTransform = { x: 0, y: 0, rotation: 0 };
 
@@ -85,10 +81,29 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mWorkspace;
     let mModelController = new ModelController();
 
+    let mDrawerController = new DrawerController("#data-drawer");
+    mDrawerController.setDrawerResizedCallback((width) => {
+        mLensSvg.attr("width", width);
+        if (mLensController.getCurrentTimelineId()) {
+            if (mLensController.getCurrentTimelineId()) {
+                showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
+            }
+        }
+    })
+    $("#data-drawer").find('.close-button').on('click', () => {
+        mDrawerController.closeDrawer();
+        mDataTableController.deselectCells();
+        $('#link-button-div').hide();
+    });
+
+    // note that this needs to happen after we set drawer controller
+    let mLensSvg = d3.select('#lens-view').append('svg')
+        .attr('width', $("#lens-view").width())
+        .attr('height', $("#lens-view").height());
     let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
     mLensController.setPanCallback((timelineId, centerPercent, centerHeight) => {
         if (timelineId && mModelController.getModel().getTimelineById(timelineId)) {
-            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, centerPercent, mLensSvg.attr("width"));
+            showLensView(timelineId, centerPercent);
         }
     })
 
@@ -133,8 +148,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (!timeline) { console.error("Bad timeline id! " + timelineId); return; }
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
+            showLensView(timelineId, linePoint.percent);
             mLensController.focus(timelineId, linePoint.percent);
-            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         } else if (mMode == MODE_IMAGE_LINK) {
@@ -155,8 +170,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mMode == MODE_LENS) {
             let linePoint = PathMath.getClosestPointOnPath(coords,
                 mModelController.getModel().getTimelineById(timelineId).points);
+
+            showLensView(timelineId, linePoint.percent);
             mLensController.focus(timelineId, linePoint.percent);
-            mLineHighlight.showAround(mModelController.getModel().getTimelineById(timelineId).points, linePoint.percent, mLensSvg.attr("width"));
         }
     })
     mLineViewController.setLineDragEndCallback((timelineId, coords) => {
@@ -198,6 +214,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             })
         } else if (mMode == MODE_LINK) {
             mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
+
+            mDataTableController.deselectCells();
+            $('#link-button-div').hide();
 
             modelUpdated();
             setDefaultMode();
@@ -241,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mLineViewController.setPointerEnterCallback((event, timelineId) => {
         if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
-            mDataTableController.highlightCells(mModelController.getModel().getCellBindingData(timelineId).map(b => [b.dataCell.id, b.timeCell.id]).flat());
+            mDataTableController.highlightCells(mModelController.getModel().getTimelineHighlightData(timelineId));
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
@@ -259,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
 
             mMouseDropShadow.hide();
-            mDataTableController.highlightCells([]);
+            mDataTableController.highlightCells({});
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         } else if (mMode == MODE_LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
@@ -357,10 +376,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         modelUpdated();
     });
     mTextController.setPointerEnterCallback((e, cellBindingData) => {
-        mDataTableController.highlightCells([cellBindingData.dataCell.id]);
+        mDataTableController.highlightCells(mModelController.getModel().getCellBindingHighlightData(cellBindingData.cellBinding));
     })
     mTextController.setPointerOutCallback((e, cellBindingData) => {
-        mDataTableController.highlightCells([]);
+        mDataTableController.highlightCells({});
     })
     mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
@@ -783,10 +802,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mDataPointController.setPointerEnterCallback((e, cellBindingData) => {
-        mDataTableController.highlightCells([cellBindingData.dataCell.id, cellBindingData.timeCell.id]);
+        mDataTableController.highlightCells(mModelController.getModel().getCellBindingHighlightData(cellBindingData.cellBinding));
     })
     mDataPointController.setPointerOutCallback((e, cellBindingData) => {
-        mDataTableController.highlightCells([]);
+        mDataTableController.highlightCells({});
     })
 
     // UTILITY
@@ -954,21 +973,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mDataTableController = new DataTableController();
-    mDataTableController.setOnSelectionCallback((data, yTop, yBottom) => {
-        let left = $('.drawer-content-wrapper')[0].getBoundingClientRect().left;
-
-        if (data) {
-            let position = (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10;
-            if (position < 10) position = 10;
-            if (position > window.innerHeight - 100) position = window.innerHeight - 100;
-
-            $('#link-button-div').css('top', position);
-            $('#link-button-div').css('left', left - $('#link-button-div').width() / 2 - 10);
-            $('#link-button-div').show();
-        } else {
+    mDataTableController.setOnSelectionCallback((yTop, yBottom, isFirstColOnly) => {
+        if (isFirstColOnly) {
             $('#link-button-div').hide();
-            if (mMode == MODE_LINK) setDefaultMode();
+        } else {
+            let maxPos = window.innerHeight - mLensSvg.attr("height") - 50;
+            let minPos = 10;
+            let position = (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10;
+
+            $('#link-button-div').css('top', Math.min(maxPos, Math.max(minPos, position)));
+            $('#link-button-div').show();
         }
+    });
+    mDataTableController.setOnDeselectionCallback((yTop, yBottom) => {
+        $('#link-button-div').hide();
+        if (mMode == MODE_LINK) setDefaultMode();
     });
     mDataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
         mModelController.tableUpdated(table, changeType, changeData);
@@ -981,6 +1000,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         }
     });
+    mDataTableController.setShouldDeselectCallback(() => {
+        // this is an annoying integration thing.
+        return mMode != MODE_LINK;
+    })
 
     let mBrushController = BrushController.getInstance(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
@@ -1053,7 +1076,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on('pointermove', function (e) {
         let pointerEvent = e.originalEvent;
-        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+
+        mDrawerController.onPointerMove(screenCoords)
+
+        let coords = screenToSvgCoords(screenCoords);
 
         if (mMode == MODE_PAN && mPanning) {
             mViewTransform.x = mViewTransform.x + pointerEvent.movementX
@@ -1095,7 +1122,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mPanning = false;
         }
 
-        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+
+        mDrawerController.onPointerUp(screenCoords)
+
+        let coords = screenToSvgCoords(screenCoords);
 
         // sync pointer ups
         mColorBrushController.onPointerUp(coords);
@@ -1207,12 +1238,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         FilterUtil.setFilterDisplayArea(-mViewTransform.x, -mViewTransform.y, mSvg.attr('width'), mSvg.attr('height'));
     }
 
-    let mDrawerController = new DrawerController("#data-drawer");
-    mDrawerController.setOnDrawerClosed(() => {
-        mDataTableController.deselectCells();
-        $('#link-button-div').hide();
-    });
-
     function pinDrag(timeline, timePin, linePercent) {
         if (linePercent < 0) linePercent = 0;
         if (linePercent > 1) linePercent = 1;
@@ -1258,12 +1283,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSelectionController.updateModel(mModelController.getModel());
 
         if (mLensController.getCurrentTimelineId()) {
-            let timeline = mModelController.getModel().getTimelineById(mLensController.getCurrentTimelineId());
-            if (timeline) {
-                mLineHighlight.showAround(timeline.points, mLensController.getCurrentCenterPercent(), mLensSvg.attr("width"))
-            } else {
-                console.error("Bad state! Lens have timeline that no longer exists: " + mLensController.getCurrentTimelineId())
-            }
+            showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
         } else {
             mLineHighlight.hide();
         }
@@ -1277,10 +1297,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     // Setup main view buttons' events
     $("#datasheet-toggle-button").on("click", () => {
-        // TODO: Made sub-menus slide nicely to.
-        clearMode();
         if (mDrawerController.isOpen()) {
             mDrawerController.closeDrawer();
+            mDataTableController.deselectCells();
+            $('#link-button-div').hide();
         } else {
             mDrawerController.openDrawer();
         }
@@ -1831,7 +1851,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.addTable(newTable);
-        mDataTableController.addOrUpdateTables(newTable);
         modelUpdated();
     })
     setupButtonTooltip("#add-datasheet-button", "Adds a new datasheet")
@@ -1897,12 +1916,25 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function showSubMenu(buttonId) {
-        $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top);
-        $(buttonId + '-sub-menu').css('left', $(buttonId).offset().left - $(buttonId + '-sub-menu').outerWidth() - 10);
-        if ($(buttonId).offset().top + $(buttonId + '-sub-menu').innerHeight() > window.innerHeight) {
-            $(buttonId + '-sub-menu').css('top', $(buttonId).offset().top - ($(buttonId + '-sub-menu').innerHeight() - 50));
-        }
+        $('.sub-menu').hide();
         $(buttonId + '-sub-menu').show();
+        $('#sub-menu-wrapper').css('top', window.height);
+        $('#sub-menu-wrapper').show();
+
+        // This is dump but nessisary to show the menu in the right origination
+        // otherwise the sub-menu height is 0, so it can't tell if it's too tall.
+        setTimeout(() => {
+            let top = $(buttonId).offset().top;
+            let height = $(buttonId + '-sub-menu').height();
+
+            if ((top + height) > window.innerHeight) {
+                $('#sub-menu-wrapper').css('top', "");
+                $('#sub-menu-wrapper').css('bottom', window.innerHeight - ($(buttonId).offset().top + $(buttonId).height()));
+            } else {
+                $('#sub-menu-wrapper').css('top', top);
+                $('#sub-menu-wrapper').css('bottom', "");
+            }
+        }, 1)
     }
 
     function setupButtonTooltip(buttonId, text) {
@@ -1971,7 +2003,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
-        $('.sub-menu').hide();
+        $('#sub-menu-wrapper').hide();
 
         mMode = MODE_NONE;
     }
@@ -2128,6 +2160,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTooltipSetTo = timelineId;
     }
 
+    function showLensView(timelineId, percent) {
+        let timeline = mModelController.getModel().getTimelineById(timelineId);
+        if (!timeline) console.error("Bad state! tried to show highlight for non-existant line: " + timelineId);
+
+        if (!mDrawerController.isOpen()) {
+            mDrawerController.openDrawer();
+        }
+
+        mLineHighlight.showAround(timeline.points, percent, mLensSvg.attr("width"));
+    }
+
     function LineHighlight(parent) {
         let mHighlight = parent.append('path')
             .attr("id", "highlight-path")
@@ -2139,7 +2182,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let mLastPointSet = [];
         let mPathLength = 0;
         let mPathStruct = []
-
 
         this.showAround = function (points, centerPercent, length) {
             let len = PathMath.getPathLength(points);

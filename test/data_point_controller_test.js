@@ -41,17 +41,19 @@ describe('Integration Test DataPointController', function () {
 
             IntegrationUtils.clickButton("#add-datasheet-button", integrationEnv.enviromentVariables.$);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[0].id;
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "5"], [0, 1, "", "15"],
-                [1, 0, "", "10"], [1, 1, "", "25"],
-            ])
+            let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
+            onchange("#table_" + tableId, "cellInstance", 0, 0, "5", "");
+            onchange("#table_" + tableId, "cellInstance", 1, 0, "15", "");
+            onchange("#table_" + tableId, "cellInstance", 0, 1, "10", "");
+            onchange("#table_" + tableId, "cellInstance", 1, 1, "25", "");
 
             IntegrationUtils.drawLine([{ x: 0, y: 10 }, { x: 100, y: 10 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 3)
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 1, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 0, 1, 1, integrationEnv);
 
             IntegrationUtils.clickButton("#link-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 50, y: 50 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);

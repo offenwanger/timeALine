@@ -30,7 +30,6 @@ describe('Test Main - Integration Test', function () {
             ], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
 
             IntegrationUtils.drawLine([
                 { x: 100, y: 100 },
@@ -40,13 +39,18 @@ describe('Test Main - Integration Test', function () {
                 { x: 90, y: 102 },
                 { x: 40, y: 103 },
                 { x: 10, y: 105 }], integrationEnv);
+            let len = integrationEnv.ModelController.getModel().getAllTables().length;
+            assert(len > 0);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].points.length, 5)
 
-            // give it a wierd double selection [rowStart, colStart, rowEnd, colEnd]
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 0, 2], [0, 0, 1, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 0, 2, 0, integrationEnv);
+            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
+            IntegrationUtils.selectCells(tableId, 0, 0, 1, 1, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
@@ -63,35 +67,21 @@ describe('Test Main - Integration Test', function () {
             // WARNING: This test liable to break when moved to another timezone. (written for CET)
             integrationEnv.mainInit();
 
-            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 5);
-
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
-
-                [1, 0, "", "2022"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "Jan 30, 2022"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "2022-01-03"], [3, 1, "", "text4"], [3, 2, "", "10"],
-
-                [4, 0, "", "2022-01-6"], [4, 1, "", "text6"], [4, 2, "", "text7"],
-                [5, 0, "", "Jan 15, 2022"], [5, 1, "", "text8"], [5, 2, "", "13"],
-                [6, 0, "", "2022-01-27"], [6, 1, "", "15"], [6, 2, "", "text9"],
-                [7, 0, "", "Jan 2022"], [7, 1, "", "16"], [7, 2, "", "18"],
-            ])
-
             IntegrationUtils.drawLine([
                 { x: 100, y: 100 },
                 { x: 150, y: 100 },
                 { x: 200, y: 100 }], integrationEnv);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1);
-
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 7, 2]];
-
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.bindDataToLine(integrationEnv.ModelController.getModel().getAllTimelines()[0].id, [
+                ["textTime", "10", "text1"],
+                ["2022", "20", "text5"],
+                ["Jan 30, 2022", "text2", "text3"],
+                ["2022-01-03", "text4", "10"],
+                ["2022-01-6", "text6", "text7"],
+                ["Jan 15, 2022", "text8", "13"],
+                ["2022-01-27", "15", "text9"],
+                ["Jan 2022", "16", "18"],
+            ], integrationEnv);
 
             // check that all 8 data cells were bound, with one axis for each column
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].cellBindings.length, 16);
@@ -220,12 +210,6 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 5);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[3].dataCells[1].val, "<text>");
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[4].dataCells[1].val, "<text>");
-            let lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
-            assert.equal(lastCreatedTable.init.data.length, 5);
-            assert.equal(lastCreatedTable.init.data[3][0], DataUtil.getFormattedDate(new Date("Jan 14, 2021")));
-            assert.equal(lastCreatedTable.init.data[3][1], "<text>");
-            assert.equal(lastCreatedTable.init.data[4][0], DataUtil.getFormattedDate(new Date("Jan 16, 2021")));
-            assert.equal(lastCreatedTable.init.data[4][1], "<text>");
 
             // check that the annotation was bound to the line
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
@@ -263,9 +247,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[1].timeStamp, new Date("Jan 17 2021").getTime());
 
             // update the time cells
-            // check the table is what we expect it to be
-            lastCreatedTable = integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
-            expect(lastCreatedTable.init.data).to.eql([
+            // check the table is what we expect it to be4
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[0].id;
+            let table = integrationEnv.enviromentVariables.jspreadsheetTables[tableId];
+            expect(table.data).to.eql([
                 ['Jan 10, 2021', 'sometext1', ''],
                 ['Jan 20, 2021', 'sometext3', ''],
                 ['', '', ''],
@@ -276,7 +261,7 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 14 2021").getTime());
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
 
-            lastCreatedTable.init.afterChange([[3, 0, 'Jan 14, 2021 00:00:00', "Jan 12, 2021"]])
+            table.onchange("#table_" + tableId, "cellInstance", 0, 3, "Jan 12, 2021", 'Jan 14, 2021 00:00:00');
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 14 2021").getTime());
@@ -515,24 +500,15 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
-            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 3);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "textTime"], [0, 1, "", "10"], [0, 2, "", "text1"],
-                [1, 0, "", "Jan 10, 2022"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "Jan 20, 2022"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "Jan 13, 2022"], [3, 1, "", "text4"], [3, 2, "", "10"],
-                [4, 0, "", "Jan 11, 2022"], [4, 1, "", "text6"], [4, 2, "", "12"],
-                [5, 0, "", "Jan 19, 2022"], [5, 1, "", "text7"], [5, 2, "", "17"],
-            ])
-
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 5, 2]];
-
-            IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+            IntegrationUtils.bindDataToLine(
+                integrationEnv.ModelController.getModel().getAllTimelines()[0].id,
+                [["textTime", "10", "text1"],
+                ["Jan 10, 2022", "20", "text5"],
+                ["Jan 20, 2022", "text2", "text3"],
+                ["Jan 13, 2022", "text4", "10"],
+                ["Jan 11, 2022", "text6", "12"],
+                ["Jan 19, 2022", "text7", "17"],],
+                integrationEnv)
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 12);
             expect(integrationEnv.ModelController.getModel().getAllCellBindingData().map(cbd => Math.round(cbd.linePercent * 100) / 100).sort())
@@ -654,19 +630,21 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
 
             // Link Data
-            IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, 3);
+            IntegrationUtils.createTable(
+                [["Jan 10", "10", "text1"],
+                ["Jan 11", "20", "text5"],
+                ["Jan 12", "text2", "text3"],
+                ["Jan 13", "text4", "10"],
+                ["Jan 14", "text6", "12"],
+                ["Jan 15", "text7", "17"]],
+                integrationEnv);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([
-                [0, 0, "", "Jan 10"], [0, 1, "", "10"], [0, 2, "", "text1"],
-                [1, 0, "", "Jan 11"], [1, 1, "", "20"], [1, 2, "", "text5"],
-                [2, 0, "", "Jan 12"], [2, 1, "", "text2"], [2, 2, "", "text3"],
-                [3, 0, "", "Jan 13"], [3, 1, "", "text4"], [3, 2, "", "10"],
-                [4, 0, "", "Jan 14"], [4, 1, "", "text6"], [4, 2, "", "12"],
-                [5, 0, "", "Jan 15"], [5, 1, "", "text7"], [5, 2, "", "17"],
-            ])
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 3, 1]];
+            let len = integrationEnv.ModelController.getModel().getAllTables().length;
+            assert(len > 0);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
+            IntegrationUtils.selectCells(tableId, 0, 0, 1, 3, integrationEnv);
+
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 150, y: 102 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
 
@@ -677,83 +655,77 @@ describe('Test Main - Integration Test', function () {
             timeLineTargets.eventCallbacks.pointerenter({ clientX: 150, clientY: 102 }, data);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
-            assert(integrationEnv.enviromentVariables.handsontables.length > 0);
-            let renderer = IntegrationUtils.getLastHoTable(integrationEnv).init.cells().renderer;
+            let updateTable = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].updateTable;
 
+            let instance = "#table_" + tableId;
             //check bound time rows
             for (let i = 0; i < 4; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 0)
-                should.not.exist(td.style.filter)
+                let cell = "#cell_id1_" + i;
+                updateTable(instance, cell, 0, i, "val", "label", "cellName");
+                let result = $("anything").getSelectors()["#cell_id1_" + i].style;
+                should.not.exist(result.filter)
             }
             //check unbound time rows
             for (let i = 4; i < 6; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 0)
-                should.exist(td.style.filter)
+                let cell = "#cell_id2_" + i;
+                updateTable(instance, cell, 0, i, "val", "label", "cellName");
+                let result = $("anything").getSelectors()["#cell_id2_" + i].style;
+                should.exist(result.filter)
             }
             //check bound data rows
             for (let i = 0; i < 4; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 1)
-                should.not.exist(td.style.filter)
+                let cell = "#cell_id3_" + i;
+                updateTable(instance, cell, 1, i, "val", "label", "cellName");
+                let result = $("anything").getSelectors()["#cell_id1_" + i].style;
+                should.not.exist(result.filter);
             }
             //check unbound data rows
             for (let i = 4; i < 6; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 1)
-                should.exist(td.style.filter)
+                let cell = "#cell_id4_" + i;
+                updateTable(instance, cell, 1, i, "val", "label", "cellName");
+                let result = $("anything").getSelectors()["#cell_id4_" + i].style;
+                should.exist(result.filter);
             }
             // check unbound col
             for (let i = 0; i < 6; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 2)
-                should.exist(td.style.filter)
+                let cell = "#cell_id5_" + i;
+                updateTable(instance, cell, 2, i, "val", "label", "cellName");
+                let result = $("anything").getSelectors()["#cell_id5_" + i].style;
+                should.exist(result.filter);
             }
 
             timeLineTargets.eventCallbacks['pointerout']({ x: 150, y: 102 }, data);
             // all data showing again
             for (let i = 0; i < 6; i++) {
-                let td = { style: {} };
-                renderer({}, td, i, 0, 0)
-                should.not.exist(td.style.filter)
-                renderer({}, td, i, 0, 1)
-                should.not.exist(td.style.filter)
-                renderer({}, td, i, 0, 2)
-                should.not.exist(td.style.filter)
+                updateTable(instance, "#cell_id6_" + i, 1, i, "val", "label", "cellName");
+                should.not.exist($("anything").getSelectors()["#cell_id6_" + i].style.filter);
+                updateTable(instance, "#cell_id7_" + i, 1, i, "val", "label", "cellName");
+                should.not.exist($("anything").getSelectors()["#cell_id7_" + i].style.filter);
+                updateTable(instance, "#cell_id8_" + i, 1, i, "val", "label", "cellName");
+                should.not.exist($("anything").getSelectors()["#cell_id8_" + i].style.filter);
             }
 
             let circleData = integrationEnv.enviromentVariables.d3.selectors['.data-target-point'];
             data = circleData.innerData[1];
             circleData.eventCallbacks['pointerenter']({ x: 150, y: 102 }, data);
-            // all data showing again
             for (let i = 0; i < 6; i++) {
                 if (i == 1) {
-                    let td = { style: {} };
                     // the single set data cell
-                    renderer({}, td, i, 0, 1)
-                    should.not.exist(td.style.filter)
-
+                    updateTable(instance, "#cell_id9_" + i, 1, i, "val", "label", "cellName");
+                    should.not.exist($("anything").getSelectors()["#cell_id9_" + i].style.filter);
                     // the single set time cell
-                    td = { style: {} };
-                    renderer({}, td, i, 0, 0)
-                    should.not.exist(td.style.filter)
+                    updateTable(instance, "#cell_id10_" + i, 0, i, "val", "label", "cellName");
+                    should.not.exist($("anything").getSelectors()["#cell_id10_" + i].style.filter);
 
-                    td = { style: {} };
-                    renderer({}, td, i, 0, 2)
-                    should.exist(td.style.filter)
+                    updateTable(instance, "#cell_id11_" + i, 2, i, "val", "label", "cellName");
+                    should.exist($("anything").getSelectors()["#cell_id11_" + i].style.filter);
                 } else {
-                    let td = { style: {} };
-                    renderer({}, td, i, 0, 0)
-                    should.exist(td.style.filter)
-
-                    td = { style: {} };
-                    renderer({}, td, i, 0, 1)
-                    should.exist(td.style.filter)
-
-                    td = { style: {} };
-                    renderer({}, td, i, 0, 2)
-                    should.exist(td.style.filter)
+                    updateTable(instance, "#cell_id12_" + i, 0, i, "val", "label", "cellName");
+                    should.exist($("anything").getSelectors()["#cell_id12_" + i].style.filter);
+                    updateTable(instance, "#cell_id13_" + i, 1, i, "val", "label", "cellName");
+                    should.exist($("anything").getSelectors()["#cell_id13_" + i].style.filter);
+                    updateTable(instance, "#cell_id14_" + i, 2, i, "val", "label", "cellName");
+                    should.exist($("anything").getSelectors()["#cell_id14_" + i].style.filter);
                 }
             }
         })

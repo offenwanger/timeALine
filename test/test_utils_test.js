@@ -16,6 +16,17 @@ before(function () {
         assert.fail("Error", "No Error" + message);
     }
 
+    let timeoutCallbacks = []
+    setTimeout = function (callback, delay) {
+        timeoutCallbacks.push(callback);
+    }
+    function triggerTimeouts() {
+        timeoutCallbacks.forEach(callback => {
+            callback();
+        });
+        timeoutCallbacks = [];
+    }
+
     function fakeD3() {
         let selectors = {};
 
@@ -179,6 +190,7 @@ before(function () {
 
         function MockJqueryElement(selector) {
             this.selector = selector;
+            this.getSelectors = () => { return selectors };
             this.find = function () { return this };
             this.eventCallbacks = {};
             this.on = function (event, func) {
@@ -186,7 +198,14 @@ before(function () {
                 return this;
             };
             this.addClass = function (cls) { selectors["." + cls] = this };
-            this.attr = function (attr, val) { if (attr == "id") selectors["#" + val] = this };
+            this.attrs = {};
+            this.style = {};
+            this.attr = function (attr, val) {
+                if (attr == "id") selectors["#" + val] = this;
+                if (val) { this.attrs[attr] = val } else { return this.attrs[attr]; }
+                return this;
+            };
+            this.css = function (style, val) { if (val) { this.style[style] = val } else { return this.style[style]; } return this; };
             this.outerWidth = function () { return 100; };
             this.innerHeight = function () { return 100; };
             this.outerHeight = function () { return 20; };
@@ -196,7 +215,7 @@ before(function () {
             this.val = function () { return "" };
             this.farbtastic = function () { return this };
             this.setColor = function () { return this };
-            this.css = function () { return this };
+            this.animate = function () { };
             this.hide = function () { return this };
             this.show = function () { return this };
             this.html = function (html) {
@@ -211,6 +230,7 @@ before(function () {
             this.scrollTop = function () { return 100 };
             this.offset = function () { return { top: 100, left: 100 } };
             this.trigger = function (event) { if (this.eventCallbacks[event]) { this.eventCallbacks[event](); } else { console.error("No listener set", event); } };
+            this[0] = this;
         };
 
         function fakeJquery(selector) {
@@ -353,17 +373,6 @@ before(function () {
         return t;
     }
 
-    function MockHandsontable(div, init) {
-        this.selected = null;
-        this.getSelected = function () { return this.selected };
-        this.loadData = function (data) { this.init.data = data; this.asyncDone() };
-        this.updateSettings = function () { };
-        this.render = function () { };
-        this.init = init;
-        // silly workaround
-        this.asyncDone = () => { };
-    };
-
     function getIntegrationEnviroment() {
         let returnable = {};
 
@@ -417,22 +426,24 @@ before(function () {
             }
         };
 
-        // silly workaround
-        returnable.asyncDone = () => { };
-
-        returnable.snagTable = function (tableConstructor) {
-            return function () {
-                tableConstructor.call(this, ...arguments);
-                this.asyncDone = returnable.asyncDone;
-                returnable.enviromentVariables.handsontables.push(this);
-            }
-        };
-
         returnable.enviromentVariables = {
             d3: new fakeD3(),
             $: fakeJqueryFactory(),
-            handsontables: [],
-            Handsontable: returnable.snagTable(MockHandsontable),
+            jspreadsheetTables: {},
+            jspreadsheet: function (element, init) {
+                this.jspreadsheetTables[element.attrs['table-id']] = init;
+                return {
+                    init,
+                    getCell: function (name) {
+                        return {
+                            getBoundingClientRect: function () { return { top: 0, bottom: 0 } }
+                        }
+                    },
+                    resetSelection: function () { },
+                    updateTable: function () { },
+                    setData: function (data) { this.data = data }
+                };
+            },
             window: {
                 eventListeners: {},
                 innerWidth: 500,
@@ -507,7 +518,7 @@ before(function () {
             CanvasMask: utility.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
         };
-        returnable.enviromentVariables.Handsontable.renderers = { TextRenderer: { apply: function () { } } };
+        returnable.enviromentVariables.jspreadsheet.getColumnNameFromId = function (col, row) { return col + "_" + row }
 
         file_handling.__set__(returnable.enviromentVariables);
         main.__set__(returnable.enviromentVariables);
@@ -521,6 +532,9 @@ before(function () {
         returnable.setVariables = setVariables;
 
         function cleanup(done) {
+            // tidy up timeouts to make sure they run.
+            triggerTimeouts();
+
             Object.keys(returnable.enviromentVariables).forEach((key) => {
                 delete global[key];
             })
@@ -528,11 +542,11 @@ before(function () {
             delete returnable.modelController;
             delete global.document;
 
-            fakeDocument.canvasImage = Array(500).fill().map(() => Array(500).fill().map(() => { return { data: [0, 0, 0, 0] }; }));
-
             done();
         };
         returnable.cleanup = cleanup;
+
+        returnable.triggerTimeouts = triggerTimeouts;
 
         return returnable;
     }
@@ -557,7 +571,6 @@ before(function () {
         fakeSVGPath,
         fakeDocument,
         makeTestTable,
-        MockHandsontable,
         getIntegrationEnviroment,
         deepEquals,
     }
@@ -618,10 +631,6 @@ before(function () {
             .map(c => c.callback).forEach(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
     }
 
-    function getLastHoTable(integrationEnv) {
-        return integrationEnv.enviromentVariables.handsontables[integrationEnv.enviromentVariables.handsontables.length - 1];
-    }
-
     function clickButton(buttonId, fakeJQ) {
         assert(buttonId in fakeJQ.selectors, buttonId + " not found!");
         let clickFunc = fakeJQ.selectors[buttonId].eventCallbacks['click'];
@@ -654,10 +663,18 @@ before(function () {
         pointerUp(points.length > 0 ? points[points.length - 1] : { x: 0, y: 0 }, integrationEnv);
     }
 
+    function selectCells(tableId, col1, row1, col2, row2, integrationEnv) {
+        let onselection = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onselection;
+        onselection("#table_" + tableId, col1, row1, col2, row2);
+    }
+
     function bindDataToLine(lineId, dataArray, integrationEnv) {
         createTable(dataArray, integrationEnv)
+        let len = integrationEnv.ModelController.getModel().getAllTables().length;
+        assert(len > 0);
+        let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
 
-        IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, dataArray.length - 1, dataArray[0].length - 1]];
+        selectCells(tableId, 0, 0, dataArray[0].length - 1, dataArray.length - 1, integrationEnv);
 
         IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
         IntegrationUtils.clickLine({ x: 0, y: 0 }, lineId, integrationEnv);
@@ -667,19 +684,22 @@ before(function () {
 
     function createTable(dataArray, integrationEnv) {
         IntegrationUtils.clickButton('#add-datasheet-button', integrationEnv.enviromentVariables.$);
+        let len = integrationEnv.ModelController.getModel().getAllTables().length;
+        assert(len > 0);
+        let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
+
         if (dataArray.length > 3) {
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateRow(0, dataArray.length - 3);
+            integrationEnv.enviromentVariables.jspreadsheetTables[tableId].oninsertrow("#table_" + tableId, 0, dataArray.length - 3)
         }
         if (dataArray[0].length > 3) {
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterCreateCol(0, dataArray[0].length - 3);
+            integrationEnv.enviromentVariables.jspreadsheetTables[tableId].oninsertcolumn("#table_" + tableId, 0, dataArray[0].length - 3)
         }
 
-        assert(integrationEnv.ModelController.getModel().getAllTables().length > 0);
-        assert(integrationEnv.enviromentVariables.handsontables.length > 0);
+        let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
 
-        IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange(dataArray.map((row, rowIndex) => row.map((item, colIndex) => {
-            return [rowIndex, colIndex, "", "" + item];
-        })).flat())
+        dataArray.forEach((row, rowIndex) => row.forEach((item, colIndex) => {
+            onchange("#table_" + tableId, "cellInstance", colIndex, rowIndex, "" + item, "");
+        }))
     }
 
     async function erase(points, radius, integrationEnv) {
@@ -705,9 +725,9 @@ before(function () {
         mainPointerDown,
         pointerUp,
         pointerMove,
-        getLastHoTable,
         clickButton,
         clickLine,
+        selectCells,
         createTable,
         bindDataToLine,
         dragLine,

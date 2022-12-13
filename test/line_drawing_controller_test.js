@@ -494,21 +494,25 @@ describe('Integration Test LineDrawingController', function () {
                 ["Jan 10, 2021", "Text 4"],
                 ["Jan 16, 2021", "Text 5"]
             ], integrationEnv);
+            let len = integrationEnv.ModelController.getModel().getAllTables().length;
+            assert(len > 0);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 4, 1]];
+
+            IntegrationUtils.selectCells(tableId, 0, 0, 1, 4, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[4, 0, 5, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 4, 1, 5, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 102 }, timelineId2, integrationEnv);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 5, 1, 7, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
 
             // extra bind to make sure we don't bind overlapping data
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[5, 0, 7, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 5, 1, 7, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
 
@@ -644,8 +648,11 @@ describe('Integration Test LineDrawingController', function () {
                 ["Jan 13, 2021", "Text 2"],
                 ["Jan 20, 2021", "Text 3"],
             ], integrationEnv);
+            let len = integrationEnv.ModelController.getModel().getAllTables().length;
+            assert(len > 0);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[0, 0, 1, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 0, 1, 1, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 25, y: 102 }, timelineId1, integrationEnv);
 
@@ -653,7 +660,7 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickLine({ x: 125, y: 103 }, timelineId2, integrationEnv);
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).selected = [[2, 0, 2, 1]];
+            IntegrationUtils.selectCells(tableId, 0, 2, 1, 2, integrationEnv);
             IntegrationUtils.clickButton('#link-button', integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 225, y: 102 }, timelineId3, integrationEnv);
 

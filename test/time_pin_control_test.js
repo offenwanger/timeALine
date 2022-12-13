@@ -566,7 +566,10 @@ describe('Integration Test TimePinController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
                 .to.eql([0.25, 0.35, 0.65, 0.75]);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[0, 0, "", "Jan 10, 2022"]]);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[0].id;
+            let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
+            onchange("#table_" + tableId, "cellInstance", 0, 0, "Jan 10, 2022", "");
+
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
                 .sort((a, b) => a.linePercent - b.linePercent)
                 .map(w => w.timeStamp))
@@ -580,7 +583,8 @@ describe('Integration Test TimePinController', function () {
             assert(!timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
             assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[1, 0, "", "Jan 20, 2022"]]);
+            onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
+            onchange("#table_" + tableId, "cellInstance", 0, 1, "Jan 20, 2022", "");
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
                 .sort((a, b) => a.linePercent - b.linePercent)
                 .map(w => w.timeStamp))
@@ -627,7 +631,10 @@ describe('Integration Test TimePinController', function () {
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.map(w => w.linePercent).sort())
                 .to.eql([0.25, 0.35, 0.65, 0.75]);
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[0, 0, "", "Jan 20, 2022"]]);
+            let tableId = integrationEnv.ModelController.getModel().getAllTables()[0].id;
+            let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
+            onchange("#table_" + tableId, "cellInstance", 0, 0, "Jan 20, 2022", "");
+
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
                 .sort((a, b) => a.linePercent - b.linePercent)
                 .map(w => w.timeStamp))
@@ -641,7 +648,8 @@ describe('Integration Test TimePinController', function () {
             assert(!timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId));
             assert(timePinIds.includes(integrationEnv.ModelController.getModel().getAllCellBindingData()[1].cellBinding.timePinId));
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterChange([[1, 0, "", "Jan 10, 2022"]]);
+            onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
+            onchange("#table_" + tableId, "cellInstance", 0, 1, "Jan 10, 2022", "");
             expect(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins
                 .sort((a, b) => a.linePercent - b.linePercent)
                 .map(w => w.timeStamp))

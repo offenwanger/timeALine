@@ -78,6 +78,11 @@ body {
     flex-direction: column;
 }
 
+#sub-menu-wrapper {
+    position: absolute;
+    padding: 0px;
+}
+
 .sub-menu {
     display: flex;
     flex-direction: column;
@@ -88,12 +93,12 @@ body {
 
 .menu-button {
     margin: 1px;
-    max-width: 35px;
+    width: 35px;
 }
 
 .sub-menu-button {
     margin: 1px;
-    max-width: 35px;
+    width: 35px;
 }
 
 .menu-divider {

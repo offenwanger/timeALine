@@ -542,6 +542,47 @@ DataStructs.DataModel = function () {
         return getTableById(tableId).dataColumns.find(col => col.index == 0);
     }
 
+    function getTimelineHighlightData(timelineId) {
+        let timeline = getTimelineById(timelineId);
+        if (!timeline) { console.error("Invalid timeline id for getting highlight data!", timelineId); return {}; }
+
+        let highlights = {};
+        timeline.cellBindings.forEach(b => {
+            let table = getTableForCell(b.cellId);
+            let cell = getCellById(b.cellId);
+            let row = getRowByCellId(b.cellId);
+            let col = table.dataColumns.find(c => c.id == cell.columnId);
+
+            highlights[table.id] ? "" : highlights[table.id] = {};
+            highlights[table.id][col.index] ? "" : highlights[table.id][col.index] = {}
+            highlights[table.id][col.index][row.index] = true;
+
+            // also highlight the time cell.
+            highlights[table.id][0] ? "" : highlights[table.id][0] = {}
+            highlights[table.id][0][row.index] = true;
+        });
+
+        return highlights;
+    }
+
+    function getCellBindingHighlightData(cellBinding) {
+        let highlights = {};
+        let table = getTableForCell(cellBinding.cellId);
+        let cell = getCellById(cellBinding.cellId);
+        let row = getRowByCellId(cellBinding.cellId);
+        let col = table.dataColumns.find(c => c.id == cell.columnId);
+
+        highlights[table.id] ? "" : highlights[table.id] = {};
+        highlights[table.id][col.index] ? "" : highlights[table.id][col.index] = {}
+        highlights[table.id][col.index][row.index] = true;
+
+        // also highlight the time cell.
+        highlights[table.id][0] ? "" : highlights[table.id][0] = {}
+        highlights[table.id][0][row.index] = true;
+
+        return highlights;
+    }
+
     this.setCanvas = (canvas) => mCanvas = canvas;
     this.setTimelines = (timelines) => mTimelines = timelines;
     this.setTables = (tables) => mDataTables = tables;
@@ -587,6 +628,9 @@ DataStructs.DataModel = function () {
 
     this.getTimelineByCellBinding = getTimelineByCellBinding;
     this.getTimelineByImageBinding = getTimelineByImageBinding;
+
+    this.getTimelineHighlightData = getTimelineHighlightData;
+    this.getCellBindingHighlightData = getCellBindingHighlightData;
 
     this.copy = function () {
         let model = new DataStructs.DataModel();

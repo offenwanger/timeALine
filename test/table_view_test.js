@@ -20,14 +20,12 @@ describe('Test TableViewer', function () {
     describe('intialization test', function () {
         it('should intialize', function () {
             let controller = getTableViewController();
-            controller.addOrUpdateTables(TestUtils.makeTestTable(3, 3));
+            controller.updateModel({ getAllTables: () => [TestUtils.makeTestTable(3, 3)] });
         });
     })
 
     describe('move row test', function () {
-        it('should shift one element down the table', function (done) {
-            integrationEnv.asyncDone = done;
-
+        it('should shift one element down the table', function () {
             let callbackCalled = false;
             let rowCount = 6;
             let controller = getTableViewController();
@@ -40,15 +38,15 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([1], 4)
+            let testTable = TestUtils.makeTestTable(rowCount, 3);
+            controller.updateModel({ getAllTables: () => [testTable] });
+            let onmoverow = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].onmoverow;
+            onmoverow("#table_" + testTable.id, 1, 4);
 
             assert.equal(callbackCalled, true);
         });
 
-        it('should shift one element up the table', function (done) {
-            integrationEnv.asyncDone = done;
-
+        it('should shift one element up the table', function () {
             let callbackCalled = false;
 
             let rowCount = 6;
@@ -69,96 +67,34 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([3], 1)
+            let testTable = TestUtils.makeTestTable(rowCount, 3);
+            controller.updateModel({ getAllTables: () => [testTable] });
+            let onmoverow = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].onmoverow;
+            onmoverow("#table_" + testTable.id, 3, 1);
 
             assert.equal(callbackCalled, true);
         });
-
-        it('should shift multiple elements down the table', function (done) {
-            integrationEnv.asyncDone = done;
-
-            let callbackCalled = false;
-
-            let rowCount = 6;
-
-            let controller = getTableViewController();
-            controller.setTableUpdatedCallback((table) => {
-                assert.equal(table.dataRows.length, rowCount);
-                table.dataRows.sort((a, b) => a.index - b.index);
-                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
-                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql([
-                    "Jan 3, 2022",
-                    "Jan 4, 2022",
-                    "Jan 5, 2022",
-                    "Jan 1, 2022",
-                    "Jan 2, 2022",
-                    "Jan 6, 2022"
-                ]);
-                callbackCalled = true;
-            });
-
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([0, 1], 3)
-
-            assert.equal(callbackCalled, true);
-        })
-
-        it('should shift multiple elements up the table', function (done) {
-            integrationEnv.asyncDone = done;
-
-            let callbackCalled = false;
-
-            let rowCount = 6;
-
-            let controller = getTableViewController();
-            controller.setTableUpdatedCallback((table) => {
-                assert.equal(table.dataRows.length, rowCount);
-                table.dataRows.sort((a, b) => a.index - b.index);
-                expect(table.dataRows.map(row => row.index)).to.eql([0, 1, 2, 3, 4, 5])
-                expect(table.dataRows.map(row => row.dataCells[0].val)).to.eql(["Jan 1, 2022", "Jan 4, 2022", "Jan 5, 2022", "Jan 2, 2022", "Jan 3, 2022", "Jan 6, 2022"]);
-                callbackCalled = true;
-            });
-
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.afterRowMove([3, 4], 1);
-
-            assert.equal(callbackCalled, true);
-        })
     })
 
 
     describe('sort rows test', function () {
-        it('should sort all text rows by multiple columns', function (done) {
-            let doneCalls = 5;
-            let doneCalled = 0;
-            integrationEnv.asyncDone = function () {
-                // async cleanup
-                doneCalled++;
-                if (doneCalled == doneCalls) done();
-            };
-
-            let callbackCalled = 0;
-
+        it('should sort all text rows by multiple columns', function () {
             let rowCount = 6;
 
             let controller = getTableViewController();
 
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, 3));
+            let testTable = TestUtils.makeTestTable(rowCount, 3)
+            controller.updateModel({ getAllTables: () => [testTable] });
+
+            let onsort = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].onsort;
+
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
 
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["Jan 1, 2022", "Jan 2, 2022", "Jan 3, 2022", "Jan 4, 2022", "Jan 5, 2022", "Jan 6, 2022",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
-
-                callbackCalled++;
             });
-
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 0 }])
+            onsort("#table_" + testTable.id, 0, true);
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -171,11 +107,8 @@ describe('Test TableViewer', function () {
                     "Jan 2, 2022",
                     "Jan 1, 2022"]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
-
-                callbackCalled++;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 0 }])
+            onsort("#table_" + testTable.id, 0, false);
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -188,62 +121,50 @@ describe('Test TableViewer', function () {
                     "Jan 5, 2022",
                     "Jan 6, 2022",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
-
-                callbackCalled++;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 0 }])
+            onsort("#table_" + testTable.id, 0, true);
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
 
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["Jan 1, 2022", "Jan 2, 2022", "Jan 3, 2022", "Jan 4, 2022", "Jan 5, 2022", "Jan 6, 2022",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
-
-                callbackCalled++;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 1 }])
+            onsort("#table_" + testTable.id, 0, true);
 
+            let callbackCalled = false;
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
 
                 expect(table.dataRows.map(r => r.dataCells[0].val)).to.eql(["Jan 6, 2022", "Jan 5, 2022", "Jan 4, 2022", "Jan 3, 2022", "Jan 2, 2022", "Jan 1, 2022",]);
                 expect(table.dataRows.map(r => r.index)).to.eql([0, 1, 2, 3, 4, 5]);
 
-                callbackCalled++;
+                callbackCalled = true;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 1 }])
+            onsort("#table_" + testTable.id, 1, false);
 
-            assert.equal(callbackCalled, doneCalls);
+            assert.equal(callbackCalled, true);
         });
 
-        it('should mixed types correctly', function (done) {
-            let doneCalls = 2;
-            let doneCalled = 0;
-            integrationEnv.asyncDone = function () {
-                // async cleanup
-                doneCalled++;
-                if (doneCalled == doneCalls) done();
-            };
+        it('should mixed types correctly', function () {
+            let rowCount = 8;
 
             let callbackCalled = 0;
 
-            let rowCount = 8;
-
             let controller = getTableViewController();
 
-            let table = TestUtils.makeTestTable(rowCount, 3);
-            table.dataRows[0].dataCells[0].val = "text1";
-            table.dataRows[1].dataCells[0].val = "text2";
-            table.dataRows[2].dataCells[0].val = "2022-02-03";
-            table.dataRows[3].dataCells[0].val = "2022-02-04";
-            table.dataRows[4].dataCells[0].val = "7";
-            table.dataRows[5].dataCells[0].val = "10";
-            table.dataRows[6].dataCells[0].val = "1643846500000"; // just after 2022-02-03
-            table.dataRows[7].dataCells[0].val = "1643932900000";// just after 2022-02-04
-            controller.addOrUpdateTables(table);
+            let testTable = TestUtils.makeTestTable(rowCount, 3);
+            testTable.dataRows[0].dataCells[0].val = "text1";
+            testTable.dataRows[1].dataCells[0].val = "text2";
+            testTable.dataRows[2].dataCells[0].val = "2022-02-03";
+            testTable.dataRows[3].dataCells[0].val = "2022-02-04";
+            testTable.dataRows[4].dataCells[0].val = "7";
+            testTable.dataRows[5].dataCells[0].val = "10";
+            testTable.dataRows[6].dataCells[0].val = "1643846500000"; // just after 2022-02-03
+            testTable.dataRows[7].dataCells[0].val = "1643932900000";// just after 2022-02-04
+            controller.updateModel({ getAllTables: () => [testTable] });
+
+            let onsort = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].onsort;
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -261,8 +182,7 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 0 }])
+            onsort("#table_" + testTable.id, 0, true);
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -281,32 +201,33 @@ describe('Test TableViewer', function () {
 
                 callbackCalled++;
             });
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                beforeColumnSort([], [{ column: 0 }])
+            onsort("#table_" + testTable.id, 0, false);
 
-            assert.equal(callbackCalled, doneCalls);
+            assert.equal(callbackCalled, 2);
         });
     });
 
 
     describe('remove columns and rows test', function () {
-        it('should remove one column', function (done) {
-            integrationEnv.asyncDone = done;
-
+        it('should remove one column', function () {
             let callbackCalled = false;
 
             let controller = getTableViewController();
 
             let rowCount = 6;
             let colCount = 5;
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, colCount));
+            let testTable = TestUtils.makeTestTable(rowCount, colCount);
+            controller.updateModel({ getAllTables: () => [testTable] });
+
+            let ondeletecolumn = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].ondeletecolumn;
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
-                assert.equal(table.dataColumns.length, 3);
+                assert.equal(table.dataColumns.length, 4);
 
-                expect(table.dataColumns.map(col => col.index).sort()).to.eql([0, 1, 2]);
+                expect(table.dataColumns.map(col => col.index).sort()).to.eql([0, 1, 2, 3]);
                 expect(table.dataRows[0].dataCells.map(cell => cell.val).sort()).to.eql([
+                    "0_1",
                     "0_3",
                     "0_4",
                     "Jan 1, 2022",]);
@@ -314,8 +235,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                afterRemoveCol(1, 2)
+            ondeletecolumn("#table_" + testTable.id, 2, 1);
 
             assert.equal(callbackCalled, true);
         });
@@ -329,7 +249,10 @@ describe('Test TableViewer', function () {
 
             let rowCount = 6;
             let colCount = 5;
-            controller.addOrUpdateTables(TestUtils.makeTestTable(rowCount, colCount));
+            let testTable = TestUtils.makeTestTable(rowCount, colCount);
+            controller.updateModel({ getAllTables: () => [testTable] });
+
+            let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[testTable.id].onchange;
 
             controller.setTableUpdatedCallback((table) => {
                 assert.equal(table.dataRows.length, rowCount);
@@ -340,8 +263,7 @@ describe('Test TableViewer', function () {
                 callbackCalled = true;
             });
 
-            IntegrationUtils.getLastHoTable(integrationEnv).init.
-                afterChange([[0, 3, "oldValue", "newValue"]])
+            onchange("#table_" + testTable.id, "cellInstance", 3, 0, "newValue", "oldValue")
 
             assert.equal(callbackCalled, true);
         });
