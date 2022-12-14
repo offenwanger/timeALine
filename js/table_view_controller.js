@@ -338,8 +338,10 @@ function DataTableController() {
     }
 
     function deselectCells() {
-        mJSpreadsheetTables[mSelection.tableId].resetSelection();
-        mSelection = null;
+        if (mSelection) {
+            mJSpreadsheetTables[mSelection.tableId].resetSelection();
+            mSelection = null;
+        }
     }
 
     // this functions takes complex data types and simplifies them for table display
