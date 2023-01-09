@@ -1022,8 +1022,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
             setLineDrawingColor(mModelController.getModel().getCanvas().color);
         } else if (mMode == MODE_LENS) {
-            mLensController.focus(null, null);
-            mLineHighlight.hide();
+            hideLensView();
         } else if (mMode == MODE_TEXT) {
             mModelController.addCanvasText("<text>", coords);
             modelUpdated();
@@ -1285,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mLensController.getCurrentTimelineId()) {
             showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
         } else {
-            mLineHighlight.hide();
+            hideLensView();
         }
 
         $("body").css("background-color", mModelController.getModel().getCanvas().color);
@@ -2164,11 +2163,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
         if (!timeline) console.error("Bad state! tried to show highlight for non-existant line: " + timelineId);
 
+        $("#lens-div").show();
+
         if (!mDrawerController.isOpen()) {
             mDrawerController.openDrawer();
         }
 
         mLineHighlight.showAround(timeline.points, percent, mLensSvg.attr("width"));
+    }
+
+    function hideLensView() {
+        $("#lens-div").hide();
+
+        mLensController.focus(null, null);
+        mLineHighlight.hide();
     }
 
     function LineHighlight(parent) {
@@ -2226,5 +2234,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     mLineViewController.raise();
     mMainOverlay.raise();
+    hideLensView();
     setDefaultMode();
 });

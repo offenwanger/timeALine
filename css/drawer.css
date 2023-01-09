@@ -80,8 +80,20 @@
     max-height: 30px;
 }
 
-#lens-view {
+#lens-div {
     box-shadow: 0 2px 6px #777;
+}
+
+#lens-view-header {
+    text-align: center;
+    outline-style: solid;
+    outline-width: 1px;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    padding: 3px;
+}
+
+#lens-view {
     max-height: 230px;
     padding: 0px;
     overflow: hidden;
