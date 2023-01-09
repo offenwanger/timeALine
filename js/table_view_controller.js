@@ -54,8 +54,10 @@ function DataTableController() {
         $("#table-list").scrollTop(scrollTop)
     }
 
-    function oninsertrow(instance, startIndex, numberOfRows) {
+    function oninsertrow(instance, startIndex, numberOfRows, cells, insertBefore) {
         let tableId = $(instance).attr("table-id");
+
+        if (!insertBefore) startIndex++;
 
         mDataTables[tableId].dataRows.forEach(row => {
             if (row.index >= startIndex) row.index += numberOfRows;
@@ -112,8 +114,10 @@ function DataTableController() {
         mTableUpdatedCallback(mDataTables[tableId], TableChange.REORDER_ROWS);
     }
 
-    function oninsertcolumn(instance, startIndex, numberOfCols) {
+    function oninsertcolumn(instance, startIndex, numberOfCols, cells, insertBefore) {
         let tableId = $(instance).attr("table-id");
+
+        if (!insertBefore) startIndex++;
 
         mDataTables[tableId].dataColumns.forEach(col => {
             if (col.index >= startIndex) col.index += numberOfCols;
@@ -180,8 +184,8 @@ function DataTableController() {
         return true;
     }
 
-    function onbeforeinsertcolumn(instance, index, count) {
-        if (index == 0) {
+    function onbeforeinsertcolumn(instance, index, count, insertBefore) {
+        if (index == 0 && insertBefore) {
             return false;
         }
         return true;
