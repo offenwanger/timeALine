@@ -48,6 +48,9 @@ describe('Test SmoothController', function () {
         it('should smooth start of line without error', function () {
             let smoothController = getSmoothController();
 
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
@@ -135,6 +138,9 @@ describe('Test SmoothController', function () {
         it('should smooth points in middle of line', function () {
             let smoothController = getSmoothController();
 
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             smoothController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -175,6 +181,9 @@ describe('Test SmoothController', function () {
 
         it('should create appropriate new points for smoothing a section with no points', function () {
             let smoothController = getSmoothController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
 
             smoothController.updateModel({
                 getAllTimelines: () => [{
@@ -227,6 +236,10 @@ describe('Integration Test SmoothController', function () {
     describe('smooth line test', function () {
         it('should flatten the line', function () {
             integrationEnv.mainInit();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             let longerLine = [
                 { x: 100, y: 100 },
                 { x: 125, y: 200 },

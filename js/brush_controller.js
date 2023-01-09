@@ -18,6 +18,11 @@ function BrushController(vizLayer, overlayLayer, interactionLayer) {
         }
     });
 
+    function setBrushSize(brushSize) {
+        mBrushSize = brushSize;
+        mBrush.attr("r", mBrushSize);
+    }
+
     function onPointerMove(coords) {
         if (!mFreeze) {
             mBrush.attr("cx", coords.x);
@@ -48,6 +53,7 @@ function BrushController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = setActive;
     this.onPointerMove = onPointerMove;
     this.getBrushRadius = () => mBrushSize;
+    this.setBrushSize = setBrushSize;
 }
 
 BrushController.getInstance = function (vizLayer, overlayLayer, interactionLayer) {

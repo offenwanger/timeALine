@@ -2211,6 +2211,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mHighlight.attr("d", PathMath.getPathD(mPathStruct.slice(startIndex, endIndex)));
             mHighlight.style("visibility", "");
+            mHighlight.raise();
         }
 
         this.hide = function () { mHighlight.style("visibility", "hidden"); };

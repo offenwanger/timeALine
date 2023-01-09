@@ -47,6 +47,10 @@ describe('Test DeformController', function () {
 
         it('should drag start of line without error', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+            
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
@@ -78,6 +82,10 @@ describe('Test DeformController', function () {
 
         it('should drag end of line without error', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
@@ -109,6 +117,10 @@ describe('Test DeformController', function () {
 
         it('should drag points in middle of line', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -149,6 +161,10 @@ describe('Test DeformController', function () {
 
         it('should create appropriate new points for line with no points', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -185,6 +201,10 @@ describe('Test DeformController', function () {
 
         it('should create appropriate new points for line with points', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+            
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -225,6 +245,10 @@ describe('Test DeformController', function () {
 
         it('should drag line between points', function () {
             let deformController = getDeformController();
+
+            let brushController = BrushController.getInstance();
+            brushController.setBrushSize(10);
+
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
