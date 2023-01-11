@@ -4,37 +4,37 @@ function BrushController(vizLayer, overlayLayer, interactionLayer) {
     let mBrushRadius = 50;
 
     let mBrushGroup = interactionLayer.append('g')
-        .attr("class", 'brush-g')
-        .style("visibility", 'hidden');
+        .classed('brush-g', true)
+        .style('visibility', 'hidden');
 
     let mBrush = mBrushGroup.append('circle')
         .attr('cx', 0)
         .attr('cy', 0)
         .attr('r', mBrushRadius)
-        .attr('stroke', "black")
+        .attr('stroke', 'black')
         .attr('stroke-wdith', 2)
         .attr('fill', 'none');
 
     function setBrushRadius(brushRadius) {
         mBrushRadius = brushRadius;
-        mBrush.attr("r", mBrushRadius);
+        mBrush.attr('r', mBrushRadius);
     }
 
     function onPointerMove(coords) {
         if (!mFreeze) {
-            mBrush.attr("cx", coords.x);
-            mBrush.attr("cy", coords.y);
+            mBrush.attr('cx', coords.x);
+            mBrush.attr('cy', coords.y);
         }
     }
 
     function setActive(active) {
         if (active && !mActive) {
             mActive = true;
-            mBrushGroup.style('visibility', "");
+            mBrushGroup.style('visibility', '');
 
         } else if (!active && mActive) {
             mActive = false;
-            mBrushGroup.style('visibility', "hidden");
+            mBrushGroup.style('visibility', 'hidden');
         }
     }
 
