@@ -10,8 +10,8 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
     let mEraseCallback = (canvasMask) => { };
 
     let mEraserGroup = interactionLayer.append('g')
-        .attr("id", 'eraser-g')
-        .style("visibility", 'hidden');
+        .classed('eraser-g', true)
+        .style('visibility', 'hidden');
 
     let mEraserLine = mEraserGroup.append('path')
         .attr('fill', 'none')
@@ -70,10 +70,10 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
-            mEraserGroup.style('visibility', "");
+            mEraserGroup.style('visibility', '');
         } else if (!active && mActive) {
             mActive = false;
-            mEraserGroup.style('visibility', "hidden");
+            mEraserGroup.style('visibility', 'hidden');
         }
 
         mActive = active;
