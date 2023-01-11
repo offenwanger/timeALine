@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mMouseDropShadow = new MouseDropShadow(mInteractionLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
+    let mTextInputBox = new TextInputBox();
 
     let mTooltip = new ToolTip("main-tooltip");
     let mTooltipSetTo = ""
@@ -371,10 +372,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
 
     let mTextController = new TextController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
-    mTextController.setTextUpdatedCallback((cellId, text) => {
-        mModelController.updateText(cellId, text);
-        modelUpdated();
-    });
     mTextController.setPointerEnterCallback((e, cellBindingData) => {
         mDataTableController.highlightCells(mModelController.getModel().getCellBindingHighlightData(cellBindingData.cellBinding));
     })
@@ -492,6 +489,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePinSettingTime = false;
         }
     });
+    mTextController.setDoubleClickCallback((cellId, text, x, y, height, width) => {
+        mTextInputBox.show(text, x, y, height, width);
+        mTextInputBox.setTextChangedCallback((text) => {
+            mModelController.updateText(cellId, text);
+            modelUpdated();
+            mTextInputBox.reset();
+        })
+    })
 
     // Text controller utility functions
     // TODO: make this general for all context menus
@@ -1024,8 +1029,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else if (mMode == MODE_LENS) {
             hideLensView();
         } else if (mMode == MODE_TEXT) {
-            mModelController.addCanvasText("<text>", coords);
-            modelUpdated();
+            if (mTextInputBox.isShowing()) {
+                mTextInputBox.returnText();
+            } else {
+                mModelController.addCanvasText("<text>", coords);
+                modelUpdated();
+            }
         } else if (mMode == MODE_IMAGE) {
             FileHandler.getImageFile().then(imageData => {
                 mModelController.addCanvasImage(imageData, coords);
@@ -1159,6 +1168,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         if (/* delete */ e.which == 46) {
             deleteSelected();
+        }
+
+        if (e.key == 'Enter') {
+            if (mTextInputBox.isShowing()) {
+                mTextInputBox.returnText();
+            }
         }
     });
 
@@ -1618,49 +1633,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         let screenCoords = { x: event.clientX, y: event.clientY };
-        let inputbox = d3.select("#input-box");
 
-        inputbox.on('input', null)
-            .style("top", Math.floor(screenCoords.y) + "px")
-            .style("left", Math.floor(screenCoords.x) + "px")
-            .on('input', function (e) {
-                let value = inputbox.property("value");
-                let isValid = value && (!isNaN(new Date(value)) || !isNaN(new Date(parseInt(value))));
-                if (isValid) {
-                    inputbox.style("background-color", "")
-                } else {
-                    inputbox.style("background-color", "lightpink")
-                }
-                inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
-            }).on('change', function (e) {
-                inputbox
-                    .style("top", "-400px")
-                    .style("left", "-200px")
-            }).on('blur', function (e) {
-                let value = inputbox.property("value");
-                let isValid = value && (!isNaN(new Date(value)) || !isNaN(new Date(parseInt(value))));
-                if (isValid) {
-                    let time = new Date(value);
-                    if (isNaN(time)) {
-                        time = new Date(parseInt(value));
-                    }
-                    if (isNaN(time)) {
-                        console.error("Time was valid then it wasn't!")
-                        return;
-                    }
-                    mModelController.updateImageTime(imageBinding.id, time.getTime());
-                    modelUpdated();
-                }
-                inputbox
-                    .style("top", "-400px")
-                    .style("left", "-200px")
-            });
-
-        inputbox.property("value", imageBinding.timeStamp ? DataUtil.getFormattedDate(imageBinding.timeStamp) : "");
-        inputbox.style("height", inputbox.property("scrollHeight") + "px");
-        inputbox.style("width", 200 + "px");
-
-        inputbox.node().focus();
+        let time = imageBinding.timeStamp ? DataUtil.getFormattedDate(imageBinding.timeStamp) : "";
+        mTextInputBox.show(time, screenCoords.x, screenCoords.y, 100, 200);
+        mTextInputBox.setTextChangedCallback((text) => {
+            let time = new Date(text);
+            if (isNaN(time)) {
+                time = new Date(parseInt(text));
+            }
+            if (!isNaN(time)) {
+                mModelController.updateImageTime(imageBinding.id, time.getTime());
+                modelUpdated();
+            }
+            mTextInputBox.reset();
+        })
+        mTextInputBox.setIsValidCallback(text => {
+            return text && (!isNaN(new Date(text)) || !isNaN(new Date(parseInt(text))));
+        })
     })
     setupButtonTooltip("#image-time-edit-button", "Edit the time assigned to the image")
 
@@ -2225,6 +2214,74 @@ document.addEventListener('DOMContentLoaded', function (e) {
         this.hide = function () { mHighlight.style("visibility", "hidden"); };
         // start hidden
         this.hide();
+    }
+
+    function TextInputBox() {
+        let mTextChangedCallback = (text) => { };
+        let mIsValidCallback = (text) => { return true };
+
+        let mIsShowing;
+        let mInputbox = $("#input-box");
+
+        mInputbox.on('input', function (e) {
+            let value = mInputbox.val();
+            let isValid = mIsValidCallback(value);
+
+            if (isValid) {
+                mInputbox.css("background-color", "")
+            } else {
+                mInputbox.css("background-color", "lightpink")
+            }
+
+            mInputbox.css("height", (mInputbox.prop('scrollHeight') - 4) + "px");
+        }).on('change', function (e) {
+            hide();
+        }).on('blur', function (e) {
+            mTextChangedCallback(mInputbox.val());
+            hide();
+        });
+
+        function show(text, x, y, height, width) {
+            mInputbox.css("top", Math.floor(y - 8) + "px")
+                .css("left", Math.floor(x - 8) + "px")
+                .css("height", height + "px")
+                .css("width", width + "px");
+            mInputbox.val(text);
+
+            mInputbox.show();
+            mIsShowing = true;
+
+            mInputbox[0].focus();
+        }
+
+        function returnText() {
+            if (mIsShowing) {
+                mTextChangedCallback(mInputbox.val());
+                hide();
+            }
+        }
+
+        function hide() {
+            mInputbox.hide();
+            mIsShowing = false;
+        }
+
+        function reset() {
+            mTextChangedCallback = (text) => { };
+            mIsValidCallback = (value) => { return true };
+            mInputbox.css("background-color", "");
+        }
+
+        this.show = show;
+        this.returnText = returnText;
+        this.hide = hide;
+        this.reset = reset;
+        this.isShowing = () => mIsShowing;
+
+        this.setTextChangedCallback = (callback) => mTextChangedCallback = callback;
+        this.setIsValidCallback = (callback) => mIsValidCallback = callback;
+
+        hide();
     }
 
     /** useful test and development function: */

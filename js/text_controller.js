@@ -9,13 +9,12 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     let mInteractionGroup = interactionLayer.append('g')
         .attr("id", 'annotation-interaction-g');
 
-    let mTextUpdatedCallback = () => { };
-
     let mDragStartCallback = () => { };
     let mDragCallback = () => { };
     let mDragEndCallback = () => { };
     let mPointerEnterCallback = () => { };
     let mPointerOutCallback = () => { };
+    let mDoubleClickCallback = (cellId, text, x, y, height, width) => { }
 
     let mDragging = false;
     let mDragStartPos = null;
@@ -272,34 +271,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 }
             })
             .on('dblclick', function (e, d) {
-                if (mActive) {
-                    let position = d3.select(this).node().getBoundingClientRect();
-                    let inputbox = d3.select("#input-box");
-
-                    inputbox
-                        .style("top", Math.floor(position.y - 8) + "px")
-                        .style("left", Math.floor(position.x - 8) + "px")
-                        .attr("height", inputbox.property("scrollHeight"))
-                        .on('input', null)
-                        .on('input', function (e) {
-                            inputbox.style("height", (inputbox.property("scrollHeight") - 4) + "px");
-                        }).on('change', function (e) {
-                            inputbox
-                                .style("top", "-400px")
-                                .style("left", "-200px")
-                        }).on('blur', function (e) {
-                            mTextUpdatedCallback(d.binding.dataCell.id, inputbox.property("value"))
-                            inputbox
-                                .style("top", "-400px")
-                                .style("left", "-200px")
-                        });
-
-                    inputbox.property("value", d.text);
-                    inputbox.style("height", inputbox.property("scrollHeight") + "px");
-                    inputbox.style("width", TEXT_WIDTH + "px");
-
-                    inputbox.node().focus();
-                }
+                let rect = d3.select(this).node().getBoundingClientRect();
+                mDoubleClickCallback(d.binding.dataCell.id, d.text, rect.x, rect.y, rect.height, rect.width);
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
@@ -403,12 +376,12 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     this.drawTimelineText = drawTimelineText;
     this.drawCanvasText = drawCanvasText;
     this.setActive = setActive;
-    this.setTextUpdatedCallback = (callback) => mTextUpdatedCallback = callback
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
     this.setDragEndCallback = (callback) => mDragEndCallback = callback;
     this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
     this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
+    this.setDoubleClickCallback = (callback) => mDoubleClickCallback = callback;
     this.getTextBoundingBoxes = () => mBoundingBoxData;
 
     this.onPointerMove = onPointerMove;
