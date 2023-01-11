@@ -21,6 +21,10 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
 
     let mBrushController = new BrushController(vizLayer, overlayLayer, interactionLayer);
 
+    function updateModel(model) {
+        mEraserLine.attr('stroke', model.getCanvas().color)
+    }
+
     function onPointerDown(coords) {
         if (mActive) {
             mBrushRadius = mBrushController.getBrushRadius();
@@ -80,7 +84,7 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
         mBrushController.setActive(active)
     };
 
-    this.updateModel = (model) => mEraserLine.attr('stroke', model.getCanvas().color);
+    this.updateModel = updateModel;
     this.setEraseCallback = (callback) => mEraseCallback = callback;
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;
