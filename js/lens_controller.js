@@ -384,6 +384,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         mStrokeGroup.selectAll(".lens-annotation-stroke").remove();
     }
 
+    function onWheel(delta) {
+        if (mMode == MODE_COLOR_BRUSH) {
+            mLensColorBrushController.onWheel(delta);
+        }
+    }
 
     function setPanActive(active) {
         if (active) {
@@ -419,6 +424,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
     this.focus = focus;
     this.updateModel = updateModel;
+
+    this.onWheel = onWheel;
 
     this.getCurrentTimelineId = () => mTimelineId;
     this.getCurrentCenterPercent = getCurrentCenterPercent;

@@ -1007,10 +1007,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataTableController.setShouldDeselectCallback(() => {
         // this is an annoying integration thing.
-        return mMode != MODE_LINK;
+        return mMode != MODE_LINK;F
     })
-
-    let mBrushController = BrushController.getInstance(mVizLayer, mVizOverlayLayer, mInteractionLayer);
 
     mMainOverlay.on('pointerdown', function (pointerEvent) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
@@ -1107,7 +1105,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mColorBrushController.onPointerMove(coords);
         mLineViewController.onPointerMove(coords);
         mLineDrawingController.onPointerMove(coords);
-        mBrushController.onPointerMove(coords);
         mDeformController.onPointerMove(coords);
         mEraserController.onPointerMove(coords);
         mTimePinController.onPointerMove(coords);
@@ -1174,6 +1171,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (mTextInputBox.isShowing()) {
                 mTextInputBox.returnText();
             }
+        }
+    });
+
+    $(document).on("wheel", function (e) {
+        e = e.originalEvent;
+        if (mMode == MODE_DEFORM) {
+            mDeformController.onWheel(e.wheelDelta);
+        } if (mMode == MODE_ERASER_TEXT ||
+            mMode == MODE_ERASER_TIMELINE ||
+            mMode == MODE_ERASER_STROKE ||
+            mMode == MODE_ERASER_POINT ||
+            mMode == MODE_ERASER_PIN ||
+            mMode == MODE_ERASER_IMAGE ||
+            mMode == MODE_ERASER) {
+            mEraserController.onWheel(e.wheelDelta);
+        } else if (mMode == MODE_SMOOTH) {
+            mSmoothController.onWheel(e.wheelDelta);
+        } else if (mMode == MODE_COLOR_BRUSH) {
+            mColorBrushController.onWheel(e.wheelDelta);
+            mLensController.onWheel(e.wheelDelta);
         }
     });
 

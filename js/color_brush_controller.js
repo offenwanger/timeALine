@@ -62,15 +62,6 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
         mColorLine.attr('d', PathMath.getPathD([]));
     }
 
-    $(document).on("wheel", function (e) {
-        e = e.originalEvent;
-        if (mActive) {
-            mRadius = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mRadius + e.wheelDelta / 50));
-            mBrush.attr("r", mRadius);
-            mColorLine.attr("stroke-width", mRadius * 2);
-        }
-    });
-
     function setActive(active) {
         if (active && !mActive) {
             mActive = true;
@@ -105,6 +96,14 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
         mColorLine.attr("stroke-width", mRadius * 2);
     }
 
+    function onWheel(delta) {
+        if (mActive) {
+            mRadius = Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mRadius + delta / 50));
+            mBrush.attr("r", mRadius);
+            mColorLine.attr("stroke-width", mRadius * 2);
+        }
+    }
+
     this.setActive = setActive;
     this.setColor = setColor;
     this.getColor = () => mColor;
@@ -115,4 +114,5 @@ function ColorBrushController(vizLayer, overlayLayer, interactionLayer) {
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
+    this.onWheel = onWheel;
 }

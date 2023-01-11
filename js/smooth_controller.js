@@ -1,4 +1,6 @@
 function SmoothController(vizLayer, overlayLayer, interactionLayer) {
+    const BRUSH_SIZE_MIN = 2;
+    const BRUSH_SIZE_MAX = 800;
     const MIN_RESOLUTION = 2;
 
     let mActive = false;
@@ -22,7 +24,7 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
 
     let mMovingLines = [];
     let mStartPosition = null;
-    let mBrushController = BrushController.getInstance(vizLayer, overlayLayer, interactionLayer);
+    let mBrushController = new BrushController(vizLayer, overlayLayer, interactionLayer);
 
     function onPointerDown(coords) {
         if (mActive) {
@@ -52,6 +54,8 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     function onPointerMove(coords) {
+        mBrushController.onPointerMove(coords);
+
         if (mActive && mDragging) {
             let smoothStrength = Math.max(0, MathUtil.distanceFromAToB(mStartPosition, coords) - 20)
             let drawingLines = mMovingLines.map(lineData => {
@@ -144,6 +148,13 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
             .attr('d', d => PathMath.getPathD(d.points));
     }
 
+    function onWheel(delta) {
+        if (mActive) {
+            mBrushController.setBrushRadius(
+                Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushController.getBrushRadius() + delta / 50)))
+        }
+    }
+
     this.setActive = (active) => {
         if (active && !mActive) {
             mActive = true;
@@ -164,4 +175,5 @@ function SmoothController(vizLayer, overlayLayer, interactionLayer) {
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
+    this.onWheel = onWheel;
 }

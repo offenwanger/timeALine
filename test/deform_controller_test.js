@@ -48,9 +48,6 @@ describe('Test DeformController', function () {
         it('should drag start of line without error', function () {
             let deformController = getDeformController();
 
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
-            
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
@@ -65,6 +62,9 @@ describe('Test DeformController', function () {
                 }]
             })
             deformController.setActive(true);
+
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
 
             let called = false;
             deformController.setLineModifiedCallback((result) => {
@@ -83,9 +83,6 @@ describe('Test DeformController', function () {
         it('should drag end of line without error', function () {
             let deformController = getDeformController();
 
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
-
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "id1", points: [
@@ -100,6 +97,10 @@ describe('Test DeformController', function () {
                 }]
             })
             deformController.setActive(true);
+
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
+
             let called = false;
             deformController.setLineModifiedCallback((result) => {
                 assert.equal(result[0].newSegments[1].points[1].x, 5)
@@ -117,9 +118,6 @@ describe('Test DeformController', function () {
 
         it('should drag points in middle of line', function () {
             let deformController = getDeformController();
-
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
 
             deformController.updateModel({
                 getAllTimelines: () => [{
@@ -140,6 +138,11 @@ describe('Test DeformController', function () {
                 }]
             });
             deformController.setActive(true);
+
+            // set the brush size to 10
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
+
             let called = false;
             deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
@@ -162,9 +165,6 @@ describe('Test DeformController', function () {
         it('should create appropriate new points for line with no points', function () {
             let deformController = getDeformController();
 
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
-
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -175,6 +175,11 @@ describe('Test DeformController', function () {
                 }]
             });
             deformController.setActive(true);
+
+            // set the brush size to 10
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
+
             let called = false;
             deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
@@ -202,9 +207,6 @@ describe('Test DeformController', function () {
         it('should create appropriate new points for line with points', function () {
             let deformController = getDeformController();
 
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
-            
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -216,6 +218,11 @@ describe('Test DeformController', function () {
                 }]
             });
             deformController.setActive(true);
+
+            // set the brush size to 10
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
+
             let called = false;
             deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);
@@ -246,9 +253,6 @@ describe('Test DeformController', function () {
         it('should drag line between points', function () {
             let deformController = getDeformController();
 
-            let brushController = BrushController.getInstance();
-            brushController.setBrushSize(10);
-
             deformController.updateModel({
                 getAllTimelines: () => [{
                     id: "1654867647735_5", points: [
@@ -271,6 +275,11 @@ describe('Test DeformController', function () {
                 }]
             });
             deformController.setActive(true);
+
+            // set the brush size to 10
+            deformController.onWheel(-10000);
+            deformController.onWheel(400);
+
             let called = false;
             deformController.setLineModifiedCallback((result) => {
                 assert.equal(result.length, 1);

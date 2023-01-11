@@ -340,12 +340,12 @@ before(function () {
                 }
             });
             // this will need to be piped if we want to test alternatives
-            let brushSize = 10;
+            let BrushRadius = 10;
             if (canvasLine.some(canvasPoint => {
-                if (x >= canvasPoint.x - brushSize &&
-                    x <= canvasPoint.x + brushSize &&
-                    y >= canvasPoint.y - brushSize &&
-                    y <= canvasPoint.y + brushSize) return true;
+                if (x >= canvasPoint.x - BrushRadius &&
+                    x <= canvasPoint.x + BrushRadius &&
+                    y >= canvasPoint.y - BrushRadius &&
+                    y <= canvasPoint.y + BrushRadius) return true;
                 else return false;
             })) {
                 return { data: [1, 1, 1, 1] }
@@ -631,6 +631,12 @@ before(function () {
             .map(c => c.callback).forEach(callback => callback({ originalEvent: { clientX: coords.x, clientY: coords.y } }));
     }
 
+    function wheel(delta, integrationEnv) {
+        integrationEnv.documentCallbacks
+            .filter(c => c.event == "wheel")
+            .map(c => c.callback).forEach(callback => callback({ originalEvent: { wheelDelta: delta } }));
+    }
+
     function clickButton(buttonId, fakeJQ) {
         assert(buttonId in fakeJQ.selectors, buttonId + " not found!");
         let clickFunc = fakeJQ.selectors[buttonId].eventCallbacks['click'];
@@ -725,6 +731,7 @@ before(function () {
         mainPointerDown,
         pointerUp,
         pointerMove,
+        wheel,
         clickButton,
         clickLine,
         selectCells,

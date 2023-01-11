@@ -1,7 +1,10 @@
 function EraserController(vizLayer, overlayLayer, interactionLayer) {
+    const BRUSH_SIZE_MIN = 2;
+    const BRUSH_SIZE_MAX = 800;
+
     let mActive = false;
     let mDragging = false;
-    let mBrushSize = 0;
+    let mBrushRadius = 0;
     let mDraggedPoints = [];
 
     let mEraseCallback = (canvasMask) => { };
@@ -16,17 +19,19 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
         .attr('stroke-linejoin', 'round')
         .attr('stroke-linecap', 'round');
 
-    let mBrushController = BrushController.getInstance(vizLayer, overlayLayer, interactionLayer);
+    let mBrushController = new BrushController(vizLayer, overlayLayer, interactionLayer);
 
     function onPointerDown(coords) {
         if (mActive) {
-            mBrushSize = mBrushController.getBrushRadius();
+            mBrushRadius = mBrushController.getBrushRadius();
             mDragging = true;
-            mEraserLine.attr('stroke-width', mBrushSize * 2);
+            mEraserLine.attr('stroke-width', mBrushRadius * 2);
         }
     }
 
     function onPointerMove(coords) {
+        mBrushController.onPointerMove(coords);
+
         if (mActive && mDragging) {
             mDraggedPoints.push(coords);
             mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
@@ -39,10 +44,10 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
 
             let eraserOutline = mEraserLine.node().getBBox();
             // eraser outline only takes the path coords into account, not the width
-            let canvasWidth = eraserOutline.width + mBrushSize * 2;
-            let canvasHeight = eraserOutline.height + mBrushSize * 2;
-            let canvasX = eraserOutline.x - mBrushSize;
-            let canvasY = eraserOutline.y - mBrushSize;
+            let canvasWidth = eraserOutline.width + mBrushRadius * 2;
+            let canvasHeight = eraserOutline.height + mBrushRadius * 2;
+            let canvasX = eraserOutline.x - mBrushRadius;
+            let canvasY = eraserOutline.y - mBrushRadius;
 
             let canvas = await DataUtil.svgToCanvas(mEraserLine.clone().node(), canvasX, canvasY, canvasWidth, canvasHeight);
             let mask = new CanvasMask(canvas, canvasX, canvasY, canvasWidth, canvasHeight);
@@ -52,6 +57,13 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
             // reset
             mDraggedPoints = [];
             mEraserLine.attr('d', PathMath.getPathD(mDraggedPoints));
+        }
+    }
+
+    function onWheel(delta) {
+        if (mActive) {
+            mBrushController.setBrushRadius(
+                Math.max(BRUSH_SIZE_MIN, Math.min(BRUSH_SIZE_MAX, mBrushController.getBrushRadius() + delta / 50)))
         }
     }
 
@@ -73,4 +85,5 @@ function EraserController(vizLayer, overlayLayer, interactionLayer) {
     this.onPointerDown = onPointerDown;
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
+    this.onWheel = onWheel;
 }
