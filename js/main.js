@@ -1,40 +1,14 @@
 document.addEventListener('DOMContentLoaded', function (e) {
-    const MODE_NONE = 'noneMode';
-    const MODE_SELECTION = 'selection';
-    const MODE_LINE_DRAWING = "drawing";
-    const MODE_LINE_DRAWING_EYEDROPPER = "drawingEyedropper";
-    const MODE_ERASER = "eraser";
-    const MODE_ERASER_TIMELINE = "eraserTimeline";
-    const MODE_ERASER_STROKE = "eraserStroke";
-    const MODE_ERASER_POINT = "eraserPoint";
-    const MODE_ERASER_TEXT = "eraserText";
-    const MODE_ERASER_PIN = "eraserPin";
-    const MODE_ERASER_IMAGE = "eraserImage";
-    const MODE_DEFORM = "deform";
-    const MODE_SMOOTH = "smooth";
-    const MODE_SCISSORS = "scissors";
-    const MODE_TEXT = "text";
-    const MODE_IMAGE = "image";
-    const MODE_IMAGE_LINK = "imageLink"
-    const MODE_PIN = "pin";
-    const MODE_LENS = "lens";
-    const MODE_COLOR_BRUSH = "colorBrush";
-    const MODE_COLOR_BRUSH_EYEDROPPER = "colorBrushEyedropper";
-    const MODE_COLOR_BUCKET = "bucket";
-    const MODE_COLOR_BUCKET_EYEDROPPER = "bucketEyedropper";
-    const MODE_PAN = "pan";
-    const MODE_LINK = "link";
-
     let mMode;
-    let mBucketColor = "#000000";
+    let mBucketColor = '#000000';
 
     let mSvg = d3.select('#svg_container').append('svg')
         .attr('width', window.innerWidth)
         .attr('height', window.innerHeight);
 
-    let mVizLayer = mSvg.append("g").attr("id", "main-viz-layer");
-    let mVizOverlayLayer = mSvg.append("g").attr("id", "main-overlay-layer");
-    let mInteractionLayer = mSvg.append("g").attr("id", "main-interaction-layer");
+    let mVizLayer = mSvg.append('g').attr('id', 'main-viz-layer');
+    let mVizOverlayLayer = mSvg.append('g').attr('id', 'main-overlay-layer');
+    let mInteractionLayer = mSvg.append('g').attr('id', 'main-interaction-layer');
 
     let mPanning = false;
     let mViewTransform = { x: 0, y: 0, rotation: 0 };
@@ -52,14 +26,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mLineHighlight = new LineHighlight(mVizLayer);
     let mTextInputBox = new TextInputBox();
 
-    let mTooltip = new ToolTip("main-tooltip");
-    let mTooltipSetTo = ""
+    let mTooltip = new ToolTip('main-tooltip');
+    let mTooltipSetTo = ''
 
     FilterUtil.initializeShadowFilter(mSvg);
     FilterUtil.setFilterDisplayArea(0, 0, mSvg.attr('width'), mSvg.attr('height'));
 
     let mMainOverlay = mVizOverlayLayer.append('rect')
-        .attr('id', "main-viz-overlay")
+        .attr('id', 'main-viz-overlay')
         .attr('x', 0)
         .attr('y', 0)
         .attr('height', mSvg.attr('height'))
@@ -67,12 +41,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         .attr('fill', 'white')
         .attr('opacity', '0');
 
-    let mLinkLine = mInteractionLayer.append("line")
+    let mLinkLine = mInteractionLayer.append('line')
         .attr('stroke-width', 0.5)
         .attr('stroke', 'black')
         .attr('opacity', 0.6);
 
-    window.addEventListener("resize", () => {
+    window.addEventListener('resize', () => {
         mSvg.attr('width', window.innerWidth)
             .attr('height', window.innerHeight);
         mMainOverlay.attr('width', window.innerWidth)
@@ -82,16 +56,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mWorkspace;
     let mModelController = new ModelController();
 
-    let mDrawerController = new DrawerController("#data-drawer");
+    let mDrawerController = new DrawerController('#data-drawer');
     mDrawerController.setDrawerResizedCallback((width) => {
-        mLensSvg.attr("width", width);
+        mLensSvg.attr('width', width);
         if (mLensController.getCurrentTimelineId()) {
             if (mLensController.getCurrentTimelineId()) {
                 showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
             }
         }
     })
-    $("#data-drawer").find('.close-button').on('click', () => {
+    $('#data-drawer').find('.close-button').on('click', () => {
         mDrawerController.closeDrawer();
         mDataTableController.deselectCells();
         $('#link-button-div').hide();
@@ -99,8 +73,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     // note that this needs to happen after we set drawer controller
     let mLensSvg = d3.select('#lens-view').append('svg')
-        .attr('width', $("#lens-view").width())
-        .attr('height', $("#lens-view").height());
+        .attr('width', $('#lens-view').width())
+        .attr('height', $('#lens-view').height());
     let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
     mLensController.setPanCallback((timelineId, centerPercent, centerHeight) => {
         if (timelineId && mModelController.getModel().getTimelineById(timelineId)) {
@@ -121,12 +95,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mLineViewController = new LineViewController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mLineViewController.setLineDragStartCallback((timelineId, pointerEvent) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             mSelectionController.onTimelineDragStart(timelineId, screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY }));
-        } if (mMode == MODE_PIN) {
+        } if (mMode == Mode.PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             if (!timeline) {
-                console.error("Bad timeline id! " + timelineId);
+                console.error('Bad timeline id! ' + timelineId);
                 return;
             }
 
@@ -144,16 +118,16 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDraggingTimePin = timePin;
 
             pinDrag(timeline, timePin, linePoint.percent);
-        } else if (mMode == MODE_LENS) {
+        } else if (mMode == Mode.LENS) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
-            if (!timeline) { console.error("Bad timeline id! " + timelineId); return; }
+            if (!timeline) { console.error('Bad timeline id! ' + timelineId); return; }
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
             showLensView(timelineId, linePoint.percent);
             mLensController.focus(timelineId, linePoint.percent);
-        } else if (mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_LINK || mMode == MODE_LENS || mMode == MODE_SCISSORS) {
+        } else if (mMode == Mode.TEXT || mMode == Mode.IMAGE || mMode == Mode.LINK || mMode == Mode.LENS || mMode == Mode.SCISSORS) {
             mDragStartPosition = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-        } else if (mMode == MODE_IMAGE_LINK) {
+        } else if (mMode == Mode.IMAGE_LINK) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -165,10 +139,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     mLineViewController.setLineDragCallback((timelineId, coords) => {
-        if (mMode == MODE_PIN) {
+        if (mMode == Mode.PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             pinDrag(timeline, mDraggingTimePin, PathMath.getClosestPointOnPath(coords, timeline.points).percent);
-        } else if (mMode == MODE_LENS) {
+        } else if (mMode == Mode.LENS) {
             let linePoint = PathMath.getClosestPointOnPath(coords,
                 mModelController.getModel().getTimelineById(timelineId).points);
 
@@ -179,26 +153,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mLineViewController.setLineDragEndCallback((timelineId, coords) => {
         let linePoint = PathMath.getClosestPointOnPath(coords,
             mModelController.getModel().getTimelineById(timelineId).points);
-        if (mMode == MODE_PIN) {
+        if (mMode == Mode.PIN) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
             mDraggingTimePin = null;
-        } else if (mMode == MODE_TEXT) {
+        } else if (mMode == Mode.TEXT) {
             // TODO: Open the text input in new comment mode.
             // TODO: Create in pointer down instead and initiate a drag on the text 
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
                 let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
-                mModelController.addBoundTextRow(timelineId, "<text>", time);
+                mModelController.addBoundTextRow(timelineId, '<text>', time);
             } else {
                 let timePin = new DataStructs.TimePin(linePoint.percent);
                 timePin.timePercent = mModelController.getModel()
                     .mapLinePercentToTime(timelineId, linePoint.percent);
 
-                mModelController.addBoundTextRow(timelineId, "<text>", "", timePin);
+                mModelController.addBoundTextRow(timelineId, '<text>', '', timePin);
             }
 
             modelUpdated();
-        } else if (mMode == MODE_IMAGE) {
+        } else if (mMode == Mode.IMAGE) {
             FileHandler.getImageFile().then((imageData) => {
                 if (mModelController.getModel().hasTimeMapping(timelineId)) {
                     let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
@@ -208,12 +182,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     timePin.timePercent = mModelController.getModel()
                         .mapLinePercentToTime(timelineId, linePoint.percent);
 
-                    mModelController.addBoundImage(timelineId, imageData, "", timePin);
+                    mModelController.addBoundImage(timelineId, imageData, '', timePin);
                 }
 
                 modelUpdated();
             })
-        } else if (mMode == MODE_LINK) {
+        } else if (mMode == Mode.LINK) {
             mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
 
             mDataTableController.deselectCells();
@@ -221,19 +195,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             modelUpdated();
             setDefaultMode();
-        } else if (mMode == MODE_COLOR_BUCKET) {
+        } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateTimelineColor(timelineId, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             setColorBrushColor(timeline.color);
-        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BUCKET_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             setColorBucketColor(timeline.color);
-        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+        } else if (mMode == Mode.LINE_DRAWING_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             setLineDrawingColor(timeline.color);
-        } else if (mMode == MODE_SCISSORS) {
+        } else if (mMode == Mode.SCISSORS) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
             let points1 = [];
             let points2 = timeline.points.map(p => Object.assign({}, { x: p.x, y: p.y }));
@@ -259,21 +233,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     })
     mLineViewController.setPointerEnterCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
+        if (mMode == Mode.SELECTION || mMode == Mode.TEXT || mMode == Mode.IMAGE || mMode == Mode.PIN) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
             mDataTableController.highlightCells(mModelController.getModel().getTimelineHighlightData(timelineId));
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_LINK) {
+        } else if (mMode == Mode.LINK) {
             FilterUtil.applyShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         }
     })
     mLineViewController.setPointerMoveCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
+        if (mMode == Mode.SELECTION || mMode == Mode.TEXT || mMode == Mode.IMAGE || mMode == Mode.PIN) {
             showLineTime(timelineId, { x: event.clientX, y: event.clientY });
         }
     });
     mLineViewController.setPointerOutCallback((event, timelineId) => {
-        if (mMode == MODE_SELECTION || mMode == MODE_TEXT || mMode == MODE_IMAGE || mMode == MODE_PIN) {
+        if (mMode == Mode.SELECTION || mMode == Mode.TEXT || mMode == Mode.IMAGE || mMode == Mode.PIN) {
             if (mTooltipSetTo == timelineId) {
                 mTooltip.hide();
             }
@@ -281,14 +255,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mMouseDropShadow.hide();
             mDataTableController.highlightCells({});
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
-        } else if (mMode == MODE_LINK) {
+        } else if (mMode == Mode.LINK) {
             FilterUtil.removeShadowFilter(mVizLayer.selectAll('[timeline-id="' + timelineId + '"]'));
         }
     })
 
     let mStrokeController = new StrokeController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mStrokeController.setDragStartCallback((strokeId, pointerEvent) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             if (mModelController.isCanvasStroke(strokeId)) {
                 let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
                 let stroke = mModelController.getModel().getStrokeById(strokeId);
@@ -298,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mStrokeController.setDragCallback((strokeId, coords) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             if (mModelController.isCanvasStroke(strokeId)) {
                 let stroke = mModelController.getModel().getStrokeById(strokeId);
                 let diff = MathUtil.subtractAFromB(mDragStartPosition, coords);
@@ -311,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mStrokeController.setDragEndCallback((strokeId, coords) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             if (mModelController.isCanvasStroke(strokeId)) {
                 let stroke = mModelController.getModel().getStrokeById(strokeId);
                 let diff = MathUtil.subtractAFromB(mDragStartPosition, coords);
@@ -322,14 +296,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 }));
                 modelUpdated();
             }
-        } else if (mMode == MODE_COLOR_BUCKET) {
+        } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateStrokeColor(strokeId, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             setColorBrushColor(mModelController.getModel().getStrokeById(strokeId).color);
-        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BUCKET_EYEDROPPER) {
             setColorBucketColor(mModelController.getModel().getStrokeById(strokeId).color);
-        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+        } else if (mMode == Mode.LINE_DRAWING_EYEDROPPER) {
             setLineDrawingColor(mModelController.getModel().getStrokeById(strokeId).color);
         }
     })
@@ -351,14 +325,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mTimePinController.setPointerEnterCallback((event, timePin) => {
         let screenCoords = { x: event.clientX, y: event.clientY };
-        let message = timePin.timeStamp ? DataUtil.getFormattedDate(timePin.timeStamp) : "Percent of time: " + Math.round(timePin.timePercent * 100) + "%";
+        let message = timePin.timeStamp ? DataUtil.getFormattedDate(timePin.timeStamp) : 'Percent of time: ' + Math.round(timePin.timePercent * 100) + '%';
 
         let timeCell = mModelController.getModel().getTimeCellForPin(timePin.id);
         if (timeCell) {
             if (timeCell.isValid()) {
-                console.error("Bad state. Valid time linked to pin.", timeCell, timePin)
+                console.error('Bad state. Valid time linked to pin.', timeCell, timePin)
             } else if (timeCell.getValue()) {
-                message = "<div>" + message + "<div></div>" + timeCell.getValue() + "</div>";
+                message = '<div>' + message + '<div></div>' + timeCell.getValue() + '</div>';
             }
         }
 
@@ -380,9 +354,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     mTextController.setDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
+        if (mMode == Mode.TEXT || mMode == Mode.SELECTION) {
             showTextContextMenu(cellBindingData);
-        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -399,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         return coords;
     });
     mTextController.setDragCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
+        if (mMode == Mode.TEXT || mMode == Mode.SELECTION) {
             hideTextContextMenu();
 
             // if we didn't actually move, don't do anything.
@@ -429,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
                 mTextController.drawCanvasText(bindingData);
             }
-        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -452,7 +426,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mTextController.setDragEndCallback((cellBindingData, startPos, coords) => {
-        if (mMode == MODE_TEXT || mMode == MODE_SELECTION) {
+        if (mMode == Mode.TEXT || mMode == Mode.SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -462,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
 
             showTextContextMenu(cellBindingData);
-        } else if (mMode == MODE_PIN && !cellBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -504,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let textBox = mTextController.getTextBoundingBoxes()
             .find(b => b.cellBindingId == cellBindingData.cellBinding.id);
         if (!textBox) {
-            console.error("textbox not found!", cellBindingData);
+            console.error('textbox not found!', cellBindingData);
             return;
         }
         let coords = svgCoordsToScreen({ x: textBox.x2, y: textBox.y1 })
@@ -524,11 +498,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mImageController = new ImageController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mImageController.setDragStartCallback((imageBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-        if (mMode == MODE_PAN) {
+        if (mMode == Mode.PAN) {
             mPanning = true;
-        } else if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+        } else if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
             showImageContextMenu(imageBindingData);
-        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !imageBindingData.isCanvasBinding) {
             let linePoint = PathMath.getClosestPointOnPath(coords, imageBindingData.timeline.points);
 
             // sets mDraggingTimePin
@@ -544,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         return coords;
     });
     mImageController.setDragCallback((imageBindingData, startPos, coords) => {
-        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+        if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
             hideImageContextMenu();
 
             // if we didn't actually move, don't do anything.
@@ -555,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             imageBindingData = imageBindingData.copy();
             imageBindingData.imageBinding.offset = offset;
             mImageController.redrawImage(imageBindingData);
-        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !imageBindingData.isCanvasBinding) {
             let timeline = imageBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -578,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mImageController.setDragEndCallback((imageBindingData, startPos, coords) => {
-        if (mMode == MODE_IMAGE || mMode == MODE_SELECTION) {
+        if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
@@ -590,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             imageBindingData.imageBinding.offset = offset;
             showImageContextMenu(imageBindingData);
-        } else if (mMode == MODE_PIN && !imageBindingData.isCanvasBinding) {
+        } else if (mMode == Mode.PIN && !imageBindingData.isCanvasBinding) {
             let timeline = imageBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -638,11 +612,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         if (imageBindingData.isCanvasBinding) {
-            $("#image-link-button").show();
-            $("#image-unlink-button").hide();
+            $('#image-link-button').show();
+            $('#image-unlink-button').hide();
         } else {
-            $("#image-unlink-button").show();
-            $("#image-link-button").hide();
+            $('#image-unlink-button').show();
+            $('#image-link-button').hide();
         }
 
         $('#image-context-menu-div').css('top', coords.y);
@@ -662,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mDataPointController.setPointDragStartCallback((cellBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
-        if (mMode == MODE_PIN) {
+        if (mMode == Mode.PIN) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -677,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         return coords;
     });
     mDataPointController.setPointDragCallback((cellBindingData, coords) => {
-        if (mMode == MODE_PIN) {
+        if (mMode == Mode.PIN) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -698,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mDataPointController.setPointDragEndCallback((cellBindingData, coords) => {
-        if (mMode == MODE_PIN) {
+        if (mMode == Mode.PIN) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
 
@@ -723,25 +697,25 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mDataPointController.setAxisDragStartCallback((axis, controlNumber, event) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             let model = mModelController.getModel();
             showAxisContextMenu(axis, model.getTimelineByAxisId(axis.id));
-        } else if (mMode == MODE_COLOR_BUCKET) {
+        } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateAxisColor(axis.id, controlNumber, mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setColorBrushColor(color);
-        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BUCKET_EYEDROPPER) {
             let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setColorBucketColor(color);
-        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+        } else if (mMode == Mode.LINE_DRAWING_EYEDROPPER) {
             let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
             if (color) setLineDrawingColor(color);
         }
     })
     mDataPointController.setAxisDragCallback((axis, controlNumber, coords) => {
-        if (mMode == MODE_SELECTION) {
+        if (mMode == Mode.SELECTION) {
             hideAxisContextMenu();
             let model = mModelController.getModel();
 
@@ -771,13 +745,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
             boundData.forEach(cbd => {
                 cbd.axisBinding = axis;
             })
-            if (boundData.length == 0) { console.error("Bad state. Should not display a axis that has no data.", axis.id); return; }
+            if (boundData.length == 0) { console.error('Bad state. Should not display a axis that has no data.', axis.id); return; }
 
             mDataPointController.drawDataSet(boundData);
         }
     });
     mDataPointController.setAxisDragEndCallback((axis, controlNumber, coords) => {
-        if (mMode == MODE_SELECTION) {// copy to avoid leaks
+        if (mMode == Mode.SELECTION) {// copy to avoid leaks
             let model = mModelController.getModel();
 
             // copy to avoid leaks
@@ -922,35 +896,35 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mEraserController.setEraseCallback(canvasMask => {
-        if (mMode == MODE_ERASER_TEXT ||
-            mMode == MODE_ERASER_TIMELINE ||
-            mMode == MODE_ERASER_STROKE ||
-            mMode == MODE_ERASER_POINT ||
-            mMode == MODE_ERASER_PIN ||
-            mMode == MODE_ERASER_IMAGE ||
-            mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_TEXT ||
+            mMode == Mode.ERASER_TIMELINE ||
+            mMode == Mode.ERASER_STROKE ||
+            mMode == Mode.ERASER_POINT ||
+            mMode == Mode.ERASER_PIN ||
+            mMode == Mode.ERASER_IMAGE ||
+            mMode == Mode.ERASER) {
             mModelController.undoStackPush();
         }
 
         // check/erase lines
-        if (mMode == MODE_ERASER_TEXT || mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_TEXT || mMode == Mode.ERASER) {
             // text has to be erased first because we need the rendering information.
             let boundingBoxes = mTextController.getTextBoundingBoxes();
             mModelController.eraseMaskedText(canvasMask, boundingBoxes);
         }
-        if (mMode == MODE_ERASER_TIMELINE || mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_TIMELINE || mMode == Mode.ERASER) {
             mModelController.eraseMaskedTimelines(canvasMask);
         }
-        if (mMode == MODE_ERASER_STROKE || mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
             mModelController.eraseMaskedStrokes(canvasMask);
         }
-        if (mMode == MODE_ERASER_POINT || mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
             mModelController.eraseMaskedDataPoints(canvasMask);
         }
-        if (mMode == MODE_ERASER_IMAGE || mMode == MODE_ERASER) {
+        if (mMode == Mode.ERASER_IMAGE || mMode == Mode.ERASER) {
             mModelController.eraseMaskedImages(canvasMask);
         }
-        if (mMode == MODE_ERASER_PIN) {
+        if (mMode == Mode.ERASER_PIN) {
             // only do this if we are specifically erasing pins, because 
             // pins will be deleted with the erased line section.
             mModelController.eraseMaskedPins(canvasMask);
@@ -982,7 +956,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (isFirstColOnly) {
             $('#link-button-div').hide();
         } else {
-            let maxPos = window.innerHeight - mLensSvg.attr("height") - 50;
+            let maxPos = window.innerHeight - mLensSvg.attr('height') - 50;
             let minPos = 10;
             let position = (yTop + yBottom) / 2 - $('#link-button-div').height() / 2 - 10;
 
@@ -992,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataTableController.setOnDeselectionCallback((yTop, yBottom) => {
         $('#link-button-div').hide();
-        if (mMode == MODE_LINK) setDefaultMode();
+        if (mMode == Mode.LINK) setDefaultMode();
     });
     mDataTableController.setTableUpdatedCallback((table, changeType, changeData) => {
         mModelController.tableUpdated(table, changeType, changeData);
@@ -1007,33 +981,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataTableController.setShouldDeselectCallback(() => {
         // this is an annoying integration thing.
-        return mMode != MODE_LINK;F
+        return mMode != Mode.LINK; F
     })
 
     mMainOverlay.on('pointerdown', function (pointerEvent) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
-        if (mMode == MODE_PAN) {
+        if (mMode == Mode.PAN) {
             mPanning = true;
-        } else if (mMode == MODE_COLOR_BUCKET) {
+        } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateCanvasColor(mBucketColor);
             modelUpdated();
-        } else if (mMode == MODE_COLOR_BRUSH_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             setColorBrushColor(mModelController.getModel().getCanvas().color);
-        } else if (mMode == MODE_COLOR_BUCKET_EYEDROPPER) {
+        } else if (mMode == Mode.COLOR_BUCKET_EYEDROPPER) {
             setColorBucketColor(mModelController.getModel().getCanvas().color);
-        } else if (mMode == MODE_LINE_DRAWING_EYEDROPPER) {
+        } else if (mMode == Mode.LINE_DRAWING_EYEDROPPER) {
             setLineDrawingColor(mModelController.getModel().getCanvas().color);
-        } else if (mMode == MODE_LENS) {
+        } else if (mMode == Mode.LENS) {
             hideLensView();
-        } else if (mMode == MODE_TEXT) {
+        } else if (mMode == Mode.TEXT) {
             if (mTextInputBox.isShowing()) {
                 mTextInputBox.returnText();
             } else {
-                mModelController.addCanvasText("<text>", coords);
+                mModelController.addCanvasText('<text>', coords);
                 modelUpdated();
             }
-        } else if (mMode == MODE_IMAGE) {
+        } else if (mMode == Mode.IMAGE) {
             FileHandler.getImageFile().then(imageData => {
                 mModelController.addCanvasImage(imageData, coords);
                 modelUpdated();
@@ -1048,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSelectionController.onPointerDown(coords);
     })
 
-    $(document).on("pointerdown", function (event) {
+    $(document).on('pointerdown', function (event) {
         if ($(event.target).closest('#text-context-menu-div').length === 0 &&
             $(event.target).closest('.text-interaction-target').length === 0) {
             // if we didn't click on a button in the context div
@@ -1068,14 +1042,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         if ($(event.target).closest('#color-picker-div').length === 0 &&
-            $(event.target).closest("#color-brush-button-color-picker").length === 0 &&
-            $(event.target).closest("#color-bucket-button-color-picker").length === 0 &&
-            $(event.target).closest("#line-drawing-button-color-picker").length === 0) {
+            $(event.target).closest('#color-brush-button-color-picker').length === 0 &&
+            $(event.target).closest('#color-bucket-button-color-picker').length === 0 &&
+            $(event.target).closest('#line-drawing-button-color-picker').length === 0) {
             // if we didn't click on the div or an open button
             $('#color-picker-div').hide();
         }
 
-        if (mMode == MODE_IMAGE_LINK) {
+        if (mMode == Mode.IMAGE_LINK) {
             setDefaultMode();
         }
     });
@@ -1084,17 +1058,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let pointerEvent = e.originalEvent;
         let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
 
-        mDrawerController.onPointerMove(screenCoords)
+        mDrawerController.onPointerMove(screenCoords);
+        mLensController.onPointerMove(screenCoords);
 
         let coords = screenToSvgCoords(screenCoords);
 
-        if (mMode == MODE_PAN && mPanning) {
+        if (mMode == Mode.PAN && mPanning) {
             mViewTransform.x = mViewTransform.x + pointerEvent.movementX
             mViewTransform.y = mViewTransform.y + pointerEvent.movementY
             setViewToTransform();
-        } else if (mMode == MODE_IMAGE_LINK) {
+        } else if (mMode == Mode.IMAGE_LINK) {
             if (!mLinkingBinding) {
-                console.error("No image linking binding set!");
+                console.error('No image linking binding set!');
                 setDefaultMode();
                 return;
             }
@@ -1121,7 +1096,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         });
     });
 
-    $(document).on("pointerup", function (e) {
+    $(document).on('pointerup', function (e) {
         let pointerEvent = e.originalEvent;
         if (mPanning) {
             mPanning = false;
@@ -1129,7 +1104,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
 
-        mDrawerController.onPointerUp(screenCoords)
+        mDrawerController.onPointerUp(screenCoords);
+        mLensController.onPointerUp(screenCoords);
 
         let coords = screenToSvgCoords(screenCoords);
 
@@ -1174,21 +1150,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
 
-    $(document).on("wheel", function (e) {
+    $(document).on('wheel', function (e) {
         e = e.originalEvent;
-        if (mMode == MODE_DEFORM) {
+        if (mMode == Mode.DEFORM) {
             mDeformController.onWheel(e.wheelDelta);
-        } if (mMode == MODE_ERASER_TEXT ||
-            mMode == MODE_ERASER_TIMELINE ||
-            mMode == MODE_ERASER_STROKE ||
-            mMode == MODE_ERASER_POINT ||
-            mMode == MODE_ERASER_PIN ||
-            mMode == MODE_ERASER_IMAGE ||
-            mMode == MODE_ERASER) {
+        } if (mMode == Mode.ERASER_TEXT ||
+            mMode == Mode.ERASER_TIMELINE ||
+            mMode == Mode.ERASER_STROKE ||
+            mMode == Mode.ERASER_POINT ||
+            mMode == Mode.ERASER_PIN ||
+            mMode == Mode.ERASER_IMAGE ||
+            mMode == Mode.ERASER) {
             mEraserController.onWheel(e.wheelDelta);
-        } else if (mMode == MODE_SMOOTH) {
+        } else if (mMode == Mode.SMOOTH) {
             mSmoothController.onWheel(e.wheelDelta);
-        } else if (mMode == MODE_COLOR_BRUSH) {
+        } else if (mMode == Mode.COLOR_BRUSH) {
             mColorBrushController.onWheel(e.wheelDelta);
             mLensController.onWheel(e.wheelDelta);
         }
@@ -1212,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let selectedCount = [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]
             .reduce((count, item) => item == null ? count : count + 1, 0);
         if (selectedCount > 1) {
-            console.error("Multiple selected items!", [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]);
+            console.error('Multiple selected items!', [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]);
             return;
         };
 
@@ -1234,18 +1210,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function screenToSvgCoords(screenCoords) {
         if (isNaN(parseInt(screenCoords.x)) || isNaN(parseInt(screenCoords.y))) {
-            console.error("Bad screen coords", screenCoords);
+            console.error('Bad screen coords', screenCoords);
             return { x: 0, y: 0 };
         }
 
         let svgViewportPos = mSvg.node().getBoundingClientRect();
         if (isNaN(parseInt(svgViewportPos.x)) || isNaN(parseInt(svgViewportPos.y))) {
-            console.error("Bad svg bounding box!", svgViewportPos);
+            console.error('Bad svg bounding box!', svgViewportPos);
             return { x: 0, y: 0 };
         }
 
         if (isNaN(parseInt(mViewTransform.x)) || isNaN(parseInt(mViewTransform.y))) {
-            console.error("Bad veiw state!", mViewTransform);
+            console.error('Bad veiw state!', mViewTransform);
             return { x: 0, y: 0 };
         }
 
@@ -1264,8 +1240,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function setViewToTransform() {
-        mVizLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
-        mInteractionLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
+        mVizLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
+        mInteractionLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
         FilterUtil.setFilterDisplayArea(-mViewTransform.x, -mViewTransform.y, mSvg.attr('width'), mSvg.attr('height'));
     }
 
@@ -1277,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         changedPin.linePercent = linePercent;
 
         let timelineHasMapping = mModelController.getModel().hasTimeMapping(timeline.id);
-        let timeAttribute = timelineHasMapping ? "timeStamp" : "timePercent";
+        let timeAttribute = timelineHasMapping ? 'timeStamp' : 'timePercent';
 
         let tempPins = DataUtil.filterTimePinByChangedPin(timeline.timePins, changedPin, timeAttribute);
         mTimePinController.drawPinTicks(timeline, tempPins);
@@ -1319,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             hideLensView();
         }
 
-        $("body").css("background-color", mModelController.getModel().getCanvas().color);
+        $('body').css('background-color', mModelController.getModel().getCanvas().color);
 
         if (mWorkspace) {
             mWorkspace.writeVersion(mModelController.getModelAsObject());
@@ -1327,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     // Setup main view buttons' events
-    $("#datasheet-toggle-button").on("click", () => {
+    $('#datasheet-toggle-button').on('click', () => {
         if (mDrawerController.isOpen()) {
             mDrawerController.closeDrawer();
             mDataTableController.deselectCells();
@@ -1336,21 +1312,21 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDrawerController.openDrawer();
         }
     })
-    setupButtonTooltip("#datasheet-toggle-button", "Opens and closes the datasheets and lens view");
+    setupButtonTooltip('#datasheet-toggle-button', 'Opens and closes the datasheets and lens view');
 
-    $("#undo-button").on("click", () => { doUndo(); })
-    setupButtonTooltip("#undo-button", "Undo last action");
+    $('#undo-button').on('click', () => { doUndo(); })
+    setupButtonTooltip('#undo-button', 'Undo last action');
 
-    $("#redo-button").on("click", () => { doRedo(); })
-    setupButtonTooltip("#redo-button", "Redo last undone action");
+    $('#redo-button').on('click', () => { doRedo(); })
+    setupButtonTooltip('#redo-button', 'Redo last undone action');
 
-    $("#upload-button").on("click", async () => {
+    $('#upload-button').on('click', async () => {
         setDefaultMode();
-        showSubMenu("#upload-button");
+        showSubMenu('#upload-button');
     })
-    setupButtonTooltip("#upload-button", "Shows menu to load previous work");
+    setupButtonTooltip('#upload-button', 'Shows menu to load previous work');
 
-    $("#upload-button-folder").on("click", async () => {
+    $('#upload-button-folder').on('click', async () => {
         try {
             setDefaultMode();
 
@@ -1361,17 +1337,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.setModelFromObject(model);
             modelUpdated();
         } catch (e) {
-            if (e.message.includes("The user aborted a request")) return;
-            if (e.message.includes("Missing folders")) {
-                alert("Cannot open workspace: " + e.message)
+            if (e.message.includes('The user aborted a request')) return;
+            if (e.message.includes('Missing folders')) {
+                alert('Cannot open workspace: ' + e.message)
                 return;
             };
-            console.error("Error fetching model", e); return;
+            console.error('Error fetching model', e); return;
         }
     })
-    setupButtonTooltip("#upload-button-folder", "Select and load a viz from a workspace folder");
+    setupButtonTooltip('#upload-button-folder', 'Select and load a viz from a workspace folder');
 
-    $("#upload-button-json").on("click", async () => {
+    $('#upload-button-json').on('click', async () => {
         let model;
         try {
             model = await FileHandler.getJSONModel();
@@ -1379,43 +1355,43 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
             setDefaultMode();
         } catch (e) {
-            if (e.message.includes("The user aborted a request")) return;
-            console.error("Error loading workspace", e); return;
+            if (e.message.includes('The user aborted a request')) return;
+            console.error('Error loading workspace', e); return;
         }
     })
-    setupButtonTooltip("#upload-button-json", "Replace current viz with a previously downloaded json file");
+    setupButtonTooltip('#upload-button-json', 'Replace current viz with a previously downloaded json file');
 
-    $("#download-button").on("click", () => {
+    $('#download-button').on('click', () => {
         setDefaultMode();
-        showSubMenu("#download-button");
+        showSubMenu('#download-button');
     })
-    setupButtonTooltip("#download-button", "Shows menu with options to save your work");
+    setupButtonTooltip('#download-button', 'Shows menu with options to save your work');
 
-    $("#download-button-folder").on("click", async () => {
+    $('#download-button-folder').on('click', async () => {
         try {
             mWorkspace = await FileHandler.getWorkspace(true);
             mWorkspace.writeVersion(mModelController.getModelAsObject());
 
             workspaceSet();
         } catch (e) {
-            if (e.message.includes("The user aborted a request")) return;
-            if (e.message.includes("Folder not empty")) {
-                alert("Cannot open workspace: " + e.message)
+            if (e.message.includes('The user aborted a request')) return;
+            if (e.message.includes('Folder not empty')) {
+                alert('Cannot open workspace: ' + e.message)
                 return;
             };
-            console.error("Error saving workspace", e); return;
+            console.error('Error saving workspace', e); return;
         }
     })
-    setupButtonTooltip("#download-button-folder", "Set the workspace folder for this visualization");
+    setupButtonTooltip('#download-button-folder', 'Set the workspace folder for this visualization');
 
-    $("#download-button-json").on("click", () => {
+    $('#download-button-json').on('click', () => {
         FileHandler.downloadJSON(mModelController.getModelAsObject());
     })
-    setupButtonTooltip("#download-button-json", "Package your image into a json file which can be uploaded later");
+    setupButtonTooltip('#download-button-json', 'Package your image into a json file which can be uploaded later');
 
-    $("#download-button-svg").on("click", () => {
+    $('#download-button-svg').on('click', () => {
         let viz = mVizLayer.clone(true);
-        viz.attr("transform", "translate(" + 0 + "," + 0 + ")");
+        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
         viz.selectAll('g').each(function () {
             if (this.childElementCount == 0) {
                 d3.select(this).remove();
@@ -1425,20 +1401,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let { x, y, width, height } = viz.node().getBBox();
 
-        let exportSVG = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "svg"))
+        let exportSVG = d3.select(document.createElementNS('http://www.w3.org/2000/svg', 'svg'))
             .attr('width', width)
             .attr('height', height)
-            .attr('viewBox', x + " " + y + " " + width + " " + height)
-            .style("background-color", mModelController.getModel().getCanvas().color)
-            .attr("xmlns", "http://www.w3.org/2000/svg");
+            .attr('viewBox', x + ' ' + y + ' ' + width + ' ' + height)
+            .style('background-color', mModelController.getModel().getCanvas().color)
+            .attr('xmlns', 'http://www.w3.org/2000/svg');
         exportSVG.append(function () { return viz.node() });
         FileHandler.downloadSVG(exportSVG.node())
     })
-    setupButtonTooltip("#download-button-svg", "Download your viz as svg");
+    setupButtonTooltip('#download-button-svg', 'Download your viz as svg');
 
-    $("#download-button-png").on("click", async () => {
+    $('#download-button-png').on('click', async () => {
         let viz = mVizLayer.clone(true);
-        viz.attr("transform", "translate(" + 0 + "," + 0 + ")");
+        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
         viz.selectAll('g').each(function () {
             if (this.childElementCount == 0) {
                 d3.select(this).remove();
@@ -1455,164 +1431,163 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let canvas = await DataUtil.svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
         FileHandler.downloadPNG(canvas)
     })
-    setupButtonTooltip("#download-button-png", "Download your viz as png");
+    setupButtonTooltip('#download-button-png', 'Download your viz as png');
     // ---------------
-    setupModeButton("#line-drawing-button", MODE_LINE_DRAWING, () => {
+    setupModeButton('#line-drawing-button', Mode.LINE_DRAWING, () => {
         mLineDrawingController.setActive(true);
     });
-    setupButtonTooltip("#line-drawing-button", "Draws timelines")
-    $("#line-drawing-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/timeline_drawing.mp4");
+    setupButtonTooltip('#line-drawing-button', 'Draws timelines')
+    $('#line-drawing-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/timeline_drawing.mp4');
     })
-    setupSubModeButton('#line-drawing-button', '-eyedropper', MODE_LINE_DRAWING_EYEDROPPER, setEyeDropperActive);
-    setupButtonTooltip('#line-drawing-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#line-drawing-button-color-picker").on("click", (e) => {
+    setupSubModeButton('#line-drawing-button', '-eyedropper', Mode.LINE_DRAWING_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#line-drawing-button-eyedropper', 'Copies the color from anything that can be colored')
+    $('#line-drawing-button-color-picker').on('click', (e) => {
         setColorPickerInputColor(mLineDrawingController.getColor());
         toggleColorPicker(e);
     });
-    setupButtonTooltip("#line-drawing-button-color-picker", "Choose timeline color");
+    setupButtonTooltip('#line-drawing-button-color-picker', 'Choose timeline color');
 
 
-    $("#line-manipulation-button").on("click", () => {
-        if (mMode == MODE_DEFORM) {
+    $('#line-manipulation-button').on('click', () => {
+        if (mMode == Mode.DEFORM) {
             setDefaultMode();
         } else {
-            $("#line-manipulation-button-deform").trigger("click");
+            $('#line-manipulation-button-deform').trigger('click');
         }
     })
-    setupButtonTooltip("#line-manipulation-button", "Smooths and deforms timelines")
-    $("#line-manipulation-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/deform.mp4");
+    setupButtonTooltip('#line-manipulation-button', 'Smooths and deforms timelines')
+    $('#line-manipulation-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/deform.mp4');
     })
-    setupSubModeButton("#line-manipulation-button", "-deform", MODE_DEFORM, () => {
+    setupSubModeButton('#line-manipulation-button', '-deform', Mode.DEFORM, () => {
         mDeformController.setActive(true);
     });
-    setupButtonTooltip("#line-manipulation-button-deform", "Deforms timelines")
-    setupSubModeButton("#line-manipulation-button", "-smooth", MODE_SMOOTH, () => {
+    setupButtonTooltip('#line-manipulation-button-deform', 'Deforms timelines')
+    setupSubModeButton('#line-manipulation-button', '-smooth', Mode.SMOOTH, () => {
         mSmoothController.setActive(true);
     });
-    setupButtonTooltip("#line-manipulation-button-smooth", "Flattens timelines")
+    setupButtonTooltip('#line-manipulation-button-smooth', 'Flattens timelines')
 
-    setupModeButton('#scissors-button', MODE_SCISSORS, () => {
+    setupModeButton('#scissors-button', Mode.SCISSORS, () => {
         mLineViewController.setActive(true);
     });
-    setupButtonTooltip('#scissors-button', "Splits timelines")
-    $('#scissors-button').on("dblclick", function () {
-        showVideoViewer("img/tutorial/scissors.mp4");
+    setupButtonTooltip('#scissors-button', 'Splits timelines')
+    $('#scissors-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/scissors.mp4');
     })
 
-    $("#toggle-timeline-style-button").on("click", () => {
+    $('#toggle-timeline-style-button').on('click', () => {
         mLineViewController.toggleStyle(mModelController.getModel());
     })
-    setupButtonTooltip('#toggle-timeline-style-button', "Flips through available timeline styles")
+    setupButtonTooltip('#toggle-timeline-style-button', 'Flips through available timeline styles')
     // ---------------
-    setupModeButton('#color-brush-button', MODE_COLOR_BRUSH, () => {
+    setupModeButton('#color-brush-button', Mode.COLOR_BRUSH, () => {
         mColorBrushController.setActive(true);
-        mLensController.setColorBrushActive(true);
     });
-    setupButtonTooltip('#color-brush-button', "Draws annotations on the diagram and in the lens view")
-    $('#color-brush-button',).on("dblclick", function () {
-        showVideoViewer("img/tutorial/stroke_annotation.mp4");
+    setupButtonTooltip('#color-brush-button', 'Draws annotations on the diagram and in the lens view')
+    $('#color-brush-button',).on('dblclick', function () {
+        showVideoViewer('img/tutorial/stroke_annotation.mp4');
     })
-    setupSubModeButton('#color-brush-button', '-eyedropper', MODE_COLOR_BRUSH_EYEDROPPER, setEyeDropperActive);
-    setupButtonTooltip('#color-brush-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#color-brush-button-color-picker").on("click", (e) => {
+    setupSubModeButton('#color-brush-button', '-eyedropper', Mode.COLOR_BRUSH_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#color-brush-button-eyedropper', 'Copies the color from anything that can be colored')
+    $('#color-brush-button-color-picker').on('click', (e) => {
         setColorPickerInputColor(mColorBrushController.getColor());
         toggleColorPicker(e);
     });
-    setupButtonTooltip("#color-brush-button-color-picker", "Choose brush color");
+    setupButtonTooltip('#color-brush-button-color-picker', 'Choose brush color');
 
-    $("#color-brush-button-grow").on("click", () => {
+    $('#color-brush-button-grow').on('click', () => {
         mColorBrushController.increaseBrushRadius();
         mLensController.increaseBrushRadius();
     })
-    $("#color-brush-button-shrink").on("click", () => {
+    $('#color-brush-button-shrink').on('click', () => {
         mColorBrushController.decreaseBrushRadius();
         mLensController.decreaseBrushRadius();
     })
 
 
-    setupModeButton('#text-button', MODE_TEXT, () => {
+    setupModeButton('#text-button', Mode.TEXT, () => {
         mLineViewController.setActive(true);
         mTextController.setActive(true);
     });
-    setupButtonTooltip('#text-button', "Creates text items on timelines or on the main view")
-    $('#text-button',).on("dblclick", function () {
-        showVideoViewer("img/tutorial/text.mp4");
+    setupButtonTooltip('#text-button', 'Creates text items on timelines or on the main view')
+    $('#text-button',).on('dblclick', function () {
+        showVideoViewer('img/tutorial/text.mp4');
     })
-    $("#toggle-font-button").on("click", () => {
+    $('#toggle-font-button').on('click', () => {
         if (!mSelectedCellBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         mModelController.toggleFont(mSelectedCellBindingId);
         modelUpdated();
     })
-    $("#toggle-font-weight-button").on("click", () => {
+    $('#toggle-font-weight-button').on('click', () => {
         if (!mSelectedCellBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         mModelController.toggleFontWeight(mSelectedCellBindingId);
         modelUpdated();
     })
-    $("#toggle-font-italics-button").on("click", () => {
+    $('#toggle-font-italics-button').on('click', () => {
         if (!mSelectedCellBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         mModelController.toggleFontItalics(mSelectedCellBindingId);
         modelUpdated();
     })
-    $("#increase-font-size-button").on("click", () => {
+    $('#increase-font-size-button').on('click', () => {
         if (!mSelectedCellBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         let cellBinding = mModelController.getModel().getCellBindingById(mSelectedCellBindingId);
         if (!cellBinding) {
-            console.error("Bad State! Cell binding not found", mSelectedCellBindingId);
+            console.error('Bad State! Cell binding not found', mSelectedCellBindingId);
             return;
         }
 
         mModelController.setFontSize(mSelectedCellBindingId, Math.min(cellBinding.fontSize + 4, 64));
         modelUpdated();
     })
-    $("#decrease-font-size-button").on("click", () => {
+    $('#decrease-font-size-button').on('click', () => {
         if (!mSelectedCellBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         let cellBinding = mModelController.getModel().getCellBindingById(mSelectedCellBindingId);
         if (!cellBinding) {
-            console.error("Bad State! Cell binding not found", mSelectedCellBindingId);
+            console.error('Bad State! Cell binding not found', mSelectedCellBindingId);
             return;
         }
 
         mModelController.setFontSize(mSelectedCellBindingId, Math.max(cellBinding.fontSize - 4, 4));
         modelUpdated();
     })
-    $("#delete-text-button").on("click", deleteSelected);
-    setupButtonTooltip("#delete-text-button", "Unlink this text from the visual");
+    $('#delete-text-button').on('click', deleteSelected);
+    setupButtonTooltip('#delete-text-button', 'Unlink this text from the visual');
 
-    setupModeButton('#image-button', MODE_IMAGE, () => {
+    setupModeButton('#image-button', Mode.IMAGE, () => {
         mLineViewController.setActive(true);
         mImageController.setActive(true);
     });
-    setupButtonTooltip('#image-button', "Add images to the viz")
-    $('#image-button').on("dblclick", function () {
-        showVideoViewer("img/tutorial/image.mp4");
+    setupButtonTooltip('#image-button', 'Add images to the viz')
+    $('#image-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/image.mp4');
     })
 
 
-    $("#image-unlink-button").on("click", () => {
+    $('#image-unlink-button').on('click', () => {
         if (!mSelectedImageBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
@@ -1622,36 +1597,36 @@ document.addEventListener('DOMContentLoaded', function (e) {
         setDefaultMode();
         modelUpdated();
     })
-    setupButtonTooltip("#image-unlink-button", "Detach image from line")
-    $("#delete-image-button").on("click", deleteSelected);
-    setupButtonTooltip("#delete-image-button", "Delete this image");
+    setupButtonTooltip('#image-unlink-button', 'Detach image from line')
+    $('#delete-image-button').on('click', deleteSelected);
+    setupButtonTooltip('#delete-image-button', 'Delete this image');
 
-    setupModeButton('#image-link-button', MODE_IMAGE_LINK, () => {
+    setupModeButton('#image-link-button', Mode.IMAGE_LINK, () => {
         if (!mSelectedImageBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             setDefaultMode();
             return;
         }
         mLinkingBinding = mModelController.getModel().getImageBindingById(mSelectedImageBindingId);
         mLineViewController.setActive(true);
     });
-    setupButtonTooltip("#image-link-button", "Attach image to line")
+    setupButtonTooltip('#image-link-button', 'Attach image to line')
 
-    $("#image-time-edit-button").on("click", (event) => {
+    $('#image-time-edit-button').on('click', (event) => {
         if (!mSelectedImageBindingId) {
-            console.error("Button should not be clickable!");
+            console.error('Button should not be clickable!');
             return;
         }
 
         let imageBinding = mModelController.getModel().getImageBindingById(mSelectedImageBindingId);
         if (!imageBinding) {
-            console.error("Image binding not found for id!", mSelectedImageBindingId);
+            console.error('Image binding not found for id!', mSelectedImageBindingId);
             return;
         }
 
         let screenCoords = { x: event.clientX, y: event.clientY };
 
-        let time = imageBinding.timeStamp ? DataUtil.getFormattedDate(imageBinding.timeStamp) : "";
+        let time = imageBinding.timeStamp ? DataUtil.getFormattedDate(imageBinding.timeStamp) : '';
         mTextInputBox.show(time, screenCoords.x, screenCoords.y, 100, 200);
         mTextInputBox.setTextChangedCallback((text) => {
             let time = new Date(text);
@@ -1668,189 +1643,188 @@ document.addEventListener('DOMContentLoaded', function (e) {
             return text && (!isNaN(new Date(text)) || !isNaN(new Date(parseInt(text))));
         })
     })
-    setupButtonTooltip("#image-time-edit-button", "Edit the time assigned to the image")
+    setupButtonTooltip('#image-time-edit-button', 'Edit the time assigned to the image')
 
 
-    setupModeButton('#pin-button', MODE_PIN, () => {
+    setupModeButton('#pin-button', Mode.PIN, () => {
         mLineViewController.setActive(true);
         mTimePinController.setActive(true);
         mDataPointController.setActive(true);
         mTextController.setActive(true);
         mImageController.setActive(true);
     });
-    setupButtonTooltip('#pin-button', "Creates and moves time pins on timelines")
-    $('#pin-button',).on("dblclick", function () {
-        showVideoViewer("img/tutorial/pin.mp4");
+    setupButtonTooltip('#pin-button', 'Creates and moves time pins on timelines')
+    $('#pin-button',).on('dblclick', function () {
+        showVideoViewer('img/tutorial/pin.mp4');
     })
 
     // ---------------
-    $("#selection-button").on("click", () => {
+    $('#selection-button').on('click', () => {
         setDefaultMode();
     })
-    setupButtonTooltip("#selection-button", "Select and move items around")
-    $("#selection-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/selection.mp4");
+    setupButtonTooltip('#selection-button', 'Select and move items around')
+    $('#selection-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/selection.mp4');
     })
 
 
-    setupModeButton("#eraser-button", MODE_ERASER, () => {
+    setupModeButton('#eraser-button', Mode.ERASER, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button", "Erases all the things!")
-    $("#eraser-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/eraser.mp4");
+    setupButtonTooltip('#eraser-button', 'Erases all the things!')
+    $('#eraser-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/eraser.mp4');
     })
-    setupSubModeButton("#eraser-button", "-timeline", MODE_ERASER_TIMELINE, () => {
+    setupSubModeButton('#eraser-button', '-timeline', Mode.ERASER_TIMELINE, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-timeline", "Erases timelines only")
-    setupSubModeButton("#eraser-button", "-stroke", MODE_ERASER_STROKE, () => {
+    setupButtonTooltip('#eraser-button-timeline', 'Erases timelines only')
+    setupSubModeButton('#eraser-button', '-stroke', Mode.ERASER_STROKE, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-stroke", "Erases strokes only")
-    setupSubModeButton("#eraser-button", "-point", MODE_ERASER_POINT, () => {
+    setupButtonTooltip('#eraser-button-stroke', 'Erases strokes only')
+    setupSubModeButton('#eraser-button', '-point', Mode.ERASER_POINT, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-point", "Erases points only")
-    setupSubModeButton("#eraser-button", "-text", MODE_ERASER_TEXT, () => {
+    setupButtonTooltip('#eraser-button-point', 'Erases points only')
+    setupSubModeButton('#eraser-button', '-text', Mode.ERASER_TEXT, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-text", "Erases text only")
-    setupSubModeButton("#eraser-button", "-pin", MODE_ERASER_PIN, () => {
+    setupButtonTooltip('#eraser-button-text', 'Erases text only')
+    setupSubModeButton('#eraser-button', '-pin', Mode.ERASER_PIN, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-pin", "Erases pins only")
-    setupSubModeButton("#eraser-button", "-image", MODE_ERASER_IMAGE, () => {
+    setupButtonTooltip('#eraser-button-pin', 'Erases pins only')
+    setupSubModeButton('#eraser-button', '-image', Mode.ERASER_IMAGE, () => {
         mEraserController.setActive(true);
     });
-    setupButtonTooltip("#eraser-button-image", "Erases images only")
+    setupButtonTooltip('#eraser-button-image', 'Erases images only')
 
-    setupModeButton('#color-bucket-button', MODE_COLOR_BUCKET, () => {
+    setupModeButton('#color-bucket-button', Mode.COLOR_BUCKET, () => {
         mLineViewController.setActive(true);
         mTimePinController.setActive(true);
         mDataPointController.setActive(true);
         mTextController.setActive(true);
         mStrokeController.setActive(true);
     });
-    setupButtonTooltip('#color-bucket-button', "Colors all the things!")
-    $("#color-bucket-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/bucket.mp4");
+    setupButtonTooltip('#color-bucket-button', 'Colors all the things!')
+    $('#color-bucket-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/bucket.mp4');
     })
-    setupSubModeButton('#color-bucket-button', '-eyedropper', MODE_COLOR_BUCKET_EYEDROPPER, setEyeDropperActive);
-    setupButtonTooltip('#color-bucket-button-eyedropper', "Copies the color from anything that can be colored")
-    $("#color-bucket-button-color-picker").on("click", (e) => {
+    setupSubModeButton('#color-bucket-button', '-eyedropper', Mode.COLOR_BUCKET_EYEDROPPER, setEyeDropperActive);
+    setupButtonTooltip('#color-bucket-button-eyedropper', 'Copies the color from anything that can be colored')
+    $('#color-bucket-button-color-picker').on('click', (e) => {
         setColorPickerInputColor(mBucketColor);
         toggleColorPicker(e);
     });
-    setupButtonTooltip("#color-bucket-button-color-picker", "Choose color to color things with");
+    setupButtonTooltip('#color-bucket-button-color-picker', 'Choose color to color things with');
 
     $('#color-picker-wrapper').farbtastic((color) => {
-        if (color != "#NaNNaNNaN") {
+        if (color != '#NaNNaNNaN') {
             color = color + getOpacityInput();
-            if (mMode == MODE_COLOR_BRUSH) {
+            if (mMode == Mode.COLOR_BRUSH) {
                 setColorBrushColor(color);
-            } else if (mMode == MODE_COLOR_BUCKET) {
+            } else if (mMode == Mode.COLOR_BUCKET) {
                 setColorBucketColor(color);
-            } else if (mMode == MODE_LINE_DRAWING) {
+            } else if (mMode == Mode.LINE_DRAWING) {
                 setLineDrawingColor(color);
             }
             setColorPickerInputColor(color);
         }
     });
-    $("#color-picker-input").on('input', (e) => {
-        if (mMode == MODE_COLOR_BRUSH) {
-            setColorBrushColor($("#color-picker-input").val());
-        } else if (mMode == MODE_COLOR_BUCKET) {
-            setColorBucketColor($("#color-picker-input").val());
-        } else if (mMode == MODE_LINE_DRAWING) {
-            setLineDrawingColor($("#color-picker-input").val());
+    $('#color-picker-input').on('input', (e) => {
+        if (mMode == Mode.COLOR_BRUSH) {
+            setColorBrushColor($('#color-picker-input').val());
+        } else if (mMode == Mode.COLOR_BUCKET) {
+            setColorBucketColor($('#color-picker-input').val());
+        } else if (mMode == Mode.LINE_DRAWING) {
+            setLineDrawingColor($('#color-picker-input').val());
         }
-        setColorPickerInputColor($("#color-picker-input").val());
+        setColorPickerInputColor($('#color-picker-input').val());
     })
-    $("#opacity-input").on('change', function () {
+    $('#opacity-input').on('change', function () {
         let opacity = getOpacityInput();
-        let color = $("#color-picker-input").val().substring(0, 7) + opacity;
+        let color = $('#color-picker-input').val().substring(0, 7) + opacity;
 
-        if (mMode == MODE_COLOR_BRUSH) {
+        if (mMode == Mode.COLOR_BRUSH) {
             setColorBrushColor(color);
-        } else if (mMode == MODE_COLOR_BUCKET) {
+        } else if (mMode == Mode.COLOR_BUCKET) {
             setColorBucketColor(color);
-        } else if (mMode == MODE_LINE_DRAWING) {
+        } else if (mMode == Mode.LINE_DRAWING) {
             setLineDrawingColor(color);
         }
         setColorPickerInputColor(color);
     })
 
     // set color to a random color
-    setColorBrushColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
-    setColorBucketColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
-    setLineDrawingColor("#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + "FF")
+    setColorBrushColor('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + 'FF')
+    setColorBucketColor('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + 'FF')
+    setLineDrawingColor('#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0') + 'FF')
 
     // ---------------
-    setupModeButton('#lens-button', MODE_LENS, () => {
+    setupModeButton('#lens-button', Mode.LENS, () => {
         mLineViewController.setActive(true);
     });
-    setupButtonTooltip('#lens-button', "Displayed the clicked section of timeline in the lens view")
-    $("#lens-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/lens.mp4");
+    setupButtonTooltip('#lens-button', 'Displayed the clicked section of timeline in the lens view')
+    $('#lens-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/lens.mp4');
     })
 
-    setupModeButton("#panning-button", MODE_PAN, () => {
-        mLensController.setPanActive(true);
-        mImageController.setActive(true);
+    setupModeButton('#panning-button', Mode.PAN, () => {
+        // No extra work needed.
     });
-    setupButtonTooltip("#panning-button", "Pans the main view and the lens view")
-    $("#panning-button").on("dblclick", function () {
-        showVideoViewer("img/tutorial/pan.mp4");
+    setupButtonTooltip('#panning-button', 'Pans the main view and the lens view')
+    $('#panning-button').on('dblclick', function () {
+        showVideoViewer('img/tutorial/pan.mp4');
     })
 
 
     // setup other buttons
 
-    setupModeButton('#link-button', MODE_LINK, () => {
+    setupModeButton('#link-button', Mode.LINK, () => {
         mLineViewController.setActive(true);
     });
-    setupButtonTooltip('#link-button', "Attaches data to timelines")
+    setupButtonTooltip('#link-button', 'Attaches data to timelines')
 
-    $("#toggle-data-style-button").on("click", () => {
-        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
+    $('#toggle-data-style-button').on('click', () => {
+        if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.toggleDataStyle(mSelectedAxisId);
         modelUpdated();
     });
-    setupButtonTooltip("#toggle-data-style-button", "Toggle the data display style");
-    $('#dynamic-normals-axis-button').on("click", () => {
-        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
+    setupButtonTooltip('#toggle-data-style-button', 'Toggle the data display style');
+    $('#dynamic-normals-axis-button').on('click', () => {
+        if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.FIXED);
 
         $('#dynamic-normals-axis-button').hide();
         $('#fixed-normals-axis-button').show();
         modelUpdated();
     });
-    setupButtonTooltip('#dynamic-normals-axis-button', "Change the data alignment relative to the line.");
-    $('#fixed-normals-axis-button').on("click", () => {
-        if (!mSelectedAxisId) { console.error("Button should not be clickable!"); return; }
+    setupButtonTooltip('#dynamic-normals-axis-button', 'Change the data alignment relative to the line.');
+    $('#fixed-normals-axis-button').on('click', () => {
+        if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.DYNAMIC);
 
         $('#fixed-normals-axis-button').hide();
         $('#dynamic-normals-axis-button').show();
         modelUpdated();
     });
-    setupButtonTooltip('#fixed-normals-axis-button', "Change the data alignment relative to the line.");
-    $("#delete-axis-button").on("click", deleteSelected);
-    setupButtonTooltip("#delete-axis-button", "Unlink all data points in this set");
+    setupButtonTooltip('#fixed-normals-axis-button', 'Change the data alignment relative to the line.');
+    $('#delete-axis-button').on('click', deleteSelected);
+    setupButtonTooltip('#delete-axis-button', 'Unlink all data points in this set');
 
-    $("#add-datasheet-button").on("click", () => {
+    $('#add-datasheet-button').on('click', () => {
         let newTable = new DataStructs.DataTable([
-            new DataStructs.DataColumn("Time", 0),
-            new DataStructs.DataColumn("", 1),
-            new DataStructs.DataColumn("", 2)
+            new DataStructs.DataColumn('Time', 0),
+            new DataStructs.DataColumn('', 1),
+            new DataStructs.DataColumn('', 2)
         ]);
         for (let i = 0; i < 3; i++) {
             let dataRow = new DataStructs.DataRow()
             dataRow.index = i;
-            dataRow.dataCells.push(new DataStructs.TimeCell("", newTable.dataColumns[0].id));
+            dataRow.dataCells.push(new DataStructs.TimeCell('', newTable.dataColumns[0].id));
             for (let j = 1; j < newTable.dataColumns.length; j++) {
-                dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, "", newTable.dataColumns[j].id));
+                dataRow.dataCells.push(new DataStructs.DataCell(DataTypes.UNSPECIFIED, '', newTable.dataColumns[j].id));
             }
             newTable.dataRows.push(dataRow)
         }
@@ -1858,33 +1832,34 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mModelController.addTable(newTable);
         modelUpdated();
     })
-    setupButtonTooltip("#add-datasheet-button", "Adds a new datasheet")
+    setupButtonTooltip('#add-datasheet-button', 'Adds a new datasheet')
 
-    $("#upload-datasheet-button").on("click", async () => {
+    $('#upload-datasheet-button').on('click', async () => {
         let csv = await FileHandler.getCSVDataFile();
         mModelController.addTableFromCSV(csv.data);
         modelUpdated();
     })
-    setupButtonTooltip("#upload-datasheet-button", "Upload a csv datasheet")
+    setupButtonTooltip('#upload-datasheet-button', 'Upload a csv datasheet')
 
     function setupModeButton(buttonId, mode, callback) {
-        $(buttonId).on("click", () => {
+        $(buttonId).on('click', () => {
             if (mMode == mode) {
                 setDefaultMode()
             } else {
                 clearMode();
                 callback();
                 mMode = mode;
+                mLensController.setMode(mode);
 
                 $(buttonId).css('opacity', '0.3');
 
-                $('#mode-indicator-div').html("");
-                let modeImg = $("<img>");
-                modeImg.attr("id", "mode-img");
-                modeImg.attr("src", $(buttonId).attr("src"));
-                modeImg.css("max-width", "35px");
-                modeImg.css("background-color", $(buttonId).css("background-color"));
-                modeImg.addClass("mode-indicator");
+                $('#mode-indicator-div').html('');
+                let modeImg = $('<img>');
+                modeImg.attr('id', 'mode-img');
+                modeImg.attr('src', $(buttonId).attr('src'));
+                modeImg.css('max-width', '35px');
+                modeImg.css('background-color', $(buttonId).css('background-color'));
+                modeImg.addClass('mode-indicator');
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
 
@@ -1894,7 +1869,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function setupSubModeButton(buttonId, subButtonAppendix, mode, callback) {
-        $(buttonId + subButtonAppendix).on("click", () => {
+        $(buttonId + subButtonAppendix).on('click', () => {
             if (mMode == mode) {
                 $(buttonId).trigger('click');
             } else {
@@ -1904,16 +1879,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
                 callback();
                 mMode = mode;
+                mLensController.setMode(mode);
 
                 $(buttonId).css('opacity', '0.3');
                 $(buttonId + subButtonAppendix).css('opacity', '0.3');
 
-                $('#mode-indicator-div').html("");
-                let modeImg = $("<img>");
-                modeImg.attr("src", $(buttonId + subButtonAppendix).attr("src"));
-                modeImg.css("max-width", "35px");
-                modeImg.css("background-color", $(buttonId + subButtonAppendix).css("background-color"));
-                modeImg.addClass("mode-indicator");
+                $('#mode-indicator-div').html('');
+                let modeImg = $('<img>');
+                modeImg.attr('src', $(buttonId + subButtonAppendix).attr('src'));
+                modeImg.css('max-width', '35px');
+                modeImg.css('background-color', $(buttonId + subButtonAppendix).css('background-color'));
+                modeImg.addClass('mode-indicator');
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
             }
@@ -1933,22 +1909,22 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let height = $(buttonId + '-sub-menu').height();
 
             if ((top + height) > window.innerHeight) {
-                $('#sub-menu-wrapper').css('top', "");
+                $('#sub-menu-wrapper').css('top', '');
                 $('#sub-menu-wrapper').css('bottom', window.innerHeight - ($(buttonId).offset().top + $(buttonId).height()));
             } else {
                 $('#sub-menu-wrapper').css('top', top);
-                $('#sub-menu-wrapper').css('bottom', "");
+                $('#sub-menu-wrapper').css('bottom', '');
             }
         }, 1)
     }
 
     function setupButtonTooltip(buttonId, text) {
-        $(buttonId).on("pointerenter", (event) => {
+        $(buttonId).on('pointerenter', (event) => {
             let screenCoords = { x: event.clientX, y: event.clientY };
             mTooltip.show(text, screenCoords);
             mTooltipSetTo = buttonId;
         })
-        $(buttonId).on("pointerout", (event) => {
+        $(buttonId).on('pointerout', (event) => {
             if (mTooltipSetTo == buttonId) {
                 mTooltip.hide();
             }
@@ -1957,7 +1933,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function setDefaultMode() {
         clearMode();
-        mMode = MODE_SELECTION;
+        mMode = Mode.SELECTION;
+        mLensController.setMode(Mode.SELECTION);
 
         mSelectionController.setActive(true);
         mLineViewController.setActive(true);
@@ -1966,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mImageController.setActive(true);
         mStrokeController.setActive(true);
 
-        $("#selection-button").css('opacity', '0.3');
+        $('#selection-button').css('opacity', '0.3');
 
         hideImageContextMenu();
         hideTextContextMenu();
@@ -1975,18 +1952,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLinkingBinding = null;
         hideLinkLine();
 
-        $('#mode-indicator-div').html("");
-        let modeImg = $("<img>");
-        modeImg.attr("id", "mode-img");
-        modeImg.attr("src", $("#selection-button").attr("src"));
-        modeImg.css("max-width", "35px");
-        modeImg.css("background-color", $("#selection-button").css("background-color"));
-        modeImg.addClass("mode-indicator");
+        $('#mode-indicator-div').html('');
+        let modeImg = $('<img>');
+        modeImg.attr('id', 'mode-img');
+        modeImg.attr('src', $('#selection-button').attr('src'));
+        modeImg.css('max-width', '35px');
+        modeImg.css('background-color', $('#selection-button').css('background-color'));
+        modeImg.addClass('mode-indicator');
         $('#mode-indicator-div').append(modeImg);
         $('#mode-indicator-div').show();
 
-        $('#selection-button-sub-menu').css('top', $("#selection-button").offset().top);
-        $('#selection-button-sub-menu').css('left', $("#selection-button").offset().left - $('#selection-button-sub-menu').outerWidth() - 10);
+        $('#selection-button-sub-menu').css('top', $('#selection-button').offset().top);
+        $('#selection-button-sub-menu').css('left', $('#selection-button').offset().left - $('#selection-button-sub-menu').outerWidth() - 10);
         $('#selection-button-sub-menu').show();
     }
     setDefaultMode();
@@ -2004,13 +1981,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mImageController.setActive(false);
         mStrokeController.setActive(false);
         mSelectionController.setActive(false);
-        mLensController.resetMode();
+        mLensController.clearMode();
         $('.tool-button').css('opacity', '');
         $('#mode-indicator-div img').hide();
         $('#mode-indicator-div').hide();
         $('#sub-menu-wrapper').hide();
 
-        mMode = MODE_NONE;
+        mMode = Mode.NONE;
+        mLensController.setMode(Mode.NONE);
     }
 
     // Color utility functions
@@ -2023,7 +2001,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     }
 
     function toggleColorPicker(e) {
-        if ($("#color-picker-div").is(":visible")) {
+        if ($('#color-picker-div').is(':visible')) {
             $('#color-picker-div').hide();
         } else {
             $('#color-picker-div').css('top', e.pageY);
@@ -2082,69 +2060,69 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // End color utility functions
 
     function showImageViewer(imageBinding) {
-        $("#full-image").show();
-        $("#video-viewer").hide();
+        $('#full-image').show();
+        $('#video-viewer').hide();
 
-        $("#full-image").attr("src", imageBinding.imageData);
+        $('#full-image').attr('src', imageBinding.imageData);
         $('#image-viewer').show();
     }
 
     function showVideoViewer(videoURL) {
-        $("#full-image").hide();
-        $("#video-viewer").show();
+        $('#full-image').hide();
+        $('#video-viewer').show();
 
-        $("#video-viewer").empty();
-        $("#video-viewer").append($("<source>").attr("src", videoURL));
-        $("#video-viewer")[0].load();
+        $('#video-viewer').empty();
+        $('#video-viewer').append($('<source>').attr('src', videoURL));
+        $('#video-viewer')[0].load();
         $('#image-viewer').show();
     }
 
-    $("#image-viewer .close").on("click", function () {
+    $('#image-viewer .close').on('click', function () {
         $('#image-viewer').hide();
     });
 
     function workspaceSet() {
-        $("#download-button").attr("src", "img/download_button.png")
-        $("#download-button-folder").attr("src", "img/folder_button.png")
+        $('#download-button').attr('src', 'img/download_button.png')
+        $('#download-button-folder').attr('src', 'img/folder_button.png')
     }
 
     function showLinkLine(coords1, coords2) {
         mLinkLine.attr('x1', coords1.x).attr('y1', coords1.y)
             .attr('x2', coords2.x).attr('y2', coords2.y);
-        mLinkLine.style("visibility", '');
+        mLinkLine.style('visibility', '');
     }
 
     function hideLinkLine() {
-        mLinkLine.style("visibility", 'hidden');
+        mLinkLine.style('visibility', 'hidden');
     }
 
     function MouseDropShadow(parent) {
         let shadow = parent.append('g')
-            .attr("id", "mouse-drop-shadow");
+            .attr('id', 'mouse-drop-shadow');
 
         shadow.append('circle')
-            .attr("id", "drop-position")
-            .attr('fill', "grey")
+            .attr('id', 'drop-position')
+            .attr('fill', 'grey')
             .attr('r', 3.5)
             .attr('opacity', 0.5);
         shadow.append('line')
-            .attr("id", "drop-line")
+            .attr('id', 'drop-line')
             .attr('stroke-width', 1.5)
             .attr('stroke', 'grey')
             .attr('opacity', 0.5);
 
         this.show = function (dropCoords, mouseCoords) {
-            shadow.select("#drop-position")
-                .attr("cx", dropCoords.x)
-                .attr("cy", dropCoords.y)
-            shadow.select("#drop-line")
-                .attr("x1", dropCoords.x)
-                .attr("y1", dropCoords.y)
-                .attr("x2", mouseCoords.x)
-                .attr("y2", mouseCoords.y)
-            shadow.style("visibility", null);
+            shadow.select('#drop-position')
+                .attr('cx', dropCoords.x)
+                .attr('cy', dropCoords.y)
+            shadow.select('#drop-line')
+                .attr('x1', dropCoords.x)
+                .attr('y1', dropCoords.y)
+                .attr('x2', mouseCoords.x)
+                .attr('y2', mouseCoords.y)
+            shadow.style('visibility', null);
         }
-        this.hide = function () { shadow.style("visibility", "hidden"); };
+        this.hide = function () { shadow.style('visibility', 'hidden'); };
         // start hidden
         this.hide();
     }
@@ -2157,7 +2135,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let time = mModelController.getModel().mapLinePercentToTime(timelineId, pointOnLine.percent);
         let message = mModelController.getModel().hasTimeMapping(timelineId) ?
-            DataUtil.getFormattedDate(time) : "Percent of time: " + Math.round(time * 100) + "%";
+            DataUtil.getFormattedDate(time) : 'Percent of time: ' + Math.round(time * 100) + '%';
 
         mMouseDropShadow.show(pointOnLine, svgCoords);
 
@@ -2167,19 +2145,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function showLensView(timelineId, percent) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
-        if (!timeline) console.error("Bad state! tried to show highlight for non-existant line: " + timelineId);
+        if (!timeline) console.error('Bad state! tried to show highlight for non-existant line: ' + timelineId);
 
-        $("#lens-div").show();
+        $('#lens-div').show();
 
         if (!mDrawerController.isOpen()) {
             mDrawerController.openDrawer();
         }
 
-        mLineHighlight.showAround(timeline.points, percent, mLensSvg.attr("width"));
+        mLineHighlight.showAround(timeline.points, percent, mLensSvg.attr('width'));
     }
 
     function hideLensView() {
-        $("#lens-div").hide();
+        $('#lens-div').hide();
 
         mLensController.focus(null, null);
         mLineHighlight.hide();
@@ -2187,11 +2165,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     function LineHighlight(parent) {
         let mHighlight = parent.append('path')
-            .attr("id", "highlight-path")
-            .attr('stroke', "blue")
-            .attr('fill', "none")
+            .attr('id', 'highlight-path')
+            .attr('stroke', 'blue')
+            .attr('fill', 'none')
             .attr('stroke-width', 5)
-            .style("isolation", "auto")
+            .style('isolation', 'auto')
 
         let mLastPointSet = [];
         let mPathLength = 0;
@@ -2223,12 +2201,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let startIndex = Math.floor(startpercent * mPathLength / 10);
             let endIndex = Math.ceil(endPercent * mPathLength / 10);
 
-            mHighlight.attr("d", PathMath.getPathD(mPathStruct.slice(startIndex, endIndex)));
-            mHighlight.style("visibility", "");
+            mHighlight.attr('d', PathMath.getPathD(mPathStruct.slice(startIndex, endIndex)));
+            mHighlight.style('visibility', '');
             mHighlight.raise();
         }
 
-        this.hide = function () { mHighlight.style("visibility", "hidden"); };
+        this.hide = function () { mHighlight.style('visibility', 'hidden'); };
         // start hidden
         this.hide();
     }
@@ -2238,19 +2216,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let mIsValidCallback = (text) => { return true };
 
         let mIsShowing;
-        let mInputbox = $("#input-box");
+        let mInputbox = $('#input-box');
 
         mInputbox.on('input', function (e) {
             let value = mInputbox.val();
             let isValid = mIsValidCallback(value);
 
             if (isValid) {
-                mInputbox.css("background-color", "")
+                mInputbox.css('background-color', '')
             } else {
-                mInputbox.css("background-color", "lightpink")
+                mInputbox.css('background-color', 'lightpink')
             }
 
-            mInputbox.css("height", (mInputbox.prop('scrollHeight') - 4) + "px");
+            mInputbox.css('height', (mInputbox.prop('scrollHeight') - 4) + 'px');
         }).on('change', function (e) {
             hide();
         }).on('blur', function (e) {
@@ -2259,10 +2237,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
         });
 
         function show(text, x, y, height, width) {
-            mInputbox.css("top", Math.floor(y - 8) + "px")
-                .css("left", Math.floor(x - 8) + "px")
-                .css("height", height + "px")
-                .css("width", width + "px");
+            mInputbox.css('top', Math.floor(y - 8) + 'px')
+                .css('left', Math.floor(x - 8) + 'px')
+                .css('height', height + 'px')
+                .css('width', width + 'px');
             mInputbox.val(text);
 
             mInputbox.show();
@@ -2286,7 +2264,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         function reset() {
             mTextChangedCallback = (text) => { };
             mIsValidCallback = (value) => { return true };
-            mInputbox.css("background-color", "");
+            mInputbox.css('background-color', '');
         }
 
         this.show = show;

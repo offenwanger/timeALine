@@ -1,22 +1,20 @@
 function LensController(svg, externalModelController, externalModelUpdated) {
-    const MODE_DEFAULT = "default";
-    const MODE_PAN = "pan";
-    const MODE_COLOR_BRUSH = "colorBrush";
-
     let mSvg = svg;
     let mModelController = externalModelController;
-    let mVizLayer = svg.append("g")
-        .attr("id", "lens-main-view-g");
-    let mVizOverlayLayer = mSvg.append("g")
-        .attr("id", "lens-viz-overlay-layer");
-    let mInteractionLayer = mSvg.append("g")
-        .attr("id", "lens-interaction-layer");
+    let mVizLayer = svg.append('g')
+        .classed('view-layer', true);
+    let mVizOverlayLayer = mSvg.append('g')
+        .classed('overlay-layer', true);
+    let mInteractionLayer = mSvg.append('g')
+        .classed('interaction-layer', true);
 
     let mPanCallback = () => { };
 
-    let mMode = MODE_DEFAULT;
+    let mMode = Mode.NONE;
     let mModel;
     let mTimelineId;
+
+    let mDragStart = null;
 
     let mLineLength;
     let mStrokesData = {}
@@ -24,11 +22,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     let mViewTransform = {};
     resetViewTransform();
 
-    let mLineGroup = mVizLayer.append("g").attr("id", "lens-line-g");
-    let mTextGroup = mVizLayer.append("g").attr("id", "lens-annotations-g");
-    let mPointsGroup = mVizLayer.append("g").attr("id", "lens-points-g");
-    let mStrokeGroup = mVizLayer.append("g").attr("id", "lens-strokes-g");
-    let mPinGroup = mVizLayer.append("g").attr("id", "lens-pins-g");
+    let mLineGroup = mVizLayer.append('g').classed('lens-line-g', true);
+    let mTextGroup = mVizLayer.append('g').classed('lens-annotations-g', true);
+    let mPointsGroup = mVizLayer.append('g').classed('lens-points-g', true);
+    let mStrokeGroup = mVizLayer.append('g').classed('lens-strokes-g', true);
+    let mPinGroup = mVizLayer.append('g').classed('lens-pins-g', true);
 
     let mPanning = false;
 
@@ -56,68 +54,65 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
     // needs to go after controllers so it's on top
     mVizOverlayLayer.append('rect')
-        .attr('id', "lens-overlay")
+        .attr('id', 'lens-overlay')
         .attr('x', 0)
         .attr('y', 0)
         .attr('height', mSvg.attr('height'))
         .attr('width', mSvg.attr('width'))
         .attr('fill', 'white')
         .attr('opacity', '0')
-        .on('pointerdown', function (pointerEvent) {
-            if (mMode == MODE_PAN) {
-                // TODO: Should check what's down here (i.e. many fingers? Right Click?)
+        .on('pointerdown', function (e) {
+            if (mMode == Mode.PAN) {
                 mPanning = true;
+                mDragStart = { x: e.x, y: e.y, transformX: mViewTransform.x, transformY: mViewTransform.y };
             }
 
-            let coords = screenToSvgCoords({ x: pointerEvent.x, y: pointerEvent.y });
+            let coords = screenToSvgCoords({ x: e.x, y: e.y });
             mLensColorBrushController.onPointerDown(coords);
         })
 
-    $(document).on("pointermove", function (e) {
-        let pointerEvent = e.originalEvent;
-        if (mMode == MODE_PAN && mPanning) {
-            mViewTransform.x = mViewTransform.x + pointerEvent.movementX
-            mViewTransform.y = mViewTransform.y + pointerEvent.movementY
+    function onPointerMove(screenCoords) {
+        let coords = screenToSvgCoords(screenCoords);
+
+        if (mMode == Mode.PAN && mPanning) {
+            mViewTransform.x = mDragStart.transformX + screenCoords.x - mDragStart.x;
+            mViewTransform.y = mDragStart.transformY + screenCoords.y - mDragStart.y;
             setViewToTransform();
         }
 
-        // these do their own active checking
-        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
         mLensColorBrushController.onPointerMove(coords)
-    });
-    $(document).on("pointerup", function (e) {
-        let pointerEvent = e.originalEvent;
+    }
 
-        // TODO: Should check if this is indeed all fingers off
-
+    function onPointerUp(screenCoords) {
         if (mPanning) {
             mPanCallback(
                 mTimelineId,
                 (mSvg.attr('width') / 2 - mViewTransform.x) / mLineLength,
                 -(mSvg.attr('height') / 2) + mViewTransform.y);
             mPanning = false;
+            mDragStart = null;
         }
 
         // these do their own active checking
-        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        let coords = screenToSvgCoords(screenCoords);
         mLensColorBrushController.onPointerUp(coords)
-    });
+    };
 
 
     function screenToSvgCoords(coords) {
         if (isNaN(parseInt(coords.x)) || isNaN(parseInt(coords.y))) {
-            console.error("Bad coords", coords);
+            console.error('Bad coords', coords);
             return { x: 0, y: 0 };
         }
 
         let svgElementCoords = svg.node().getBoundingClientRect();
         if (isNaN(parseInt(svgElementCoords.x)) || isNaN(parseInt(svgElementCoords.y))) {
-            console.error("Bad svg bounding box!", svgElementCoords);
+            console.error('Bad svg bounding box!', svgElementCoords);
             return { x: 0, y: 0 };
         }
 
         if (isNaN(parseInt(mViewTransform.x)) || isNaN(parseInt(mViewTransform.y))) {
-            console.error("Bad veiw state!", mViewTransform);
+            console.error('Bad veiw state!', mViewTransform);
             return { x: 0, y: 0 };
         }
 
@@ -149,11 +144,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         if (!timelineId) {
             mTimelineId = null;
 
-            eraseLine();
-            eraseTimePins();
-            eraseDataPoints();
-            eraseTextData();
-            eraseStrokes();
+            removeLine();
+            removeTimePins();
+            removeDataPoints();
+            removeTextData();
+            removeStrokes();
 
             resetViewTransform()
         } else {
@@ -184,8 +179,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function setViewToTransform() {
-        mVizLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
-        mInteractionLayer.attr("transform", "translate(" + mViewTransform.x + "," + mViewTransform.y + ")");
+        mVizLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
+        mInteractionLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
     }
 
     // redraws everything. 
@@ -193,7 +188,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         let oldModel = mModel;
         mModel = model;
 
-        mSvg.style("background-color", mModel.getCanvas().color);
+        mSvg.style('background-color', mModel.getCanvas().color);
 
         if (!mTimelineId) return;
 
@@ -202,11 +197,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         if (!timeline) {
             // timeline got erased
 
-            eraseLine();
-            eraseTimePins();
-            eraseDataPoints();
-            eraseTextData();
-            eraseStrokes();
+            removeLine();
+            removeTimePins();
+            removeDataPoints();
+            removeTextData();
+            removeStrokes();
 
             resetViewTransform();
 
@@ -229,25 +224,25 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function redrawLine(lineLength, color) {
-        mLineGroup.selectAll("#lens-line")
-            .data([null]).enter().append("line")
-            .attr("id", "lens-line")
-            .attr("stroke-width", 1.5)
-            .attr("x1", 0)
-            .attr("y1", 0)
-            .attr("y2", 0);
-        mLineGroup.select("#lens-line")
-            .attr("stroke", color)
-            .attr("x2", lineLength);
+        mLineGroup.selectAll('#lens-line')
+            .data([null]).enter().append('line')
+            .attr('id', 'lens-line')
+            .attr('stroke-width', 1.5)
+            .attr('x1', 0)
+            .attr('y1', 0)
+            .attr('y2', 0);
+        mLineGroup.select('#lens-line')
+            .attr('stroke', color)
+            .attr('x2', lineLength);
     }
-    function eraseLine() {
-        mLineGroup.select("#lens-line").remove();
+    function removeLine() {
+        mLineGroup.select('#lens-line').remove();
     }
 
     function redrawTimePins() {
         let timeline = mModel.getTimelineById(mTimelineId);
         if (!timeline) {
-            console.error("Code should be unreachable.");
+            console.error('Code should be unreachable.');
             return;
         }
 
@@ -261,16 +256,16 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         const pinTickWidth = 6;
         const pinTickLength = 10
         mPinGroup.selectAll('.lens-pin-tick')
-            .style("stroke", "black")
-            .style("stroke-width", (d) => pinTickWidth)
-            .attr("x1", (d) => d)
-            .attr("x2", (d) => d)
-            .attr("y1", (d) => pinTickLength / 2)
-            .attr("y2", (d) => -pinTickLength / 2);
+            .style('stroke', 'black')
+            .style('stroke-width', (d) => pinTickWidth)
+            .attr('x1', (d) => d)
+            .attr('x2', (d) => d)
+            .attr('y1', (d) => pinTickLength / 2)
+            .attr('y2', (d) => -pinTickLength / 2);
 
     }
 
-    function eraseTimePins() {
+    function removeTimePins() {
 
     }
 
@@ -285,7 +280,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                 val1 = 0;
             }
             if (val1 == val2) {
-                console.error("Invalid binding values: " + val1 + ", " + val2);
+                console.error('Invalid binding values: ' + val1 + ', ' + val2);
                 val1 = 0;
                 if (val1 == val2) val2 = 1;
             };
@@ -293,7 +288,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             return {
                 x: cbd.linePercent * mLineLength,
                 y: -dist,
-                color: cbd.color ? cbd.color : "black"
+                color: cbd.color ? cbd.color : 'black'
             };
         });
 
@@ -310,7 +305,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             .attr('cy', function (d) { return d.y })
             .attr('fill', function (d) { return d.color });
     }
-    function eraseDataPoints() {
+    function removeDataPoints() {
         mPointsGroup.selectAll('.lens-data-point').remove();
     }
 
@@ -321,7 +316,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         let textData = cellBindingData.map(cbd => {
             return {
                 x: cbd.linePercent * mLineLength,
-                color: cbd.color ? cbd.color : "black"
+                color: cbd.color ? cbd.color : 'black'
             };
         });
 
@@ -330,7 +325,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         selection.exit().remove();
         selection.enter()
             .append('line')
-            .classed("lens-text-markers", true)
+            .classed('lens-text-markers', true)
             .attr('stroke-width', 1)
             .attr('stroke', 'black')
             .attr('opacity', 0.6)
@@ -340,7 +335,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             .attr('x1', function (d) { return d.x + 2 })
             .attr('x2', function (d) { return d.x - 2 });
     }
-    function eraseTextData() {
+    function removeTextData() {
         mTextGroup.selectAll('.lens-text-markers').remove();
 
     }
@@ -366,77 +361,65 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             }
         })
 
-        let selection = mStrokeGroup.selectAll(".lens-annotation-stroke").data(Object.values(mStrokesData));
+        let selection = mStrokeGroup.selectAll('.lens-annotation-stroke').data(Object.values(mStrokesData));
         selection.exit()
             .remove();
         selection.enter()
-            .append("path")
-            .classed("lens-annotation-stroke", true)
+            .append('path')
+            .classed('lens-annotation-stroke', true)
             .attr('stroke-linejoin', 'round')
             .attr('stroke-linecap', 'round')
             .attr('fill', 'none')
-        mStrokeGroup.selectAll(".lens-annotation-stroke")
-            .attr("stroke", d => d.color)
+        mStrokeGroup.selectAll('.lens-annotation-stroke')
+            .attr('stroke', d => d.color)
             .attr('stroke-width', d => d.width)
             .attr('d', d => PathMath.getPathD(d.projectedPoints));
     }
-    function eraseStrokes() {
-        mStrokeGroup.selectAll(".lens-annotation-stroke").remove();
+    function removeStrokes() {
+        mStrokeGroup.selectAll('.lens-annotation-stroke').remove();
     }
 
     function onWheel(delta) {
-        if (mMode == MODE_COLOR_BRUSH) {
+        if (mMode == Mode.COLOR_BRUSH) {
             mLensColorBrushController.onWheel(delta);
         }
     }
 
-    function setPanActive(active) {
-        if (active) {
-            resetMode();
-            mMode = MODE_PAN;
-        } else if (mMode == MODE_PAN) {
-            // only set to default if we were in pan mode.
-            resetMode();
+    function setMode(mode) {
+        if (mode != mMode) {
+            clearMode();
+            mMode = mode;
+
+            if (mMode == Mode.COLOR_BRUSH) {
+                mLensColorBrushController.setActive(true);
+            }
         }
     }
 
-    function setColorBrushActive(active) {
-        if (active) {
-            resetMode();
-            mMode = MODE_COLOR_BRUSH;
-            mLensColorBrushController.setActive(active);
-        } else if (mMode == MODE_COLOR_BRUSH) {
-            // only set to default if we were brush mode.
-            resetMode();
-        }
-    }
-
-    function resetMode() {
-        if (mMode == MODE_COLOR_BRUSH) {
+    function clearMode() {
+        if (mMode == Mode.COLOR_BRUSH) {
             mLensColorBrushController.setActive(false);
         }
-        mMode = MODE_DEFAULT;
+        mMode = Mode.NONE;
     }
 
-    function setColorBrushColor(color) {
-        mLensColorBrushController.setColor(color);
-    }
 
-    this.focus = focus;
     this.updateModel = updateModel;
 
+    this.setMode = setMode;
+    this.clearMode = clearMode;
+
+    this.onPointerMove = onPointerMove;
+    this.onPointerUp = onPointerUp;
     this.onWheel = onWheel;
 
+    this.focus = focus;
     this.getCurrentTimelineId = () => mTimelineId;
     this.getCurrentCenterPercent = getCurrentCenterPercent;
 
-    this.setPanActive = setPanActive;
-    this.setColorBrushActive = setColorBrushActive;
+    this.setColorBrushColor = function (color) { mLensColorBrushController.setColor(color); }
     this.increaseBrushRadius = function () { mLensColorBrushController.increaseBrushRadius(); }
     this.decreaseBrushRadius = function () { mLensColorBrushController.decreaseBrushRadius(); }
-    this.resetMode = resetMode;
-
-    this.setColorBrushColor = setColorBrushColor;
 
     this.setPanCallback = (callback) => mPanCallback = callback;
 }
