@@ -297,6 +297,10 @@ DataStructs.DataModel = function () {
         return mTimelines.find(t => t.imageBindings.some(b => b.id == imageBindingId));
     }
 
+    function getTimelineByStrokeId(strokeId) {
+        return mTimelines.find(t => t.annotationStrokes.some(s => s.id == strokeId));
+    }
+
     /* End Mapping Utility function */
     function getBoundTimeCellValues(timelineId) {
         let timeline = getTimelineById(timelineId);
@@ -628,6 +632,7 @@ DataStructs.DataModel = function () {
 
     this.getTimelineByCellBinding = getTimelineByCellBinding;
     this.getTimelineByImageBinding = getTimelineByImageBinding;
+    this.getTimelineByStrokeId = getTimelineByStrokeId;
 
     this.getTimelineHighlightData = getTimelineHighlightData;
     this.getCellBindingHighlightData = getCellBindingHighlightData;
