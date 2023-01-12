@@ -910,24 +910,56 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (mMode == Mode.ERASER_TEXT || mMode == Mode.ERASER) {
             // text has to be erased first because we need the rendering information.
             let boundingBoxes = mTextController.getTextBoundingBoxes();
-            mModelController.eraseMaskedText(canvasMask, boundingBoxes);
+            let maskedCellBindingIds = DataUtil.getMaskedText(canvasMask, boundingBoxes);
+            mModelController.deleteCellBindings(maskedCellBindingIds);
         }
         if (mMode == Mode.ERASER_TIMELINE || mMode == Mode.ERASER) {
-            mModelController.eraseMaskedTimelines(canvasMask);
+            let segmentsData = DataUtil.getMaskedTimelines(canvasMask, mModelController.getModel());
+
+            let deletedTimelines = segmentsData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
+            deletedTimelines.forEach(id => mModelController.deleteTimeline(id, false));
+            let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
+            brokenTimelines.forEach(d => mModelController.breakTimeline(d.id, d.segments, false));
         }
         if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
-            mModelController.eraseMaskedStrokes(canvasMask);
+            let model = mModelController.getModel();
+            let strokeFragementData = DataUtil.getMaskedStrokes(canvasMask, model);
+            strokeFragementData.forEach(({ strokeData, fragments }) => {
+                if (mModelController.isCanvasStroke(strokeData.id)) {
+                    fragments.forEach(fragment => {
+                        mModelController.addCanvasStroke(
+                            fragment,
+                            strokeData.color,
+                            strokeData.width);
+                    })
+                } else {
+                    let timeline = model.getTimelineByStrokeId(strokeData.id);
+                    if (!timeline) { console.error("No timeline for timeline stroke!", strokeData); return; }
+                    fragments.forEach(fragment => {
+                        if (!timeline) console.error("Cannot get timeline")
+                        mModelController.addTimelineStroke(
+                            timeline.id,
+                            fragment,
+                            strokeData.color,
+                            strokeData.width);
+                    })
+                }
+            });
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
         }
         if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
-            mModelController.eraseMaskedDataPoints(canvasMask);
+            let maskedCellBindingIds = DataUtil.getMaskedDataPoints(canvasMask, mModelController.getModel());
+            mModelController.deleteCellBindings(maskedCellBindingIds);
         }
         if (mMode == Mode.ERASER_IMAGE || mMode == Mode.ERASER) {
-            mModelController.eraseMaskedImages(canvasMask);
+            let erasedImageIds = DataUtil.getMaskedImages(canvasMask, mModelController.getModel());
+            mModelController.deleteImageBindings(erasedImageIds);
         }
         if (mMode == Mode.ERASER_PIN) {
+            let erasedPinIds = DataUtil.getMaskedPins(canvasMask, mModelController.getModel());
             // only do this if we are specifically erasing pins, because 
             // pins will be deleted with the erased line section.
-            mModelController.eraseMaskedPins(canvasMask);
+            mModelController.deletePins(erasedPinIds);
         }
 
         modelUpdated();
@@ -1193,9 +1225,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         };
 
         if (mSelectedCellBindingId != null) {
-            mModelController.deleteCellBinding(mSelectedCellBindingId);
+            mModelController.deleteCellBindings([mSelectedCellBindingId]);
         } else if (mSelectedImageBindingId != null) {
-            mModelController.deleteImageBinding(mSelectedImageBindingId);
+            mModelController.deleteImageBindings([mSelectedImageBindingId]);
         } else if (mSelectedAxisId != null) {
             mModelController.deleteDataSet(mSelectedAxisId);
         }

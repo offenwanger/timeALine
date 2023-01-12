@@ -27,34 +27,36 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
         mModel.getAllTimelines().forEach(timeline => {
             let oldtimeline = oldModel.getAllTimelines().find(t => t.id == timeline.id);
             let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
-            mModel.getStrokeData(timeline.id).forEach(strokeData => {
-                if (changedStrokes.includes(strokeData.id)) {
-                    mStrokesData[strokeData.id] = {
-                        color: strokeData.color,
-                        width: strokeData.width,
-                        projectedPoints: strokeData.points.map(point =>
-                            PathMath.getPositionForPercentAndDist(timeline.points, point.linePercent, point.lineDist)),
+            if (changedStrokes.length > 0) {
+                let changedStrokeData = mModel.getStrokeData(timeline.id).filter(s => changedStrokes.includes(s.id));
+                let strokeDrawingData = DataUtil.getStrokeCanvasPositions(timeline, changedStrokeData);
+                strokeDrawingData.forEach(strokeDrawingData => {
+                    mStrokesData[strokeDrawingData.stroke.id] = {
+                        color: strokeDrawingData.stroke.color,
+                        width: strokeDrawingData.stroke.width,
+                        projectedPoints: strokeDrawingData.projectedPoints,
                         timelineId: timeline.id,
-                        strokeId: strokeData.id
+                        strokeId: strokeDrawingData.stroke.id
                     };
-                } else {
-                    mStrokesData[strokeData.id] = oldStrokeData[strokeData.id];
-                }
-            })
+                })
+            }
+
+            let unchangedStrokeData = timeline.annotationStrokes.filter(s => !changedStrokes.includes(s.id));
+            unchangedStrokeData.forEach(stroke => {
+                mStrokesData[stroke.id] = oldStrokeData[stroke.id];
+            });
         });
 
-        mModel.getCanvas().annotationStrokes.forEach(stroke => {
-            mStrokesData[stroke.id] = {
-                color: stroke.color,
-                width: stroke.width,
-                projectedPoints: stroke.points.map(p => {
-                    return {
-                        x: p.xValue,
-                        y: p.lineDist,
-                    }
-                }),
-                strokeId: stroke.id
+        // it's cheap, don't bother checking for changes.
+        let canvasStrokeDrawingData = DataUtil.getStrokeCanvasPositions(null, mModel.getCanvas().annotationStrokes);
+        canvasStrokeDrawingData.forEach(strokeDrawingData => {
+            mStrokesData[strokeDrawingData.stroke.id] = {
+                color: strokeDrawingData.stroke.color,
+                width: strokeDrawingData.stroke.width,
+                projectedPoints: strokeDrawingData.projectedPoints,
+                strokeId: strokeDrawingData.stroke.id
             };
+
         })
 
         drawStrokes();

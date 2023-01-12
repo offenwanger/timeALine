@@ -668,294 +668,6 @@ function ModelController() {
         }
     }
 
-    function eraseMaskedTimelines(eraserMask) {
-        // check erase timelines
-        let timelines = mModel.getAllTimelines();
-        let segmentsData = timelines.map(timeline => {
-            return {
-                id: timeline.id,
-                segments: PathMath.segmentPath(timeline.points, point => {
-                    return eraserMask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
-                })
-            }
-        }).filter(segmentData => segmentData.segments.some(segment => segment.label == SEGMENT_LABELS.DELETED));
-
-        let deletedTimelines = segmentsData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
-        let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
-
-        deletedTimelines.forEach(id => deleteTimeline(id, false));
-        brokenTimelines.forEach(d => breakTimeline(d.id, d.segments, false));
-    }
-
-    function eraseMaskedStrokes(eraserMask) {
-        let timelines = mModel.getAllTimelines();
-        timelines.forEach(timeline => {
-            let newStrokes = [];
-            let strokeData = mModel.getStrokeData(timeline.id);
-            strokeData.forEach(stroke => {
-                let currSet = [];
-                let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, stroke.points.map(s => s.linePercent), stroke.points.map(s => s.lineDist));
-                stroke.points.forEach((point, index) => {
-                    if (eraserMask.isCovered(positions[index])) {
-                        if (currSet.length >= 2) {
-                            newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
-                        }
-                        currSet = [];
-                    } else {
-                        // copy returns a regular stroke point. 
-                        currSet.push(point.copy());
-                    }
-                })
-                // push the last stroke
-                if (currSet.length == stroke.points.length) {
-                    // copy returns a regular stroke
-                    newStrokes.push(stroke.copy())
-                } else if (currSet.length >= 2) {
-                    newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
-                }
-            });
-
-            timeline.annotationStrokes = newStrokes;
-        })
-
-        let newStrokes = [];
-        mModel.getCanvas().annotationStrokes.forEach(stroke => {
-            let currSet = [];
-            stroke.points.forEach(point => {
-                if (eraserMask.isCovered({ x: point.xValue, y: point.lineDist })) {
-                    if (currSet.length >= 2) {
-                        newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
-                    }
-                    currSet = [];
-                } else {
-                    // copy returns a regular stroke point. 
-                    currSet.push(point.copy());
-                }
-            })
-            // push the last stroke
-            if (currSet.length == stroke.points.length) {
-                // copy returns a regular stroke
-                newStrokes.push(stroke.copy())
-            } else if (currSet.length >= 2) {
-                newStrokes.push(new DataStructs.Stroke(currSet, stroke.color, stroke.width));
-            }
-        })
-        mModel.getCanvas().annotationStrokes = newStrokes;
-    }
-
-    function eraseMaskedDataPoints(eraserMask) {
-        let timelines = mModel.getAllTimelines();
-        timelines.forEach(timeline => {
-            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
-            let startTime, endTime;
-            if (hadTimeMapping) {
-                let bindingValues = mModel.getTimeBindingValues(timeline);
-                startTime = bindingValues[0].timeStamp;
-                endTime = bindingValues[bindingValues.length - 1].timeStamp;
-            }
-
-            let pointData = mModel.getCellBindingData(timeline.id).filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
-            pointData.sort((a, b) => a.linePercent - b.linePercent);
-            let percents = pointData.map(p => p.linePercent);
-            let dists = pointData.map(p => {
-                let { val1, val2, dist1, dist2 } = p.axisBinding;
-
-                if (val1 == val2) {
-                    console.error("Invalid binding values: " + val1 + ", " + val2);
-                    val1 = 0;
-                    if (val1 == val2) val2 = 1;
-                };
-
-                let dist = (dist2 - dist1) * (p.dataCell.getValue() - val1) / (val2 - val1) + dist1;
-                return dist;
-            });
-            let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists);
-
-            let coveredPoints = [];
-            pointData.forEach((binding, index) => {
-                if (eraserMask.isCovered(positions[index])) {
-                    coveredPoints.push(binding.cellBinding.id);
-                }
-            })
-
-            if (coveredPoints.length > 0) {
-                timeline.cellBindings = timeline.cellBindings
-                    .filter(cb => !coveredPoints.includes(cb.id));
-
-                pointData = pointData.filter(cbd => !coveredPoints.includes(cbd.cellBinding.id));
-
-                // remove axis without data
-                let axesColumns = DataUtil.getUniqueList(pointData.map(cbd => cbd.dataCell.columnId));
-                timeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
-            }
-
-            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
-                mapTimeStampsToTimePercents(timeline, startTime, endTime)
-            }
-        });
-    }
-
-    function eraseMaskedText(eraserMask, textBoundingBoxes) {
-        let hasTimeMappings = {};
-        textBoundingBoxes.forEach(box => {
-            let { x1, x2, y1, y2 } = box;
-            let points = [
-                { x: x1, y: y1 },
-                { x: x1, y: y2 },
-                { x: x2, y: y1 },
-                { x: x2, y: y2 },
-                { x: (x1 + x2) / 2, y: y1 },
-                { x: (x1 + x2) / 2, y: y2 },
-                { x: x1, y: (y1 + y2) / 2 },
-                { x: x2, y: (y1 + y2) / 2 },
-            ]
-            let score = points.reduce((score, currPoint) => {
-                if (eraserMask.isCovered(currPoint)) score++;
-                return score;
-            }, 0)
-            if (score > 4) {
-                if (box.isCanvasText) {
-                    mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings
-                        .filter(binding => binding.id != box.cellBindingId);
-                } else {
-                    if (!(box.timelineId in hasTimeMappings)) {
-                        hasTimeMappings[box.timelineId] = { timelineHasMapping: mModel.hasTimeMapping(box.timelineId) };
-                        if (hasTimeMappings[box.timelineId].timelineHasMapping) {
-                            let timeline = mModel.getTimelineById(box.timelineId);
-                            let bindingValues = mModel.getTimeBindingValues(timeline);
-                            hasTimeMappings[box.timelineId].startTime = bindingValues[0].timeStamp;
-                            hasTimeMappings[box.timelineId].endTime = bindingValues[bindingValues.length - 1].timeStamp
-                        }
-                    }
-                    let timeline = mModel.getTimelineById(box.timelineId);
-                    timeline.cellBindings = timeline.cellBindings.filter(binding => binding.id != box.cellBindingId);
-                }
-            }
-        })
-        Object.entries(hasTimeMappings).forEach(([timelineId, data]) => {
-            if (data.timelineHasMapping && !mModel.hasTimeMapping(timelineId)) {
-                let timeline = mModel.getTimelineById(timelineId);
-                mapTimeStampsToTimePercents(timeline, data.startTime, data.endTime)
-            }
-        })
-    }
-
-    function eraseMaskedImages(eraserMask) {
-        let timelines = mModel.getAllTimelines();
-        timelines.forEach(timeline => {
-            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
-            let startTime, endTime;
-            if (hadTimeMapping) {
-                let bindingValues = mModel.getTimeBindingValues(timeline);
-                startTime = bindingValues[0].timeStamp;
-                endTime = bindingValues[bindingValues.length - 1].timeStamp;
-            }
-
-            let imageData = mModel.getImageBindingData(timeline.id);
-            imageData.sort((a, b) => a.linePercent - b.linePercent);
-            let percents = imageData.map(p => p.linePercent);
-            let positions = PathMath.getPositionForPercents(timeline.points, percents);
-            imageData.forEach((img, index) => {
-                let pos = positions[index];
-                let x1 = pos.x + img.imageBinding.offset.x;
-                let x2 = pos.x + img.imageBinding.offset.x + img.imageBinding.width;
-                let y1 = pos.y + img.imageBinding.offset.y;
-                let y2 = pos.y + img.imageBinding.offset.y + img.imageBinding.height;
-
-                let points = [
-                    { x: x1, y: y1 },
-                    { x: x1, y: y2 },
-                    { x: x2, y: y1 },
-                    { x: x2, y: y2 },
-                    { x: (x1 + x2) / 2, y: y1 },
-                    { x: (x1 + x2) / 2, y: y2 },
-                    { x: x1, y: (y1 + y2) / 2 },
-                    { x: x2, y: (y1 + y2) / 2 },
-                ]
-                let score = points.reduce((score, currPoint) => {
-                    if (eraserMask.isCovered(currPoint)) score++;
-                    return score;
-                }, 0);
-
-                if (score > 4) {
-                    timeline.imageBindings = timeline.imageBindings
-                        .filter(binding => binding.id != img.imageBinding.id);
-                }
-            });
-
-            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
-                let timeline = mModel.getTimelineById(timeline.id);
-                mapTimeStampsToTimePercents(timeline, startTime, endTime)
-            }
-        });
-
-        let imageData = mModel.getCanvasImageBindings();
-        imageData.forEach(img => {
-            let x1 = img.imageBinding.offset.x;
-            let x2 = img.imageBinding.offset.x + img.imageBinding.width;
-            let y1 = img.imageBinding.offset.y;
-            let y2 = img.imageBinding.offset.y + img.imageBinding.height;
-
-            let points = [
-                { x: x1, y: y1 },
-                { x: x1, y: y2 },
-                { x: x2, y: y1 },
-                { x: x2, y: y2 },
-                { x: (x1 + x2) / 2, y: y1 },
-                { x: (x1 + x2) / 2, y: y2 },
-                { x: x1, y: (y1 + y2) / 2 },
-                { x: x2, y: (y1 + y2) / 2 },
-            ]
-            let score = points.reduce((score, currPoint) => {
-                if (eraserMask.isCovered(currPoint)) score++;
-                return score;
-            }, 0);
-
-            if (score > 4) {
-                mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings
-                    .filter(binding => binding.id != img.imageBinding.id);
-            }
-        });
-    }
-
-    function eraseMaskedPins(eraserMask) {
-        let timelines = mModel.getAllTimelines();
-        timelines.forEach(timeline => {
-            let remainingPins = [];
-            let maybeUpdateMapping = false;
-            let startTime, endTime;
-            timeline.timePins.sort((a, b) => a.linePercent - b.linePercent);
-            let pinPositions = PathMath.getPositionForPercents(timeline.points, timeline.timePins.map(pin => pin.linePercent));
-            timeline.timePins.forEach((pin, index) => {
-                if (!eraserMask.isCovered(pinPositions[index])) {
-                    remainingPins.push(pin);
-                } else {
-                    maybeUpdateMapping = mModel.hasTimeMapping(timeline.id);
-                    if (maybeUpdateMapping) {
-                        let bindingValues = mModel.getTimeBindingValues(timeline);
-                        startTime = bindingValues[0].timeStamp
-                        endTime = bindingValues[bindingValues.length - 1].timeStamp;
-                    }
-                }
-            });
-
-            if (remainingPins.length != timeline.timePins.length) {
-                timeline.timePins = remainingPins;
-                let ids = remainingPins.map(p => p.id);
-                timeline.cellBindings.concat(timeline.imageBindings).forEach(b => {
-                    if (b.timePinId && !ids.includes(b.timePinId)) {
-                        b.timePinId = null;
-                    }
-                })
-            }
-
-            // check if we had a mapping and now don't
-            if (maybeUpdateMapping && !mModel.hasTimeMapping(timeline.id)) {
-                mapTimeStampsToTimePercents(timeline, startTime, endTime)
-            }
-        });
-    }
-
     function updateText(cellId, text) {
         undoStackPush();
 
@@ -1539,60 +1251,130 @@ function ModelController() {
         }
     }
 
-    function deleteCellBinding(cellBindingId) {
+    function deleteCellBindings(cellBindingIds) {
         undoStackPush();
 
-        if (mModel.getCanvas().cellBindings.map(b => b.id).includes(cellBindingId)) {
-            mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings.filter(b => b.id != cellBindingId);
-        } else {
-            let timeline = mModel.getTimelineByCellBinding(cellBindingId);
-            if (!timeline) {
-                console.error("Bad cell binding id! No timeline found!", cellBindingId);
-                return;
-            }
+        let hasTimeMappings = {};
+        let affectedTimelines = [];
 
-            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
-            let startTime, endTime;
-            if (hadTimeMapping) {
-                let bindingValues = mModel.getTimeBindingValues(timeline);
-                startTime = bindingValues[0].timeStamp;
-                endTime = bindingValues[bindingValues.length - 1].timeStamp;
-            }
+        cellBindingIds.forEach(cellBindingId => {
+            if (mModel.getCanvas().cellBindings.map(b => b.id).includes(cellBindingId)) {
+                mModel.getCanvas().cellBindings = mModel.getCanvas().cellBindings.filter(b => b.id != cellBindingId);
+            } else {
+                let timeline = mModel.getTimelineByCellBinding(cellBindingId);
+                if (!timeline) {
+                    console.error("Bad cell binding id! No timeline found!", cellBindingId);
+                    return;
+                }
 
-            timeline.cellBindings = timeline.cellBindings.filter(b => b.id != cellBindingId);
-
-            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
-                mapTimeStampsToTimePercents(timeline, startTime, endTime);
+                if (!(timeline.id in hasTimeMappings)) {
+                    hasTimeMappings[timeline.id] = { timelineHasMapping: mModel.hasTimeMapping(timeline.id) };
+                    if (hasTimeMappings[timeline.id].timelineHasMapping) {
+                        let bindingValues = mModel.getTimeBindingValues(timeline);
+                        hasTimeMappings[timeline.id].startTime = bindingValues[0].timeStamp;
+                        hasTimeMappings[timeline.id].endTime = bindingValues[bindingValues.length - 1].timeStamp
+                    }
+                }
+                timeline.cellBindings = timeline.cellBindings.filter(b => b.id != cellBindingId);
+                affectedTimelines.push(timeline.id);
             }
-        }
+        })
+
+        affectedTimelines.forEach(timelineId => {
+            let timeline = mModel.getTimelineById(timelineId);
+            let bindingData = mModel.getCellBindingData(timelineId);
+            let axesColumns = DataUtil.getUniqueList(bindingData
+                .filter(cbd => cbd.dataCell.getType() == DataTypes.NUM)
+                .map(cbd => cbd.dataCell.columnId));
+            timeline.axisBindings = timeline.axisBindings.filter(ab => axesColumns.includes(ab.columnId)).map(ab => ab.clone());
+        })
+
+        Object.entries(hasTimeMappings).forEach(([timelineId, data]) => {
+            if (data.timelineHasMapping && !mModel.hasTimeMapping(timelineId)) {
+                let timeline = mModel.getTimelineById(timelineId);
+                mapTimeStampsToTimePercents(timeline, data.startTime, data.endTime)
+            }
+        })
     }
 
-    function deleteImageBinding(imageBindingId) {
+    function deletePins(pinIds) {
         undoStackPush();
 
-        if (mModel.getCanvas().imageBindings.map(b => b.id).includes(imageBindingId)) {
-            mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings.filter(b => b.id != imageBindingId);
-        } else {
-            let timeline = mModel.getTimelineByImageBinding(imageBindingId);
-            if (!timeline) {
-                console.error("Bad image binding id! No timeline found!", imageBindingId);
-                return;
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            let checkTimeMapping = false, startTime, endTime;
+
+            let newPins = timeline.timePins.filter(pin => !pinIds.includes(pin.id))
+            if (newPins.length != timeline.timePins.length) {
+                // set the values needed for loss of mapping
+                if (mModel.hasTimeMapping(timeline.id)) {
+                    checkTimeMapping = true;
+                    let bindingValues = mModel.getTimeBindingValues(timeline);
+                    startTime = bindingValues[0].timeStamp
+                    endTime = bindingValues[bindingValues.length - 1].timeStamp;
+                }
+
+                // remove pin linking
+                timeline.cellBindings.concat(timeline.imageBindings).forEach(b => {
+                    if (b.timePinId && !pinIds.includes(b.timePinId)) {
+                        b.timePinId = null;
+                    }
+                })
             }
 
-            let hadTimeMapping = mModel.hasTimeMapping(timeline.id);
-            let startTime, endTime;
-            if (hadTimeMapping) {
-                let bindingValues = mModel.getTimeBindingValues(timeline);
-                startTime = bindingValues[0].timeStamp;
-                endTime = bindingValues[bindingValues.length - 1].timeStamp;
-            }
+            timeline.timePins = newPins;
 
-            timeline.imageBindings = timeline.imageBindings.filter(b => b.id != imageBindingId);
-
-            if (hadTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
-                mapTimeStampsToTimePercents(timeline, startTime, endTime);
+            // check if we had a mapping and now don't
+            if (checkTimeMapping && !mModel.hasTimeMapping(timeline.id)) {
+                mapTimeStampsToTimePercents(timeline, startTime, endTime)
             }
-        }
+        });
+    }
+
+    function deleteStrokes(strokeIds) {
+        undoStackPush();
+        
+        let timelines = mModel.getAllTimelines();
+        timelines.forEach(timeline => {
+            timeline.annotationStrokes = timeline.annotationStrokes.filter(s => !strokeIds.includes(s.id));
+        })
+        mModel.getCanvas().annotationStrokes = mModel.getCanvas().annotationStrokes.filter(s => !strokeIds.includes(s.id));
+    }
+
+    function deleteImageBindings(imageBindingIds) {
+        undoStackPush();
+
+        let hasTimeMappings = {};
+
+        imageBindingIds.forEach(imageBindingId => {
+            if (mModel.getCanvas().imageBindings.map(b => b.id).includes(imageBindingId)) {
+                mModel.getCanvas().imageBindings = mModel.getCanvas().imageBindings.filter(b => b.id != imageBindingId);
+            } else {
+                let timeline = mModel.getTimelineByImageBinding(imageBindingId);
+                if (!timeline) {
+                    console.error("Bad image binding id! No timeline found!", imageBindingId);
+                    return;
+                }
+
+                if (!(timeline.id in hasTimeMappings)) {
+                    hasTimeMappings[timeline.id] = { timelineHasMapping: mModel.hasTimeMapping(timeline.id) };
+                    if (hasTimeMappings[timeline.id].timelineHasMapping) {
+                        let bindingValues = mModel.getTimeBindingValues(timeline);
+                        hasTimeMappings[timeline.id].startTime = bindingValues[0].timeStamp;
+                        hasTimeMappings[timeline.id].endTime = bindingValues[bindingValues.length - 1].timeStamp
+                    }
+                }
+
+                timeline.imageBindings = timeline.imageBindings.filter(b => b.id != imageBindingId);
+            }
+        })
+
+        Object.entries(hasTimeMappings).forEach(([timelineId, data]) => {
+            if (data.timelineHasMapping && !mModel.hasTimeMapping(timelineId)) {
+                let timeline = mModel.getTimelineById(timelineId);
+                mapTimeStampsToTimePercents(timeline, data.startTime, data.endTime)
+            }
+        })
     }
 
     function deleteDataSet(axisId) {
@@ -1698,13 +1480,6 @@ function ModelController() {
     this.bindCells = bindCells;
     this.updatePinBinding = updatePinBinding;
 
-    this.eraseMaskedTimelines = eraseMaskedTimelines;
-    this.eraseMaskedStrokes = eraseMaskedStrokes;
-    this.eraseMaskedDataPoints = eraseMaskedDataPoints;
-    this.eraseMaskedText = eraseMaskedText;
-    this.eraseMaskedPins = eraseMaskedPins;
-    this.eraseMaskedImages = eraseMaskedImages;
-
     // clean these up so they only modify the table, and clear that they do so.
     this.addBoundTextRow = addBoundTextRow;
     this.addCanvasText = addCanvasText;
@@ -1734,9 +1509,11 @@ function ModelController() {
     this.imageBindingToCanvasBinding = imageBindingToCanvasBinding;
     this.imageBindingToLineBinding = imageBindingToLineBinding;
 
-    this.deleteCellBinding = deleteCellBinding;
-    this.deleteImageBinding = deleteImageBinding;
+    this.deleteCellBindings = deleteCellBindings;
+    this.deleteImageBindings = deleteImageBindings;
     this.deleteDataSet = deleteDataSet;
+    this.deletePins = deletePins;
+    this.deleteStrokes = deleteStrokes;
 
     this.getModel = () => mModel.copy();
 

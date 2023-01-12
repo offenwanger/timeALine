@@ -284,6 +284,258 @@ let DataUtil = function () {
         })
     }
 
+    function getMaskedTimelines(eraserMask, model) {
+        // check erase timelines
+        let timelines = model.getAllTimelines();
+        let segmentsData = timelines.map(timeline => {
+            return {
+                id: timeline.id,
+                segments: PathMath.segmentPath(timeline.points, point => {
+                    return eraserMask.isCovered(point) ? SEGMENT_LABELS.DELETED : SEGMENT_LABELS.UNAFFECTED;
+                })
+            }
+        }).filter(segmentData => segmentData.segments.some(segment => segment.label == SEGMENT_LABELS.DELETED));
+
+        return segmentsData;
+    }
+
+    function getMaskedStrokes(eraserMask, model) {
+        let returnable = [];
+        let strokeCanvasPositionSet = [];
+
+        let timelines = model.getAllTimelines();
+        timelines.forEach(timeline => {
+            let strokeData = model.getStrokeData(timeline.id);
+            strokeCanvasPositionSet.push(...getStrokeCanvasPositions(timeline, strokeData))
+        });
+        strokeCanvasPositionSet.push(...getStrokeCanvasPositions(null, model.getCanvas().annotationStrokes));
+
+        strokeCanvasPositionSet.forEach((strokeCanvasPosition) => {
+            let stroke = strokeCanvasPosition.stroke;
+            let positions = strokeCanvasPosition.projectedPoints;
+            let fragments = [];
+            let currSet = [];
+            stroke.points.forEach((point, index) => {
+                if (eraserMask.isCovered(positions[index])) {
+                    if (currSet.length >= 2) {
+                        fragments.push(currSet);
+                    }
+                    currSet = [];
+                } else {
+                    // copy returns a regular stroke point. 
+                    currSet.push(point.copy());
+                }
+            });
+
+            if (currSet.length != stroke.points.length) {
+                // we broke the stroke
+                if (currSet.length >= 2) {
+                    // push the last stroke
+                    fragments.push(currSet);
+                }
+
+                returnable.push({ strokeData: stroke, fragments })
+            }
+        });
+
+        return returnable;
+    }
+
+    function getMaskedDataPoints(eraserMask, model) {
+        let maskedIds = [];
+
+        let timelines = model.getAllTimelines();
+        timelines.forEach(timeline => {
+            let pointData = model.getCellBindingData(timeline.id).filter(cbd => cbd.dataCell.getType() == DataTypes.NUM);
+            let positionData = getDataPointCanvasPositions(timeline, pointData);
+
+            positionData.forEach(data => {
+                if (eraserMask.isCovered({ x: data.x, y: data.y })) {
+                    maskedIds.push(data.binding.cellBinding.id);
+                }
+            });
+        });
+
+        return maskedIds;
+    }
+
+    function getMaskedText(eraserMask, textBoundingBoxes) {
+        let maskedIds = [];
+
+        textBoundingBoxes.forEach(box => {
+            let { x1, x2, y1, y2 } = box;
+            let points = [
+                { x: x1, y: y1 },
+                { x: x1, y: y2 },
+                { x: x2, y: y1 },
+                { x: x2, y: y2 },
+                { x: (x1 + x2) / 2, y: y1 },
+                { x: (x1 + x2) / 2, y: y2 },
+                { x: x1, y: (y1 + y2) / 2 },
+                { x: x2, y: (y1 + y2) / 2 },
+            ]
+            let score = points.reduce((score, currPoint) => {
+                if (eraserMask.isCovered(currPoint)) score++;
+                return score;
+            }, 0)
+
+            if (score > 4) {
+                maskedIds.push(box.cellBindingId);
+            }
+        });
+
+        return maskedIds;
+    }
+
+    function getMaskedImages(eraserMask, model) {
+        let maskedIds = [];
+
+        let timelines = model.getAllTimelines();
+        timelines.forEach(timeline => {
+            let imageData = model.getImageBindingData(timeline.id);
+            imageData.sort((a, b) => a.linePercent - b.linePercent);
+            let percents = imageData.map(p => p.linePercent);
+            let positions = PathMath.getPositionForPercents(timeline.points, percents);
+            imageData.forEach((img, index) => {
+                let pos = positions[index];
+                let x1 = pos.x + img.imageBinding.offset.x;
+                let x2 = pos.x + img.imageBinding.offset.x + img.imageBinding.width;
+                let y1 = pos.y + img.imageBinding.offset.y;
+                let y2 = pos.y + img.imageBinding.offset.y + img.imageBinding.height;
+
+                let points = [
+                    { x: x1, y: y1 },
+                    { x: x1, y: y2 },
+                    { x: x2, y: y1 },
+                    { x: x2, y: y2 },
+                    { x: (x1 + x2) / 2, y: y1 },
+                    { x: (x1 + x2) / 2, y: y2 },
+                    { x: x1, y: (y1 + y2) / 2 },
+                    { x: x2, y: (y1 + y2) / 2 },
+                ]
+                let score = points.reduce((score, currPoint) => {
+                    if (eraserMask.isCovered(currPoint)) score++;
+                    return score;
+                }, 0);
+
+                if (score > 4) {
+                    maskedIds.push(img.imageBinding.id);
+                }
+            });
+        });
+
+        let imageData = model.getCanvasImageBindings();
+        imageData.forEach(img => {
+            let x1 = img.imageBinding.offset.x;
+            let x2 = img.imageBinding.offset.x + img.imageBinding.width;
+            let y1 = img.imageBinding.offset.y;
+            let y2 = img.imageBinding.offset.y + img.imageBinding.height;
+
+            let points = [
+                { x: x1, y: y1 },
+                { x: x1, y: y2 },
+                { x: x2, y: y1 },
+                { x: x2, y: y2 },
+                { x: (x1 + x2) / 2, y: y1 },
+                { x: (x1 + x2) / 2, y: y2 },
+                { x: x1, y: (y1 + y2) / 2 },
+                { x: x2, y: (y1 + y2) / 2 },
+            ]
+            let score = points.reduce((score, currPoint) => {
+                if (eraserMask.isCovered(currPoint)) score++;
+                return score;
+            }, 0);
+
+            if (score > 4) {
+                maskedIds.push(img.imageBinding.id);
+            }
+        });
+
+        return maskedIds;
+    }
+
+    function getMaskedPins(eraserMask, model) {
+        let maskedIds = [];
+
+        let timelines = model.getAllTimelines();
+        timelines.forEach(timeline => {
+            timeline.timePins.sort((a, b) => a.linePercent - b.linePercent);
+            let pinPositions = PathMath.getPositionForPercents(timeline.points, timeline.timePins.map(pin => pin.linePercent));
+            timeline.timePins.forEach((pin, index) => {
+                if (eraserMask.isCovered(pinPositions[index])) {
+                    maskedIds.push(pin.id);
+                }
+            });
+        });
+
+        return maskedIds;
+    }
+
+    function getDataPointCanvasPositions(timeline, cellBindings) {
+        cellBindings.sort((a, b) => a.linePercent - b.linePercent);
+        let percents = cellBindings.map(b => b.linePercent);
+        let dists = cellBindings.map(b => {
+            let { val1, val2, dist1, dist2 } = b.axisBinding;
+            if (b.axisBinding.style == DataDisplayStyles.AREA || b.axisBinding.style == DataDisplayStyles.STREAM) {
+                val2 = Math.max(Math.abs(val1), Math.abs(val2));
+                val1 = 0;
+            }
+            if (val1 == val2) { console.error("Invalid axis values: " + val1 + ", " + val2); val1 = 0; if (val1 == val2) val2 = 1; };
+            let dist = (dist2 - dist1) * (b.dataCell.getValue() - val1) / (val2 - val1) + dist1;
+            return dist;
+        })
+
+        let fixedNormal = null;
+        if (cellBindings.length > 0 && cellBindings[0].axisBinding.alignment == DataDisplayAlignments.FIXED) {
+            fixedNormal = PathMath.getNormalForPercent(timeline.points, cellBindings[0].axisBinding.linePercent)
+        }
+
+        let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists, fixedNormal);
+        return cellBindings.map((bindingData, index) => {
+            return {
+                binding: bindingData,
+                dist: dists[index],
+                x: positions[index].x,
+                y: positions[index].y,
+            }
+        });
+    }
+
+    function getStrokeCanvasPositions(timeline, strokeData) {
+        if (!timeline) {
+            return strokeData.map(stroke => {
+                return {
+                    stroke,
+                    projectedPoints: stroke.points.map(p => {
+                        return {
+                            x: p.xValue,
+                            y: p.lineDist,
+                        }
+                    })
+                }
+            })
+        } else {
+            strokeData.forEach(s => s.points.forEach((p, index) => {
+                p.sId = s.id
+                p.index = index;
+            }));
+            let pointArray = strokeData.map(s => s.points).flat().sort((a, b) => a.linePercent - b.linePercent)
+            let positions = PathMath.getPositionsForPercentsAndDists(
+                timeline.points, pointArray.map(p => p.linePercent), pointArray.map(p => p.lineDist));
+
+            let returnData = {};
+            strokeData.forEach(sd => {
+                returnData[sd.id] = { stroke: sd, projectedPoints: [] };
+            })
+
+            pointArray.forEach((p, index) => {
+                returnData[p.sId].projectedPoints[p.index] = positions[index];
+            });
+
+            return Object.values(returnData);
+        }
+    }
+
     return {
         inferDataAndType,
         getUniqueList,
@@ -304,5 +556,15 @@ let DataUtil = function () {
         timelineDataPointsChanged,
 
         svgToCanvas,
+
+        getMaskedDataPoints,
+        getMaskedImages,
+        getMaskedPins,
+        getMaskedStrokes,
+        getMaskedText,
+        getMaskedTimelines,
+
+        getDataPointCanvasPositions,
+        getStrokeCanvasPositions,
     }
 }();

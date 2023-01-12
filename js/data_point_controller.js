@@ -75,7 +75,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
                     mAxisDrawingData[axis.id] = getAxisDrawingData(timeline, axis);
                 }
 
-                let newData = getPointDrawingData(timeline, recalculationData.filter(cbd => cbd.axisBinding.id == axis.id));
+                let newData = DataUtil.getDataPointCanvasPositions(timeline, recalculationData.filter(cbd => cbd.axisBinding.id == axis.id));
                 newData.forEach(dataItem => {
                     mPointDrawingData[dataItem.binding.cellBinding.id] = dataItem;
                 })
@@ -103,7 +103,7 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
     function drawDataSet(cellBindingData) {
         if (cellBindingData.length == 0) { console.error("No data provided for drawing!"); return; }
         let timeline = cellBindingData[0].timeline
-        let pointDrawingData = getPointDrawingData(timeline, cellBindingData);
+        let pointDrawingData = DataUtil.getDataPointCanvasPositions(timeline, cellBindingData);
         drawPoints(pointDrawingData);
 
         let axis = cellBindingData[0].axisBinding;
@@ -117,36 +117,6 @@ function DataPointController(vizLayer, overlayLayer, interactionLayer) {
         if (axis.style == DataDisplayStyles.LINE) { drawLines([lineData]); } else { drawLines([]); }
         if (axis.style == DataDisplayStyles.STREAM) { drawStreams([lineData]); } else { drawStreams([]); }
         if (axis.style == DataDisplayStyles.AREA) { drawAreas([lineData]); } else { drawAreas([]); }
-    }
-
-    function getPointDrawingData(timeline, cellBindings) {
-        cellBindings.sort((a, b) => a.linePercent - b.linePercent);
-        let percents = cellBindings.map(b => b.linePercent);
-        let dists = cellBindings.map(b => {
-            let { val1, val2, dist1, dist2 } = b.axisBinding;
-            if (b.axisBinding.style == DataDisplayStyles.AREA || b.axisBinding.style == DataDisplayStyles.STREAM) {
-                val2 = Math.max(Math.abs(val1), Math.abs(val2));
-                val1 = 0;
-            }
-            if (val1 == val2) { console.error("Invalid axis values: " + val1 + ", " + val2); val1 = 0; if (val1 == val2) val2 = 1; };
-            let dist = (dist2 - dist1) * (b.dataCell.getValue() - val1) / (val2 - val1) + dist1;
-            return dist;
-        })
-
-        let fixedNormal = null;
-        if (cellBindings.length > 0 && cellBindings[0].axisBinding.alignment == DataDisplayAlignments.FIXED) {
-            fixedNormal = PathMath.getNormalForPercent(timeline.points, cellBindings[0].axisBinding.linePercent)
-        }
-
-        let positions = PathMath.getPositionsForPercentsAndDists(timeline.points, percents, dists, fixedNormal);
-        return cellBindings.map((bindingData, index) => {
-            return {
-                binding: bindingData,
-                dist: dists[index],
-                x: positions[index].x,
-                y: positions[index].y,
-            }
-        });
     }
 
     function getLineDrawingData(axis, timeline, pointDrawingData) {
