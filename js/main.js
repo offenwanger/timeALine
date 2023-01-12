@@ -1184,22 +1184,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on('wheel', function (e) {
         e = e.originalEvent;
-        if (mMode == Mode.DEFORM) {
-            mDeformController.onWheel(e.wheelDelta);
-        } if (mMode == Mode.ERASER_TEXT ||
-            mMode == Mode.ERASER_TIMELINE ||
-            mMode == Mode.ERASER_STROKE ||
-            mMode == Mode.ERASER_POINT ||
-            mMode == Mode.ERASER_PIN ||
-            mMode == Mode.ERASER_IMAGE ||
-            mMode == Mode.ERASER) {
-            mEraserController.onWheel(e.wheelDelta);
-        } else if (mMode == Mode.SMOOTH) {
-            mSmoothController.onWheel(e.wheelDelta);
-        } else if (mMode == Mode.COLOR_BRUSH) {
-            mColorBrushController.onWheel(e.wheelDelta);
-            mLensController.onWheel(e.wheelDelta);
-        }
+        mDeformController.onWheel(e.wheelDelta);
+        mEraserController.onWheel(e.wheelDelta);
+        mSmoothController.onWheel(e.wheelDelta);
+        mColorBrushController.onWheel(e.wheelDelta);
+        mLensController.onWheel(e.wheelDelta);
     });
 
     function doUndo() {
