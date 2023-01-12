@@ -723,14 +723,14 @@ function ModelController() {
     }
 
 
-    function addTimelineStroke(timelineId, points, color, width) {
-        undoStackPush();
+    function addTimelineStroke(timelineId, points, color, width, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
-    function addCanvasStroke(points, color, width) {
-        undoStackPush();
+    function addCanvasStroke(points, color, width, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
@@ -1251,8 +1251,8 @@ function ModelController() {
         }
     }
 
-    function deleteCellBindings(cellBindingIds) {
-        undoStackPush();
+    function deleteCellBindings(cellBindingIds, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         let hasTimeMappings = {};
         let affectedTimelines = [];
@@ -1297,8 +1297,8 @@ function ModelController() {
         })
     }
 
-    function deletePins(pinIds) {
-        undoStackPush();
+    function deletePins(pinIds, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
@@ -1331,9 +1331,9 @@ function ModelController() {
         });
     }
 
-    function deleteStrokes(strokeIds) {
-        undoStackPush();
-        
+    function deleteStrokes(strokeIds, stackUndo = true) {
+        if (stackUndo) undoStackPush();
+
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
             timeline.annotationStrokes = timeline.annotationStrokes.filter(s => !strokeIds.includes(s.id));
@@ -1341,8 +1341,8 @@ function ModelController() {
         mModel.getCanvas().annotationStrokes = mModel.getCanvas().annotationStrokes.filter(s => !strokeIds.includes(s.id));
     }
 
-    function deleteImageBindings(imageBindingIds) {
-        undoStackPush();
+    function deleteImageBindings(imageBindingIds, stackUndo = true) {
+        if (stackUndo) undoStackPush();
 
         let hasTimeMappings = {};
 

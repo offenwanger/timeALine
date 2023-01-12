@@ -70,10 +70,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                         mTimelineId,
                         fragment,
                         strokeData.color,
-                        strokeData.width);
+                        strokeData.width,
+                        false);
                 })
             });
-            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id), false);
         }
         if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
             let pointsData = getPointsDrawingData();
@@ -83,7 +84,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                     erasedPointsIds.push(p.cellBindingId);
                 }
             });
-            mModelController.deleteCellBindings(erasedPointsIds);
+            mModelController.deleteCellBindings(erasedPointsIds, false);
         }
         if (mMode == Mode.ERASER_PIN || mMode == Mode.ERASER) {
             let pinData = getPinDrawingData();
@@ -93,7 +94,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                     erasedPinIds.push(pin.id);
                 }
             })
-            mModelController.deletePins(erasedPinIds);
+            mModelController.deletePins(erasedPinIds, false);
         }
 
         modelUpdated();

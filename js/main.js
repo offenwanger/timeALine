@@ -911,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // text has to be erased first because we need the rendering information.
             let boundingBoxes = mTextController.getTextBoundingBoxes();
             let maskedCellBindingIds = DataUtil.getMaskedText(canvasMask, boundingBoxes);
-            mModelController.deleteCellBindings(maskedCellBindingIds);
+            mModelController.deleteCellBindings(maskedCellBindingIds, false);
         }
         if (mMode == Mode.ERASER_TIMELINE || mMode == Mode.ERASER) {
             let segmentsData = DataUtil.getMaskedTimelines(canvasMask, mModelController.getModel());
@@ -930,7 +930,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
                         mModelController.addCanvasStroke(
                             fragment,
                             strokeData.color,
-                            strokeData.width);
+                            strokeData.width,
+                            false);
                     })
                 } else {
                     let timeline = model.getTimelineByStrokeId(strokeData.id);
@@ -941,25 +942,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
                             timeline.id,
                             fragment,
                             strokeData.color,
-                            strokeData.width);
+                            strokeData.width,
+                            false);
                     })
                 }
             });
-            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id), false);
         }
         if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
             let maskedCellBindingIds = DataUtil.getMaskedDataPoints(canvasMask, mModelController.getModel());
-            mModelController.deleteCellBindings(maskedCellBindingIds);
+            mModelController.deleteCellBindings(maskedCellBindingIds, false);
         }
         if (mMode == Mode.ERASER_IMAGE || mMode == Mode.ERASER) {
             let erasedImageIds = DataUtil.getMaskedImages(canvasMask, mModelController.getModel());
-            mModelController.deleteImageBindings(erasedImageIds);
+            mModelController.deleteImageBindings(erasedImageIds, false);
         }
         if (mMode == Mode.ERASER_PIN) {
             let erasedPinIds = DataUtil.getMaskedPins(canvasMask, mModelController.getModel());
             // only do this if we are specifically erasing pins, because 
             // pins will be deleted with the erased line section.
-            mModelController.deletePins(erasedPinIds);
+            mModelController.deletePins(erasedPinIds, false);
         }
 
         modelUpdated();
