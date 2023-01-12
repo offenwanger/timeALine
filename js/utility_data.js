@@ -300,15 +300,20 @@ let DataUtil = function () {
     }
 
     function getMaskedStrokes(eraserMask, model) {
-        let returnable = [];
         let strokeCanvasPositionSet = [];
 
         let timelines = model.getAllTimelines();
         timelines.forEach(timeline => {
             let strokeData = model.getStrokeData(timeline.id);
-            strokeCanvasPositionSet.push(...getStrokeCanvasPositions(timeline, strokeData))
+            strokeCanvasPositionSet.push(...getStrokeCanvasPositions(timeline.points, strokeData))
         });
         strokeCanvasPositionSet.push(...getStrokeCanvasPositions(null, model.getCanvas().annotationStrokes));
+
+        return fragmentStrokes(eraserMask, strokeCanvasPositionSet);
+    }
+
+    function fragmentStrokes(eraserMask, strokeCanvasPositionSet) {
+        let returnable = [];
 
         strokeCanvasPositionSet.forEach((strokeCanvasPosition) => {
             let stroke = strokeCanvasPosition.stroke;
@@ -501,8 +506,8 @@ let DataUtil = function () {
         });
     }
 
-    function getStrokeCanvasPositions(timeline, strokeData) {
-        if (!timeline) {
+    function getStrokeCanvasPositions(points, strokeData) {
+        if (!points) {
             return strokeData.map(stroke => {
                 return {
                     stroke,
@@ -521,7 +526,7 @@ let DataUtil = function () {
             }));
             let pointArray = strokeData.map(s => s.points).flat().sort((a, b) => a.linePercent - b.linePercent)
             let positions = PathMath.getPositionsForPercentsAndDists(
-                timeline.points, pointArray.map(p => p.linePercent), pointArray.map(p => p.lineDist));
+                points, pointArray.map(p => p.linePercent), pointArray.map(p => p.lineDist));
 
             let returnData = {};
             strokeData.forEach(sd => {
@@ -566,5 +571,7 @@ let DataUtil = function () {
 
         getDataPointCanvasPositions,
         getStrokeCanvasPositions,
+
+        fragmentStrokes,
     }
 }();

@@ -29,7 +29,7 @@ function StrokeController(vizLayer, overlayLayer, interactionLayer) {
             let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
             if (changedStrokes.length > 0) {
                 let changedStrokeData = mModel.getStrokeData(timeline.id).filter(s => changedStrokes.includes(s.id));
-                let strokeDrawingData = DataUtil.getStrokeCanvasPositions(timeline, changedStrokeData);
+                let strokeDrawingData = DataUtil.getStrokeCanvasPositions(timeline.points, changedStrokeData);
                 strokeDrawingData.forEach(strokeDrawingData => {
                     mStrokesData[strokeDrawingData.stroke.id] = {
                         color: strokeDrawingData.stroke.color,

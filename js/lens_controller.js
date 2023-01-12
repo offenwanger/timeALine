@@ -52,6 +52,53 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         }
     })
 
+    let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
+    mEraserController.setEraseCallback(canvasMask => {
+        if (mMode == Mode.ERASER_STROKE ||
+            mMode == Mode.ERASER_POINT ||
+            mMode == Mode.ERASER_PIN ||
+            mMode == Mode.ERASER) {
+            mModelController.undoStackPush();
+        }
+        if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
+            let strokeData = mModel.getStrokeData(mTimelineId);
+            let strokeFragementData = DataUtil.fragmentStrokes(canvasMask,
+                DataUtil.getStrokeCanvasPositions([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], strokeData));
+            strokeFragementData.forEach(({ strokeData, fragments }) => {
+                fragments.forEach(fragment => {
+                    mModelController.addTimelineStroke(
+                        mTimelineId,
+                        fragment,
+                        strokeData.color,
+                        strokeData.width);
+                })
+            });
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
+        }
+        if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
+            let pointsData = getPointsDrawingData();
+            let erasedPointsIds = [];
+            pointsData.forEach(p => {
+                if (canvasMask.isCovered({ y: p.y, x: p.x })) {
+                    erasedPointsIds.push(p.cellBindingId);
+                }
+            });
+            mModelController.deleteCellBindings(erasedPointsIds);
+        }
+        if (mMode == Mode.ERASER_PIN || mMode == Mode.ERASER) {
+            let pinData = getPinDrawingData();
+            let erasedPinIds = [];
+            pinData.forEach(({ pin, x }) => {
+                if (canvasMask.isCovered({ y: 0, x })) {
+                    erasedPinIds.push(pin.id);
+                }
+            })
+            mModelController.deletePins(erasedPinIds);
+        }
+
+        modelUpdated();
+    })
+
     // needs to go after controllers so it's on top
     mVizOverlayLayer.append('rect')
         .attr('id', 'lens-overlay')
@@ -69,6 +116,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
             let coords = screenToSvgCoords({ x: e.x, y: e.y });
             mLensColorBrushController.onPointerDown(coords);
+            mEraserController.onPointerDown(coords);
         })
 
     function onPointerMove(screenCoords) {
@@ -80,7 +128,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             setViewToTransform();
         }
 
-        mLensColorBrushController.onPointerMove(coords)
+        mLensColorBrushController.onPointerMove(coords);
+        mEraserController.onPointerMove(coords);
     }
 
     function onPointerUp(screenCoords) {
@@ -95,7 +144,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
         // these do their own active checking
         let coords = screenToSvgCoords(screenCoords);
-        mLensColorBrushController.onPointerUp(coords)
+        mLensColorBrushController.onPointerUp(coords);
+        mEraserController.onPointerUp(coords);
     };
 
 
@@ -187,6 +237,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     function updateModel(model) {
         let oldModel = mModel;
         mModel = model;
+        mEraserController.updateModel(mModel);
 
         mSvg.style('background-color', mModel.getCanvas().color);
 
@@ -240,13 +291,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function redrawTimePins() {
-        let timeline = mModel.getTimelineById(mTimelineId);
-        if (!timeline) {
-            console.error('Code should be unreachable.');
-            return;
-        }
-
-        let pinsData = timeline.timePins.map(pin => pin.linePercent * mLineLength);
+        let pinsData = getPinDrawingData().map(p => p.x);
         let pins = mPinGroup.selectAll('.lens-pin-tick')
             .data(pinsData);
         pins.exit().remove();
@@ -262,35 +307,29 @@ function LensController(svg, externalModelController, externalModelUpdated) {
             .attr('x2', (d) => d)
             .attr('y1', (d) => pinTickLength / 2)
             .attr('y2', (d) => -pinTickLength / 2);
+    }
 
+    function getPinDrawingData() {
+        let timeline = mModel.getTimelineById(mTimelineId);
+        if (!timeline) {
+            console.error('Code should be unreachable.');
+            return [];
+        }
+
+        return timeline.timePins.map(pin => {
+            return {
+                pin,
+                x: pin.linePercent * mLineLength
+            }
+        });
     }
 
     function removeTimePins() {
-
+        mPinGroup.selectAll('.lens-pin-tick').remove();
     }
 
     function redrawDataPoints() {
-        let cellBindingData = mModel.getCellBindingData(mTimelineId)
-            .filter(cbd => cbd.linePercent != NO_LINE_PERCENT &&
-                cbd.dataCell.getType() == DataTypes.NUM)
-        let numData = cellBindingData.map(cbd => {
-            let { val1, val2, dist1, dist2 } = cbd.axisBinding;
-            if (cbd.axisBinding.style == DataDisplayStyles.AREA || cbd.axisBinding.style == DataDisplayStyles.STREAM) {
-                val2 = Math.max(Math.abs(val1), Math.abs(val2));
-                val1 = 0;
-            }
-            if (val1 == val2) {
-                console.error('Invalid binding values: ' + val1 + ', ' + val2);
-                val1 = 0;
-                if (val1 == val2) val2 = 1;
-            };
-            let dist = (dist2 - dist1) * (cbd.dataCell.getValue() - val1) / (val2 - val1) + dist1;
-            return {
-                x: cbd.linePercent * mLineLength,
-                y: -dist,
-                color: cbd.color ? cbd.color : 'black'
-            };
-        });
+        let numData = getPointsDrawingData();
 
         let selection = mPointsGroup.selectAll('.lens-data-point').data(numData);
         selection.exit().remove();
@@ -307,6 +346,30 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
     function removeDataPoints() {
         mPointsGroup.selectAll('.lens-data-point').remove();
+    }
+    function getPointsDrawingData() {
+        let cellBindingData = mModel.getCellBindingData(mTimelineId)
+            .filter(cbd => cbd.linePercent != NO_LINE_PERCENT &&
+                cbd.dataCell.getType() == DataTypes.NUM)
+        return cellBindingData.map(cbd => {
+            let { val1, val2, dist1, dist2 } = cbd.axisBinding;
+            if (cbd.axisBinding.style == DataDisplayStyles.AREA || cbd.axisBinding.style == DataDisplayStyles.STREAM) {
+                val2 = Math.max(Math.abs(val1), Math.abs(val2));
+                val1 = 0;
+            }
+            if (val1 == val2) {
+                console.error('Invalid binding values: ' + val1 + ', ' + val2);
+                val1 = 0;
+                if (val1 == val2) val2 = 1;
+            };
+            let dist = (dist2 - dist1) * (cbd.dataCell.getValue() - val1) / (val2 - val1) + dist1;
+            return {
+                cellBindingId: cbd.cellBinding.id,
+                x: cbd.linePercent * mLineLength,
+                y: -dist,
+                color: cbd.color ? cbd.color : 'black'
+            };
+        });
     }
 
     function redrawTextData() {
@@ -341,25 +404,33 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function redrawStrokes(oldModel) {
+
+
+        //////////////////////
+
         let oldStrokeData = mStrokesData;
         mStrokesData = {}
 
         let timeline = mModel.getTimelineById(mTimelineId);
         let oldtimeline = oldModel ? oldModel.getTimelineById(mTimelineId) : null;
         let changedStrokes = DataUtil.timelineStrokesChanged(timeline, oldtimeline);
-        mModel.getStrokeData(timeline.id).forEach(strokeData => {
-            if (changedStrokes.includes(strokeData.id)) {
-                mStrokesData[strokeData.id] = {
-                    color: strokeData.color,
-                    width: strokeData.width,
-                    projectedPoints: strokeData.points.map(point => {
-                        return PathMath.getPositionForPercentAndDist([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], point.linePercent, point.lineDist);
-                    })
-                }
-            } else {
-                mStrokesData[strokeData.id] = oldStrokeData[strokeData.id];
-            }
-        })
+
+        if (changedStrokes.length > 0) {
+            let changedStrokeData = mModel.getStrokeData(mTimelineId).filter(s => changedStrokes.includes(s.id));
+            let strokeDrawingData = DataUtil.getStrokeCanvasPositions([{ x: 0, y: 0 }, { x: mLineLength, y: 0 }], changedStrokeData);
+            strokeDrawingData.forEach(strokeDrawingData => {
+                mStrokesData[strokeDrawingData.stroke.id] = {
+                    color: strokeDrawingData.stroke.color,
+                    width: strokeDrawingData.stroke.width,
+                    projectedPoints: strokeDrawingData.projectedPoints,
+                };
+            })
+        }
+        let unchangedStrokeData = timeline.annotationStrokes.filter(s => !changedStrokes.includes(s.id));
+        unchangedStrokeData.forEach(stroke => {
+            mStrokesData[stroke.id] = oldStrokeData[stroke.id];
+        });
+
 
         let selection = mStrokeGroup.selectAll('.lens-annotation-stroke').data(Object.values(mStrokesData));
         selection.exit()
@@ -380,9 +451,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     }
 
     function onWheel(delta) {
-        if (mMode == Mode.COLOR_BRUSH) {
-            mLensColorBrushController.onWheel(delta);
-        }
+        mLensColorBrushController.onWheel(delta);
+        mEraserController.onWheel(delta);
     }
 
     function setMode(mode) {
@@ -392,14 +462,19 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
             if (mMode == Mode.COLOR_BRUSH) {
                 mLensColorBrushController.setActive(true);
+            } else if (mMode == Mode.ERASER_STROKE ||
+                mMode == Mode.ERASER_POINT ||
+                mMode == Mode.ERASER_PIN ||
+                mMode == Mode.ERASER) {
+                mEraserController.setActive(true);
             }
         }
     }
 
     function clearMode() {
-        if (mMode == Mode.COLOR_BRUSH) {
-            mLensColorBrushController.setActive(false);
-        }
+        mLensColorBrushController.setActive(false);
+        mEraserController.setActive(false);
+
         mMode = Mode.NONE;
     }
 
