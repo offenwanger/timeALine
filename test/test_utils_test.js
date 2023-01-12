@@ -417,6 +417,9 @@ before(function () {
         let file_handling = rewire('../js/file_handling.js');
 
         let utility = rewire('../js/utility.js');
+        let utility_path = rewire('../js/utility_path.js');
+        let utility_math = rewire('../js/utility_math.js');
+        let utility_data = rewire('../js/utility_data.js');
 
         // designed to extract objects with contructors that are called one time
         returnable.snagConstructor = function (source, constructor) {
@@ -510,9 +513,9 @@ before(function () {
             DeformController: deform_controller.__get__("DeformController"),
             SmoothController: smooth_controller.__get__("SmoothController"),
             DataTableController: table_view_controller.__get__("DataTableController"),
-            PathMath: utility.__get__("PathMath"),
-            MathUtil: utility.__get__("MathUtil"),
-            DataUtil: utility.__get__("DataUtil"),
+            PathMath: utility_path.__get__("PathMath"),
+            MathUtil: utility_math.__get__("MathUtil"),
+            DataUtil: utility_data.__get__("DataUtil"),
             ToolTip: utility.__get__("ToolTip"),
             FilterUtil: utility.__get__("FilterUtil"),
             CanvasMask: utility.__get__("CanvasMask"),

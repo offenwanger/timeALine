@@ -5,38 +5,16 @@ let expect = chai.expect;
 
 describe('Test PathMath', function () {
     let PathMath;
-    let enviromentVariables;
 
     beforeEach(function (done) {
-        enviromentVariables = {
-            document: TestUtils.fakeDocument,
-            d3: {
-                line: () => {
-                    return {
-                        x: function () { return this },
-                        y: function () { return this },
-                        curve: function () { return function (val) { return val } },
-                    }
-                },
-                curveCatmullRom: { alpha: () => { } }
-            }
-        }
-
-        let utility = rewire('../js/utility.js');
-        utility.__set__(enviromentVariables);
-
-        PathMath = utility.__get__('PathMath');
+        integrationEnv = TestUtils.getIntegrationEnviroment();
+        PathMath = integrationEnv.enviromentVariables.PathMath;
 
         done();
     });
 
     afterEach(function (done) {
-        Object.keys(enviromentVariables).forEach((key) => {
-            delete global[key];
-        })
-        delete enviromentVariables;
-        delete PathMath;
-        done();
+        integrationEnv.cleanup(done);
     });
 
     describe('path length test', function () {
