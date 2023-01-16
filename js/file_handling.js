@@ -117,6 +117,17 @@ let FileHandler = function () {
             await stream.close();
         }
 
+        async function writePNG(canvas, fileName) {
+            let blob = await new Promise(resolve => canvas.toBlob(resolve));
+            let name = fileName + ".png";
+            let traceFolder = await this.handle.getDirectoryHandle("trace", { create: true });
+            let pngsFolder = await traceFolder.getDirectoryHandle("pngs", { create: true });
+            let fileHandle = await pngsFolder.getFileHandle(name, { create: true });
+            let stream = await fileHandle.createWritable();
+            await stream.write(blob);
+            await stream.close();
+        }
+
         async function writeVersion(obj) {
             let name = this.versionCount + ".json";
             this.versionCount++;
@@ -138,10 +149,23 @@ let FileHandler = function () {
             return JSON.parse(contents);
         }
 
+        async function forEachVersion(callback) {
+            let versionFolder = await this.handle.getDirectoryHandle("version");
+            for (let i = 0; i < this.versionCount; i++) {
+                let name = i + ".json";
+                let fileHandle = await versionFolder.getFileHandle(name);
+                let file = await fileHandle.getFile();
+                let contents = await file.text();
+                await callback(JSON.parse(contents), i)
+            }
+        }
+
         this.init = init;
         this.storeTrace = storeTrace;
         this.writeVersion = writeVersion;
+        this.writePNG = writePNG;
         this.getCurrentVersion = getCurrentVersion;
+        this.forEachVersion = forEachVersion;
     }
 
 

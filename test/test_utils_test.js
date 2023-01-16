@@ -448,6 +448,7 @@ before(function () {
                 };
             },
             window: {
+                location: { search: "somestring" },
                 eventListeners: {},
                 innerWidth: 500,
                 innerHeight: 500,

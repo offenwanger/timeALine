@@ -1436,22 +1436,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#download-button-svg', 'Download your viz as svg');
 
     $('#download-button-png').on('click', async () => {
-        let viz = mVizLayer.clone(true);
-        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
-        viz.selectAll('g').each(function () {
-            if (this.childElementCount == 0) {
-                d3.select(this).remove();
-            }
-        });
-        viz.select('#timeline-drawing-brush').remove();
-
-        let { x, y, height, width } = viz.node().getBBox();
-        x -= 10;
-        y -= 10;
-        height += 20;
-        width += 20;
-
-        let canvas = await DataUtil.svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
+        let canvas = await vizToCanvas();
         FileHandler.downloadPNG(canvas)
     })
     setupButtonTooltip('#download-button-png', 'Download your viz as png');
@@ -2302,6 +2287,26 @@ document.addEventListener('DOMContentLoaded', function (e) {
         hide();
     }
 
+    async function vizToCanvas() {
+        let viz = mVizLayer.clone(true);
+        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
+        viz.selectAll('g').each(function () {
+            if (this.childElementCount == 0) {
+                d3.select(this).remove();
+            }
+        });
+        viz.select('#timeline-drawing-brush').remove();
+
+        let { x, y, height, width } = viz.node().getBBox();
+        x -= 10;
+        y -= 10;
+        height += 20;
+        width += 20;
+
+        let canvas = await DataUtil.svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
+        return canvas;
+    }
+
     /** useful test and development function: */
     // $(document).on('pointerover pointerenter pointerdown pointermove pointerup pointercancel pointerout pointerleave gotpointercapture lostpointercapture abort afterprint animationend animationiteration animationstart beforeprint beforeunload blur canplay canplaythrough change click contextmenu copy cut dblclick drag dragend dragenter dragleave dragover dragstart drop durationchange ended error focus focusin focusout fullscreenchange fullscreenerror hashchange input invalid keydown keypress keyup load loadeddata loadedmetadata loadstart message mousedown mouseenter mouseleave mousemove mouseover mouseout mouseup mousewheel offline online open pagehide pageshow paste pause play playing popstate progress ratechange resize reset scroll search seeked seeking select show stalled storage submit suspend timeupdate toggle touchcancel touchend touchmove touchstart transitionend unload volumechange waiting wheel', function (e) {
     //     console.log(e.type, screenToSvgCoords({ x: e.clientX, y: e.clientY }))
@@ -2311,4 +2316,17 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mMainOverlay.raise();
     hideLensView();
     setDefaultMode();
+
+    if (new URLSearchParams(window.location.search).has('analysis')) {
+        $(document).on('click', async () => {
+            let workspace = await FileHandler.getWorkspace(false);
+            workspace.forEachVersion(async (version, versionNumber) => {
+                mModelController.setModelFromObject(version);
+                modelUpdated();
+
+                let canvas = await vizToCanvas();
+                await workspace.writePNG(canvas, versionNumber);
+            })
+        })
+    }
 });
