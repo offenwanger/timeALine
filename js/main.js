@@ -1356,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mWorkspace = await FileHandler.getWorkspace(false);
             workspaceSet();
 
-            let model = await mWorkspace.getCurrentVersion();
+            let model = await mWorkspace.readVersion();
             mModelController.setModelFromObject(model);
             modelUpdated();
         } catch (e) {
@@ -1393,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $('#download-button-folder').on('click', async () => {
         try {
             mWorkspace = await FileHandler.getWorkspace(true);
-            mWorkspace.writeVersion(mModelController.getModelAsObject());
+            await mWorkspace.writeVersion(mModelController.getModelAsObject());
 
             workspaceSet();
         } catch (e) {
@@ -2312,21 +2312,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     //     console.log(e.type, screenToSvgCoords({ x: e.clientX, y: e.clientY }))
     // });
 
+    if (new URLSearchParams(window.location.search).has('analysis')) {
+        setupExtras(modelUpdated, mModelController, vizToCanvas);
+    }
+
     mLineViewController.raise();
     mMainOverlay.raise();
     hideLensView();
     setDefaultMode();
-
-    if (new URLSearchParams(window.location.search).has('analysis')) {
-        $(document).on('click', async () => {
-            let workspace = await FileHandler.getWorkspace(false);
-            workspace.forEachVersion(async (version, versionNumber) => {
-                mModelController.setModelFromObject(version);
-                modelUpdated();
-
-                let canvas = await vizToCanvas();
-                await workspace.writePNG(canvas, versionNumber);
-            })
-        })
-    }
 });

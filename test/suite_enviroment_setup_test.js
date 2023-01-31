@@ -1,4 +1,7 @@
-// This file defines the constants for all the tests. 
+// This file defines the enviroment for tests.
+// it's not actually a test it's just calling it test makes things easier. 
+
+
 let fs = require('fs');
 let vm = require('vm');
 let rewire = require('rewire');
@@ -13,7 +16,7 @@ before(function () {
     let consoleError = console.error;
     console.error = function (message) {
         consoleError(...arguments);
-        assert.fail("Error", "No Error" + message);
+        assert.fail("No Error", "Error: " + message);
     }
 
     let timeoutCallbacks = []
@@ -297,33 +300,6 @@ before(function () {
         }
     };
 
-
-    let fakeDocument = {
-        isDocument: true,
-        createElementNS: (ns, item) => {
-            if (item == "path") {
-                return Object.assign({}, fakeSVGPath);
-            } else if (item == "svg") {
-                return {
-                    attr: function (name, val) { this[name] = val; return this; },
-                    style: function (name, val) { this[name] = val; return this; },
-                    append: function (appendeeFunc) {
-                        if (typeof appendeeFunc == 'function') {
-                            this.outerHTML = appendeeFunc();
-                        } else {
-                            return this;
-                        }
-                    },
-                    node: function () { return this; },
-                }
-            }
-        },
-        createElement: function (name) {
-            if (name == 'canvas') return Object.assign({}, mockCanvas);
-            if (name == 'a') return { click: () => { } };
-        }
-    };
-
     let mockCanvas = {
         getContext: function () { return this; },
         drawImage: function (image) {
@@ -379,21 +355,45 @@ before(function () {
         if (global.d3) throw new Error("Context leaks!")
 
         returnable.documentCallbacks = [];
-        global.document = Object.assign({
+        returnable.mainInit = function () {
+            returnable.documentCallbacks
+                .filter(cb => cb.event == "DOMContentLoaded")
+                .forEach(cb => cb.callback());
+        }
+        global.document = {
+            isDocument: true,
             addEventListener: function (event, callback) {
-                if (event == "DOMContentLoaded") {
-                    returnable.mainInit = callback;
-                } else {
-                    returnable.documentCallbacks.push({ event, callback });
-                }
+                returnable.documentCallbacks.push({ event, callback });
             },
             on: function (event, callback) {
                 returnable.documentCallbacks.push({ event, callback });
             },
             keydown: function (callback) {
                 returnable.documentCallbacks.push({ event: "keydown", callback });
+            },
+            createElementNS: (ns, item) => {
+                if (item == "path") {
+                    return Object.assign({}, fakeSVGPath);
+                } else if (item == "svg") {
+                    return {
+                        attr: function (name, val) { this[name] = val; return this; },
+                        style: function (name, val) { this[name] = val; return this; },
+                        append: function (appendeeFunc) {
+                            if (typeof appendeeFunc == 'function') {
+                                this.outerHTML = appendeeFunc();
+                            } else {
+                                return this;
+                            }
+                        },
+                        node: function () { return this; },
+                    }
+                }
+            },
+            createElement: function (name) {
+                if (name == 'canvas') return Object.assign({}, mockCanvas);
+                if (name == 'a') return { click: () => { } };
             }
-        }, TestUtils.fakeDocument);
+        }
 
         let main = rewire('../js/main.js');
         let data_structures = rewire('../js/data_structures.js');
@@ -414,6 +414,8 @@ before(function () {
         let data_point_controller = rewire('../js/data_point_controller.js');
         let text_controller = rewire('../js/text_controller.js');
         let image_controller = rewire('../js/image_controller.js');
+        let workspace_controller = rewire('../js/workspace_controller.js');
+        let analysis_functions = rewire('../js/analysis_functions.js');
         let file_handling = rewire('../js/file_handling.js');
 
         let utility = rewire('../js/utility.js');
@@ -448,7 +450,7 @@ before(function () {
                 };
             },
             window: {
-                location: { search: "somestring" },
+                location: { search: "analysis=true" },
                 eventListeners: {},
                 innerWidth: 500,
                 innerHeight: 500,
@@ -464,7 +466,9 @@ before(function () {
                         }
                     }]
                 },
-                addEventListener: function (event, func) { this.eventListeners[event] = func; }
+                addEventListener: function (event, func) { this.eventListeners[event] = func; },
+                directory: {},
+                showDirectoryPicker: async function () { return this.directory },
             },
             Blob: function () { this.init = arguments },
             URL: {
@@ -514,6 +518,7 @@ before(function () {
             DeformController: deform_controller.__get__("DeformController"),
             SmoothController: smooth_controller.__get__("SmoothController"),
             DataTableController: table_view_controller.__get__("DataTableController"),
+            WorkspaceController: workspace_controller.__get__("WorkspaceController"),
             PathMath: utility_path.__get__("PathMath"),
             MathUtil: utility_math.__get__("MathUtil"),
             DataUtil: utility_data.__get__("DataUtil"),
@@ -521,6 +526,7 @@ before(function () {
             FilterUtil: utility.__get__("FilterUtil"),
             CanvasMask: utility.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
+            setupExtras: analysis_functions.__get__("setupExtras"),
         };
         returnable.enviromentVariables.jspreadsheet.getColumnNameFromId = function (col, row) { return col + "_" + row }
 
@@ -545,6 +551,7 @@ before(function () {
             delete returnable.enviromentVariables;
             delete returnable.modelController;
             delete global.document;
+            delete global.window;
 
             done();
         };
@@ -573,7 +580,6 @@ before(function () {
         fakeD3,
         fakeJqueryFactory,
         fakeSVGPath,
-        fakeDocument,
         makeTestTable,
         getIntegrationEnviroment,
         deepEquals,

@@ -107,3 +107,9 @@ body {
     margin-top: 5px;
     margin-bottom: 5px;
 }
+
+#extra-functions-div {
+    top: 0;
+    left: 0;
+    display: none;
+}
