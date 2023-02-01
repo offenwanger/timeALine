@@ -58,11 +58,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mDrawerController = new DrawerController('#data-drawer');
     mDrawerController.setDrawerResizedCallback((width) => {
-        mLensSvg.attr('width', width);
+        mLensController.onResize(width);
         if (mLensController.getCurrentTimelineId()) {
-            if (mLensController.getCurrentTimelineId()) {
-                showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
-            }
+            showLensView(mLensController.getCurrentTimelineId(), mLensController.getCurrentCenterPercent());
         }
     })
     $('#data-drawer').find('.close-button').on('click', () => {

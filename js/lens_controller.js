@@ -101,7 +101,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
     })
 
     // needs to go after controllers so it's on top
-    mVizOverlayLayer.append('rect')
+    let mLensOverlay = mVizOverlayLayer.append('rect')
         .attr('id', 'lens-overlay')
         .attr('x', 0)
         .attr('y', 0)
@@ -149,6 +149,10 @@ function LensController(svg, externalModelController, externalModelUpdated) {
         mEraserController.onPointerUp(coords);
     };
 
+    function onResize(width) {
+        mSvg.attr('width', width);
+        mLensOverlay.attr('width', width);
+    }
 
     function screenToSvgCoords(coords) {
         if (isNaN(parseInt(coords.x)) || isNaN(parseInt(coords.y))) {
@@ -487,6 +491,7 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;
+    this.onResize = onResize;
     this.onWheel = onWheel;
 
     this.focus = focus;
