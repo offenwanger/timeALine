@@ -1870,6 +1870,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 $('#mode-indicator-div').show();
 
                 showSubMenu(buttonId);
+
+                if (mWorkspace) mWorkspace.log(LogEvent.MODE_CHANGE, mMode);
             }
         })
     }
@@ -1898,6 +1900,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 modeImg.addClass('mode-indicator');
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
+
+                if (mWorkspace) mWorkspace.log(LOG.EVENT.MODE_CHANGE, mMode);
             }
         })
     }
@@ -1971,6 +1975,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#selection-button-sub-menu').css('top', $('#selection-button').offset().top);
         $('#selection-button-sub-menu').css('left', $('#selection-button').offset().left - $('#selection-button-sub-menu').outerWidth() - 10);
         $('#selection-button-sub-menu').show();
+
+        if (mWorkspace) mWorkspace.log(LOG.EVENT.MODE_CHANGE, mMode);
     }
     setDefaultMode();
 

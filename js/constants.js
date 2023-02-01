@@ -79,6 +79,10 @@ const LineStyle = {
     STYLE_DASHED: 'dashed',
 }
 
+const LogEvent = {
+    MODE_CHANGE: 0,
+}
+
 class ModelStateError extends Error {
     constructor(message) {
         super(message);

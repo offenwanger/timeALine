@@ -210,6 +210,17 @@ function WorkspaceController(directoryHandle) {
         }
     }
 
+    async function log(event, data) {
+        // timestamp, event, data
+        let logStr = Date.now() + "," + event + "," + data + "\n";
+        let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
+        let fileHandle = await traceFolder.getFileHandle("log.csv", { create: true });
+        let file = await fileHandle.getFile();
+        let stream = await fileHandle.createWritable({ keepExistingData: true });
+        await stream.write({ type: "write", position: file.size, data: logStr });
+        await stream.close();
+    }
+
     this.init = init;
     this.writePNG = initWrap(writePNG);
     this.writeJSON = initWrap(writeJSON);
@@ -217,4 +228,5 @@ function WorkspaceController(directoryHandle) {
     this.readVersion = initWrap(readVersion);
     this.forEachVersion = initWrap(forEachVersion);
     this.storeImageURL = initWrap(storeImageURL);
+    this.log = log;
 }
