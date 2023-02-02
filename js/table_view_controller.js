@@ -204,17 +204,15 @@ function DataTableController() {
     }
 
     function onblur() {
-        setTimeout(() => {
-            if (mSelection) {
-                if (mShouldDeselectCallback()) {
-                    mSelection = null;
-                    mDeselectionCallback();
-                } else {
-                    mJSpreadsheetTables[mSelection.tableId]
-                        .updateSelectionFromCoords(mSelection.col1, mSelection.row1, mSelection.col2, mSelection.row2)
-                }
+        if (mSelection) {
+            if (mShouldDeselectCallback()) {
+                mSelection = null;
+                mDeselectionCallback();
+            } else {
+                mJSpreadsheetTables[mSelection.tableId]
+                    .updateSelectionFromCoords(mSelection.col1, mSelection.row1, mSelection.col2, mSelection.row2)
             }
-        }, 100);
+        }
     }
 
     function onsort(instance, columnIndex, order) {

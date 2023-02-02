@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mSelectedImageBindingId = null;
     let mSelectedAxisId = null;
     let mLinkingBinding = null;
+    let mMousedOverLinkButton = false;
 
     let mMouseDropShadow = new MouseDropShadow(mInteractionLayer);
     let mLineHighlight = new LineHighlight(mVizLayer);
@@ -1011,10 +1012,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         }
     });
-    mDataTableController.setShouldDeselectCallback(() => {
-        // this is an annoying integration thing.
-        return mMode != Mode.LINK; F
-    })
+    mDataTableController.setShouldDeselectCallback(() => !mMousedOverLinkButton)
 
     mMainOverlay.on('pointerdown', function (pointerEvent) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
@@ -1810,6 +1808,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineViewController.setActive(true);
     });
     setupButtonTooltip('#link-button', 'Attaches data to timelines')
+    $('#link-button').on("pointerenter", () => { mMousedOverLinkButton = true; });
+    $('#link-button').on("pointerout", () => { mMousedOverLinkButton = false; });
 
     $('#toggle-data-style-button').on('click', () => {
         if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
