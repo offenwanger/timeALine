@@ -81,6 +81,17 @@ const LineStyle = {
 
 const LogEvent = {
     MODE_CHANGE: 0,
+    UNDO: 1,
+    REDO: 2,
+    TEXT_EDIT: 3,
+    DELETE: 4,
+    WHEEL: 5,
+    TOGGLE_DRAWER: 6,
+    UPLOAD_CSV: 7,
+    ADD_SPREADSHEET: 8,
+    UPLOAD_MENU: 9,
+    WORKSPACE_OPENED: 10,
+    JSON_UPLOADED: 11,
 }
 
 class ModelStateError extends Error {

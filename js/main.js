@@ -1165,19 +1165,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $(document).keydown(function (e) {
         if ((e.ctrlKey || e.metaKey) && /* z */ e.which == 90) {
             doUndo();
+            log(LogEvent.UNDO, "key")
         }
 
         if (((e.ctrlKey || e.metaKey) && /* y */ e.keyCode == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && /* y */ e.which == 90)) {
             doRedo();
+            log(LogEvent.REDO, "key")
         }
 
         if (/* delete */ e.which == 46) {
             deleteSelected();
+            log(LogEvent.DELETE, "key")
         }
 
         if (e.key == 'Enter') {
             if (mTextInputBox.isShowing()) {
                 mTextInputBox.returnText();
+                log(LogEvent.TEXT_EDIT, "key")
             }
         }
     });
@@ -1189,6 +1193,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSmoothController.onWheel(e.wheelDelta);
         mColorBrushController.onWheel(e.wheelDelta);
         mLensController.onWheel(e.wheelDelta);
+
+        log(LogEvent.WHEEL, "");
     });
 
     function doUndo() {
@@ -1332,18 +1338,27 @@ document.addEventListener('DOMContentLoaded', function (e) {
         } else {
             mDrawerController.openDrawer();
         }
+
+        log(LogEvent.TOGGLE_DRAWER, mDrawerController.isOpen());
     })
     setupButtonTooltip('#datasheet-toggle-button', 'Opens and closes the datasheets and lens view');
 
-    $('#undo-button').on('click', () => { doUndo(); })
+    $('#undo-button').on('click', () => { 
+        doUndo(); 
+        log(LogEvent.UNDO, "button");
+    })
     setupButtonTooltip('#undo-button', 'Undo last action');
 
-    $('#redo-button').on('click', () => { doRedo(); })
+    $('#redo-button').on('click', () => { 
+        doRedo(); 
+        log(LogEvent.REDO, "button");
+    })
     setupButtonTooltip('#redo-button', 'Redo last undone action');
 
     $('#upload-button').on('click', async () => {
         setDefaultMode();
         showSubMenu('#upload-button');
+        log(LogEvent.UPLOAD_MENU, "");
     })
     setupButtonTooltip('#upload-button', 'Shows menu to load previous work');
 
@@ -1357,6 +1372,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let model = await mWorkspace.readVersion();
             mModelController.setModelFromObject(model);
             modelUpdated();
+
+            log(LogEvent.WORKSPACE_OPENED, "");
         } catch (e) {
             if (e.message.includes('The user aborted a request')) return;
             if (e.message.includes('Missing folders')) {
@@ -1375,6 +1392,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mModelController.setModelFromObject(model);
             modelUpdated();
             setDefaultMode();
+
+            log(LogEvent.JSON_UPLOADED, "");
         } catch (e) {
             if (e.message.includes('The user aborted a request')) return;
             console.error('Error loading workspace', e); return;
@@ -1837,6 +1856,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         mModelController.addTable(newTable);
         modelUpdated();
+
+        log(LogEvent.ADD_SPREADSHEET, "");
     })
     setupButtonTooltip('#add-datasheet-button', 'Adds a new datasheet')
 
@@ -1844,6 +1865,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         let csv = await FileHandler.getCSVDataFile();
         mModelController.addTableFromCSV(csv.data);
         modelUpdated();
+
+        log(LogEvent.UPLOAD_CSV, "");
     })
     setupButtonTooltip('#upload-datasheet-button', 'Upload a csv datasheet')
 
@@ -1871,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
                 showSubMenu(buttonId);
 
-                if (mWorkspace) mWorkspace.log(LogEvent.MODE_CHANGE, mMode);
+                log(LogEvent.MODE_CHANGE, mMode);
             }
         })
     }
@@ -1901,7 +1924,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 $('#mode-indicator-div').append(modeImg);
                 $('#mode-indicator-div').show();
 
-                if (mWorkspace) mWorkspace.log(LOG.EVENT.MODE_CHANGE, mMode);
+                log(LogEvent.MODE_CHANGE, mMode);
             }
         })
     }
@@ -1976,7 +1999,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#selection-button-sub-menu').css('left', $('#selection-button').offset().left - $('#selection-button-sub-menu').outerWidth() - 10);
         $('#selection-button-sub-menu').show();
 
-        if (mWorkspace) mWorkspace.log(LOG.EVENT.MODE_CHANGE, mMode);
+        log(LogEvent.MODE_CHANGE, mMode);
     }
     setDefaultMode();
 
@@ -2318,6 +2341,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     if (new URLSearchParams(window.location.search).has('analysis')) {
         setupExtras(modelUpdated, mModelController, vizToCanvas);
+    }
+
+    function log(event, data) {
+        if (mWorkspace) mWorkspace.log(event, data);
     }
 
     mLineViewController.raise();
