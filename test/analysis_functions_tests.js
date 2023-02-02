@@ -70,7 +70,8 @@ describe('Analysis function tests', function () {
                 getFileHandle: (name) => {
                     lastImageName = name;
                     return imageFileHandle;
-                }
+                },
+                values: () => [],
             }
             let imageFileHandle = {
                 getFile: async () => imageFile,
