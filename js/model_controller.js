@@ -1431,14 +1431,6 @@ function ModelController() {
         obj.dataTables.forEach(table => mModel.getAllTables().push(DataStructs.DataTable.fromObject(table)))
     }
 
-    function getModelAsObject() {
-        return {
-            canvas: mModel.getCanvas(),
-            timelines: mModel.getAllTimelines(),
-            dataTables: mModel.getAllTables()
-        }
-    }
-
     function undo() {
         if (mUndoStack.length == 0) return false;
         // throws away our currently version, but will hide annoying errors for a bit...
@@ -1518,7 +1510,6 @@ function ModelController() {
     this.getModel = () => mModel.copy();
 
     this.setModelFromObject = setModelFromObject;
-    this.getModelAsObject = getModelAsObject;
 
     this.undo = undo;
     this.redo = redo;

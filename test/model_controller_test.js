@@ -607,21 +607,21 @@ describe('Integration Test ModelController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
 
-            let originalModel = integrationEnv.ModelController.getModelAsObject();
+            let originalModel = integrationEnv.ModelController.getModel().toObject();
 
             integrationEnv.enviromentVariables.$.selectors['#download-button-json'].eventCallbacks.click();
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
 
             // clear the data
             integrationEnv.ModelController.setModelFromObject({ canvas: new DataStructs.Canvas(), timelines: [], dataTables: [] });
-            assert.equal(integrationEnv.ModelController.getModelAsObject().timelines.length, 0);
-            assert.equal(integrationEnv.ModelController.getModelAsObject().dataTables.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().toObject().timelines.length, 0);
+            assert.equal(integrationEnv.ModelController.getModel().toObject().dataTables.length, 0);
 
             await integrationEnv.enviromentVariables.$.selectors["#upload-button-json"].eventCallbacks.click();
 
             // Do both directions to make sure we aren't missing anything. 
-            TestUtils.deepEquals(integrationEnv.ModelController.getModelAsObject(), originalModel);
-            TestUtils.deepEquals(originalModel, integrationEnv.ModelController.getModelAsObject());
+            TestUtils.deepEquals(integrationEnv.ModelController.getModel().toObject(), originalModel);
+            TestUtils.deepEquals(originalModel, integrationEnv.ModelController.getModel().toObject());
         });
 
         it('should draw correctly from unserialized data', async function () {

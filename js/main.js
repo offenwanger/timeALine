@@ -1325,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('body').css('background-color', mModelController.getModel().getCanvas().color);
 
         if (mWorkspace) {
-            mWorkspace.writeVersion(mModelController.getModelAsObject());
+            mWorkspace.writeVersion(mModelController.getModel().toObject());
         }
     }
 
@@ -1343,14 +1343,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     setupButtonTooltip('#datasheet-toggle-button', 'Opens and closes the datasheets and lens view');
 
-    $('#undo-button').on('click', () => { 
-        doUndo(); 
+    $('#undo-button').on('click', () => {
+        doUndo();
         log(LogEvent.UNDO, "button");
     })
     setupButtonTooltip('#undo-button', 'Undo last action');
 
-    $('#redo-button').on('click', () => { 
-        doRedo(); 
+    $('#redo-button').on('click', () => {
+        doRedo();
         log(LogEvent.REDO, "button");
     })
     setupButtonTooltip('#redo-button', 'Redo last undone action');
@@ -1410,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $('#download-button-folder').on('click', async () => {
         try {
             mWorkspace = await FileHandler.getWorkspace(true);
-            await mWorkspace.writeVersion(mModelController.getModelAsObject());
+            await mWorkspace.writeVersion(mModelController.getModel().toObject());
 
             workspaceSet();
         } catch (e) {
@@ -1425,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#download-button-folder', 'Set the workspace folder for this visualization');
 
     $('#download-button-json').on('click', () => {
-        FileHandler.downloadJSON(mModelController.getModelAsObject());
+        FileHandler.downloadJSON(mModelController.getModel().toObject());
     })
     setupButtonTooltip('#download-button-json', 'Package your image into a json file which can be uploaded later');
 

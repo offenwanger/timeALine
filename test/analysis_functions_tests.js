@@ -22,10 +22,16 @@ describe('Analysis function tests', function () {
 
             let contents = fs.readFileSync(__dirname + "/test_viz_1.json", "utf-8");
             let filecontents = {
-                "0.json": JSON.parse(JSON.stringify(contents)),
-                "1.json": JSON.parse(JSON.stringify(contents)),
-                "2.json": JSON.parse(JSON.stringify(contents)),
+                "0.json": contents,
+                "1.json": contents,
+                "2.json": contents,
             }
+
+            let obj = JSON.parse(contents);
+            let imageDataLength = obj.canvas.imageBindings
+                .concat(obj.timelines
+                    .map(t => t.imageBindings)
+                    .flat()).map(b => b.imageData).join("").length;
 
             let directoryHandle = {
                 getFileHandle: async (name, options) => {
@@ -101,7 +107,7 @@ describe('Analysis function tests', function () {
                 .concat(result.timelines
                     .map(t => t.imageBindings)
                     .flat());
-            expect(imageBindings.map(b => b.imageData).join("").length).to.eql(48278);
+            expect(imageBindings.map(b => b.imageData).join("").length).to.eql(imageDataLength);
             expect(imageBindings.map(b => b.hash)).to.eql([-529222296, -54930653, 209152756]);
         });
     });

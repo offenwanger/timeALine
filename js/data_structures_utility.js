@@ -602,6 +602,14 @@ DataStructs.DataModel = function () {
     this.getTimeColumnByTableId = getTimeColumnByTableId;
     this.getRowByCellId = getRowByCellId;
 
+    this.toObject = function () {
+        return {
+            canvas: this.getCanvas(),
+            timelines: this.getAllTimelines(),
+            dataTables: this.getAllTables()
+        }
+    }
+
     this.getCellBindingData = getCellBindingData;
     this.getAllCellBindingData = getAllCellBindingData;
     this.getCanvasBindingData = getCanvasBindingData;

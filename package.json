@@ -12,7 +12,7 @@
     },
     "scripts": {
         "test": "mocha --timeout=3000",
-        "testOnly": "mocha -g \"conversion tests\" --timeout=3000",
+        "testOnly": "mocha -g \"filter text\" --timeout=3000",
         "coverage": "nyc --reporter=html --reporter=text mocha --timeout=3000",
         "coverageOnly": "nyc --reporter=html --reporter=text mocha -g \"filter text\" --timeout=3000"
     }

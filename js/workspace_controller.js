@@ -2,6 +2,7 @@ function WorkspaceController(directoryHandle) {
     let mHandle = directoryHandle;
     let mVersionCount = 0;
     let mInitialized = false;
+    let mSavedImagesHashes = [];
 
     const SETTINGS_FILE = "workspaceData.json";
 
@@ -43,6 +44,12 @@ function WorkspaceController(directoryHandle) {
             if (DataUtil.isNumeric(num)) {
                 mVersionCount = Math.max(num + 1, mVersionCount);
             }
+        }
+
+        let imageFolder = await mHandle.getDirectoryHandle("images", { create: true });
+        for await (f of imageFolder.values()) {
+            let hash = parseInt(f.name.split(".")[0]);
+            mSavedImagesHashes.push(hash);
         }
 
         mInitialized = true;
@@ -88,7 +95,9 @@ function WorkspaceController(directoryHandle) {
             let imageHash = DataUtil.getHashCode(imageData)
             binding.imageData = "hashed"
             binding.hash = imageHash;
-            await storeImageURL(imageHash, imageData);
+            if (!mSavedImagesHashes.includes(imageHash)) {
+                await storeImageURL(imageHash, imageData);
+            }
         }
 
         let versionFolder = await mHandle.getDirectoryHandle("version", { create: true });
@@ -183,6 +192,8 @@ function WorkspaceController(directoryHandle) {
 
         await stream.write(imageData);
         await stream.close();
+
+        mSavedImagesHashes.push(imageHash);
     }
 
     async function retrieveImageURL(imageHash) {
