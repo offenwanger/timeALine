@@ -1,4 +1,4 @@
-function setupExtras(modelUpdated, mModelController, vizToCanvas) {
+function setupExtras(modelUpdated, mModelController, getCanvasFromViz) {
     $('#extra-functions-div').show();
     $('#extra-json-to-png').on('click', async () => {
         let workspace = await FileHandler.getWorkspace(false);
@@ -6,7 +6,7 @@ function setupExtras(modelUpdated, mModelController, vizToCanvas) {
             mModelController.setModelFromObject(version);
             modelUpdated();
 
-            let canvas = await vizToCanvas();
+            let canvas = await getCanvasFromViz();
             await workspace.writePNG(canvas, versionNumber);
         })
     })

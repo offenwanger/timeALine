@@ -1451,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#download-button-svg', 'Download your viz as svg');
 
     $('#download-button-png').on('click', async () => {
-        let canvas = await vizToCanvas();
+        let canvas = await DataUtil.vizToCanvas(mVizLayer);
         FileHandler.downloadPNG(canvas)
     })
     setupButtonTooltip('#download-button-png', 'Download your viz as png');
@@ -2131,37 +2131,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLinkLine.style('visibility', 'hidden');
     }
 
-    function MouseDropShadow(parent) {
-        let shadow = parent.append('g')
-            .attr('id', 'mouse-drop-shadow');
-
-        shadow.append('circle')
-            .attr('id', 'drop-position')
-            .attr('fill', 'grey')
-            .attr('r', 3.5)
-            .attr('opacity', 0.5);
-        shadow.append('line')
-            .attr('id', 'drop-line')
-            .attr('stroke-width', 1.5)
-            .attr('stroke', 'grey')
-            .attr('opacity', 0.5);
-
-        this.show = function (dropCoords, mouseCoords) {
-            shadow.select('#drop-position')
-                .attr('cx', dropCoords.x)
-                .attr('cy', dropCoords.y)
-            shadow.select('#drop-line')
-                .attr('x1', dropCoords.x)
-                .attr('y1', dropCoords.y)
-                .attr('x2', mouseCoords.x)
-                .attr('y2', mouseCoords.y)
-            shadow.style('visibility', null);
-        }
-        this.hide = function () { shadow.style('visibility', 'hidden'); };
-        // start hidden
-        this.hide();
-    }
-
     function showLineTime(timelineId, screenCoords) {
         let timeline = mModelController.getModel().getTimelineById(timelineId);
 
@@ -2198,149 +2167,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineHighlight.hide();
     }
 
-    function LineHighlight(parent) {
-        let mHighlight = parent.append('path')
-            .attr('id', 'highlight-path')
-            .attr('stroke', 'blue')
-            .attr('fill', 'none')
-            .attr('stroke-width', 5)
-            .style('isolation', 'auto')
-
-        let mLastPointSet = [];
-        let mPathLength = 0;
-        let mPathStruct = []
-
-        this.showAround = function (points, centerPercent, length) {
-            let len = PathMath.getPathLength(points);
-            let centerLen = len * centerPercent;
-            let lowPercent = (centerLen - length / 2) / len
-            let highPercent = (centerLen + length / 2) / len
-            this.show(points, Math.max(lowPercent, 0), Math.min(highPercent, 1))
-        }
-
-        this.show = function (points, startpercent, endPercent) {
-            if (!PathMath.equalsPath(mLastPointSet, points)) {
-                mLastPointSet = points;
-                mPathLength = PathMath.getPathLength(points);
-
-                if (mPathLength < 20) {
-                    mPathStruct = [points[0]];
-                } else {
-                    mPathStruct = Array.from(Array(Math.floor(mPathLength / 10)).keys())
-                        .map(i => PathMath.getPositionForPercent(points, i * 10 / mPathLength))
-                }
-
-                mPathStruct.push(points[points.length - 1])
-            }
-
-            let startIndex = Math.floor(startpercent * mPathLength / 10);
-            let endIndex = Math.ceil(endPercent * mPathLength / 10);
-
-            mHighlight.attr('d', PathMath.getPathD(mPathStruct.slice(startIndex, endIndex)));
-            mHighlight.style('visibility', '');
-            mHighlight.raise();
-        }
-
-        this.hide = function () { mHighlight.style('visibility', 'hidden'); };
-        // start hidden
-        this.hide();
-    }
-
-    function TextInputBox() {
-        let mTextChangedCallback = (text) => { };
-        let mIsValidCallback = (text) => { return true };
-
-        let mIsShowing;
-        let mInputbox = $('#input-box');
-
-        mInputbox.on('input', function (e) {
-            let value = mInputbox.val();
-            let isValid = mIsValidCallback(value);
-
-            if (isValid) {
-                mInputbox.css('background-color', '')
-            } else {
-                mInputbox.css('background-color', 'lightpink')
-            }
-
-            mInputbox.css('height', (mInputbox.prop('scrollHeight') - 4) + 'px');
-        }).on('change', function (e) {
-            hide();
-        }).on('blur', function (e) {
-            mTextChangedCallback(mInputbox.val());
-            hide();
-        });
-
-        function show(text, x, y, height, width) {
-            mInputbox.css('top', Math.floor(y - 8) + 'px')
-                .css('left', Math.floor(x - 8) + 'px')
-                .css('height', height + 'px')
-                .css('width', width + 'px');
-            mInputbox.val(text);
-
-            mInputbox.show();
-            mIsShowing = true;
-
-            mInputbox[0].focus();
-        }
-
-        function returnText() {
-            if (mIsShowing) {
-                mTextChangedCallback(mInputbox.val());
-                hide();
-            }
-        }
-
-        function hide() {
-            mInputbox.hide();
-            mIsShowing = false;
-        }
-
-        function reset() {
-            mTextChangedCallback = (text) => { };
-            mIsValidCallback = (value) => { return true };
-            mInputbox.css('background-color', '');
-        }
-
-        this.show = show;
-        this.returnText = returnText;
-        this.hide = hide;
-        this.reset = reset;
-        this.isShowing = () => mIsShowing;
-
-        this.setTextChangedCallback = (callback) => mTextChangedCallback = callback;
-        this.setIsValidCallback = (callback) => mIsValidCallback = callback;
-
-        hide();
-    }
-
-    async function vizToCanvas() {
-        let viz = mVizLayer.clone(true);
-        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
-        viz.selectAll('g').each(function () {
-            if (this.childElementCount == 0) {
-                d3.select(this).remove();
-            }
-        });
-        viz.select('#timeline-drawing-brush').remove();
-
-        let { x, y, height, width } = viz.node().getBBox();
-        x -= 10;
-        y -= 10;
-        height += 20;
-        width += 20;
-
-        let canvas = await DataUtil.svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
-        return canvas;
-    }
-
     /** useful test and development function: */
     // $(document).on('pointerover pointerenter pointerdown pointermove pointerup pointercancel pointerout pointerleave gotpointercapture lostpointercapture abort afterprint animationend animationiteration animationstart beforeprint beforeunload blur canplay canplaythrough change click contextmenu copy cut dblclick drag dragend dragenter dragleave dragover dragstart drop durationchange ended error focus focusin focusout fullscreenchange fullscreenerror hashchange input invalid keydown keypress keyup load loadeddata loadedmetadata loadstart message mousedown mouseenter mouseleave mousemove mouseover mouseout mouseup mousewheel offline online open pagehide pageshow paste pause play playing popstate progress ratechange resize reset scroll search seeked seeking select show stalled storage submit suspend timeupdate toggle touchcancel touchend touchmove touchstart transitionend unload volumechange waiting wheel', function (e) {
     //     console.log(e.type, screenToSvgCoords({ x: e.clientX, y: e.clientY }))
     // });
 
     if (new URLSearchParams(window.location.search).has('analysis')) {
-        setupExtras(modelUpdated, mModelController, vizToCanvas);
+        setupExtras(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer));
     }
 
     function log(event, data) {

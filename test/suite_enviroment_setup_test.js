@@ -418,7 +418,12 @@ before(function () {
         let analysis_functions = rewire('../js/analysis_functions.js');
         let file_handling = rewire('../js/file_handling.js');
 
-        let utility = rewire('../js/utility.js');
+        let text_input = rewire("../js/interface_utility/text_input.js");
+        let canvas_mask = rewire("../js/interface_utility/canvas_mask.js");
+        let shadow_filter = rewire("../js/interface_utility/shadow_filter.js");
+        let tooltip = rewire("../js/interface_utility/tooltip.js");
+        let mouse_drop_shadow = rewire("../js/interface_utility/mouse_drop_shadow.js");
+        let line_highlight = rewire("../js/interface_utility/line_highlight.js");
         let utility_path = rewire('../js/utility_path.js');
         let utility_math = rewire('../js/utility_math.js');
         let utility_data = rewire('../js/utility_data.js');
@@ -522,9 +527,12 @@ before(function () {
             PathMath: utility_path.__get__("PathMath"),
             MathUtil: utility_math.__get__("MathUtil"),
             DataUtil: utility_data.__get__("DataUtil"),
-            ToolTip: utility.__get__("ToolTip"),
-            FilterUtil: utility.__get__("FilterUtil"),
-            CanvasMask: utility.__get__("CanvasMask"),
+            MouseDropShadow: mouse_drop_shadow.__get__("MouseDropShadow"),
+            LineHighlight: line_highlight.__get__("LineHighlight"),
+            TextInputBox: text_input.__get__("TextInputBox"),
+            ToolTip: tooltip.__get__("ToolTip"),
+            FilterUtil: shadow_filter.__get__("FilterUtil"),
+            CanvasMask: canvas_mask.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
             setupExtras: analysis_functions.__get__("setupExtras"),
         };

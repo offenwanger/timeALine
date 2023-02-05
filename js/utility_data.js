@@ -284,6 +284,26 @@ let DataUtil = function () {
         })
     }
 
+    async function vizToCanvas(vizLayer) {
+        let viz = vizLayer.clone(true);
+        viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
+        viz.selectAll('g').each(function () {
+            if (this.childElementCount == 0) {
+                d3.select(this).remove();
+            }
+        });
+        viz.select('#timeline-drawing-brush').remove();
+
+        let { x, y, height, width } = viz.node().getBBox();
+        x -= 10;
+        y -= 10;
+        height += 20;
+        width += 20;
+
+        let canvas = await svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
+        return canvas;
+    }
+
     function getMaskedTimelines(eraserMask, model) {
         // check erase timelines
         let timelines = model.getAllTimelines();
@@ -573,6 +593,7 @@ let DataUtil = function () {
         timelineDataPointsChanged,
 
         svgToCanvas,
+        vizToCanvas,
 
         getMaskedDataPoints,
         getMaskedImages,
