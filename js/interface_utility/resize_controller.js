@@ -86,12 +86,12 @@ function ResizeController(parent) {
                 y2: mDraggingData.top ? mBoundingBox.y2 : dragCoords.y,
             };
 
-            if (newBounds.x1 == newBounds.x2) {
-                newBounds.x2 = newBounds.x2 + 1;
+            if (newBounds.x1 >= newBounds.x2) {
+                newBounds.x2 = newBounds.x1 + 1;
             }
 
-            if (newBounds.y1 == newBounds.y2) {
-                newBounds.y2 = newBounds.y2 + 1;
+            if (newBounds.y1 >= newBounds.y2) {
+                newBounds.y2 = newBounds.y1 + 1;
             }
 
             draw(newBounds.x1, newBounds.y1, newBounds.x2, newBounds.y2);
