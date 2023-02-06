@@ -15,7 +15,12 @@ let FileHandler = function () {
         return new Promise((resolve, reject) => {
             var reader = new FileReader();
             reader.onloadend = function () {
-                resolve(reader.result)
+                var image = new Image();
+                image.onload = function () {
+                    resolve({ imageData: reader.result, width: this.width, height: this.height })
+                };
+                image.onerror = reject;
+                image.src = reader.result;
             }
             reader.onerror = reject;
             reader.readAsDataURL(file);

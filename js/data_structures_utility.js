@@ -380,6 +380,45 @@ DataStructs.DataModel = function () {
             .find(ib => ib.id == imageBindingId);
     }
 
+    function getImageBindingDataById(imageBindingId) {
+        let canvasBinding = mCanvas.imageBindings.find(b => b.id == imageBindingId);
+        if (canvasBinding) {
+            return new DataStructs.ImageBindingData(canvasBinding, null, NO_LINE_PERCENT, true);
+        }
+
+        let timeline = mTimelines.find(t => t.imageBindings.some(b => b.id == imageBindingId));
+        if (!timeline) { console.error("No image binding found for id!", imageBindingId); return; }
+
+        let timelineHasMapping = hasTimeMapping(timeline.id);
+        let imageBinding = getImageBindingById(imageBindingId);
+
+        let linePercent;
+        if (imageBinding.timePinId) {
+            let timePin = timeline.timePins.find(pin => pin.id == imageBinding.timePinId);
+            if (timePin) {
+                linePercent = timePin.linePercent;
+            } else {
+                console.error("Time pin not found for image binding!", imageBinding);
+                imageBinding.timePinId = null;
+                linePercent = NO_LINE_PERCENT;
+            }
+        } else if (timelineHasMapping && imageBinding.timeStamp) {
+            let time = imageBinding.timeStamp;
+            linePercent = mapTimeToLinePercent(timeline.id, time)
+        } else if (imageBinding.timeStamp) {
+            let timePin = timeline.timePins.find(pin => pin.timeStamp == imageBinding.timeStamp);
+            if (timePin) {
+                linePercent = timePin.linePercent;
+            } else {
+                linePercent = NO_LINE_PERCENT;
+            }
+        } else {
+            linePercent = NO_LINE_PERCENT;
+        }
+
+        return new DataStructs.ImageBindingData(imageBinding, timeline, linePercent);
+    }
+
     function getCanvasImageBindings() {
         return mCanvas.imageBindings.map(imageBinding => {
             return new DataStructs.ImageBindingData(imageBinding, null, NO_LINE_PERCENT, true);
@@ -632,6 +671,7 @@ DataStructs.DataModel = function () {
     this.getCanvasImageBindings = getCanvasImageBindings;
     this.getImageBindingData = getImageBindingData;
     this.getImageBindingById = getImageBindingById;
+    this.getImageBindingDataById = getImageBindingDataById;
 
     this.mapLinePercentToTime = mapLinePercentToTime;
     this.mapTimeToLinePercent = mapTimeToLinePercent;

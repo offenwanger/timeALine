@@ -284,7 +284,7 @@ let DataUtil = function () {
         })
     }
 
-    async function vizToCanvas(vizLayer) {
+    async function vizToCanvas(vizLayer, backgroundColor) {
         let viz = vizLayer.clone(true);
         viz.attr('transform', 'translate(' + 0 + ',' + 0 + ')');
         viz.selectAll('g').each(function () {
@@ -300,7 +300,7 @@ let DataUtil = function () {
         height += 20;
         width += 20;
 
-        let canvas = await svgToCanvas(viz.node(), x, y, width, height, mModelController.getModel().getCanvas().color);
+        let canvas = await svgToCanvas(viz.node(), x, y, width, height, backgroundColor);
         return canvas;
     }
 
@@ -561,6 +561,40 @@ let DataUtil = function () {
         }
     }
 
+    function getImageCanvasPositions(boundData) {
+        let returnData = []
+
+        let timelines = DataUtil.getUniqueList(boundData.filter(b => !b.isCanvasBinding).map(b => b.timeline), 'id');
+        timelines.forEach(timeline => {
+            let timelineBindingData = boundData.filter(b => b.timeline && b.timeline.id == timeline.id);
+            timelineBindingData.sort((a, b) => a.linePercent - b.linePercent);
+
+            let positions = PathMath.getPositionForPercents(
+                timeline.points,
+                timelineBindingData.map(binding => binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0))
+
+            timelineBindingData.forEach((binding, index) => {
+                returnData.push({
+                    x: positions[index].x + binding.imageBinding.offset.x,
+                    y: positions[index].y + binding.imageBinding.offset.y,
+                    pos: positions[index],
+                    binding,
+                })
+            });
+        })
+
+        boundData.filter(b => b.isCanvasBinding).forEach(binding => {
+            returnData.push({
+                x: binding.imageBinding.offset.x,
+                y: binding.imageBinding.offset.y,
+                pos: { x: 0, y: 0 },
+                binding
+            })
+        });
+
+        return returnData;
+    }
+
     function getHashCode(string) {
         var hash = 0,
             i, chr;
@@ -604,6 +638,7 @@ let DataUtil = function () {
 
         getDataPointCanvasPositions,
         getStrokeCanvasPositions,
+        getImageCanvasPositions,
 
         fragmentStrokes,
         getHashCode,

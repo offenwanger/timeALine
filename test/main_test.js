@@ -543,15 +543,15 @@ describe('Test Main - Integration Test', function () {
             // create a canvas image
             IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
-            lastThen("imgdata1");
+            lastThen({ imageData: "imgdata1", width: 100, height: 100 });
             // and two line images
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
-            lastThen("thisistotallyimagedata1")
+            lastThen({ imageData: "imageData1", width: 100, height: 100 });
             let unlinkImageId = integrationEnv.ModelController.getModel().getAllTimelines()[0].imageBindings[0].id;
 
             IntegrationUtils.clickLine({ x: 170, y: 102 }, timelineId, integrationEnv);
-            lastThen("thisistotallyimagedata1")
+            lastThen({ imageData: "imageData1", width: 100, height: 100 });
             IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
 
 
@@ -581,16 +581,16 @@ describe('Test Main - Integration Test', function () {
             // create a canvas image
             IntegrationUtils.mainPointerDown({ x: 300, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 300, y: 200 }, integrationEnv);
-            lastThen("imgdata");
+            lastThen({ imageData: "imageData", width: 100, height: 100 });
             let unlinkImageId = integrationEnv.ModelController.getModel().getCanvas().imageBindings[0].id;
 
             IntegrationUtils.mainPointerDown({ x: 200, y: 200 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 200, y: 200 }, integrationEnv);
-            lastThen("imgdata");
+            lastThen({ imageData: "imageData", width: 100, height: 100 });
             // and two line images
             let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
-            lastThen("thisistotallyimagedata")
+            lastThen({ imageData: "imageData", width: 100, height: 100 });
             IntegrationUtils.clickButton("#image-button", integrationEnv.enviromentVariables.$);
 
 

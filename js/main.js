@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // Dragging variables
     let mDraggingTimePin = null;
     let mDraggingTimePinSettingTime = false;
+    let mResizingImageBindingData = null;
 
     let mSelectedCellBindingId = null;
     let mSelectedImageBindingId = null;
@@ -172,16 +173,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             modelUpdated();
         } else if (mMode == Mode.IMAGE) {
-            FileHandler.getImageFile().then((imageData) => {
+            FileHandler.getImageFile().then(({ imageData, width, height }) => {
+                width = width * 100 / Math.max(width, height);
+                height = height * 100 / Math.max(width, height);
+
                 if (mModelController.getModel().hasTimeMapping(timelineId)) {
                     let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
-                    mModelController.addBoundImage(timelineId, imageData, time);
+                    mModelController.addBoundImage(timelineId, imageData, width, height, time);
                 } else {
                     let timePin = new DataStructs.TimePin(linePoint.percent);
                     timePin.timePercent = mModelController.getModel()
                         .mapLinePercentToTime(timelineId, linePoint.percent);
 
-                    mModelController.addBoundImage(timelineId, imageData, '', timePin);
+                    mModelController.addBoundImage(timelineId, imageData, width, height, '', timePin);
                 }
 
                 modelUpdated();
@@ -497,10 +501,23 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mImageController = new ImageController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mImageController.setDragStartCallback((imageBindingData, pointerEvent) => {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
-        if (mMode == Mode.PAN) {
-            mPanning = true;
-        } else if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
-            showImageContextMenu(imageBindingData);
+        if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
+            mSelectedImageBindingId = imageBindingData.imageBinding.id;
+
+            let position = { x: 0, y: 0 };
+            if (!imageBindingData.isCanvasBinding) {
+                position = PathMath.getPositionForPercent(imageBindingData.timeline.points, imageBindingData.linePercent);
+            }
+            position.x = position.x + imageBindingData.imageBinding.offset.x;
+            position.y = position.y + imageBindingData.imageBinding.offset.y;
+
+            showImageContextMenu(imageBindingData, position);
+            mResizeController.show(
+                position.x,
+                position.y,
+                position.x + imageBindingData.imageBinding.width,
+                position.y + imageBindingData.imageBinding.height,
+                true)
         } else if (mMode == Mode.PIN && !imageBindingData.isCanvasBinding) {
             let linePoint = PathMath.getClosestPointOnPath(coords, imageBindingData.timeline.points);
 
@@ -519,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mImageController.setDragCallback((imageBindingData, startPos, coords) => {
         if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
             hideImageContextMenu();
+            mResizeController.hide();
 
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
@@ -552,17 +570,31 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mImageController.setDragEndCallback((imageBindingData, startPos, coords) => {
         if (mMode == Mode.IMAGE || mMode == Mode.SELECTION) {
-            // if we didn't actually move, don't do anything.
-            if (MathUtil.pointsEqual(startPos, coords)) return;
+            // if we didn't actually move, don't update.
+            if (!MathUtil.pointsEqual(startPos, coords)) {
+                let offset = MathUtil.addAToB(imageBindingData.imageBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+                mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
+                mModelController.getModel().getImageBindingById()
 
-            let offset = MathUtil.addAToB(imageBindingData.imageBinding.offset, MathUtil.subtractAFromB(startPos, coords));
-            mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
-            mModelController.getModel().getImageBindingById()
+                modelUpdated();
 
-            modelUpdated();
+                imageBindingData.imageBinding.offset = offset;
+            }
 
-            imageBindingData.imageBinding.offset = offset;
-            showImageContextMenu(imageBindingData);
+            let position = { x: 0, y: 0 };
+            if (!imageBindingData.isCanvasBinding) {
+                position = PathMath.getPositionForPercent(imageBindingData.timeline.points, imageBindingData.linePercent);
+            }
+            position.x = position.x + imageBindingData.imageBinding.offset.x;
+            position.y = position.y + imageBindingData.imageBinding.offset.y;
+
+            showImageContextMenu(imageBindingData, position);
+            mResizeController.show(
+                position.x,
+                position.y,
+                position.x + imageBindingData.imageBinding.width,
+                position.y + imageBindingData.imageBinding.height,
+                true)
         } else if (mMode == Mode.PIN && !imageBindingData.isCanvasBinding) {
             let timeline = imageBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -595,20 +627,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
     // Text controller utility functions
     // TODO: make this general for all context menus
-    function showImageContextMenu(imageBindingData) {
-        let coords;
-        if (imageBindingData.isCanvasBinding) {
-            coords = svgCoordsToScreen({
-                x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width,
-                y: imageBindingData.imageBinding.offset.y
-            });
-        } else {
-            let pos = PathMath.getPositionForPercent(imageBindingData.timeline.points, imageBindingData.linePercent);
-            coords = svgCoordsToScreen({
-                x: imageBindingData.imageBinding.offset.x + imageBindingData.imageBinding.width + pos.x,
-                y: imageBindingData.imageBinding.offset.y + pos.y
-            });
-        }
+    function showImageContextMenu(imageBindingData, position) {
+        let coords = svgCoordsToScreen({
+            x: position.x + imageBindingData.imageBinding.width,
+            y: position.y
+        });
 
         if (imageBindingData.isCanvasBinding) {
             $('#image-link-button').show();
@@ -621,11 +644,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#image-context-menu-div').css('top', coords.y);
         $('#image-context-menu-div').css('left', coords.x);
         $('#image-context-menu-div').show();
-        mSelectedImageBindingId = imageBindingData.imageBinding.id;
     }
     function hideImageContextMenu() {
         $('#image-context-menu-div').hide();
-        mSelectedImageBindingId = null;
     }
 
     // end of text utility functions
@@ -1014,6 +1035,65 @@ document.addEventListener('DOMContentLoaded', function (e) {
     });
     mDataTableController.setShouldDeselectCallback(() => !mMousedOverLinkButton)
 
+    let mResizeController = new ResizeController(mInteractionLayer);
+    mResizeController.setDragStartCallback((pointerEvent, bounds) => {
+        mResizingImageBindingData = mModelController.getModel().getImageBindingDataById(mSelectedImageBindingId);
+        mResizingImageBindingData.startBounds = bounds;
+
+        let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
+        return coords
+    })
+    mResizeController.setDragCallback((dragCoords, startPos, newBounds) => {
+        if (mSelectedImageBindingId) {
+            hideImageContextMenu();
+
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, dragCoords)) return;
+
+            let imageBindingData = mResizingImageBindingData.copy();
+
+            if (mResizingImageBindingData.startBounds.x1 != newBounds.x1) {
+                imageBindingData.imageBinding.offset.x = imageBindingData.imageBinding.offset.x + dragCoords.x - startPos.x;
+            }
+
+            if (mResizingImageBindingData.startBounds.y1 != newBounds.y1) {
+                imageBindingData.imageBinding.offset.y = imageBindingData.imageBinding.offset.y + dragCoords.y - startPos.y;
+            }
+
+            imageBindingData.imageBinding.height = newBounds.y2 - newBounds.y1
+            imageBindingData.imageBinding.width = newBounds.x2 - newBounds.x1
+
+            mImageController.redrawImage(imageBindingData);
+        }
+    })
+    mResizeController.setDragEndCallback((dragCoords, startPos, newBounds) => {
+        if (mSelectedImageBindingId) {
+
+            // if we didn't actually move, don't do anything.
+            if (MathUtil.pointsEqual(startPos, dragCoords)) return;
+
+            let offset = mResizingImageBindingData.copy().imageBinding.offset;
+            if (mResizingImageBindingData.startBounds.x1 != newBounds.x1) {
+                offset.x = offset.x + dragCoords.x - startPos.x;
+            }
+
+            if (mResizingImageBindingData.startBounds.y1 != newBounds.y1) {
+                offset.y = offset.y + dragCoords.y - startPos.y;
+            }
+
+            let height = newBounds.y2 - newBounds.y1
+            let width = newBounds.x2 - newBounds.x1
+
+            mModelController.updateImageSize(mSelectedImageBindingId, offset, height, width);
+
+            modelUpdated();
+
+            showImageContextMenu(mModelController.getModel().getImageBindingDataById(mSelectedImageBindingId), { x: newBounds.x1, y: newBounds.y1 });
+            mResizeController.show(newBounds.x1, newBounds.y1, newBounds.x2, newBounds.y2, true);
+        }
+
+    })
+
     mMainOverlay.on('pointerdown', function (pointerEvent) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
@@ -1038,8 +1118,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 modelUpdated();
             }
         } else if (mMode == Mode.IMAGE) {
-            FileHandler.getImageFile().then(imageData => {
-                mModelController.addCanvasImage(imageData, coords);
+            FileHandler.getImageFile().then(({ imageData, width, height }) => {
+                width = width * 100 / Math.max(width, height);
+                height = height * 100 / Math.max(width, height);
+                mModelController.addCanvasImage(imageData, width, height, coords);
                 modelUpdated();
             })
         }
@@ -1060,9 +1142,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         if ($(event.target).closest('#image-context-menu-div').length === 0 &&
-            $(event.target).closest('.image-interaction-target').length === 0) {
+            $(event.target).closest('.image-interaction-target').length === 0 &&
+            $(event.target).closest('.resize-target').length === 0) {
             // if we didn't click on a button in the context div
             hideImageContextMenu();
+            mResizeController.hide();
+            mSelectedImageBindingId = null;
         }
 
         if ($(event.target).closest('#axis-context-menu-div').length === 0 &&
@@ -1115,6 +1200,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTimePinController.onPointerMove(coords);
         mTextController.onPointerMove(coords);
         mImageController.onPointerMove(coords);
+        mResizeController.onPointerMove(coords);
         mDataPointController.onPointerMove(coords);
         mSmoothController.onPointerMove(coords);
         mStrokeController.onPointerMove(coords);
@@ -1147,6 +1233,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mTimePinController.onPointerUp(coords);
         mTextController.onPointerUp(coords);
         mImageController.onPointerUp(coords);
+        mResizeController.onPointerUp(coords);
         mDataPointController.onPointerUp(coords);
         mSmoothController.onPointerUp(coords);
         mStrokeController.onPointerUp(coords);
@@ -1230,6 +1317,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             hideAxisContextMenu();
             hideTextContextMenu();
             hideImageContextMenu();
+            mResizeController.hide();
+            mSelectedImageBindingId = null;
         }
     }
 
@@ -1451,7 +1540,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#download-button-svg', 'Download your viz as svg');
 
     $('#download-button-png').on('click', async () => {
-        let canvas = await DataUtil.vizToCanvas(mVizLayer);
+        let canvas = await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color);
         FileHandler.downloadPNG(canvas)
     })
     setupButtonTooltip('#download-button-png', 'Download your viz as png');
@@ -1979,6 +2068,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
         $('#selection-button').css('opacity', '0.3');
 
         hideImageContextMenu();
+        mResizeController.hide();
+        mSelectedImageBindingId = null;
+
         hideTextContextMenu();
         hideAxisContextMenu();
 
@@ -2173,7 +2265,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     // });
 
     if (new URLSearchParams(window.location.search).has('analysis')) {
-        setupExtras(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer));
+        setupExtras(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color));
     }
 
     function log(event, data) {

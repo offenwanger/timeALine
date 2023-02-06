@@ -141,35 +141,15 @@ function ImageController(vizLayer, overlayLayer, interactionLayer) {
 
     function getDrawingData(boundData) {
         let drawingData = [];
-        let timelines = DataUtil.getUniqueList(boundData.filter(b => !b.isCanvasBinding).map(b => b.timeline), 'id');
-        timelines.forEach(timeline => {
-            let timelineData = boundData.filter(b => b.timeline && b.timeline.id == timeline.id);
-            timelineData.sort((a, b) => a.linePercent - b.linePercent);
-            let positions = PathMath.getPositionForPercents(
-                timeline.points,
-                timelineData.map(binding => binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0))
-            timelineData.forEach((d, index) => {
-                let x = positions[index].x + d.imageBinding.offset.x;
-                let y = positions[index].y + d.imageBinding.offset.y;
-                let { height, width } = d.imageBinding;
-                drawingData.push({
-                    pos: positions[index],
-                    x, y,
-                    lineX1: positions[index].x,
-                    lineY1: positions[index].y,
-                    lineX2: Math.abs(positions[index].x - x) < Math.abs(positions[index].x - (x + width)) ? x : (x + width),
-                    lineY2: Math.abs(positions[index].y - y) < Math.abs(positions[index].y - (y + height)) ? y : (y + height),
-                    binding: d,
-                })
-            });
-        })
 
-        boundData.filter(b => b.isCanvasBinding).forEach(binding => {
-            drawingData.push({
-                x: binding.imageBinding.offset.x,
-                y: binding.imageBinding.offset.y,
-                binding
-            })
+        let positionData = DataUtil.getImageCanvasPositions(boundData);
+        positionData.forEach(d => {
+            let { height, width } = d.binding.imageBinding;
+            d.lineX1 = d.pos.x;
+            d.lineY1 = d.pos.y;
+            d.lineX2 = Math.abs(d.pos.x - d.x) < Math.abs(d.pos.x - (d.x + width)) ? d.x : (d.x + width);
+            d.lineY2 = Math.abs(d.pos.y - d.y) < Math.abs(d.pos.y - (d.y + height)) ? d.y : (d.y + height);
+            drawingData.push(d);
         });
 
         return drawingData;

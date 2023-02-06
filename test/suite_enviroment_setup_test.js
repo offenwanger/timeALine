@@ -421,6 +421,7 @@ before(function () {
         let text_input = rewire("../js/interface_utility/text_input.js");
         let canvas_mask = rewire("../js/interface_utility/canvas_mask.js");
         let shadow_filter = rewire("../js/interface_utility/shadow_filter.js");
+        let resize_controller = rewire("../js/interface_utility/resize_controller.js");
         let tooltip = rewire("../js/interface_utility/tooltip.js");
         let mouse_drop_shadow = rewire("../js/interface_utility/mouse_drop_shadow.js");
         let line_highlight = rewire("../js/interface_utility/line_highlight.js");
@@ -532,6 +533,7 @@ before(function () {
             TextInputBox: text_input.__get__("TextInputBox"),
             ToolTip: tooltip.__get__("ToolTip"),
             FilterUtil: shadow_filter.__get__("FilterUtil"),
+            ResizeController: resize_controller.__get__("ResizeController"),
             CanvasMask: canvas_mask.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
             setupExtras: analysis_functions.__get__("setupExtras"),

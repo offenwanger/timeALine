@@ -1098,7 +1098,7 @@ function ModelController() {
         axis.style = styles[(styles.indexOf(axis.style) + 1) % styles.length];
     }
 
-    function addBoundImage(timelineId, imageData, time, timePin = null) {
+    function addBoundImage(timelineId, imageData, width, height, time, timePin = null) {
         undoStackPush();
 
         let timeline = mModel.getTimelineById(timelineId);
@@ -1108,8 +1108,8 @@ function ModelController() {
         }
 
         let newBinding = new DataStructs.ImageBinding(imageData);
-        newBinding.width = 100;
-        newBinding.height = 100;
+        newBinding.width = width;
+        newBinding.height = height;
         if (time) {
             newBinding.timeStamp = time;
         }
@@ -1122,12 +1122,12 @@ function ModelController() {
         timeline.imageBindings.push(newBinding);
     }
 
-    function addCanvasImage(imageData, coords) {
+    function addCanvasImage(imageData, width, height, coords) {
         undoStackPush();
 
         let newBinding = new DataStructs.ImageBinding(imageData);
-        newBinding.width = 100;
-        newBinding.height = 100;
+        newBinding.width = width;
+        newBinding.height = height;
         newBinding.offset = {
             x: coords.x - 50,
             y: coords.y - 50
@@ -1141,6 +1141,15 @@ function ModelController() {
 
         let imageBinding = mModel.getImageBindingById(imageBindingId);
         imageBinding.offset = offset;
+    }
+
+    function updateImageSize(imageBindingId, offset, height, width) {
+        undoStackPush();
+
+        let imageBinding = mModel.getImageBindingById(imageBindingId);
+        imageBinding.offset = offset;
+        imageBinding.height = height;
+        imageBinding.width = width;
     }
 
     function updateImageTime(imageBindingId, time) {
@@ -1497,6 +1506,7 @@ function ModelController() {
     this.addBoundImage = addBoundImage;
     this.addCanvasImage = addCanvasImage;
     this.updateImageOffset = updateImageOffset;
+    this.updateImageSize = updateImageSize;
     this.updateImageTime = updateImageTime;
     this.imageBindingToCanvasBinding = imageBindingToCanvasBinding;
     this.imageBindingToLineBinding = imageBindingToLineBinding;
