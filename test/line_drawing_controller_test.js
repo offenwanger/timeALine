@@ -78,7 +78,7 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
             // get the start button, mouse down, drag away, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, {
                 timelineId: integrationEnv.ModelController.getModel().getAllTimelines()[0].id
             });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
@@ -112,7 +112,7 @@ describe('Integration Test LineDrawingController', function () {
                 .innerData.map(item => Math.round(item.y))).to.eql([100, 100, 100]);
 
             // get the end button, mouse down, drag away, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, {
                 timelineId: integrationEnv.ModelController.getModel().getAllTimelines()[0].id
             });
             IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv);
@@ -177,7 +177,7 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId1
             });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
@@ -189,7 +189,7 @@ describe('Integration Test LineDrawingController', function () {
                 .map(timeline => PathMath.getPathLength(timeline.points))).to.eql([50, 150]);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId3
             });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
@@ -262,7 +262,7 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId1
             });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
@@ -300,7 +300,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"].innerData[0].x, 250)
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId3
             });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
@@ -395,7 +395,7 @@ describe('Integration Test LineDrawingController', function () {
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId1
             });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
@@ -431,7 +431,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(selectors[".annotation-text[timeline-id=\"" + timelineId3 + "\"]"].innerData[0].x, 250)
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, {
                 timelineId: timelineId3
             });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
@@ -548,7 +548,7 @@ describe('Integration Test LineDrawingController', function () {
 
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 100, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 100, y: 100 }, integrationEnv);
@@ -586,7 +586,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 2);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 100 }, integrationEnv);
@@ -698,7 +698,7 @@ describe('Integration Test LineDrawingController', function () {
 
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 100, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 100, y: 100 }, integrationEnv);
@@ -730,7 +730,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 2);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 100 }, integrationEnv);
@@ -816,7 +816,7 @@ describe('Integration Test LineDrawingController', function () {
 
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId1 });
             IntegrationUtils.pointerMove({ x: 75, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 100, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 100, y: 100 }, integrationEnv);
@@ -848,7 +848,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[1].timePins.length, 5);
 
             // get the start button, mouse down, drag to other point, mouse up
-            integrationEnv.enviromentVariables.d3.selectors['.draw-start-point'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
+            integrationEnv.enviromentVariables.d3.selectors['.draw-start-target'].eventCallbacks.pointerdown({}, { timelineId: timelineId3 });
             IntegrationUtils.pointerMove({ x: 200, y: 100 }, integrationEnv);
             IntegrationUtils.pointerMove({ x: 175, y: 100 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 100 }, integrationEnv);
@@ -893,7 +893,7 @@ describe('Integration Test LineDrawingController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllImageBindingData().length, 3);
 
             IntegrationUtils.clickButton("#line-drawing-button", integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.d3.selectors['.draw-end-point'].eventCallbacks.pointerdown({ clientX: 1033, clientY: 355 }, {
+            integrationEnv.enviromentVariables.d3.selectors['.draw-end-target'].eventCallbacks.pointerdown({ clientX: 1033, clientY: 355 }, {
                 timelineId: integrationEnv.ModelController.getModel().getAllTimelines()[0].id
             });
             IntegrationUtils.pointerMove({ x: 1033, y: 355 }, integrationEnv);

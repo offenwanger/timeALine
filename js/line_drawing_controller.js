@@ -1,9 +1,10 @@
 function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     const EXTENSION_POINT_RADIUS = 5;
+    const TARGET_SIZE = 20;
     const LINE_RESOLUTION = 50;
 
     let mActive = false;
-    let mColor = "#000000"
+    let mColor = '#000000'
 
     let mDragging = false;
     let mDraggedPoints = [];
@@ -14,16 +15,28 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     let mEndPoints = []
 
     let mLineDrawingGroup = interactionLayer.append('g')
-        .attr("id", 'line-drawing-g')
-        .style("visibility", 'hidden');
+        .attr('id', 'line-drawing-g')
+        .style('visibility', 'hidden');
 
     let mCover = overlayLayer.append('rect')
-        .attr("id", "timeline-drawing-cover")
+        .attr('id', 'timeline-drawing-cover')
         .attr('x', 0)
         .attr('y', 0)
         .attr('fill', 'white')
         .attr('opacity', '0.5')
-        .style("visibility", 'hidden');
+        .style('visibility', 'hidden');
+
+    let mDrawingLine = mLineDrawingGroup.append('path')
+        .attr('fill', 'none')
+        .attr('stroke', '#000000')
+        .attr('stroke-linejoin', 'round')
+        .attr('stroke-linecap', 'round')
+        .attr('stroke-width', 1.5)
+
+    let mPointsGroup = mLineDrawingGroup.append('g')
+        .attr('id', 'line-drawing-points-g');
+    let mPointsTargetGroup = mLineDrawingGroup.append('g')
+        .attr('id', 'line-drawing-targets-g');
 
     function onPointerDown(coords) {
         if (mActive) {
@@ -88,19 +101,12 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
             mDrawingLine.attr('d', PathMath.getPathD([]));
             mDrawingLine.attr('stroke', mColor);
             mDragStartParams = {};
-            mPointsGroup.selectAll('.draw-start-point').style("visibility", "");
-            mPointsGroup.selectAll('.draw-end-point').style("visibility", "");
+            mPointsGroup.selectAll('.draw-start-point').style('visibility', '');
+            mPointsGroup.selectAll('.draw-end-point').style('visibility', '');
+            mPointsTargetGroup.selectAll('.draw-start-target').style('visibility', '');
+            mPointsTargetGroup.selectAll('.draw-end-target').style('visibility', '');
         }
     }
-
-    let mDrawingLine = mLineDrawingGroup.append('path')
-        .attr('fill', 'none')
-        .attr('stroke', '#000000')
-        .attr('stroke-linejoin', 'round')
-        .attr('stroke-linecap', 'round')
-        .attr('stroke-width', 1.5)
-
-    let mPointsGroup = mLineDrawingGroup.append('g');
 
     function updateModel(model) {
         let timelines = model.getAllTimelines();
@@ -123,45 +129,71 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
 
         let startPoints = mPointsGroup.selectAll('.draw-start-point').data(mStartPoints);
         startPoints.exit().remove();
-        startPoints.enter().append("circle")
+        startPoints.enter().append('circle')
             .classed('draw-start-point', true)
             .attr('timeline-id', d => d.timelineId)
             .attr('r', EXTENSION_POINT_RADIUS)
             .attr('cursor', 'crosshair')
             .attr('fill', '#b51d1c')
-            .attr("stroke", "black")
-            .on('pointerdown', function (e, d) {
-                if (mActive) {
-                    mDragging = true;
-                    mDragStartParams.startPoint = d.timelineId;
-                    mPointsGroup.selectAll('.draw-start-point').style("visibility", "hidden");
-                    mPointsGroup.select('.draw-end-point[timeline-id="' + d.timelineId + '"]').style("visibility", "hidden");
-                    mDrawingLine.attr('stroke', d.color);
-                }
-            })
+            .attr('stroke', 'black')
         mPointsGroup.selectAll('.draw-start-point')
             .attr('cx', (d) => d.point.x)
             .attr('cy', (d) => d.point.y)
 
         let endPoints = mPointsGroup.selectAll('.draw-end-point').data(mEndPoints);
         endPoints.exit().remove();
-        endPoints.enter().append("circle")
+        endPoints.enter().append('circle')
             .classed('draw-end-point', true)
             .attr('timeline-id', d => d.timelineId)
             .attr('r', EXTENSION_POINT_RADIUS)
             .attr('cursor', 'crosshair')
             .attr('fill', '#1c1db5')
-            .attr("stroke", "black")
+            .attr('stroke', 'black');
+        mPointsGroup.selectAll('.draw-end-point')
+            .attr('cx', (d) => d.point.x)
+            .attr('cy', (d) => d.point.y)
+
+        let startTargets = mPointsTargetGroup.selectAll('.draw-start-target').data(mStartPoints);
+        startTargets.exit().remove();
+        startTargets.enter().append('circle')
+            .classed('draw-start-target', true)
+            .attr('r', TARGET_SIZE)
+            .attr('opacity', 0)
+            .attr('cursor', 'pointer')
+            .on('pointerdown', function (e, d) {
+                if (mActive) {
+                    mDragging = true;
+                    mDragStartParams.startPoint = d.timelineId;
+                    mPointsGroup.selectAll('.draw-start-point').style('visibility', 'hidden');
+                    mPointsGroup.select('.draw-end-point[timeline-id="' + d.timelineId + '"]').style('visibility', 'hidden');
+                    mPointsTargetGroup.selectAll('.draw-start-target').style('visibility', 'hidden');
+                    mPointsTargetGroup.select('.draw-end-target[timeline-id="' + d.timelineId + '"]').style('visibility', 'hidden');
+                    mDrawingLine.attr('stroke', d.color);
+                }
+            })
+        mPointsTargetGroup.selectAll('.draw-start-target')
+            .attr('cx', (d) => d.point.x)
+            .attr('cy', (d) => d.point.y)
+
+        let endTargets = mPointsTargetGroup.selectAll('.draw-end-target').data(mEndPoints);
+        endTargets.exit().remove();
+        endTargets.enter().append('circle')
+            .classed('draw-end-target', true)
+            .attr('r', TARGET_SIZE)
+            .attr('opacity', 0)
+            .attr('cursor', 'pointer')
             .on('pointerdown', function (e, d) {
                 if (mActive) {
                     mDragging = true;
                     mDragStartParams.endPoint = d.timelineId;
-                    mPointsGroup.selectAll('.draw-end-point').style("visibility", "hidden");
-                    mPointsGroup.select('.draw-start-point[timeline-id="' + d.timelineId + '"]').style("visibility", "hidden");
+                    mPointsGroup.selectAll('.draw-end-point').style('visibility', 'hidden');
+                    mPointsGroup.select('.draw-start-point[timeline-id="' + d.timelineId + '"]').style('visibility', 'hidden');
+                    mPointsTargetGroup.selectAll('.draw-end-target').style('visibility', 'hidden');
+                    mPointsTargetGroup.select('.draw-start-target[timeline-id="' + d.timelineId + '"]').style('visibility', 'hidden');
                     mDrawingLine.attr('stroke', d.color);
                 }
             })
-        mPointsGroup.selectAll('.draw-end-point')
+        mPointsTargetGroup.selectAll('.draw-end-target')
             .attr('cx', (d) => d.point.x)
             .attr('cy', (d) => d.point.y)
     }
@@ -178,14 +210,14 @@ function LineDrawingController(vizLayer, overlayLayer, interactionLayer) {
     function setActive(active) {
         if (active && !mActive) {
             mActive = true;
-            mLineDrawingGroup.style('visibility', "");
-            mCover.style('visibility', "")
+            mLineDrawingGroup.style('visibility', '');
+            mCover.style('visibility', '')
                 .attr('width', overlayLayer.node().getBBox().width)
                 .attr('height', overlayLayer.node().getBBox().height)
         } else if (!active && mActive) {
             mActive = false;
-            mLineDrawingGroup.style('visibility', "hidden");
-            mCover.style('visibility', "hidden");
+            mLineDrawingGroup.style('visibility', 'hidden');
+            mCover.style('visibility', 'hidden');
         }
     }
 
