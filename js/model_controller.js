@@ -5,14 +5,10 @@ function ModelController() {
     let mRedoStack = [];
 
     function updateCanvasColor(color) {
-        undoStackPush();
-
         mModel.getCanvas().color = color;
     }
 
     function newTimeline(points, color) {
-        undoStackPush();
-
         if (points.length < 2) { console.error("Invalid point array! Too short!", points); return; }
 
         let timeline = new DataStructs.Timeline(points.map(p => Object.assign({}, p)));
@@ -23,8 +19,6 @@ function ModelController() {
     }
 
     function extendTimeline(timelineId, points, extendStart) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineById(timelineId);
         let originalLength = PathMath.getPathLength(timeline.points);
 
@@ -70,8 +64,6 @@ function ModelController() {
     }
 
     function mergeTimeline(timelineIdStart, timelineIdEnd, points) {
-        undoStackPush();
-
         let startTimeline = mModel.getTimelineById(timelineIdStart);
         let endTimeline = mModel.getTimelineById(timelineIdEnd);
 
@@ -329,15 +321,11 @@ function ModelController() {
     }
     /* End Utilty Function */
 
-    function deleteTimeline(timelineId, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function deleteTimeline(timelineId) {
         mModel.setTimelines(mModel.getAllTimelines().filter(t => t.id != timelineId));
     }
 
-    function breakTimeline(timelineId, segments, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function breakTimeline(timelineId, segments) {
         if (segments.length < 2) throw new Error("Expecting at least part of the timeline to be erased.")
 
         let timeline = mModel.getTimelineById(timelineId);
@@ -518,8 +506,6 @@ function ModelController() {
     }
 
     function updateTimelinePoints(timelineId, oldSegments, newSegments) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineById(timelineId);
 
         timeline.points = PathMath.mergeSegments(newSegments);
@@ -556,16 +542,12 @@ function ModelController() {
     }
 
     function updateTimelineColor(timelineId, color) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineById(timelineId);
         if (!timeline) { console.error("Bad timeline id!", timelineId); return; }
         timeline.color = color;
     }
 
     function addBoundTextRow(timelineId, text, time, timePin = null) {
-        undoStackPush();
-
         if (mModel.getAllTables().length == 0) {
             let newTable = new DataStructs.DataTable([
                 new DataStructs.DataColumn("Time", 0),
@@ -604,8 +586,6 @@ function ModelController() {
     }
 
     function addCanvasText(text, offset) {
-        undoStackPush();
-
         if (mModel.getAllTables().length == 0) {
             let newTable = new DataStructs.DataTable([
                 new DataStructs.DataColumn("Time", 0),
@@ -639,8 +619,6 @@ function ModelController() {
     }
 
     function updatePinBinding(timelineId, pin) {
-        undoStackPush();
-
         if (!timelineId) throw new Error("Invalid TimelineId: " + timelineId);
 
         let timeline = mModel.getTimelineById(timelineId);
@@ -669,22 +647,16 @@ function ModelController() {
     }
 
     function updateText(cellId, text) {
-        undoStackPush();
-
         let cell = mModel.getCellById(cellId);
         cell.val = text;
     }
 
     function updateTextOffset(cellBindingId, offset) {
-        undoStackPush();
-
         let cellBinding = mModel.getCellBindingById(cellBindingId);
         cellBinding.offset = offset;
     }
 
     function updateTimePinBinding(bindingId, timePinId) {
-        undoStackPush();
-
         let binding = mModel.getCellBindingById(bindingId);
         if (!binding) {
             binding = mModel.getImageBindingById(bindingId);
@@ -699,45 +671,35 @@ function ModelController() {
     }
 
     function toggleFont(cellBindingId) {
-        undoStackPush();
         let binding = mModel.getCellBindingById(cellBindingId);
         binding.font = Fonts[(Fonts.indexOf(binding.font) + 1) % Fonts.length];
     }
 
     function toggleFontWeight(cellBindingId) {
-        undoStackPush();
         let binding = mModel.getCellBindingById(cellBindingId);
         binding.fontWeight = !binding.fontWeight;
     }
 
     function toggleFontItalics(cellBindingId) {
-        undoStackPush();
         let binding = mModel.getCellBindingById(cellBindingId);
         binding.fontItalics = !binding.fontItalics;
     }
 
     function setFontSize(cellBindingId, size) {
-        undoStackPush();
         let binding = mModel.getCellBindingById(cellBindingId);
         binding.fontSize = size;
     }
 
 
-    function addTimelineStroke(timelineId, points, color, width, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function addTimelineStroke(timelineId, points, color, width) {
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
-    function addCanvasStroke(points, color, width, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function addCanvasStroke(points, color, width) {
         mModel.getCanvas().annotationStrokes.push(new DataStructs.Stroke(points, color, width));
     }
 
     function updateStrokeColor(strokeId, color) {
-        undoStackPush();
-
         let stroke = mModel.getStrokeById(strokeId);
         if (!stroke) { console.error("Bad stroke id!", strokeId); return; }
         stroke.color = color;
@@ -745,8 +707,6 @@ function ModelController() {
 
 
     function updateStrokePoints(strokeId, points) {
-        undoStackPush();
-
         let stroke = mModel.getStrokeById(strokeId);
         if (!stroke) { console.error("Bad stroke id!", storkeId); return; }
         stroke.points = points;
@@ -762,15 +722,11 @@ function ModelController() {
 
 
     function addTable(table) {
-        undoStackPush();
-
         // TODO validate table.
         mModel.getAllTables().push(table.copy());
     }
 
     function addTableFromCSV(array2d) {
-        undoStackPush();
-
         let table = new DataStructs.DataTable();
         array2d[0].forEach((cell, index) => {
             if (index == 0) {
@@ -797,8 +753,6 @@ function ModelController() {
     }
 
     function tableUpdated(table, change, changeData) {
-        undoStackPush();
-
         let affectedTimelines = [];
         let affectedTimelinesData = {};
         mModel.getAllTimelines().forEach(timeline => {
@@ -922,8 +876,6 @@ function ModelController() {
     //// end of table Update Util functions ////
 
     function bindCells(lineId, cellBindings) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineById(lineId);
         let hasMappingBefore = mModel.hasTimeMapping(timeline.id);
         let alreadyBoundCells = timeline.cellBindings.map(cb => cb.cellId);
@@ -1056,8 +1008,6 @@ function ModelController() {
     }
 
     function updateAxisPosition(axisId, dist1, dist2, linePercent) {
-        undoStackPush();
-
         let currentAxis = mModel.getAxisById(axisId);
 
         if (!currentAxis) { console.error("Bad axis id for dist update!", axisId); return; }
@@ -1068,8 +1018,6 @@ function ModelController() {
     }
 
     function updateAxisColor(axisId, oneOrTwo, color) {
-        undoStackPush();
-
         let axis = mModel.getAxisById(axisId);
         if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
 
@@ -1081,8 +1029,6 @@ function ModelController() {
     }
 
     function updateAxisDataAlignment(axisId, alignment) {
-        undoStackPush();
-
         let axis = mModel.getAxisById(axisId);
         if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
 
@@ -1090,7 +1036,6 @@ function ModelController() {
     }
 
     function toggleDataStyle(axisId) {
-        undoStackPush();
         let axis = mModel.getAxisById(axisId);
         if (!axis) { console.error("Bad axis id for color update!", axisId); return; }
 
@@ -1099,8 +1044,6 @@ function ModelController() {
     }
 
     function addBoundImage(timelineId, imageData, width, height, time, timePin = null) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineById(timelineId);
         if (!timeline) {
             console.error("Bad timeline id for image!", timelineId);
@@ -1123,8 +1066,6 @@ function ModelController() {
     }
 
     function addCanvasImage(imageData, width, height, coords) {
-        undoStackPush();
-
         let newBinding = new DataStructs.ImageBinding(imageData);
         newBinding.width = width;
         newBinding.height = height;
@@ -1137,15 +1078,11 @@ function ModelController() {
     }
 
     function updateImageOffset(imageBindingId, offset) {
-        undoStackPush();
-
         let imageBinding = mModel.getImageBindingById(imageBindingId);
         imageBinding.offset = offset;
     }
 
     function updateImageSize(imageBindingId, offset, height, width) {
-        undoStackPush();
-
         let imageBinding = mModel.getImageBindingById(imageBindingId);
         imageBinding.offset = offset;
         imageBinding.height = height;
@@ -1260,9 +1197,7 @@ function ModelController() {
         }
     }
 
-    function deleteCellBindings(cellBindingIds, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function deleteCellBindings(cellBindingIds) {
         let hasTimeMappings = {};
         let affectedTimelines = [];
 
@@ -1306,9 +1241,7 @@ function ModelController() {
         })
     }
 
-    function deletePins(pinIds, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function deletePins(pinIds) {
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
             let checkTimeMapping = false, startTime, endTime;
@@ -1340,9 +1273,7 @@ function ModelController() {
         });
     }
 
-    function deleteStrokes(strokeIds, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function deleteStrokes(strokeIds) {
         let timelines = mModel.getAllTimelines();
         timelines.forEach(timeline => {
             timeline.annotationStrokes = timeline.annotationStrokes.filter(s => !strokeIds.includes(s.id));
@@ -1350,9 +1281,7 @@ function ModelController() {
         mModel.getCanvas().annotationStrokes = mModel.getCanvas().annotationStrokes.filter(s => !strokeIds.includes(s.id));
     }
 
-    function deleteImageBindings(imageBindingIds, stackUndo = true) {
-        if (stackUndo) undoStackPush();
-
+    function deleteImageBindings(imageBindingIds) {
         let hasTimeMappings = {};
 
         imageBindingIds.forEach(imageBindingId => {
@@ -1387,8 +1316,6 @@ function ModelController() {
     }
 
     function deleteDataSet(axisId) {
-        undoStackPush();
-
         let timeline = mModel.getTimelineByAxisId(axisId);
         if (!timeline) {
             console.error("Bad axis id! No timeline found!", axisId);
@@ -1417,8 +1344,6 @@ function ModelController() {
      */
 
     function setModelFromObject(obj) {
-        undoStackPush();
-
         // TODO: Do complete model validation.
 
         mModel = new DataStructs.DataModel();
@@ -1438,27 +1363,6 @@ function ModelController() {
             mModel.getAllTimelines().push(DataStructs.Timeline.fromObject(timeline))
         })
         obj.dataTables.forEach(table => mModel.getAllTables().push(DataStructs.DataTable.fromObject(table)))
-    }
-
-    function undo() {
-        if (mUndoStack.length == 0) return false;
-        // throws away our currently version, but will hide annoying errors for a bit...
-        mRedoStack.push(mModel.copy());
-        mModel = mUndoStack.pop();
-
-        return true;
-    }
-
-    function redo() {
-        if (mRedoStack.length == 0) return false;
-        mUndoStack.push(mModel.copy());
-        mModel = mRedoStack.pop();
-        return true;
-    }
-
-    function undoStackPush() {
-        mRedoStack = [];
-        mUndoStack.push(mModel.copy());
     }
 
     /****
@@ -1520,8 +1424,4 @@ function ModelController() {
     this.getModel = () => mModel.copy();
 
     this.setModelFromObject = setModelFromObject;
-
-    this.undo = undo;
-    this.redo = redo;
-    this.undoStackPush = undoStackPush;
 }

@@ -11,6 +11,9 @@ function DataTableController() {
 
     let mHighlightCells = {};
 
+    let mIsPasting = false;
+    let mUpdatedCells = [];
+
     function updateModel(model) {
         let scrollTop = $("#table-list").scrollTop()
         $("#table-list").empty();
@@ -46,6 +49,8 @@ function DataTableController() {
                 onsort,
                 onchange,
                 onchangeheader,
+                onpaste,
+                onbeforepaste,
                 // styling
                 updateTable,
             });
@@ -78,7 +83,9 @@ function DataTableController() {
             newRows.push(newRow.id);
         }
 
-        mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_ROWS, newRows);
+        if (!mIsPasting) {
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_ROWS, newRows);
+        }
     }
 
     function ondeleterow(instance, index, amount) {
@@ -131,7 +138,9 @@ function DataTableController() {
             newCols.push(newCol.id);
         }
 
-        mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_COLUMNS, newCols)
+        if (!mIsPasting) {
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.CREATE_COLUMNS, newCols)
+        }
     }
 
     function ondeletecolumn(instance, index, amount) {
@@ -275,21 +284,33 @@ function DataTableController() {
     function onchange(instance, cellInstance, col, row, newValue, oldValue) {
         let tableId = $(instance).attr("table-id");
 
-        let updatedCells = [];
-
         let colIndex = parseInt(col);
         let rowIndex = parseInt(row);
 
         let columnId = mDataTables[tableId].dataColumns.find(col => col.index == colIndex).id;
         let cell = mDataTables[tableId].dataRows.find(r => r.index == rowIndex).getCell(columnId);
         cell.val = newValue;
-        updatedCells.push(cell.id);
 
-        mTableUpdatedCallback(mDataTables[tableId], TableChange.UPDATE_CELLS, updatedCells);
+        if (mIsPasting) {
+            mUpdatedCells.push(cell.id)
+        } else {
+            mTableUpdatedCallback(mDataTables[tableId], TableChange.UPDATE_CELLS, [cell.id]);
+        }
     }
 
     function onchangeheader() {
         console.log("IMPLIMENT ME!", arguments, "onchangeheader")
+    }
+
+    function onbeforepaste() {
+        mIsPasting = true;
+    }
+
+    function onpaste(instance) {
+        let tableId = $(instance).attr("table-id");
+        mTableUpdatedCallback(mDataTables[tableId], TableChange.UPDATE_CELLS, mUpdatedCells);
+        mIsPasting = false;
+        mUpdatedCells = [];
     }
 
     function updateTable(instance, cell, col, row, val, label, cellName) {

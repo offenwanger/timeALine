@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     let mWorkspace;
     let mModelController = new ModelController();
+    let mVersionController = new VersionController();
 
     let mDrawerController = new DrawerController('#data-drawer');
     mDrawerController.setDrawerResizedCallback((width) => {
@@ -69,13 +70,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mDrawerController.closeDrawer();
         mDataTableController.deselectCells();
         $('#link-button-div').hide();
+
+        log(LogEvent.TOGGLE_DRAWER, 'close-button');
     });
 
     // note that this needs to happen after we set drawer controller
     let mLensSvg = d3.select('#lens-view').append('svg')
         .attr('width', $('#lens-view').width())
         .attr('height', $('#lens-view').height());
-    let mLensController = new LensController(mLensSvg, mModelController, modelUpdated);
+    let mLensController = new LensController(mLensSvg, mModelController, pushVersion, modelUpdated);
     mLensController.setPanCallback((timelineId, centerPercent, centerHeight) => {
         if (timelineId && mModelController.getModel().getTimelineById(timelineId)) {
             showLensView(timelineId, centerPercent);
@@ -90,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mSelectionController.setLineModifiedCallback((timelineId, points, newPoints) => {
         mModelController.updateTimelinePoints(timelineId, [{ points }], [{ points: newPoints }]);
 
+        pushVersion();
         modelUpdated();
     });
 
@@ -134,6 +138,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mModelController.imageBindingToLineBinding(timelineId, mSelectedImageBindingId, linePoint);
 
+            pushVersion();
             modelUpdated();
             setDefaultMode();
         }
@@ -171,6 +176,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 mModelController.addBoundTextRow(timelineId, '<text>', '', timePin);
             }
 
+            pushVersion();
             modelUpdated();
         } else if (mMode == Mode.IMAGE) {
             FileHandler.getImageFile().then(({ imageData, width, height }) => {
@@ -197,10 +203,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mDataTableController.deselectCells();
             $('#link-button-div').hide();
 
+            pushVersion();
             modelUpdated();
             setDefaultMode();
         } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateTimelineColor(timelineId, mBucketColor);
+            pushVersion();
             modelUpdated();
         } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             let timeline = mModelController.getModel().getTimelineById(timelineId);
@@ -233,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mModelController.breakTimeline(timelineId, segments);
 
+            pushVersion();
             modelUpdated();
         }
     })
@@ -298,10 +307,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
                     p.lineDist += diff.y;
                     return p;
                 }));
+                pushVersion();
                 modelUpdated();
             }
         } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateStrokeColor(strokeId, mBucketColor);
+            pushVersion();
             modelUpdated();
         } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             setColorBrushColor(mModelController.getModel().getStrokeById(strokeId).color);
@@ -437,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
             mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
+            pushVersion();
             modelUpdated();
 
             showTextContextMenu(cellBindingData);
@@ -470,7 +482,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mTextController.setDoubleClickCallback((cellId, text, x, y, height, width) => {
         mTextInputBox.show(text, x, y, height, width);
         mTextInputBox.setTextChangedCallback((text) => {
+            // TODO: Check if the text actually changed
             mModelController.updateText(cellId, text);
+            pushVersion();
             modelUpdated();
             mTextInputBox.reset();
         })
@@ -575,8 +589,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             if (!MathUtil.pointsEqual(startPos, coords)) {
                 let offset = MathUtil.addAToB(imageBindingData.imageBinding.offset, MathUtil.subtractAFromB(startPos, coords));
                 mModelController.updateImageOffset(imageBindingData.imageBinding.id, offset);
-                mModelController.getModel().getImageBindingById()
 
+                pushVersion();
                 modelUpdated();
 
                 imageBindingData.imageBinding.offset = offset;
@@ -723,6 +737,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             showAxisContextMenu(axis, model.getTimelineByAxisId(axis.id));
         } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateAxisColor(axis.id, controlNumber, mBucketColor);
+            pushVersion();
             modelUpdated();
         } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             let color = controlNumber == null ? null : controlNumber == 1 ? axis.color1 : axis.color2;
@@ -797,6 +812,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mModelController.updateAxisPosition(axis.id, axis.dist1, axis.dist2, axis.linePercent);
 
+            pushVersion();
             modelUpdated();
             showAxisContextMenu(axis, timeline);
         }
@@ -888,6 +904,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         if (startPointLineId == null && endPointLineId == null) {
             mModelController.newTimeline(newPoints, color);
 
+            pushVersion();
             modelUpdated();
         } else if (startPointLineId != null && endPointLineId != null) {
             // the line which has it's end point connecting to the other line goes first
@@ -895,10 +912,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let endLineId = startPointLineId;
             mModelController.mergeTimeline(startLineId, endLineId, newPoints);
 
+            pushVersion();
             modelUpdated();
         } else {
             mModelController.extendTimeline(startPointLineId ? startPointLineId : endPointLineId, newPoints, startPointLineId != null);
 
+            pushVersion();
             modelUpdated();
         }
     });
@@ -912,35 +931,30 @@ document.addEventListener('DOMContentLoaded', function (e) {
         })
         mModelController.addCanvasStroke(strokePoints, color, radius * 2);
 
+        pushVersion();
         modelUpdated();
     })
 
     let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mEraserController.setEraseCallback(canvasMask => {
-        if (mMode == Mode.ERASER_TEXT ||
-            mMode == Mode.ERASER_TIMELINE ||
-            mMode == Mode.ERASER_STROKE ||
-            mMode == Mode.ERASER_POINT ||
-            mMode == Mode.ERASER_PIN ||
-            mMode == Mode.ERASER_IMAGE ||
-            mMode == Mode.ERASER) {
-            mModelController.undoStackPush();
-        }
+        let changeMade = false;
 
         // check/erase lines
         if (mMode == Mode.ERASER_TEXT || mMode == Mode.ERASER) {
             // text has to be erased first because we need the rendering information.
             let boundingBoxes = mTextController.getTextBoundingBoxes();
             let maskedCellBindingIds = DataUtil.getMaskedText(canvasMask, boundingBoxes);
-            mModelController.deleteCellBindings(maskedCellBindingIds, false);
+            mModelController.deleteCellBindings(maskedCellBindingIds);
+            if (maskedCellBindingIds.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_TIMELINE || mMode == Mode.ERASER) {
             let segmentsData = DataUtil.getMaskedTimelines(canvasMask, mModelController.getModel());
 
             let deletedTimelines = segmentsData.filter(d => d.segments.length == 1 && d.segments[0].label == SEGMENT_LABELS.DELETED).map(d => d.id);
-            deletedTimelines.forEach(id => mModelController.deleteTimeline(id, false));
+            deletedTimelines.forEach(id => mModelController.deleteTimeline(id));
             let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
-            brokenTimelines.forEach(d => mModelController.breakTimeline(d.id, d.segments, false));
+            brokenTimelines.forEach(d => mModelController.breakTimeline(d.id, d.segments));
+            if (brokenTimelines.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
             let model = mModelController.getModel();
@@ -951,41 +965,46 @@ document.addEventListener('DOMContentLoaded', function (e) {
                         mModelController.addCanvasStroke(
                             fragment,
                             strokeData.color,
-                            strokeData.width,
-                            false);
+                            strokeData.width);
                     })
                 } else {
                     let timeline = model.getTimelineByStrokeId(strokeData.id);
-                    if (!timeline) { console.error("No timeline for timeline stroke!", strokeData); return; }
+                    if (!timeline) { console.error('No timeline for timeline stroke!', strokeData); return; }
                     fragments.forEach(fragment => {
-                        if (!timeline) console.error("Cannot get timeline")
+                        if (!timeline) console.error('Cannot get timeline')
                         mModelController.addTimelineStroke(
                             timeline.id,
                             fragment,
                             strokeData.color,
-                            strokeData.width,
-                            false);
+                            strokeData.width);
                     })
                 }
             });
-            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id), false);
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
+            if (strokeFragementData.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
             let maskedCellBindingIds = DataUtil.getMaskedDataPoints(canvasMask, mModelController.getModel());
-            mModelController.deleteCellBindings(maskedCellBindingIds, false);
+            mModelController.deleteCellBindings(maskedCellBindingIds);
+            if (maskedCellBindingIds.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_IMAGE || mMode == Mode.ERASER) {
             let erasedImageIds = DataUtil.getMaskedImages(canvasMask, mModelController.getModel());
-            mModelController.deleteImageBindings(erasedImageIds, false);
+            mModelController.deleteImageBindings(erasedImageIds);
+            if (erasedImageIds.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_PIN) {
             let erasedPinIds = DataUtil.getMaskedPins(canvasMask, mModelController.getModel());
             // only do this if we are specifically erasing pins, because 
             // pins will be deleted with the erased line section.
-            mModelController.deletePins(erasedPinIds, false);
+            mModelController.deletePins(erasedPinIds);
+            if (erasedPinIds.length > 0) changeMade = true;
         }
 
-        modelUpdated();
+        if (changeMade) {
+            pushVersion();
+            modelUpdated();
+        }
     })
 
     let mDeformController = new DeformController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
@@ -996,6 +1015,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mDeformController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
+        pushVersion();
         modelUpdated();
     });
 
@@ -1003,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mSmoothController.setLineModifiedCallback(data => {
         data.forEach(d => mModelController.updateTimelinePoints(d.id, d.oldSegments, d.newSegments));
 
+        pushVersion();
         modelUpdated();
     });
 
@@ -1029,10 +1050,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         // Could do some more checks to avoid expensive redraws
         if (changeType == TableChange.DELETE_ROWS ||
             changeType == TableChange.DELETE_COLUMNS ||
-            changeType == TableChange.UPDATE_CELLS) {
+            changeType == TableChange.UPDATE_CELLS ||
+            changeType == TableChange.PASTE) {
 
             modelUpdated();
         }
+
+        pushVersion();
     });
     mDataTableController.setShouldDeselectCallback(() => !mMousedOverLinkButton)
 
@@ -1087,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             mModelController.updateImageSize(mSelectedImageBindingId, offset, height, width);
 
+            pushVersion();
             modelUpdated();
 
             showImageContextMenu(mModelController.getModel().getImageBindingDataById(mSelectedImageBindingId), { x: newBounds.x1, y: newBounds.y1 });
@@ -1102,6 +1127,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mPanning = true;
         } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateCanvasColor(mBucketColor);
+            pushVersion();
             modelUpdated();
         } else if (mMode == Mode.COLOR_BRUSH_EYEDROPPER) {
             setColorBrushColor(mModelController.getModel().getCanvas().color);
@@ -1116,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 mTextInputBox.returnText();
             } else {
                 mModelController.addCanvasText('<text>', coords);
+                pushVersion();
                 modelUpdated();
             }
         } else if (mMode == Mode.IMAGE) {
@@ -1124,6 +1151,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 width = width * 100 / max;
                 height = height * 100 / max;
                 mModelController.addCanvasImage(imageData, width, height, coords);
+                pushVersion();
                 modelUpdated();
             })
         }
@@ -1137,6 +1165,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     $(document).on('pointerdown', function (event) {
+        let pointerEvent = event.originalEvent;
+        let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+        let modelCoords = screenToSvgCoords(screenCoords);
+
+        log(LogEvent.POINTER_DOWN, JSON.stringify([screenCoords, modelCoords]));
+
         if ($(event.target).closest('#text-context-menu-div').length === 0 &&
             $(event.target).closest('.text-interaction-target').length === 0) {
             // if we didn't click on a button in the context div
@@ -1216,16 +1250,18 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).on('pointerup', function (e) {
         let pointerEvent = e.originalEvent;
+        let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
+        let coords = screenToSvgCoords(screenCoords);
+
+        log(LogEvent.POINTER_UP, JSON.stringify([screenCoords, coords]));
+
         if (mPanning) {
             mPanning = false;
         }
 
-        let screenCoords = { x: pointerEvent.clientX, y: pointerEvent.clientY };
 
         mDrawerController.onPointerUp(screenCoords);
         mLensController.onPointerUp(screenCoords);
-
-        let coords = screenToSvgCoords(screenCoords);
 
         // sync pointer ups
         mColorBrushController.onPointerUp(coords);
@@ -1251,24 +1287,36 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $(document).keydown(function (e) {
         if ((e.ctrlKey || e.metaKey) && /* z */ e.which == 90) {
-            doUndo();
-            log(LogEvent.UNDO, "key")
+            let versionObj = mVersionController.doUndo();
+            if (versionObj) {
+                mModelController.setModelFromObject(versionObj)
+                modelUpdated();
+                log(LogEvent.UNDO, 'key');
+            } else {
+                log(LogEvent.UNDO, 'key, failed');
+            }
         }
 
-        if (((e.ctrlKey || e.metaKey) && /* y */ e.keyCode == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && /* y */ e.which == 90)) {
-            doRedo();
-            log(LogEvent.REDO, "key")
+        if (((e.ctrlKey || e.metaKey) && /* y */ e.which == 89) || ((e.ctrlKey || e.metaKey) && e.shiftKey && /* z */ e.which == 90)) {
+            let versionObj = mVersionController.doRedo();
+            if (versionObj) {
+                mModelController.setModelFromObject(versionObj)
+                modelUpdated();
+                log(LogEvent.REDO, 'button');
+            } else {
+                log(LogEvent.REDO, 'button, failed');
+            }
         }
 
         if (/* delete */ e.which == 46) {
             deleteSelected();
-            log(LogEvent.DELETE, "key")
+            log(LogEvent.DELETE, 'key')
         }
 
         if (e.key == 'Enter') {
             if (mTextInputBox.isShowing()) {
                 mTextInputBox.returnText();
-                log(LogEvent.TEXT_EDIT, "key")
+                log(LogEvent.TEXT_EDIT, 'key')
             }
         }
     });
@@ -1281,22 +1329,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mColorBrushController.onWheel(e.wheelDelta);
         mLensController.onWheel(e.wheelDelta);
 
-        log(LogEvent.WHEEL, "");
+        log(LogEvent.WHEEL, '');
     });
-
-    function doUndo() {
-        let undone = mModelController.undo();
-        if (undone) {
-            modelUpdated();
-        };
-    }
-
-    function doRedo() {
-        let redone = mModelController.redo();
-        if (redone) {
-            modelUpdated();
-        }
-    }
 
     function deleteSelected() {
         let selectedCount = [mSelectedCellBindingId, mSelectedImageBindingId, mSelectedAxisId]
@@ -1315,6 +1349,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         if (selectedCount == 1) {
+            pushVersion();
             modelUpdated();
             hideAxisContextMenu();
             hideTextContextMenu();
@@ -1387,7 +1422,13 @@ document.addEventListener('DOMContentLoaded', function (e) {
         timePin.linePercent = linePercent;
 
         mModelController.updatePinBinding(timeline.id, timePin);
+
+        pushVersion();
         modelUpdated();
+    }
+
+    function pushVersion() {
+        mVersionController.pushVersion(mModelController.getModel().toObject());
     }
 
     function modelUpdated() {
@@ -1412,10 +1453,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         $('body').css('background-color', mModelController.getModel().getCanvas().color);
-
-        if (mWorkspace) {
-            mWorkspace.writeVersion(mModelController.getModel().toObject());
-        }
     }
 
     // Setup main view buttons' events
@@ -1433,21 +1470,33 @@ document.addEventListener('DOMContentLoaded', function (e) {
     setupButtonTooltip('#datasheet-toggle-button', 'Opens and closes the datasheets and lens view');
 
     $('#undo-button').on('click', () => {
-        doUndo();
-        log(LogEvent.UNDO, "button");
+        let versionObj = mVersionController.doUndo();
+        if (versionObj) {
+            mModelController.setModelFromObject(versionObj)
+            modelUpdated();
+            log(LogEvent.UNDO, 'button');
+        } else {
+            log(LogEvent.UNDO, 'button, failed');
+        }
     })
     setupButtonTooltip('#undo-button', 'Undo last action');
 
     $('#redo-button').on('click', () => {
-        doRedo();
-        log(LogEvent.REDO, "button");
+        let versionObj = mVersionController.doRedo();
+        if (versionObj) {
+            mModelController.setModelFromObject(versionObj)
+            modelUpdated();
+            log(LogEvent.REDO, 'button');
+        } else {
+            log(LogEvent.REDO, 'button, failed');
+        }
     })
     setupButtonTooltip('#redo-button', 'Redo last undone action');
 
     $('#upload-button').on('click', async () => {
         setDefaultMode();
         showSubMenu('#upload-button');
-        log(LogEvent.UPLOAD_MENU, "");
+        log(LogEvent.UPLOAD_MENU, '');
     })
     setupButtonTooltip('#upload-button', 'Shows menu to load previous work');
 
@@ -1460,9 +1509,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             let model = await mWorkspace.readVersion();
             mModelController.setModelFromObject(model);
+            mVersionController.reset();
+            pushVersion();
+            mVersionController.setWorkspace(mWorkspace);
             modelUpdated();
 
-            log(LogEvent.WORKSPACE_OPENED, "");
+            log(LogEvent.WORKSPACE_OPENED, '');
         } catch (e) {
             if (e.message.includes('The user aborted a request')) return;
             if (e.message.includes('Missing folders')) {
@@ -1479,13 +1531,19 @@ document.addEventListener('DOMContentLoaded', function (e) {
         try {
             model = await FileHandler.getJSONModel();
             mModelController.setModelFromObject(model);
+            pushVersion();
             modelUpdated();
             setDefaultMode();
 
-            log(LogEvent.JSON_UPLOADED, "");
+            log(LogEvent.JSON_UPLOADED, 'success');
         } catch (e) {
-            if (e.message.includes('The user aborted a request')) return;
-            console.error('Error loading workspace', e); return;
+            if (e.message.includes('The user aborted a request')) {
+                log(LogEvent.JSON_UPLOADED, 'aborted');
+                return;
+            };
+            console.error('Error loading workspace', e);
+            log(LogEvent.JSON_UPLOADED, 'error ' + e.message);
+            return;
         }
     })
     setupButtonTooltip('#upload-button-json', 'Replace current viz with a previously downloaded json file');
@@ -1493,6 +1551,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $('#download-button').on('click', () => {
         setDefaultMode();
         showSubMenu('#download-button');
+        log(LogEvent.DOWNLOAD_MENU, '');
     })
     setupButtonTooltip('#download-button', 'Shows menu with options to save your work');
 
@@ -1501,7 +1560,11 @@ document.addEventListener('DOMContentLoaded', function (e) {
             mWorkspace = await FileHandler.getWorkspace(true);
             await mWorkspace.writeVersion(mModelController.getModel().toObject());
 
+            mVersionController.setWorkspace(mWorkspace);
+
             workspaceSet();
+
+            log(LogEvent.WRITE_WORKSPACE, '');
         } catch (e) {
             if (e.message.includes('The user aborted a request')) return;
             if (e.message.includes('Folder not empty')) {
@@ -1515,6 +1578,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $('#download-button-json').on('click', () => {
         FileHandler.downloadJSON(mModelController.getModel().toObject());
+        log(LogEvent.WRITE_JSON, '');
     })
     setupButtonTooltip('#download-button-json', 'Package your image into a json file which can be uploaded later');
 
@@ -1538,12 +1602,14 @@ document.addEventListener('DOMContentLoaded', function (e) {
             .attr('xmlns', 'http://www.w3.org/2000/svg');
         exportSVG.append(function () { return viz.node() });
         FileHandler.downloadSVG(exportSVG.node())
+        log(LogEvent.WRITE_SVG, '');
     })
     setupButtonTooltip('#download-button-svg', 'Download your viz as svg');
 
     $('#download-button-png').on('click', async () => {
         let canvas = await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color);
-        FileHandler.downloadPNG(canvas)
+        FileHandler.downloadPNG(canvas);
+        log(LogEvent.WRITE_PNG, '');
     })
     setupButtonTooltip('#download-button-png', 'Download your viz as png');
     // ---------------
@@ -1593,6 +1659,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     $('#toggle-timeline-style-button').on('click', () => {
         mLineViewController.toggleStyle(mModelController.getModel());
+        log(LogEvent.LINE_STYLE_TOGGLE, '');
     })
     setupButtonTooltip('#toggle-timeline-style-button', 'Flips through available timeline styles')
     // ---------------
@@ -1614,10 +1681,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $('#color-brush-button-grow').on('click', () => {
         mColorBrushController.increaseBrushRadius();
         mLensController.increaseBrushRadius();
+        log(LogEvent.GROW_COLOR_BRUSH, '');
     })
     $('#color-brush-button-shrink').on('click', () => {
         mColorBrushController.decreaseBrushRadius();
         mLensController.decreaseBrushRadius();
+        log(LogEvent.SHRINK_COLOR_BRUSH, '');
     })
 
 
@@ -1636,6 +1705,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.toggleFont(mSelectedCellBindingId);
+        pushVersion();
         modelUpdated();
     })
     $('#toggle-font-weight-button').on('click', () => {
@@ -1645,6 +1715,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.toggleFontWeight(mSelectedCellBindingId);
+        pushVersion();
         modelUpdated();
     })
     $('#toggle-font-italics-button').on('click', () => {
@@ -1654,6 +1725,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.toggleFontItalics(mSelectedCellBindingId);
+        pushVersion();
         modelUpdated();
     })
     $('#increase-font-size-button').on('click', () => {
@@ -1669,6 +1741,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.setFontSize(mSelectedCellBindingId, Math.min(cellBinding.fontSize + 4, 64));
+        pushVersion();
         modelUpdated();
     })
     $('#decrease-font-size-button').on('click', () => {
@@ -1684,6 +1757,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         mModelController.setFontSize(mSelectedCellBindingId, Math.max(cellBinding.fontSize - 4, 4));
+        pushVersion();
         modelUpdated();
     })
     $('#delete-text-button').on('click', deleteSelected);
@@ -1709,6 +1783,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mSelectedImageBindingId = null;
 
         setDefaultMode();
+        pushVersion();
         modelUpdated();
     })
     setupButtonTooltip('#image-unlink-button', 'Detach image from line')
@@ -1749,6 +1824,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
             if (!isNaN(time)) {
                 mModelController.updateImageTime(imageBinding.id, time.getTime());
+                pushVersion();
                 modelUpdated();
             }
             mTextInputBox.reset();
@@ -1899,18 +1975,20 @@ document.addEventListener('DOMContentLoaded', function (e) {
         mLineViewController.setActive(true);
     });
     setupButtonTooltip('#link-button', 'Attaches data to timelines')
-    $('#link-button').on("pointerenter", () => { mMousedOverLinkButton = true; });
-    $('#link-button').on("pointerout", () => { mMousedOverLinkButton = false; });
+    $('#link-button').on('pointerenter', () => { mMousedOverLinkButton = true; });
+    $('#link-button').on('pointerout', () => { mMousedOverLinkButton = false; });
 
     $('#toggle-data-style-button').on('click', () => {
         if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.toggleDataStyle(mSelectedAxisId);
+        pushVersion();
         modelUpdated();
     });
     setupButtonTooltip('#toggle-data-style-button', 'Toggle the data display style');
     $('#dynamic-normals-axis-button').on('click', () => {
         if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.FIXED);
+        pushVersion();
 
         $('#dynamic-normals-axis-button').hide();
         $('#fixed-normals-axis-button').show();
@@ -1920,6 +1998,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     $('#fixed-normals-axis-button').on('click', () => {
         if (!mSelectedAxisId) { console.error('Button should not be clickable!'); return; }
         mModelController.updateAxisDataAlignment(mSelectedAxisId, DataDisplayAlignments.DYNAMIC);
+        pushVersion();
 
         $('#fixed-normals-axis-button').hide();
         $('#dynamic-normals-axis-button').show();
@@ -1945,19 +2024,31 @@ document.addEventListener('DOMContentLoaded', function (e) {
             newTable.dataRows.push(dataRow)
         }
 
+
         mModelController.addTable(newTable);
+        pushVersion();
         modelUpdated();
 
-        log(LogEvent.ADD_SPREADSHEET, "");
+        log(LogEvent.ADD_SPREADSHEET, '');
     })
     setupButtonTooltip('#add-datasheet-button', 'Adds a new datasheet')
 
     $('#upload-datasheet-button').on('click', async () => {
-        let csv = await FileHandler.getCSVDataFile();
-        mModelController.addTableFromCSV(csv.data);
-        modelUpdated();
+        try {
+            let csv = await FileHandler.getCSVDataFile();
+            mModelController.addTableFromCSV(csv.data);
+            pushVersion();
+            modelUpdated();
+        } catch (e) {
+            if (e.message.includes('The user aborted a request')) {
+                log(LogEvent.UPLOAD_CSV, 'aborted');
+            } else {
+                log(LogEvent.UPLOAD_CSV, 'error ' + e.message);
+                throw e;
+            }
+        }
 
-        log(LogEvent.UPLOAD_CSV, "");
+        log(LogEvent.UPLOAD_CSV, 'success');
     })
     setupButtonTooltip('#upload-datasheet-button', 'Upload a csv datasheet')
 
@@ -2047,6 +2138,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             let screenCoords = { x: event.clientX, y: event.clientY };
             mTooltip.show(text, screenCoords);
             mTooltipSetTo = buttonId;
+
+            log(LogEvent.TOOLTIP, buttonId)
         })
         $(buttonId).on('pointerout', (event) => {
             if (mTooltipSetTo == buttonId) {
@@ -2132,10 +2225,12 @@ document.addEventListener('DOMContentLoaded', function (e) {
     function toggleColorPicker(e) {
         if ($('#color-picker-div').is(':visible')) {
             $('#color-picker-div').hide();
+            log(LogEvent.TOGGLE_COLOR_PICKER, 'close');
         } else {
             $('#color-picker-div').css('top', e.pageY);
             $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
             $('#color-picker-div').show();
+            log(LogEvent.TOGGLE_COLOR_PICKER, 'open');
         }
     }
 
@@ -2278,4 +2373,5 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mMainOverlay.raise();
     hideLensView();
     setDefaultMode();
+    pushVersion();
 });

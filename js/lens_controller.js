@@ -1,4 +1,4 @@
-function LensController(svg, externalModelController, externalModelUpdated) {
+function LensController(svg, externalModelController, externalPushVersion, externalModelUpdated) {
     let mSvg = svg;
     let mModelController = externalModelController;
     let mVizLayer = svg.append('g')
@@ -48,18 +48,14 @@ function LensController(svg, externalModelController, externalModelUpdated) {
 
             mModelController.addTimelineStroke(mTimelineId, mappedPoints, color, radius * 2);
 
+            externalPushVersion();
             modelUpdated();
         }
     })
 
     let mEraserController = new EraserController(mVizLayer, mVizOverlayLayer, mInteractionLayer);
     mEraserController.setEraseCallback(canvasMask => {
-        if (mMode == Mode.ERASER_STROKE ||
-            mMode == Mode.ERASER_POINT ||
-            mMode == Mode.ERASER_PIN ||
-            mMode == Mode.ERASER) {
-            mModelController.undoStackPush();
-        }
+        let changeMade = false;
         if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
             let strokeData = mModel.getStrokeData(mTimelineId);
             let strokeFragementData = DataUtil.fragmentStrokes(canvasMask,
@@ -70,11 +66,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                         mTimelineId,
                         fragment,
                         strokeData.color,
-                        strokeData.width,
-                        false);
+                        strokeData.width);
                 })
             });
-            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id), false);
+            mModelController.deleteStrokes(strokeFragementData.map(s => s.strokeData.id));
+            if (strokeFragementData.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_POINT || mMode == Mode.ERASER) {
             let pointsData = getPointsDrawingData();
@@ -84,7 +80,8 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                     erasedPointsIds.push(p.cellBindingId);
                 }
             });
-            mModelController.deleteCellBindings(erasedPointsIds, false);
+            mModelController.deleteCellBindings(erasedPointsIds);
+            if (erasedPointsIds.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_PIN || mMode == Mode.ERASER) {
             let pinData = getPinDrawingData();
@@ -94,9 +91,11 @@ function LensController(svg, externalModelController, externalModelUpdated) {
                     erasedPinIds.push(pin.id);
                 }
             })
-            mModelController.deletePins(erasedPinIds, false);
+            mModelController.deletePins(erasedPinIds);
+            if (erasedPinIds.length > 0) changeMade = true;
         }
 
+        if (changeMade) externalPushVersion();
         modelUpdated();
     })
 

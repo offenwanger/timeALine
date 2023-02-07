@@ -399,6 +399,7 @@ before(function () {
         let data_structures = rewire('../js/data_structures.js');
         let table_view_controller = rewire('../js/table_view_controller.js');
         let model_controller = rewire('../js/model_controller.js');
+        let version_controller = rewire('../js/version_controller.js');
         let brush_controller = rewire('../js/brush_controller.js');
         let color_brush_controller = rewire('../js/color_brush_controller.js');
         let eraser_controller = rewire('../js/eraser_controller.js');
@@ -509,6 +510,7 @@ before(function () {
             DataStructs: data_structures.__get__("DataStructs"),
             ModelController: returnable.snagConstructor(model_controller, "ModelController"),
             LineViewController: line_view_controller.__get__("LineViewController"),
+            VersionController: version_controller.__get__("VersionController"),
             SelectionController: selection_controller.__get__("SelectionController"),
             TimePinController: time_pin_controller.__get__("TimePinController"),
             TextController: text_controller.__get__("TextController"),
@@ -713,6 +715,7 @@ before(function () {
         let len = integrationEnv.ModelController.getModel().getAllTables().length;
         assert(len > 0);
         let tableId = integrationEnv.ModelController.getModel().getAllTables()[len - 1].id;
+        integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onbeforepaste()
 
         if (dataArray.length > 3) {
             integrationEnv.enviromentVariables.jspreadsheetTables[tableId].oninsertrow("#table_" + tableId, 0, dataArray.length - 3)
@@ -722,10 +725,11 @@ before(function () {
         }
 
         let onchange = integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onchange;
-
         dataArray.forEach((row, rowIndex) => row.forEach((item, colIndex) => {
             onchange("#table_" + tableId, "cellInstance", colIndex, rowIndex, "" + item, "");
         }))
+
+        integrationEnv.enviromentVariables.jspreadsheetTables[tableId].onpaste("#table_" + tableId);
     }
 
     async function erase(points, radius, integrationEnv) {

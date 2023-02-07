@@ -92,6 +92,18 @@ const LogEvent = {
     UPLOAD_MENU: 9,
     WORKSPACE_OPENED: 10,
     JSON_UPLOADED: 11,
+    TOOLTIP: 12,
+    DOWNLOAD_MENU: 13,
+    WRITE_WORKSPACE: 14,
+    WRITE_SVG: 15,
+    WRITE_JSON: 16,
+    WRITE_PNG: 17,
+    LINE_STYLE_TOGGLE: 18,
+    TOGGLE_COLOR_PICKER: 19,
+    GROW_COLOR_BRUSH: 20,
+    SHRINK_COLOR_BRUSH: 21,
+    POINTER_DOWN: 22,
+    POINTER_UP: 23,
 }
 
 class ModelStateError extends Error {
