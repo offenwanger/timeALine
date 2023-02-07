@@ -742,6 +742,8 @@ DataStructs.CellBindingData = function (cellBinding, timeline, dataCell, timeCel
 
         if (this.dataCell.getValue() != other.dataCell.getValue()) return false;
         if (this.timeCell.getValue() != other.timeCell.getValue()) return false;
+
+        return true;
     }
 }
 
@@ -778,8 +780,9 @@ DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, ro
         if (this.cellBinding.fontSize != other.cellBinding.fontSize) return false;
         if (this.cellBinding.offset.x != other.cellBinding.offset.x) return false;
         if (this.cellBinding.offset.y != other.cellBinding.offset.y) return false;
-
         if (this.dataCell.getValue() != other.dataCell.getValue()) return false;
+
+        return true;
     }
 }
 
