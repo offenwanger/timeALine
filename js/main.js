@@ -174,8 +174,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             modelUpdated();
         } else if (mMode == Mode.IMAGE) {
             FileHandler.getImageFile().then(({ imageData, width, height }) => {
-                width = width * 100 / Math.max(width, height);
-                height = height * 100 / Math.max(width, height);
+                let max = Math.max(width, height);
+                width = width * 100 / max;
+                height = height * 100 / max;
 
                 if (mModelController.getModel().hasTimeMapping(timelineId)) {
                     let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
@@ -1119,8 +1120,9 @@ document.addEventListener('DOMContentLoaded', function (e) {
             }
         } else if (mMode == Mode.IMAGE) {
             FileHandler.getImageFile().then(({ imageData, width, height }) => {
-                width = width * 100 / Math.max(width, height);
-                height = height * 100 / Math.max(width, height);
+                let max = Math.max(width, height);
+                width = width * 100 / max;
+                height = height * 100 / max;
                 mModelController.addCanvasImage(imageData, width, height, coords);
                 modelUpdated();
             })
