@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData = cellBindingData.copy();
             cellBindingData.linePercent = linePoint.percent;
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
-            mTextController.drawTimelineText(timeline, [cellBindingData]);
+            mTextController.redrawText(cellBindingData);
         }
 
         return coords;
@@ -394,30 +394,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            if (!cellBindingData.isCanvasBinding) {
-                let bindingData = mModelController.getModel().getCellBindingData(cellBindingData.timeline.id)
-                    .filter(cbd => cbd.dataCell.getType() == DataTypes.TEXT);
-                let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
-
-                // copy the dataCell to avoid modification leaks
-                let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
-                cellBinding.offset = offset;
-                bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
-
-                mTextController.drawTimelineText(
-                    mModelController.getModel().getTimelineById(cellBindingData.timeline.id),
-                    bindingData);
-            } else {
-                let bindingData = mModelController.getModel().getCanvasBindingData();
-                let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
-
-                // copy the dataCell to avoid modification leaks
-                let cellBinding = bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding.copy();
-                cellBinding.offset = offset;
-                bindingData.find(b => b.cellBinding.id == cellBindingData.cellBinding.id).cellBinding = cellBinding;
-
-                mTextController.drawCanvasText(bindingData);
-            }
+            cellBindingData = cellBindingData.copy();
+            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            cellBindingData.cellBinding.offset = offset;
+            mTextController.redrawText(cellBindingData);
         } else if (mMode == Mode.PIN && !cellBindingData.isCanvasBinding) {
             let timeline = cellBindingData.timeline;
             let linePoint = PathMath.getClosestPointOnPath(coords, timeline.points);
@@ -437,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData = cellBindingData.copy();
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
             cellBindingData.linePercent = linePoint.percent;
-            mTextController.drawTimelineText(timeline, [cellBindingData]);
+            mTextController.redrawText(cellBindingData);
         }
     });
     mTextController.setDragEndCallback((cellBindingData, startPos, coords) => {
@@ -445,7 +425,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // if we didn't actually move, don't do anything.
             if (MathUtil.pointsEqual(startPos, coords)) return;
 
-            let offset = MathUtil.addAToB(cellBindingData.cellBinding.offset, MathUtil.subtractAFromB(startPos, coords));
+            let orginalBinding = mModelController.getModel().getCellBindingById(cellBindingData.cellBinding.id);
+            let offset = MathUtil.addAToB(orginalBinding.offset, MathUtil.subtractAFromB(startPos, coords));
             mModelController.updateTextOffset(cellBindingData.cellBinding.id, offset);
 
             pushVersion();

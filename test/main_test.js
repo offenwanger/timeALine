@@ -88,12 +88,12 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].axisBindings.length, 2);
 
             // check that the comments were drawn in the correct places
-            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + integrationEnv.ModelController.getModel().getAllTimelines()[0].id + "\"]"].innerData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(annotationSet.length, 9)
             expect(annotationSet.map(a => {
                 return {
-                    x: Math.round(a.x),
-                    y: Math.round(a.y),
+                    x: Math.round(a.origin.x),
+                    y: Math.round(a.origin.y),
                     label: a.text
                 }
             }).sort((a, b) => a.label < b.label ? -1 : 1)).to.eql([{
@@ -193,17 +193,18 @@ describe('Test Main - Integration Test', function () {
             // add a comment
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
             IntegrationUtils.clickLine({ x: 125, y: 110 }, timelineId, integrationEnv);
-            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(annotationSet.length, 3, "annotation not created");
-            assert.equal(annotationSet[1].x, 125);
-            assert.equal(annotationSet[1].y, 100);
+            assert.equal(annotationSet[2].origin.x, 125);
+            assert.equal(annotationSet[2].origin.y, 100);
 
             // add a second comment
             IntegrationUtils.clickLine({ x: 150, y: 110 }, timelineId, integrationEnv);
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);
             assert.equal(annotationSet.length, 4, "annotation not created");
-            assert.equal(annotationSet[2].x, 150);
-            assert.equal(annotationSet[2].y, 100);
+            assert.equal(annotationSet[3].origin.x, 150);
+            assert.equal(annotationSet[3].origin.y, 100);
 
             // check that two table rows were created
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
@@ -231,13 +232,13 @@ describe('Test Main - Integration Test', function () {
                 0.40 * (new Date("Jan 20, 2021") - new Date("Jan 10, 2021")) + new Date("Jan 10, 2021").getTime());
 
             // check that comments moved
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(annotationSet.length, 4)
-            assert.equal(annotationSet[1].x, 150);
-            assert.equal(annotationSet[1].y, 100);
+            assert.equal(annotationSet[1].origin.x, 150);
+            assert.equal(annotationSet[1].origin.y, 100);
             assert.equal(annotationSet[1].text, '<text>');
-            assert.equal(Math.round(annotationSet[2].x), 167);
-            assert.equal(annotationSet[2].y, 100);
+            assert.equal(Math.round(annotationSet[2].origin.x), 167);
+            assert.equal(annotationSet[2].origin.y, 100);
             assert.equal(annotationSet[2].text, '<text>');
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
@@ -268,13 +269,13 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.5);
 
             // check the the comment moved
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(annotationSet.length, 4)
-            assert.equal(annotationSet[1].x, 125);
-            assert.equal(annotationSet[1].y, 100);
-            assert.equal(annotationSet[1].text, "<text>");
-            assert.equal(Math.round(annotationSet[2].x), 163);
-            assert.equal(annotationSet[2].y, 100);
+            assert.equal(annotationSet[3].origin.x, 125);
+            assert.equal(annotationSet[3].origin.y, 100);
+            assert.equal(annotationSet[3].text, "<text>");
+            assert.equal(Math.round(annotationSet[2].origin.x), 163);
+            assert.equal(annotationSet[2].origin.y, 100);
             assert.equal(annotationSet[2].text, "<text>");
         });
     });
@@ -311,8 +312,9 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             // drag the comment
-            let targetData = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"]
+            let targetData = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
                 .eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, targetData[1]);
             IntegrationUtils.pointerMove({ x: 130, y: 130 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 140, y: 150 }, integrationEnv);
@@ -322,17 +324,18 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // check that a binding was created for the annotation row
-            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);
             assert.equal(annotationSet[2].binding.cellBindingId, targetData[2].binding.cellBindingId);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].linePercent, 0.4);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 12 2021").getTime());
 
             // check that the comment is where it's expect to be
-            assert.equal(annotationSet[1].x, 140);
-            assert.equal(annotationSet[1].y, 100);
-            assert.equal(annotationSet[1].offsetX, 0);
-            assert.equal(annotationSet[1].offsetY, 50, "offset not updated");
+            assert.equal(annotationSet[1].origin.x, 140);
+            assert.equal(annotationSet[1].origin.y, 100);
+            assert.equal(annotationSet[1].binding.cellBinding.offset.x, 0);
+            assert.equal(annotationSet[1].binding.cellBinding.offset.y, 50, "offset not updated");
         });
 
         it('should create a time pin for a dragged data point', function () {
@@ -410,9 +413,9 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // get the drag functions
-            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
-            expect(annotationSet[2].offsetX).to.be.closeTo(10, 0.1);
-            expect(annotationSet[2].offsetY).to.be.closeTo(10, 0.1);
+            let annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
+            expect(annotationSet[2].binding.cellBinding.offset.x).to.be.closeTo(10, 0.1);
+            expect(annotationSet[2].binding.cellBinding.offset.y).to.be.closeTo(10, 0.1);
 
 
             // go to pin mode
@@ -422,8 +425,9 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 0);
 
             // drag the comment
-            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].eventCallbacks.pointerdown;
-            let targetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let onCommentDragStart = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"].eventCallbacks.pointerdown;
+            let targetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);;
             onCommentDragStart({ clientX: 130, clientY: 190 }, targetSet[2]);
             IntegrationUtils.pointerMove({ x: 150, y: 170 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 160, y: 180 }, integrationEnv);
@@ -433,11 +437,11 @@ describe('Test Main - Integration Test', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 6);
 
             // check that the offset is what it's expect to be
-            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
-            expect(annotationSet[2].x).to.be.closeTo(140, 0.1);
-            expect(annotationSet[2].y).to.be.closeTo(160, 0.1);
-            expect(annotationSet[2].offsetX).to.be.closeTo(20, 0.1);
-            expect(annotationSet[2].offsetY).to.be.closeTo(20, 0.1);
+            annotationSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
+            expect(annotationSet[2].origin.x).to.be.closeTo(140, 0.1);
+            expect(annotationSet[2].origin.y).to.be.closeTo(160, 0.1);
+            expect(annotationSet[2].binding.cellBinding.offset.x).to.be.closeTo(20, 0.1);
+            expect(annotationSet[2].binding.cellBinding.offset.y).to.be.closeTo(20, 0.1);
         });
     });
 

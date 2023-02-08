@@ -57,10 +57,10 @@ describe('Integration Test TextController', function () {
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
-            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
-            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([110, 160, 20]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([110, 110, 110]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 3);
         });
@@ -90,10 +90,10 @@ describe('Integration Test TextController', function () {
             IntegrationUtils.clickLine({ x: 150, y: 102 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 3, "Annotations not created")
-            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
-            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([110, 160, 20]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([110, 110, 110]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
         });
@@ -124,29 +124,27 @@ describe('Integration Test TextController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 2);
 
             let annotationData = textSet[1]
             let movingTextId = annotationData.binding.cellBinding.id;
-            expect(annotationData.offsetX).to.eql(10)
-            expect(annotationData.offsetY).to.eql(10)
+            expect(annotationData.binding.cellBinding.offset.x).to.eql(10)
+            expect(annotationData.binding.cellBinding.offset.y).to.eql(10)
 
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);
             let movingTextTargetData = textTargetSet.find(item => item.binding.cellBinding.id == movingTextId);
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"].
                 eventCallbacks.pointerdown({ clientX: 130, clientY: 110 }, movingTextTargetData);
             IntegrationUtils.pointerMove({ x: 140, y: 120 }, integrationEnv);
 
             // Check that the correct annotation is updating
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[binding-id="' + movingTextId + '"]'].innerData;
 
-            annotationData = textSet.find(item => item.binding.cellBinding.id == movingTextId);
-            expect(annotationData.offsetX).to.eql(20)
-            expect(annotationData.offsetY).to.eql(20)
-            annotationData = textSet.find(item => item.binding.cellBinding.id != movingTextId);
-            expect(annotationData.offsetX).to.eql(10)
-            expect(annotationData.offsetY).to.eql(10)
+            annotationData = textSet[0];
+            expect(annotationData.binding.cellBinding.offset.x).to.eql(20)
+            expect(annotationData.binding.cellBinding.offset.y).to.eql(20)
             expect(integrationEnv.ModelController.getModel().getAllCellBindingData()
                 .filter(b => b.dataCell.getType() == DataTypes.TEXT)
                 .map(b => b.cellBinding.offset.x)).to.eql([10, 10])
@@ -154,13 +152,12 @@ describe('Integration Test TextController', function () {
                 .filter(b => b.dataCell.getType() == DataTypes.TEXT)
                 .map(b => b.cellBinding.offset.y)).to.eql([10, 10])
 
-
             IntegrationUtils.pointerUp({ x: 140, y: 120 }, integrationEnv);
 
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             annotationData = textSet.find(item => item.binding.cellBinding.id == movingTextId);
-            expect(annotationData.offsetX).to.eql(20)
-            expect(annotationData.offsetY).to.eql(20)
+            expect(annotationData.binding.cellBinding.offset.x).to.eql(20)
+            expect(annotationData.binding.cellBinding.offset.y).to.eql(20)
             integrationEnv.ModelController.getModel().getAllCellBindingData()
 
             // Check that the correct cell binding was updated
@@ -186,7 +183,7 @@ describe('Integration Test TextController', function () {
 
             assert.equal(integrationEnv.ModelController.getModel().getCanvasBindingData().length, 3);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[is-canvas-text=\"canvas-text\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 3);
             expect(textSet.map(t => t.x)).to.eql([300, 300, 125]);
             expect(textSet.map(t => t.y)).to.eql([200, 320, 200]);

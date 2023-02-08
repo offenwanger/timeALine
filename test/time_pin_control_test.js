@@ -1,4 +1,5 @@
 const chai = require('chai');
+const { text } = require('stream/consumers');
 
 let assert = chai.assert;
 let expect = chai.expect;
@@ -236,16 +237,17 @@ describe('Integration Test TimePinController', function () {
                 ]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 1);
-            expect(textSet[0].offsetX).to.eql(10)
-            expect(textSet[0].offsetY).to.eql(10)
-            expect(textSet[0].x).to.eql(100)
-            expect(textSet[0].y).to.eql(100)
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
+            expect(textSet[0].binding.cellBinding.offset.x).to.eql(10)
+            expect(textSet[0].binding.cellBinding.offset.y).to.eql(10)
+            expect(textSet[0].x).to.eql(110)
+            expect(textSet[0].y).to.eql(110)
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].
+            integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"].
                 eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
@@ -266,12 +268,12 @@ describe('Integration Test TimePinController', function () {
                 ]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 1);
-            expect(textSet[0].offsetX).to.eql(0)
-            expect(textSet[0].offsetY).to.eql(20)
-            expect(textSet[0].x).to.eql(150)
-            expect(textSet[0].y).to.eql(100)
+            expect(textSet[0].binding.cellBinding.offset.x).to.eql(0)
+            expect(textSet[0].binding.cellBinding.offset.y).to.eql(20)
+            expect(textSet[0].origin.x).to.eql(150)
+            expect(textSet[0].origin.y).to.eql(100)
         });
 
         it('should create and update pin on drag with data', function () {
@@ -482,16 +484,17 @@ describe('Integration Test TimePinController', function () {
                 ["Jan 15, 2021", "sometext2"]
             ], integrationEnv)
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 1);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 1);
-            expect(textSet[0].offsetX).to.eql(10)
-            expect(textSet[0].offsetY).to.eql(10)
-            expect(textSet[0].x).to.eql(100)
-            expect(textSet[0].y).to.eql(100)
-            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target[timeline-id=\"" + timelineId + "\"]"].innerData;
+            expect(textSet[0].binding.cellBinding.offset.x).to.eql(10)
+            expect(textSet[0].binding.cellBinding.offset.y).to.eql(10)
+            expect(textSet[0].x).to.eql(110)
+            expect(textSet[0].y).to.eql(110)
+            let textTargetSet = integrationEnv.enviromentVariables.d3.selectors[".text-interaction-target"]
+                .innerData.filter(d => d.binding.timeline.id == timelineId);;
 
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
-            integrationEnv.enviromentVariables.d3.selectors['.text-interaction-target[timeline-id="' + timelineId + '"]'].
+            integrationEnv.enviromentVariables.d3.selectors['.text-interaction-target'].
                 eventCallbacks.pointerdown({ clientX: 111, clientY: 115 }, textTargetSet[0]);
             IntegrationUtils.pointerMove({ x: 150, y: 120 }, integrationEnv);
             IntegrationUtils.pointerUp({ x: 150, y: 120 }, integrationEnv);
@@ -510,11 +513,11 @@ describe('Integration Test TimePinController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[0].cellBinding.timePinId, null);
 
             // check that it's positioning the text correctly
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
-            expect(textSet[0].offsetX).to.eql(0)
-            expect(textSet[0].offsetY).to.eql(20)
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
+            expect(textSet[0].binding.cellBinding.offset.x).to.eql(0)
+            expect(textSet[0].binding.cellBinding.offset.y).to.eql(20)
             expect(textSet[0].x).to.eql(150)
-            expect(textSet[0].y).to.eql(100)
+            expect(textSet[0].y).to.eql(120)
 
             IntegrationUtils.bindDataToLine(timelineId, [
                 ["Jan 10, 2021", "sometext1"],

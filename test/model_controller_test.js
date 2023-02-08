@@ -547,13 +547,12 @@ describe('Integration Test ModelController', function () {
             ], integrationEnv);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 2);
-            let textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
-                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text'].innerData;
             assert.equal(textSet.length, 2);
-            assert.equal(textSet[0].x, 10);
-            assert.equal(textSet[0].y, 10);
-            assert.equal(textSet[1].x, 10);
-            assert.equal(textSet[1].y, 10);
+            assert.equal(textSet[0].binding.cellBinding.offset.x, 10);
+            assert.equal(textSet[0].binding.cellBinding.offset.y, 10);
+            assert.equal(textSet[1].binding.cellBinding.offset.x, 10);
+            assert.equal(textSet[1].binding.cellBinding.offset.y, 10);
 
             integrationEnv.enviromentVariables.$.selectors['#download-button-json'].eventCallbacks.click();
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
@@ -567,13 +566,12 @@ describe('Integration Test ModelController', function () {
             await integrationEnv.enviromentVariables.$.selectors["#upload-button-json"].eventCallbacks.click();
 
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
-            textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text[timeline-id="' +
-                integrationEnv.ModelController.getModel().getAllTimelines()[0].id + '"]'].innerData;
+            textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text'].innerData;
             assert.equal(textSet.length, 2);
-            assert.equal(textSet[0].x, 10);
-            assert.equal(textSet[0].y, 10);
-            assert.equal(textSet[1].x, 10);
-            assert.equal(textSet[1].y, 10);
+            assert.equal(textSet[0].binding.cellBinding.offset.x, 10);
+            assert.equal(textSet[0].binding.cellBinding.offset.y, 10);
+            assert.equal(textSet[1].binding.cellBinding.offset.x, 10);
+            assert.equal(textSet[1].binding.cellBinding.offset.y, 10);
         });
     });
     describe('Data Binding Test', function () {

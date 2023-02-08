@@ -404,10 +404,10 @@ describe('Integration Test EraserController', function () {
             IntegrationUtils.clickLine({ x: 387, y: 110 }, timelineId, integrationEnv);
             IntegrationUtils.clickButton("#text-button", integrationEnv.enviromentVariables.$);
 
-            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId + "\"]"].innerData;
+            let textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
             assert.equal(textSet.length, 6, "Annotations not created")
-            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150, 300, 350, 387]);
-            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100, 100, 100, 100]);
+            expect(textSet.map(r => Math.round(r.origin.x)).sort()).to.eql([10, 100, 150, 300, 350, 387]);
+            expect(textSet.map(r => Math.round(r.origin.y)).sort()).to.eql([100, 100, 100, 100, 100, 100]);
 
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
 
@@ -415,17 +415,11 @@ describe('Integration Test EraserController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 6);
 
-            let timelineId1 = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId1 + "\"]"].innerData;
-            assert.equal(textSet.length, 3, "Annotations not created")
-            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([10, 100, 150]);
-            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
-            let timelineId2 = integrationEnv.ModelController.getModel().getAllTimelines()[1].id;
+            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text"].innerData;
+            assert.equal(textSet.length, 6, "Annotations not created")
+            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([110, 160, 20, 310, 360, 397]);
+            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([110, 110, 110, 110, 110, 110]);
 
-            textSet = integrationEnv.enviromentVariables.d3.selectors[".annotation-text[timeline-id=\"" + timelineId2 + "\"]"].innerData;
-            assert.equal(textSet.length, 3, "Annotations not created")
-            expect(textSet.map(r => Math.round(r.x)).sort()).to.eql([300, 350, 387]);
-            expect(textSet.map(r => Math.round(r.y)).sort()).to.eql([100, 100, 100]);
         });
     })
 

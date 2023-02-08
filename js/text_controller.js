@@ -1,13 +1,15 @@
-
 function TextController(vizLayer, overlayLayer, interactionLayer) {
     const TEXT_WIDTH = 200;
+    const LINE_PADDING = 2;
 
     let mActive = false;
 
-    let mDisplayGroup = vizLayer.append('g')
-        .attr("id", 'annotation-display-g');
-    let mInteractionGroup = interactionLayer.append('g')
-        .attr("id", 'annotation-interaction-g');
+    let mModel = new DataStructs.DataModel();
+    let mTextData = {};
+
+    let mDragging = false;
+    let mDragStartPos = null;
+    let mDragBinding = null;
 
     let mDragStartCallback = () => { };
     let mDragCallback = () => { };
@@ -16,263 +18,278 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     let mPointerOutCallback = () => { };
     let mDoubleClickCallback = (cellId, text, x, y, height, width) => { }
 
-    let mDragging = false;
-    let mDragStartPos = null;
-    let mDragBinding = null;
-
-    let mDataCache = {};
-    let mBoundingBoxData = [];
+    let mDisplayGroup = vizLayer.append('g')
+        .attr("id", 'annotation-display-g');
+    let mInteractionGroup = interactionLayer.append('g')
+        .attr("id", 'annotation-interaction-g');
 
     function updateModel(model) {
-        mDataCache = {};
-        mBoundingBoxData = [];
-        mDisplayGroup.selectAll("*").remove();
-        mInteractionGroup.selectAll("*").remove();
+        let oldModel = mModel;
+        mModel = model;
 
-        model.getAllTimelines().forEach(timeline => {
-            drawTimelineText(timeline, model.getCellBindingData(timeline.id).filter(b => b.dataCell.getType() == DataTypes.TEXT));
+        let oldTextData = mTextData;
+        mTextData = {}
+
+        let text = mModel.getAllCellBindingData().filter(b => b.dataCell.getType() == DataTypes.TEXT);
+        let oldText = oldModel.getAllCellBindingData().filter(b => b.dataCell.getType() == DataTypes.TEXT);
+
+        mModel.getAllTimelines().forEach(timeline => {
+            let oldtimeline = oldModel.getAllTimelines().find(t => t.id == timeline.id);
+            let timelineTextBindings = text.filter(t => t.timeline.id == timeline.id);
+            let changedTextIds = DataUtil.timelineTextChanged(timeline,
+                timelineTextBindings,
+                oldtimeline,
+                oldText.filter(t => t.timeline.id == timeline.id));
+            let cachedData = timelineTextBindings.filter(binding => !changedTextIds.includes(binding.cellBinding.id));
+            cachedData.forEach(binding => {
+                mTextData[binding.cellBinding.id] = oldTextData[binding.cellBinding.id];
+            });
+            let recalcData = timelineTextBindings.filter(binding => changedTextIds.includes(binding.cellBinding.id));
+            let data = createTimelineTextData(recalcData, timeline);
+            data.forEach(d => mTextData[d.binding.cellBinding.id] = d);
+        });
+
+        let canvasTextBindings = mModel.getCanvasBindingData().filter(b => b.dataCell.getType() == DataTypes.TEXT);
+        let changedTextIds = DataUtil.canvasTextChanged(canvasTextBindings,
+            oldModel.getCanvasBindingData().filter(b => b.dataCell.getType() == DataTypes.TEXT));
+        canvasTextBindings.forEach(binding => {
+            if (changedTextIds.includes(binding.cellBinding.id)) {
+                mTextData[binding.cellBinding.id] = createCanvasData(binding);
+            } else {
+                mTextData[binding.cellBinding.id] = oldTextData[binding.cellBinding.id];
+            }
         })
 
-        drawCanvasText(model.getCanvasBindingData());
+        drawText();
+        setupInteractionTargets();
     }
 
-    function drawTimelineText(timeline, boundData) {
-        let annotationDataset = [];
-        let linePadding = 2;
-
-        mBoundingBoxData = mBoundingBoxData.filter(d => d.timelineId != timeline.id);
-
-        let timelineChanged = !mDataCache[timeline.id] || mDataCache[timeline.id].points != JSON.stringify(timeline.points);
-        if (timelineChanged) {
-            // reset the cache for this timeline (or set it in the first place)
-            mDataCache[timeline.id] = {
-                points: JSON.stringify(timeline.points),
-                bindings: {},
-                annotationData: {}
-            };
-        }
-
-        boundData.sort((a, b) => a.linePercent - b.linePercent);
+    function createTimelineTextData(bindingData, timeline) {
+        bindingData.sort((a, b) => a.linePercent - b.linePercent);
         let positions = PathMath.getPositionForPercents(
             timeline.points,
-            boundData.map(binding => binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0))
-        boundData.forEach((binding, index) => {
-            let annotationData;
-            if (!mDataCache[timeline.id].bindings[binding.cellBinding.id] || mDataCache[timeline.id].bindings[binding.cellBinding.id] != JSON.stringify(binding)) {
-                let text = binding.dataCell.getValue();
-                let offsetX = binding.cellBinding.offset.x;
-                let offsetY = binding.cellBinding.offset.y;
-                let pos = positions[index];
-                annotationData = {
-                    x: pos.x,
-                    y: pos.y,
-                    text,
-                    offsetX,
-                    offsetY,
-                    hasTime: binding.timeCell.isValid(),
-                    binding
-                };
-
-                mDataCache[timeline.id].bindings[binding.cellBinding.id] = JSON.stringify(binding);
-                mDataCache[timeline.id].annotationData[binding.cellBinding.id] = annotationData;
-            } else {
-                annotationData = mDataCache[timeline.id].annotationData[binding.cellBinding.id]
+            bindingData.map(binding => binding.linePercent != NO_LINE_PERCENT ? binding.linePercent : 0))
+        let returnable = [];
+        bindingData.forEach((binding, index) => {
+            let options = {
+                font: binding.cellBinding.font,
+                fontWeight: binding.cellBinding.fontWeight,
+                fontItalics: binding.cellBinding.fontItalics,
+                fontSize: binding.cellBinding.fontSize,
             }
-
-            annotationDataset.push(annotationData);
+            let x = positions[index].x + binding.cellBinding.offset.x;
+            let y = positions[index].y + binding.cellBinding.offset.y;
+            let spans = layoutText(binding.dataCell.getValue(), TEXT_WIDTH, options)
+            spans.forEach(spanData => {
+                spanData.x = positions[index].x + binding.cellBinding.offset.x;
+                spanData.y = positions[index].y + binding.cellBinding.offset.y + spanData.lineNumber * (spanData.lineHeight + LINE_PADDING);
+            })
+            let boundingBox = {
+                x, y,
+                width: Math.max(...spans.map(s => s.lineWidth)),
+                height: Math.max(...spans.map(s => s.lineNumber * (s.lineHeight + LINE_PADDING)))
+            }
+            returnable.push({
+                x, y,
+                text: binding.dataCell.getValue(),
+                spans,
+                origin: positions[index],
+                hasTime: binding.timeCell.isValid(),
+                timelineId: timeline.id,
+                lineData: getLineData(positions[index], boundingBox),
+                boundingBox,
+                binding
+            });
         })
+        return returnable;
+    }
 
-        let selection = mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
-            .data(annotationDataset);
+    function createCanvasData(binding) {
+        let options = {
+            font: binding.cellBinding.font,
+            fontWeight: binding.cellBinding.fontWeight,
+            fontItalics: binding.cellBinding.fontItalics,
+            fontSize: binding.cellBinding.fontSize,
+        }
+        let x = binding.cellBinding.offset.x;
+        let y = binding.cellBinding.offset.y;
+        let spans = layoutText(binding.dataCell.getValue(), TEXT_WIDTH, options)
+        spans.forEach(spanData => {
+            spanData.x = binding.cellBinding.offset.x;
+            spanData.y = binding.cellBinding.offset.y + spanData.lineNumber * (spanData.lineHeight + LINE_PADDING);
+            spanData.bindingId = binding.cellBinding.id;
+        })
+        let boundingBox = {
+            x, y,
+            width: Math.max(...spans.map(s => s.lineWidth)),
+            height: Math.max(...spans.map(s => s.lineNumber * (s.lineHeight + LINE_PADDING)))
+        }
+        return {
+            x, y,
+            text: binding.dataCell.getValue(),
+            spans,
+            timelineId: "is-canvas-text",
+            boundingBox,
+            binding,
+        };
+    }
+
+    function drawText() {
+        let selection = mDisplayGroup.selectAll('.annotation-text')
+            .data(Object.values(mTextData));
         selection.exit().remove();
         selection.enter().append("text")
             .classed("annotation-text", true)
-            .attr("timeline-id", timeline.id)
 
-        mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
-            .attr("x", function (d) { return d.x + d.offsetX; })
-            .attr("y", function (d) { return d.y + d.offsetY; })
+        mDisplayGroup.selectAll('.annotation-text')
+            .attr("timeline-id", function (d) { return d.timelineId; })
             .attr("font-family", function (d) { return d.binding.cellBinding.font; })
             .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
             .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
             .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
-            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
-            .call(setText, TEXT_WIDTH);
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
 
-        let horizontalLineData = []
-        let connectingLineData = []
-        let interactionTargetData = []
-        mDisplayGroup.selectAll('.annotation-text[timeline-id="' + timeline.id + '"]')
-            .each(function (d) {
-                let boundingBox = this.getBBox();
-                let x1 = boundingBox.x;
-                let x2 = boundingBox.x + boundingBox.width;
-                let y1 = boundingBox.y;
-                let y2 = boundingBox.y + boundingBox.height;
+        let spansSelection = mDisplayGroup.selectAll('.annotation-text')
+            .selectAll("tspan").data(d => d.spans);
+        spansSelection.exit().remove();
+        spansSelection.enter().append("tspan");
+        mDisplayGroup.selectAll('.annotation-text').selectAll("tspan")
+            .text(d => d.lineText)
+            .attr("x", d => d.x)
+            .attr("y", d => d.y)
+            .attr("binding-id", function (d) { return d.cellBindingId; });
 
-                mBoundingBoxData.push({
-                    x1, x2, y1, y2,
-                    timelineId: timeline.id,
-                    cellBindingId: d.binding.cellBinding.id
-                });
-
-                let closeY, closeX;
-                if (Math.abs(d.y - y1) < Math.abs(d.y - y2)) {
-                    closeY = y1 - linePadding;
-                } else {
-                    closeY = y2 + linePadding;
-                }
-
-                if (Math.abs(d.x - x1) < Math.abs(d.x - x2)) {
-                    closeX = x1 - linePadding;
-                } else {
-                    closeX = x2 + linePadding;
-                }
-
-                horizontalLineData.push({
-                    x1: x1 - linePadding,
-                    x2: x2 + linePadding,
-                    y: closeY,
-                    bindingId: d.binding.cellBinding.id
-                });
-                connectingLineData.push({
-                    x1: d.x,
-                    y1: d.y,
-                    x2: closeX,
-                    y2: closeY,
-                    hasTime: d.hasTime,
-                    bindingId: d.binding.cellBinding.id
-                });
-                interactionTargetData.push(Object.assign({
-                    binding: d.binding,
-                    text: d.text,
-                    x: boundingBox.x,
-                    y: boundingBox.y,
-                    width: boundingBox.width,
-                    height: boundingBox.height
-                }));
-            })
-
-        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line[timeline-id="' + timeline.id + '"]')
-            .data(horizontalLineData);
+        let horizontalLines = mDisplayGroup.selectAll('.horizontal-line')
+            .data(Object.values(mTextData).filter(d => d.lineData));
         horizontalLines.exit().remove();
         horizontalLines.enter()
             .append('line')
             .classed("horizontal-line", true)
-            .attr("timeline-id", timeline.id)
+            .attr("timeline-id", d => d.timelineId)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
             .attr('opacity', 0.6);
-        mDisplayGroup.selectAll('.horizontal-line[timeline-id="' + timeline.id + '"]')
-            .attr('x1', function (d) { return d.x1 })
-            .attr('y1', function (d) { return d.y })
-            .attr('x2', function (d) { return d.x2 })
-            .attr('y2', function (d) { return d.y })
-            .attr("binding-id", function (d) { return d.bindingId; });
+        mDisplayGroup.selectAll('.horizontal-line')
+            .attr('x1', function (d) { return d.lineData.hx1 })
+            .attr('y1', function (d) { return d.lineData.y })
+            .attr('x2', function (d) { return d.lineData.hx2 })
+            .attr('y2', function (d) { return d.lineData.y })
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
 
 
-        let connectingLines = mDisplayGroup.selectAll('.connecting-line[timeline-id="' + timeline.id + '"]')
-            .data(connectingLineData);
+        let connectingLines = mDisplayGroup.selectAll('.connecting-line')
+            .data(Object.values(mTextData).filter(d => d.lineData));
         connectingLines.exit().remove();
         connectingLines.enter()
             .append('line')
             .classed('connecting-line', true)
-            .attr("timeline-id", timeline.id)
+            .attr("timeline-id", d => d.timelineId)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
             .attr('opacity', 0.6);
-        mDisplayGroup.selectAll('.connecting-line[timeline-id="' + timeline.id + '"]')
-            .attr('x1', function (d) { return d.x1 })
-            .attr('y1', function (d) { return d.y1 })
-            .attr('x2', function (d) { return d.x2 })
-            .attr('y2', function (d) { return d.y2 })
+        mDisplayGroup.selectAll('.connecting-line')
+            .attr('x1', function (d) { return d.origin.x })
+            .attr('y1', function (d) { return d.origin.y })
+            .attr('x2', function (d) { return d.lineData.lx })
+            .attr('y2', function (d) { return d.lineData.y })
             .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
-            .attr("binding-id", function (d) { return d.bindingId; });
-
-        setupInteractionTargets(timeline, interactionTargetData);
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
     }
 
-    function drawCanvasText(boundData) {
-        let annotationDataset = [];
-        mBoundingBoxData = mBoundingBoxData.filter(d => !d.isCanvasText);
-        boundData.forEach(binding => {
-            let annotationData = {
-                x: binding.cellBinding.offset.x,
-                y: binding.cellBinding.offset.y,
-                text: binding.dataCell.getValue(),
-                binding
-            };
-            annotationDataset.push(annotationData);
-        })
+    function getLineData(origin, boundingBox) {
+        let x1 = boundingBox.x;
+        let x2 = boundingBox.x + boundingBox.width;
+        let y1 = boundingBox.y;
+        let y2 = boundingBox.y + boundingBox.height;
 
-        let selection = mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
-            .data(annotationDataset);
-        selection.exit().remove();
-        selection.enter().append("text")
-            .classed("annotation-text", true)
-            .attr("is-canvas-text", "canvas-text");
+        let closeY, closeX;
+        if (Math.abs(origin.y - y1) < Math.abs(origin.y - y2)) {
+            // this *2 is dumb, but whatever, it works.
+            closeY = y1 + LINE_PADDING * 2;
+        } else {
+            closeY = y2 + LINE_PADDING * 2;
+        }
 
-        mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
-            .attr("x", function (d) { return d.x })
-            .attr("y", function (d) { return d.y })
+        if (Math.abs(origin.x - x1) < Math.abs(origin.x - x2)) {
+            closeX = x1 - LINE_PADDING;
+        } else {
+            closeX = x2 + LINE_PADDING;
+        }
+
+        return {
+            // horizontal line xs
+            hx1: x1 - LINE_PADDING,
+            hx2: x2 + LINE_PADDING,
+            // the close x
+            lx: closeX,
+            // line and horizontal line use the same y
+            y: closeY,
+        };
+    }
+
+    function redrawText(cellBindingData) {
+        mDisplayGroup.select()
+        let textData;
+        if (cellBindingData.isCanvasBinding) {
+            textData = createCanvasData(cellBindingData);
+        } else {
+            textData = createTimelineTextData([cellBindingData], cellBindingData.timeline)[0];
+        }
+
+        mDisplayGroup.selectAll('.annotation-text[binding-id="' + cellBindingData.cellBinding.id + '"]')
+            .data([textData])
+            .attr("x", function (d) { return d.x; })
+            .attr("y", function (d) { return d.y; })
             .attr("font-family", function (d) { return d.binding.cellBinding.font; })
             .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
             .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
-            .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
-            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
-            .call(setText, TEXT_WIDTH);
+            .style("font-size", function (d) { return d.binding.cellBinding.fontSize });
 
-        let interactionTargetData = []
-        mDisplayGroup.selectAll('.annotation-text[is-canvas-text="canvas-text"]')
-            .each(function (d) {
-                let boundingBox = this.getBBox();
-                let x1 = boundingBox.x;
-                let x2 = boundingBox.x + boundingBox.width;
-                let y1 = boundingBox.y;
-                let y2 = boundingBox.y + boundingBox.height;
+        let spansSelection = mDisplayGroup.selectAll('.annotation-text[binding-id="' + cellBindingData.cellBinding.id + '"]')
+            .selectAll("tspan").data(d => d.spans);
+        spansSelection.exit().remove();
+        spansSelection.enter().append("tspan");
+        mDisplayGroup.selectAll('.annotation-text').selectAll("tspan")
+            .text(d => d.lineText)
+            .attr("x", d => d.x)
+            .attr("y", d => d.y)
+            .attr("binding-id", function (d) { return d.cellBindingId; });
 
-                mBoundingBoxData.push({
-                    x1, x2, y1, y2,
-                    isCanvasText: true,
-                    cellBindingId: d.binding.cellBinding.id
-                });
-                interactionTargetData.push(Object.assign({
-                    binding: d.binding,
-                    text: d.text,
-                    x: boundingBox.x,
-                    y: boundingBox.y,
-                    width: boundingBox.width,
-                    height: boundingBox.height
-                }));
-            })
+        mDisplayGroup.selectAll('.horizontal-line[binding-id="' + cellBindingData.cellBinding.id + '"]')
+            .data([textData])
+            .attr('x1', function (d) { return d.lineData.hx1 })
+            .attr('y1', function (d) { return d.lineData.y })
+            .attr('x2', function (d) { return d.lineData.hx2 })
+            .attr('y2', function (d) { return d.lineData.y });
 
-        setupInteractionTargets(null, interactionTargetData);
+        mDisplayGroup.selectAll('.connecting-line[binding-id="' + cellBindingData.cellBinding.id + '"]')
+            .data([textData])
+            .attr('x1', function (d) { return d.origin.x })
+            .attr('y1', function (d) { return d.origin.y })
+            .attr('x2', function (d) { return d.lineData.lx })
+            .attr('y2', function (d) { return d.lineData.y })
+            .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
     }
 
-    function setupInteractionTargets(timeline, interactionTargetData) {
-        let targetSelector = timeline ?
-            '.text-interaction-target[timeline-id="' + timeline.id + '"]' :
-            '.text-interaction-target[is-canvas-text="canvas-text"]';
-
-        let interactionTargets = mInteractionGroup.selectAll(targetSelector)
-            .data(interactionTargetData);
+    function setupInteractionTargets() {
+        let interactionTargets = mInteractionGroup.selectAll('.text-interaction-target')
+            .data(Object.values(mTextData));
         interactionTargets.exit().remove();
         interactionTargets.enter()
             .append('rect')
             .classed('text-interaction-target', true)
-            .attr(timeline ? 'timeline-id' : "is-canvas-text", timeline ? timeline.id : "canvas-text")
+            .attr('timeline-id', d => d.timelineId)
             .attr('fill', 'white')
             .attr('opacity', 0)
             .on('pointerdown', function (e, d) {
                 if (mActive) {
-                    mDragStartPos = mDragStartCallback(d.binding, e);
+                    mDragStartPos = mDragStartCallback(d.binding.copy(), e);
                     mDragging = true;
                     mDragBinding = d.binding;
                 }
             })
             .on('dblclick', function (e, d) {
-                let rect = d3.select(this).node().getBoundingClientRect();
-                mDoubleClickCallback(d.binding.dataCell.id, d.text, rect.x, rect.y, rect.height, rect.width);
+                mDoubleClickCallback(d.binding.dataCell.id, d.text, d.boundingBox.x, d.boundingBox.y, d.boundingBox.height, d.boundingBox.width);
             })
             .on('pointerenter', (e, d) => {
                 if (mActive) {
@@ -289,77 +306,74 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
                 }
             });
 
-        mInteractionGroup.selectAll(targetSelector)
+        mInteractionGroup.selectAll('.text-interaction-target')
             .attr("x", d => d.x)
             .attr("y", d => d.y)
-            .attr("height", d => d.height)
-            .attr("width", d => d.width);
+            .attr("height", d => d.boundingBox.height)
+            .attr("width", d => d.boundingBox.width);
     }
 
     function onPointerMove(coords) {
         if (mDragging) {
-            mDragCallback(mDragBinding, mDragStartPos, coords);
+            mDragCallback(mDragBinding.copy(), mDragStartPos, coords);
         }
     }
 
     function onPointerUp(coords) {
         if (mDragging) {
             mDragging = false;
-            mDragEndCallback(mDragBinding, mDragStartPos, coords);
+            mDragEndCallback(mDragBinding.copy(), mDragStartPos, coords);
 
             mDragStartPos = null;
             mDragBinding = null;
         }
     }
 
-    function setText(textElements, width) {
-        textElements.each(function () {
-            let textElement = d3.select(this);
-            let text = d3.select(this).datum().text;
-            let currentText = textElement.text();
+    function layoutText(text, width, options) {
+        let returnable = [];
+        let words = text.split(/\s+/).reverse();
+        let word;
+        let line = [];
+        let lineNumber = 1;
 
-            if (currentText.replace(/\s+/, "") != text.replace(/\s+/, "")) {
-                let words = text.split(/\s+/).reverse();
-                let word;
-                let line = [];
-                let lineNumber = 1;
-                let lineHeight = 1.1; // ems
-                let tspan = textElement.text(null).append("tspan")
-                    .attr("dy", "0em");
-
-                while (word = words.pop()) {
-                    tspan.text(word);
-                    if (tspan.node().getComputedTextLength() > width) {
-                        for (let i = 0; i < word.length; i++) {
-                            tspan.text(word.substring(0, i));
-                            if (tspan.node().getComputedTextLength() > width) {
-                                temp = word.substring(0, i - 1);
-                                words.push(word.substring(i - 1));
-                                word = temp;
-                                break;
-                            }
-                        }
-                    }
-
-                    line.push(word);
-                    tspan.text(line.join(" "));
-                    if (tspan.node().getComputedTextLength() > width) {
-                        line.pop();
-                        tspan.text(line.join(" "));
-                        line = [word];
-                        tspan = textElement.append("tspan")
-                            .attr("dy", lineNumber * lineHeight + "em")
-                            .text(word);
-                        lineNumber++;
-
+        while (word = words.pop()) {
+            if (textSize(word, options).width > width) {
+                for (let i = 0; i < word.length; i++) {
+                    if (textSize(word.substring(0, i), options) > width) {
+                        temp = word.substring(0, i - 1);
+                        words.push(word.substring(i - 1));
+                        word = temp;
+                        break;
                     }
                 }
             }
 
-            textElement.selectAll("tspan")
-                .attr("x", textElement.attr("x"))
-                .attr("y", textElement.attr("y"));
-        });
+            line.push(word);
+            let size = textSize(line.join(" "), options);
+            if (size.width > width) {
+                line.pop();
+                returnable.push({ lineText: line.join(" "), lineNumber, lineHeight: size.height, lineWidth: size.width })
+                line = [word];
+                lineNumber++;
+            }
+        }
+
+        let size = textSize(line.join(" "), options);
+        returnable.push({ lineText: line.join(" "), lineNumber, lineHeight: size.height, lineWidth: size.width });
+        return returnable;
+    }
+
+    function textSize(text, options) {
+        let container = d3.select('body').append('svg');
+        container.append('text')
+            .text(text)
+            .attr("font-family", options.font)
+            .attr("font-weight", options.fontWeight ? 700 : 400)
+            .style("font-style", options.fontItalics ? "italic" : null)
+            .style("font-size", options.fontSize);
+        var size = container.node().getBBox();
+        container.remove();
+        return { width: size.width, height: size.height };
     }
 
     function setActive(active) {
@@ -373,8 +387,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     }
 
     this.updateModel = updateModel;
-    this.drawTimelineText = drawTimelineText;
-    this.drawCanvasText = drawCanvasText;
+    this.redrawText = redrawText;
     this.setActive = setActive;
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
@@ -382,7 +395,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
     this.setPointerEnterCallback = (callback) => mPointerEnterCallback = callback;
     this.setPointerOutCallback = (callback) => mPointerOutCallback = callback;
     this.setDoubleClickCallback = (callback) => mDoubleClickCallback = callback;
-    this.getTextBoundingBoxes = () => mBoundingBoxData;
+    this.getTextBoundingBoxes = () => Object.values(mTextData).map(d => Object.assign(d.boundingBox, { cellBindingId: d.binding.cellBinding.id }));
 
     this.onPointerMove = onPointerMove;
     this.onPointerUp = onPointerUp;

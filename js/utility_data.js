@@ -194,6 +194,61 @@ let DataUtil = function () {
         return changedIds;
     }
 
+    function timelineTextChanged(timeline1, textData1, timeline2, textData2) {
+        if (!timeline1) {
+            if (!timeline2) { console.error("If they're both duds why are you asking?", timeline1, timeline2); return []; }
+            // one timeline is a dud, they're all changes
+            return textData2.map(t => t.cellBinding.id);
+        }
+
+        if (!timeline2) {
+            if (!timeline1) { console.error("If they're both duds why are you asking?", timeline1, timeline2); return []; }
+            // one timeline is a dud, they're all changes
+            return textData1.map(t => t.cellBinding.id);
+        }
+
+        let allIds = DataUtil.getUniqueList(
+            textData1.map(t => t.cellBinding.id).concat(
+                textData2.map(t => t.cellBinding.id)));
+
+        if (!PathMath.equalsPath(timeline1.points, timeline2.points)) {
+            return allIds;
+        }
+
+        let pinChanged = timelinesPinsChanged(timeline1, timeline2);
+        if (pinChanged) {
+            return allIds;
+        }
+
+        let changedIds = allIds.filter(id => {
+            let text1 = textData1.find(t => t.cellBinding.id == id);
+            let text2 = textData2.find(t => t.cellBinding.id == id);
+            // if either is missing this has changed.
+            if (!text1 || !text2) return true;
+            if (!text1.equals(text2)) return true;
+            // no change
+            return false;
+        });
+        return changedIds;
+    }
+
+    function canvasTextChanged(textData1, textData2) {
+        let allIds = DataUtil.getUniqueList(
+            textData1.map(t => t.cellBinding.id).concat(
+                textData2.map(t => t.cellBinding.id)));
+
+        let changedIds = allIds.filter(id => {
+            let text1 = textData1.find(t => t.cellBinding.id == id);
+            let text2 = textData2.find(t => t.cellBinding.id == id);
+            // if either is missing this has changed.
+            if (!text1 || !text2) return true;
+            if (!text1.equals(text2)) return true;
+            // no change
+            return false;
+        });
+        return changedIds;
+
+    }
 
     function timelineDataPointsChanged(timelineId, model1, model2) {
         let timeline1 = model1.getAllTimelines().find(t => t.id == timelineId);
@@ -388,7 +443,10 @@ let DataUtil = function () {
         let maskedIds = [];
 
         textBoundingBoxes.forEach(box => {
-            let { x1, x2, y1, y2 } = box;
+            let x1 = box.x;
+            let y1 = box.y;
+            let x2 = box.x + box.width;
+            let y2 = box.y + box.height;
             let points = [
                 { x: x1, y: y1 },
                 { x: x1, y: y2 },
@@ -624,6 +682,8 @@ let DataUtil = function () {
 
         filterTimePinByChangedPin,
         timelineStrokesChanged,
+        timelineTextChanged,
+        canvasTextChanged,
         timelineDataPointsChanged,
 
         svgToCanvas,

@@ -176,6 +176,15 @@ before(function () {
                 return selection;
             } else if (selection == '#svg_container') return this.svg;
             else if (selection == '#lens-view') return this.lensSVG;
+            else if (selection == 'body') return {
+                append: function () { return this },
+                text: function (text) { this.t = text; return this },
+                attr: function () { return this },
+                style: function () { return this },
+                node: function () { return this },
+                getBBox: function () { return { width: this.t.length * 10, height: 10 } },
+                remove: function () { }
+            }
             else return selection;
         };
         this.selectAll = function (selector) {
