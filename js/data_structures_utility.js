@@ -756,7 +756,7 @@ DataStructs.CanvasCellBindingData = function (cellBinding, dataCell, tableId, ro
     this.isCanvasBinding = true;
 
     this.copy = function () {
-        let b = new DataStructs.CellBindingData(
+        let b = new DataStructs.CanvasCellBindingData(
             this.cellBinding.copy(),
             this.dataCell.copy(),
             this.tableId,
