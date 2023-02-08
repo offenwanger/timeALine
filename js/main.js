@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             console.error('textbox not found!', cellBindingData);
             return;
         }
-        let coords = svgCoordsToScreen({ x: textBox.x2, y: textBox.y1 })
+        let coords = svgCoordsToScreen({ x: textBox.x + textBox.width, y: textBox.y })
 
         $('#text-context-menu-div').css('top', coords.y);
         $('#text-context-menu-div').css('left', coords.x);
