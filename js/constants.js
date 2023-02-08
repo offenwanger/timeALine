@@ -104,6 +104,7 @@ const LogEvent = {
     SHRINK_COLOR_BRUSH: 21,
     POINTER_DOWN: 22,
     POINTER_UP: 23,
+    VERSION: 24,
 }
 
 class ModelStateError extends Error {

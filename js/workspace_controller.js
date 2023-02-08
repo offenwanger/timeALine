@@ -108,6 +108,8 @@ function WorkspaceController(directoryHandle) {
 
         // update the state last thing in case of errors
         if (versionNumber == mVersionCount) mVersionCount++;
+
+        log(LogEvent.VERSION, versionNumber);
     }
 
     async function readVersion(versionNumber = null) {
