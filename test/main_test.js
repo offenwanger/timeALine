@@ -209,15 +209,15 @@ describe('Test Main - Integration Test', function () {
             // check that two table rows were created
             assert.equal(integrationEnv.ModelController.getModel().getAllTables().length, 1);
             assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows.length, 5);
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[3].dataCells[1].val, "<text>");
-            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[4].dataCells[1].val, "<text>");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[3].dataCells[1].val, "Jan 14, 2021 00:00:00");
+            assert.equal(integrationEnv.ModelController.getModel().getAllTables()[0].dataRows[4].dataCells[1].val, "Jan 16, 2021 00:00:00");
 
             // check that the annotation was bound to the line
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 4);
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[2].timeCell.getValue(), new Date("Jan 14, 2021").getTime());
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[2].dataCell.getValue(), "<text>");
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[2].dataCell.getValue(), "Jan 14, 2021 00:00:00");
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].timeCell.getValue(), new Date("Jan 16, 2021").getTime());
-            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].dataCell.getValue(), "<text>");
+            assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData()[3].dataCell.getValue(), "Jan 16, 2021 00:00:00");
 
             // move the time pin
             IntegrationUtils.clickButton("#pin-button", integrationEnv.enviromentVariables.$);
@@ -236,10 +236,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet.length, 4)
             assert.equal(annotationSet[1].origin.x, 150);
             assert.equal(annotationSet[1].origin.y, 100);
-            assert.equal(annotationSet[1].text, '<text>');
+            assert.equal(annotationSet[1].text, 'Jan 14, 2021 00:00:00');
             assert.equal(Math.round(annotationSet[2].origin.x), 167);
             assert.equal(annotationSet[2].origin.y, 100);
-            assert.equal(annotationSet[2].text, '<text>');
+            assert.equal(annotationSet[2].text, 'Jan 16, 2021 00:00:00');
 
             // add and drag another pin (with 0.4 mapped to 0.5, 0.75 should be 0.7)
             IntegrationUtils.dragLine([{ x: 175, y: 110 }, { x: 170, y: 110 }], timelineId, integrationEnv);
@@ -255,8 +255,8 @@ describe('Test Main - Integration Test', function () {
                 ['Jan 10, 2021', 'sometext1', ''],
                 ['Jan 20, 2021', 'sometext3', ''],
                 ['', '', ''],
-                ['Jan 14, 2021 00:00:00', '<text>', ''],
-                ['Jan 16, 2021 00:00:00', '<text>', '']
+                ['Jan 14, 2021 00:00:00', 'Jan 14, 2021 00:00:00', ''],
+                ['Jan 16, 2021 00:00:00', 'Jan 16, 2021 00:00:00', '']
             ])
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins.length, 2);
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines()[0].timePins[0].timeStamp, new Date("Jan 14 2021").getTime());
@@ -273,10 +273,10 @@ describe('Test Main - Integration Test', function () {
             assert.equal(annotationSet.length, 4)
             assert.equal(annotationSet[3].origin.x, 125);
             assert.equal(annotationSet[3].origin.y, 100);
-            assert.equal(annotationSet[3].text, "<text>");
+            assert.equal(annotationSet[3].text, "Jan 14, 2021 00:00:00");
             assert.equal(Math.round(annotationSet[2].origin.x), 163);
             assert.equal(annotationSet[2].origin.y, 100);
-            assert.equal(annotationSet[2].text, "<text>");
+            assert.equal(annotationSet[2].text, "Jan 16, 2021 00:00:00");
         });
     });
 

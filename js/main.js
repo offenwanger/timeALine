@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             // TODO: Create in pointer down instead and initiate a drag on the text 
             if (mModelController.getModel().hasTimeMapping(timelineId)) {
                 let time = mModelController.getModel().mapLinePercentToTime(timelineId, linePoint.percent);
-                mModelController.addBoundTextRow(timelineId, '<text>', time);
+                mModelController.addBoundTextRow(timelineId, DataUtil.getFormattedDate(time), time);
             } else {
                 let timePin = new DataStructs.TimePin(linePoint.percent);
                 timePin.timePercent = mModelController.getModel()
