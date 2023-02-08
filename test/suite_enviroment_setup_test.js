@@ -194,6 +194,12 @@ before(function () {
 
         this.drag = () => Object.assign({}, this.mockDrag);
         this.pointer = (coords) => [coords.x, coords.y];
+        this.zoom = () => {
+            return {
+                scaleExtent: function () { return this },
+                on: function () { return this },
+            }
+        };
     }
 
 

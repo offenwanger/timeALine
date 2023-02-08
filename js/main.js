@@ -11,7 +11,15 @@ document.addEventListener('DOMContentLoaded', function (e) {
     let mInteractionLayer = mSvg.append('g').attr('id', 'main-interaction-layer');
 
     let mPanning = false;
-    let mViewTransform = { x: 0, y: 0, rotation: 0 };
+    let mViewTransform = { x: 0, y: 0, rotation: 0, scale: 1 };
+    let mZoom = d3.zoom()
+        .scaleExtent([0.1, 10])
+        .on("zoom", ({ transform }) => {
+            mViewTransform.x = transform.x;
+            mViewTransform.y = transform.y;
+            mViewTransform.scale = transform.k;
+            setViewToTransform();
+        });
 
     // Dragging variables
     let mDraggingTimePin = null;
@@ -1104,9 +1112,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     mMainOverlay.on('pointerdown', function (pointerEvent) {
         let coords = screenToSvgCoords({ x: pointerEvent.clientX, y: pointerEvent.clientY });
 
-        if (mMode == Mode.PAN) {
-            mPanning = true;
-        } else if (mMode == Mode.COLOR_BUCKET) {
+        if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateCanvasColor(mBucketColor);
             pushVersion();
             modelUpdated();
@@ -1195,11 +1201,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         let coords = screenToSvgCoords(screenCoords);
 
-        if (mMode == Mode.PAN && mPanning) {
-            mViewTransform.x = mViewTransform.x + pointerEvent.movementX
-            mViewTransform.y = mViewTransform.y + pointerEvent.movementY
-            setViewToTransform();
-        } else if (mMode == Mode.IMAGE_LINK) {
+        if (mMode == Mode.IMAGE_LINK) {
             if (!mLinkingBinding) {
                 console.error('No image linking binding set!');
                 setDefaultMode();
@@ -1358,23 +1360,25 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
 
         return {
-            x: screenCoords.x - svgViewportPos.x - mViewTransform.x,
-            y: screenCoords.y - svgViewportPos.y - mViewTransform.y
+            x: (screenCoords.x - svgViewportPos.x - mViewTransform.x) / mViewTransform.scale,
+            y: (screenCoords.y - svgViewportPos.y - mViewTransform.y) / mViewTransform.scale
         };
     }
 
     function svgCoordsToScreen(svgCoords) {
         let svgViewportPos = mSvg.node().getBoundingClientRect();
         return {
-            x: svgCoords.x + svgViewportPos.x + mViewTransform.x,
-            y: svgCoords.y + svgViewportPos.y + mViewTransform.y
+            x: (svgCoords.x * mViewTransform.scale) + svgViewportPos.x + mViewTransform.x,
+            y: (svgCoords.y * mViewTransform.scale) + svgViewportPos.y + mViewTransform.y
         };
     }
 
     function setViewToTransform() {
-        mVizLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
-        mInteractionLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ')');
-        FilterUtil.setFilterDisplayArea(-mViewTransform.x, -mViewTransform.y, mSvg.attr('width'), mSvg.attr('height'));
+        mVizLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ') scale(' + mViewTransform.scale + ')');
+        mInteractionLayer.attr('transform', 'translate(' + mViewTransform.x + ',' + mViewTransform.y + ') scale(' + mViewTransform.scale + ')');
+        let topLeft = screenToSvgCoords({ x: 0, y: 0 });
+        let bottomRight = screenToSvgCoords({ x: mSvg.attr('width'), y: mSvg.attr('height') });
+        FilterUtil.setFilterDisplayArea(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, bottomRight.y - topLeft.y);
     }
 
     function pinDrag(timeline, timePin, linePercent) {
@@ -1942,7 +1946,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
     })
 
     setupModeButton('#panning-button', Mode.PAN, () => {
-        // No extra work needed.
+        mSvg.call(mZoom);
     });
     setupButtonTooltip('#panning-button', 'Pans the main view and the lens view')
     $('#panning-button').on('dblclick', function () {
@@ -2192,6 +2196,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
         mMode = Mode.NONE;
         mLensController.setMode(Mode.NONE);
+        mSvg.on('.zoom', null);
     }
 
     // Color utility functions
