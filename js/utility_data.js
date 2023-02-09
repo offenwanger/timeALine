@@ -665,6 +665,29 @@ let DataUtil = function () {
         return hash;
     }
 
+    function layoutText(textCellBindings, boundingBoxes) {
+        textCellBindings.forEach(cellBinding => {
+            let textBoundingBox = boundingBoxes.find(b => b.cellBindingId == cellBinding.id);
+            while (boundingBoxes.some(box => {
+                if (box.cellBindingId == cellBinding.id) return false;
+                return overlap(box, textBoundingBox);
+            })) {
+                cellBinding.offset.x += 2;
+                cellBinding.offset.y -= 10;
+                textBoundingBox.x += 2;
+                textBoundingBox.y -= 10;
+            }
+        })
+
+        return textCellBindings.map(b => { return { cellBindingId: b.id, offset: b.offset } })
+    }
+
+    function overlap(bb1, bb2) {
+        let overlap1D = (min1, max1, min2, max2) => max1 >= min2 && max2 >= min1;
+        return overlap1D(bb1.x, bb1.x + bb1.width, bb2.x, bb2.x + bb2.width) &&
+            overlap1D(bb1.y, bb1.y + bb1.height, bb2.y, bb2.y + bb2.height);
+    }
+
     return {
         inferDataAndType,
         getUniqueList,
@@ -702,5 +725,7 @@ let DataUtil = function () {
 
         fragmentStrokes,
         getHashCode,
+
+        layoutText,
     }
 }();

@@ -206,13 +206,28 @@ document.addEventListener('DOMContentLoaded', function (e) {
                 modelUpdated();
             })
         } else if (mMode == Mode.LINK) {
-            mModelController.bindCells(timelineId, mDataTableController.getSelectedCells());
+            let cellBindings = mDataTableController.getSelectedCells();
+            mModelController.bindCells(timelineId, cellBindings);
 
             mDataTableController.deselectCells();
             $('#link-button-div').hide();
 
-            pushVersion();
             modelUpdated();
+
+            let newCellIds = cellBindings.map(b => b.id);
+            let cellBindingData = mModelController.getModel().getCellBindingData(timelineId);
+            let newText = cellBindingData.filter(b => newCellIds.includes(b.cellBinding.id) && b.dataCell.getType() == DataTypes.TEXT);
+            if (newText.length > 0) {
+                let boundingBoxes = mTextController.getTextBoundingBoxes();
+                let allCellBindingIds = cellBindingData.map(b => b.cellBinding.id)
+                boundingBoxes = boundingBoxes.filter(b => allCellBindingIds.includes(b.cellBindingId))
+
+                let newOffsets = DataUtil.layoutText(newText.map(cbd => cbd.cellBinding), boundingBoxes);
+                newOffsets.forEach(d => mModelController.updateTextOffset(d.cellBindingId, d.offset));
+            }
+
+            modelUpdated();
+            pushVersion();
             setDefaultMode();
         } else if (mMode == Mode.COLOR_BUCKET) {
             mModelController.updateTimelineColor(timelineId, mBucketColor);

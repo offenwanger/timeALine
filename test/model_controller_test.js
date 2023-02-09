@@ -551,8 +551,8 @@ describe('Integration Test ModelController', function () {
             assert.equal(textSet.length, 2);
             assert.equal(textSet[0].binding.cellBinding.offset.x, 10);
             assert.equal(textSet[0].binding.cellBinding.offset.y, 10);
-            assert.equal(textSet[1].binding.cellBinding.offset.x, 10);
-            assert.equal(textSet[1].binding.cellBinding.offset.y, 10);
+            assert.equal(textSet[1].binding.cellBinding.offset.x, 14);
+            assert.equal(textSet[1].binding.cellBinding.offset.y, -10);
 
             integrationEnv.enviromentVariables.$.selectors['#download-button-json'].eventCallbacks.click();
             integrationEnv.enviromentVariables.window.fileText = integrationEnv.enviromentVariables.URL.objectUrls[0].init[0];
@@ -568,8 +568,8 @@ describe('Integration Test ModelController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 2);
             textSet = integrationEnv.enviromentVariables.d3.selectors['.annotation-text'].innerData;
             assert.equal(textSet.length, 2);
-            assert.equal(textSet[0].binding.cellBinding.offset.x, 10);
-            assert.equal(textSet[0].binding.cellBinding.offset.y, 10);
+            assert.equal(textSet[0].binding.cellBinding.offset.x, 14);
+            assert.equal(textSet[0].binding.cellBinding.offset.y, -10);
             assert.equal(textSet[1].binding.cellBinding.offset.x, 10);
             assert.equal(textSet[1].binding.cellBinding.offset.y, 10);
         });
