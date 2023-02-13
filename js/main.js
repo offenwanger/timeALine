@@ -405,6 +405,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             cellBindingData = cellBindingData.copy();
             cellBindingData.linePercent = linePoint.percent;
             cellBindingData.cellBinding.offset = MathUtil.subtractAFromB(linePoint, coords);
+            mTextController.fadeTimelineText(cellBindingData.timeline.id);
             mTextController.redrawText(cellBindingData);
         }
 
@@ -685,6 +686,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
             cellBindingData.linePercent = linePoint.percent;
             mDataPointController.drawDataSet([cellBindingData]);
+            mTextController.fadeTimelineText(cellBindingData.timeline.id);
         }
 
         return coords;

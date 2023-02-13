@@ -147,7 +147,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
             .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
             .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
-            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
+            .attr('opacity', 1);
 
         let spansSelection = mDisplayGroup.selectAll('.annotation-text')
             .selectAll("tspan").data(d => d.spans);
@@ -165,16 +166,16 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         horizontalLines.enter()
             .append('line')
             .classed("horizontal-line", true)
-            .attr("timeline-id", d => d.timelineId)
             .attr('stroke-width', 0.5)
-            .attr('stroke', 'black')
-            .attr('opacity', 0.6);
+            .attr('stroke', 'black');
         mDisplayGroup.selectAll('.horizontal-line')
+            .attr("timeline-id", function (d) { return d.timelineId })
             .attr('x1', function (d) { return d.lineData.hx1 })
             .attr('y1', function (d) { return d.lineData.y })
             .attr('x2', function (d) { return d.lineData.hx2 })
             .attr('y2', function (d) { return d.lineData.y })
-            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
+            .attr('opacity', 0.6);
 
 
         let connectingLines = mDisplayGroup.selectAll('.connecting-line')
@@ -183,17 +184,17 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
         connectingLines.enter()
             .append('line')
             .classed('connecting-line', true)
-            .attr("timeline-id", d => d.timelineId)
             .attr('stroke-width', 0.5)
             .attr('stroke', 'black')
-            .attr('opacity', 0.6);
         mDisplayGroup.selectAll('.connecting-line')
+            .attr("timeline-id", function (d) { return d.timelineId })
             .attr('x1', function (d) { return d.origin.x })
             .attr('y1', function (d) { return d.origin.y })
             .attr('x2', function (d) { return d.lineData.lx })
             .attr('y2', function (d) { return d.lineData.y })
             .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
-            .attr("binding-id", function (d) { return d.binding.cellBinding.id; });
+            .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
+            .attr('opacity', 0.6);
     }
 
     function getLineData(origin, boundingBox) {
@@ -243,7 +244,8 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr("font-family", function (d) { return d.binding.cellBinding.font; })
             .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
             .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
-            .style("font-size", function (d) { return d.binding.cellBinding.fontSize });
+            .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
+            .attr('opacity', 1);
 
         let spansSelection = mDisplayGroup.selectAll('.annotation-text[binding-id="' + cellBindingData.cellBinding.id + '"]')
             .selectAll("tspan").data(d => d.spans);
@@ -269,6 +271,12 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr('x2', function (d) { return d.lineData.lx })
             .attr('y2', function (d) { return d.lineData.y })
             .style("stroke-dasharray", d => d.hasTime ? null : "3, 3")
+    }
+
+    function fadeTimelineText(timelineId) {
+        mDisplayGroup.selectAll('[timeline-id="' + timelineId + '"]')
+            .attr('opacity', 0.2);
+
     }
 
     function setupInteractionTargets() {
@@ -388,6 +396,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
 
     this.updateModel = updateModel;
     this.redrawText = redrawText;
+    this.fadeTimelineText = fadeTimelineText;
     this.setActive = setActive;
     this.setDragStartCallback = (callback) => mDragStartCallback = callback;
     this.setDragCallback = (callback) => mDragCallback = callback;
