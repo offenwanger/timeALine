@@ -2364,10 +2364,6 @@ document.addEventListener('DOMContentLoaded', function (e) {
     //     console.log(e.type, screenToSvgCoords({ x: e.clientX, y: e.clientY }))
     // });
 
-    if (new URLSearchParams(window.location.search).has('analysis')) {
-        setupExtras(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color));
-    }
-
     function log(event, data) {
         if (mWorkspace) mWorkspace.log(event, data);
     }
@@ -2377,4 +2373,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
     hideLensView();
     setDefaultMode();
     pushVersion();
+
+    if (new URLSearchParams(window.location.search).has('analysis')) {
+        setAnalysisMode(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color));
+        clearMode = function () { };
+        setDefaultMode = function () { };
+    }
 });

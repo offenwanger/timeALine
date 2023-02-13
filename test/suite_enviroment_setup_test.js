@@ -92,6 +92,7 @@ before(function () {
                 this.eventCallbacks[event] = func;
                 return this;
             };
+            this.off = function () { };
             this.children = [];
             this.append = function (type) {
                 let child = new MockElement();
@@ -215,6 +216,7 @@ before(function () {
                 this.eventCallbacks[event] = func;
                 return this;
             };
+            this.off = function () { };
             this.addClass = function (cls) { selectors["." + cls] = this };
             this.attrs = {};
             this.style = {};
@@ -553,7 +555,7 @@ before(function () {
             ResizeController: resize_controller.__get__("ResizeController"),
             CanvasMask: canvas_mask.__get__("CanvasMask"),
             FileHandler: file_handling.__get__("FileHandler"),
-            setupExtras: analysis_functions.__get__("setupExtras"),
+            setAnalysisMode: analysis_functions.__get__("setAnalysisMode"),
         };
         returnable.enviromentVariables.jspreadsheet.getColumnNameFromId = function (col, row) { return col + "_" + row }
 

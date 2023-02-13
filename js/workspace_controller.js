@@ -234,6 +234,14 @@ function WorkspaceController(directoryHandle) {
         await stream.close();
     }
 
+    async function getLogData() {
+        let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
+        let fileHandle = await traceFolder.getFileHandle("log.csv", { create: true });
+        let file = await fileHandle.getFile();
+        let contents = await file.text();
+        return Papa.parse(contents);
+    }
+
     this.init = init;
     this.writePNG = initWrap(writePNG);
     this.writeJSON = initWrap(writeJSON);
@@ -241,5 +249,6 @@ function WorkspaceController(directoryHandle) {
     this.readVersion = initWrap(readVersion);
     this.forEachVersion = initWrap(forEachVersion);
     this.storeImageURL = initWrap(storeImageURL);
+    this.getLogData = initWrap(getLogData);
     this.log = log;
 }
