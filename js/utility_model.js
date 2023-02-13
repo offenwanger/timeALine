@@ -69,7 +69,7 @@ DataStructs.DataModel = function () {
         let mapBindings = returnable.filter(cb => cb.linePercent == MAP_TIME);
         if (mapBindings.length > 0) {
             let timesForMapping = mapBindings.map(cb => cb.timeCell.getValue());
-            timesForMapping.sort();
+            timesForMapping.sort((a, b) => a - b);
             let linePercents = batchMapTimeToLinePercent(timeline.id, timesForMapping);
             if (linePercents.length != timesForMapping.length) {
                 console.error("Mapping failed!", linePercents);
@@ -359,7 +359,7 @@ DataStructs.DataModel = function () {
         let mapBindings = returnable.filter(ib => ib.linePercent == MAP_TIME);
         if (mapBindings.length > 0) {
             let timesForMapping = mapBindings.map(ib => ib.imageBinding.timeStamp);
-            timesForMapping.sort();
+            timesForMapping.sort((a, b) => a - b);
             let linePercents = batchMapTimeToLinePercent(timeline.id, timesForMapping);
             if (linePercents.length != timesForMapping.length) {
                 console.error("Mapping failed!", linePercents);
@@ -435,7 +435,7 @@ DataStructs.DataModel = function () {
             return [];
         }
 
-        values.sort();
+        values.sort((a, b) => a - b);
         let returnable = [];
 
         let valuesIndex = 0;
@@ -567,7 +567,7 @@ DataStructs.DataModel = function () {
             timeline.annotationStrokes.map(stroke => stroke.points
                 .map(p => timelineHasMapping ? p.timeStamp : p.timePercent))
                 .flat()
-                .sort());
+                .sort((a, b) => a - b));
 
         let linePercents = times.length > 0 ? batchMapTimeToLinePercent(timelineId, times) : [];
         let strokeData = timeline.annotationStrokes.map(stroke => {

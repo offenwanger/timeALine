@@ -98,6 +98,25 @@ describe('Integration Test TextController', function () {
             assert.equal(integrationEnv.ModelController.getModel().getAllCellBindingData().length, 5);
         });
 
+
+        it('should text for old times in the correct positions', function () {
+            integrationEnv.mainInit();
+
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 150, y: 100 }, { x: 200, y: 100 }], integrationEnv);
+            let timelineId = integrationEnv.ModelController.getModel().getAllTimelines()[0].id;
+            IntegrationUtils.bindDataToLine(timelineId, [
+                ["Jan 20, 1788", "text1"],
+                ["Jan 25, 1792", "text2"],
+            ], integrationEnv);
+
+            // check that the dates are at the end.
+            let cellBindingData = integrationEnv.ModelController.getModel().getAllCellBindingData();
+            expect(cellBindingData
+                .map(cell => [cell.linePercent, cell.dataCell.getValue()])
+                .sort((a, b) => a[0] - b[0]))
+                .to.eql([[0, 'text1'], [1, 'text2']]);
+        });
+
         it('should move text', function () {
             integrationEnv.mainInit();
 
