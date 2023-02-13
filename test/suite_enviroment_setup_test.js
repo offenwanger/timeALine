@@ -560,7 +560,7 @@ before(function () {
         file_handling.__set__(returnable.enviromentVariables);
         main.__set__(returnable.enviromentVariables);
         // needs DataStructs to be set. 
-        let data_structures_utility = rewire('../js/data_structures_utility.js');
+        let utility_model = rewire('../js/utility_model.js');
 
         function setVariables() {
             file_handling.__set__(returnable.enviromentVariables);
