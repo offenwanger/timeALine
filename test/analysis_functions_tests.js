@@ -8,7 +8,7 @@ let fs = require('fs');
 describe('Analysis function tests', function () {
     let integrationEnv;
     beforeEach(function () {
-        integrationEnv = TestUtils.getIntegrationEnviroment();
+        integrationEnv = TestUtils.getIntegrationEnviroment(true);
     });
 
     afterEach(function (done) {

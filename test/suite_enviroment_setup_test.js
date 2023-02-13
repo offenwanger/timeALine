@@ -366,7 +366,7 @@ before(function () {
         return t;
     }
 
-    function getIntegrationEnviroment() {
+    function getIntegrationEnviroment(analysisEnv = false) {
         let returnable = {};
 
         if (global.d3) throw new Error("Context leaks!")
@@ -474,7 +474,7 @@ before(function () {
                 };
             },
             window: {
-                location: { search: "analysis=true" },
+                location: { search: analysisEnv ? "analysis=true" : "" },
                 eventListeners: {},
                 innerWidth: 500,
                 innerHeight: 500,
