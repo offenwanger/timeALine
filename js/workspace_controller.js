@@ -225,7 +225,7 @@ function WorkspaceController(directoryHandle) {
 
     async function log(event, data) {
         // timestamp, event, data
-        let logStr = Date.now() + "," + event + "," + data + "\n";
+        let logStr = Papa.unparse([[Date.now(), event, data]]) + "\n";
         let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
         let fileHandle = await traceFolder.getFileHandle("log.csv", { create: true });
         let file = await fileHandle.getFile();
