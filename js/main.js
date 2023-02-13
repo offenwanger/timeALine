@@ -485,7 +485,8 @@ document.addEventListener('DOMContentLoaded', function (e) {
         }
     });
     mTextController.setDoubleClickCallback((cellId, text, x, y, height, width) => {
-        mTextInputBox.show(text, x, y, height, width);
+        let screenCoords = svgCoordsToScreen({ x, y });
+        mTextInputBox.show(text, screenCoords.x, screenCoords.y, height, width);
         mTextInputBox.setTextChangedCallback((text) => {
             // TODO: Check if the text actually changed
             mModelController.updateText(cellId, text);
