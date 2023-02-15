@@ -66,6 +66,36 @@ function WorkspaceController(directoryHandle) {
         await stream.close();
     }
 
+    async function readPNGSmall(fileName, height = null, width = null) {
+        let name = fileName + ".png";
+        let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
+        let pngsFolder = await traceFolder.getDirectoryHandle("pngs", { create: true });
+        let fileHandle = await pngsFolder.getFileHandle(name);
+        let file = await fileHandle.getFile();
+        return new Promise((resolve, reject) => {
+            let reader = new FileReader();
+            reader.onloadend = function () {
+                var image = new Image();
+                image.onload = function () {
+                    if (width && height) {
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        canvas.width = width * this.width / (Math.max(this.width, this.height));
+                        canvas.height = height * this.height / (Math.max(this.width, this.height));
+                        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        resolve({ imageData: canvas.toDataURL(), width: canvas.width, height: canvas.height })
+                    } else {
+                        resolve({ imageData: reader.result, width: this.width, height: this.height })
+                    }
+                };
+                image.onerror = reject;
+                image.src = reader.result;
+            }
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     async function writeJSON(obj, fileName) {
         let name = fileName + ".json";
         let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
@@ -239,11 +269,13 @@ function WorkspaceController(directoryHandle) {
         let fileHandle = await traceFolder.getFileHandle("log.csv", { create: true });
         let file = await fileHandle.getFile();
         let contents = await file.text();
-        return Papa.parse(contents);
+        // Should probably do some error handling here... whatever. 
+        return Papa.parse(contents).data;
     }
 
     this.init = init;
     this.writePNG = initWrap(writePNG);
+    this.readPNGSmall = initWrap(readPNGSmall);
     this.writeJSON = initWrap(writeJSON);
     this.writeVersion = initWrap(writeVersion);
     this.readVersion = initWrap(readVersion);
