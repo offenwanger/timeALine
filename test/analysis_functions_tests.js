@@ -81,11 +81,6 @@ describe('Analysis function tests', function () {
             let imageFile = { text: async () => { return images[lastImageName] } }
             let imageWritable = { write: async (text) => { images[lastImageName] = text }, close: async () => { } }
 
-            integrationEnv.enviromentVariables.window.directory = directoryHandle;
-            await integrationEnv.enviromentVariables.$.selectors['#upload-button-folder'].eventCallbacks.click();
-
-            assert.equal(callCount, 4)
-
             let traces = {};
             let traceDirectory = {
                 getDirectoryHandle: (name) => traceDirectory,
@@ -96,6 +91,11 @@ describe('Analysis function tests', function () {
             }
             let traceFileHandle = { createWritable: async () => traceWritable, }
             let traceWritable = { write: async (text) => { traces[lastTraceName] = text }, close: async () => { } }
+
+            integrationEnv.enviromentVariables.window.directory = directoryHandle;
+            await integrationEnv.enviromentVariables.$.selectors['#upload-button-folder'].eventCallbacks.click();
+
+            assert.equal(callCount, 4)
 
             expect(Object.keys(images)).to.eql(["-529222296.json", "-54930653.json", "209152756.json"]);
 
@@ -110,6 +110,48 @@ describe('Analysis function tests', function () {
                     .flat());
             expect(imageBindings.map(b => b.imageData).join("").length).to.eql(imageDataLength);
             expect(imageBindings.map(b => b.hash)).to.eql([-529222296, -54930653, 209152756]);
+        });
+    });
+
+
+    describe('workspace viz creation tests', async function () {
+        it('should create a viz', async function () {
+            integrationEnv.mainInit();
+            let callCount = 0;
+
+            let contents = fs.readFileSync(__dirname + "/test_log.csv", "utf-8");
+            let filecontents = {
+                "workspaceData.json": '{"workspaceVersion":1}',
+                "log.csv": contents
+            }
+
+            let lastname;
+            let fileHandle = {
+                getFile: async () => file,
+                createWritable: async () => writable,
+            }
+            let file = { text: async () => filecontents[lastname] };
+            let writable = { write: async (text) => { filecontents[lastname] = text }, close: async () => { callCount++ } }
+
+            let directoryHandle = {
+                getFileHandle: async (name, options) => {
+                    lastname = name;
+                    if (name == "workspaceData.json" && !filecontents["workspaceData.json"] && (!options || !options.create)) {
+                        throw new Error("file or directory could not be found");
+                    } else {
+                        return fileHandle
+                    }
+                },
+                getDirectoryHandle: async () => {
+                    return directoryHandle;
+                },
+                values: () => Object.keys(filecontents).map(name => { return { name } }),
+            }
+
+            integrationEnv.enviromentVariables.window.directory = directoryHandle;
+            await integrationEnv.enviromentVariables.$.selectors['#create-workspace-viz'].eventCallbacks.click();
+
+
         });
     });
 });

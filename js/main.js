@@ -2377,7 +2377,5 @@ document.addEventListener('DOMContentLoaded', function (e) {
 
     if (new URLSearchParams(window.location.search).has('analysis')) {
         setAnalysisMode(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color));
-        clearMode = function () { };
-        setDefaultMode = function () { };
     }
 });
