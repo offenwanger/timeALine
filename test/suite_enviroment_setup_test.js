@@ -12,6 +12,7 @@ let expect = chai.expect;
 
 before(function () {
     vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../js/constants.js"));
+    vm.runInThisContext(fs.readFileSync(__dirname + "/" + "../lib/papaparse.min.js"));
 
     let consoleError = console.error;
     console.error = function (message) {
