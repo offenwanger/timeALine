@@ -682,6 +682,18 @@ let DataUtil = function () {
         return textCellBindings.map(b => { return { cellBindingId: b.id, offset: b.offset } })
     }
 
+    function layoutBoxes(idsToLayout, boundingBoxes, offset) {
+        idsToLayout.forEach(id => {
+            let boundingBox = boundingBoxes.find(b => b.id == id);
+            while (boundingBoxes.some(box => (box.id == id) ? false : overlap(box, boundingBox))) {
+                boundingBox.x += offset.x;
+                boundingBox.y += offset.y;
+            }
+        })
+
+        return boundingBoxes;
+    }
+
     function overlap(bb1, bb2) {
         let overlap1D = (min1, max1, min2, max2) => max1 >= min2 && max2 >= min1;
         return overlap1D(bb1.x, bb1.x + bb1.width, bb2.x, bb2.x + bb2.width) &&
@@ -727,5 +739,6 @@ let DataUtil = function () {
         getHashCode,
 
         layoutText,
+        layoutBoxes,
     }
 }();
