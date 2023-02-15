@@ -727,6 +727,10 @@ function ModelController() {
     }
 
     function addTableFromCSV(array2d) {
+        if (!array2d.length) {
+            return null;
+        }
+
         let table = new DataStructs.DataTable();
         array2d[0].forEach((cell, index) => {
             if (index == 0) {
@@ -750,6 +754,7 @@ function ModelController() {
         });
 
         mModel.getAllTables().push(table);
+        return table.id;
     }
 
     function tableUpdated(table, change, changeData) {
@@ -1063,6 +1068,7 @@ function ModelController() {
         }
 
         timeline.imageBindings.push(newBinding);
+        return newBinding.id;
     }
 
     function addCanvasImage(imageData, width, height, coords) {
