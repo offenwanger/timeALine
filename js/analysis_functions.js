@@ -1,4 +1,6 @@
 function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
+    const { log } = console;
+
     let ModeButtonMap = {
         'selection': "img/selection_button.png",
         'drawing': "img/timeline_eraser_button.png",
@@ -98,6 +100,8 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
 
         logData = logData.filter(line => line.length == 3);
 
+        log("Items to process: " + logData.length)
+
         if (!logData || logData.length <= 1 || logData[0][0] == logData[logData.length - 1][0]) {
             console.error("Insufficient log data to create viz");
             return;
@@ -105,6 +109,8 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
 
         let startTime = parseInt(logData[0][0])
         let endTime = parseInt(logData[logData.length - 1][0])
+
+        log("Total length: " + ((endTime - startTime) / 60000) + " minutes")
 
         if (isNaN(startTime) || isNaN(endTime)) {
             console.error("Malformated CSV", logData[logData.length - 1])
@@ -126,6 +132,7 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
             if (i > 0) {
                 let datePrev = parseInt(logData[i - 1][0]);
                 let time = date - datePrev;
+                if (time > /* A year */ 31556926000 || time < 0) { console.error("Wierd bug: ", time, date, datePrev); continue; }
                 if (time > /*10 minutes*/ 10 * A_MINUTE) {
                     creationTime += A_MINUTE;
                     if (!pins[pins.length - 1] || pins[pins.length - 1].timeStamp != datePrev) {
@@ -154,7 +161,8 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
             } else if (event == LogEvent.VERSION) {
                 let versionNum = logData[i][2];
                 try {
-                    let result = await workspace.readPNGSmall(versionNum, 100, 100);
+                    log("Processing image: " + versionNum);
+                    let result = await workspace.readPNGSmall(versionNum, 100, 100, versionNum);
                     imageBindings.push({ imageData: result.imageData, timeStamp: date, width: result.width, height: result.height });
                 } catch (e) {
                     textTable.push([new Date(date), eventToString(event, logData[i][2])]);
@@ -165,6 +173,8 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
                 textTable.push([new Date(date), eventToString(event, logData[i][2])]);
             }
         }
+
+        log("Creation Time: " + (creationTime / 60000) + " minutes")
 
         let timelinePoints = [{ x: 100, y: 100 }, { x: 100, y: creationTime * ratio + 100 }];
         modelController.newTimeline(timelinePoints, "#000000FF");
@@ -256,7 +266,10 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
             modelController.updateTextOffset(boundingBox.id, offset);
         })
 
+        mModelController.updateCanvasColor("#666666");
+
         mModelController.setModelFromObject(modelController.getModel().toObject());
+        log("Drawing")
         modelUpdated();
     })
 

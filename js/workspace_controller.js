@@ -66,7 +66,7 @@ function WorkspaceController(directoryHandle) {
         await stream.close();
     }
 
-    async function readPNGSmall(fileName, height = null, width = null) {
+    async function readPNGSmall(fileName, height = null, width = null, label = null) {
         let name = fileName + ".png";
         let traceFolder = await mHandle.getDirectoryHandle("trace", { create: true });
         let pngsFolder = await traceFolder.getDirectoryHandle("pngs", { create: true });
@@ -83,6 +83,11 @@ function WorkspaceController(directoryHandle) {
                         canvas.width = width * this.width / (Math.max(this.width, this.height));
                         canvas.height = height * this.height / (Math.max(this.width, this.height));
                         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        if (label) {
+                            ctx.fillStyle = "black";
+                            ctx.font = "12px Arial";
+                            ctx.fillText(label, 5, 17);
+                        }
                         resolve({ imageData: canvas.toDataURL(), width: canvas.width, height: canvas.height })
                     } else {
                         resolve({ imageData: reader.result, width: this.width, height: this.height })
