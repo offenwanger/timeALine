@@ -132,6 +132,10 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
             if (i > 0) {
                 let datePrev = parseInt(logData[i - 1][0]);
                 let time = date - datePrev;
+                if (isNaN(time)) {
+                    console.error("Bad entry!", logData[i], logData[i - 1]);
+                    continue;
+                }
                 if (time > /* A year */ 31556926000 || time < 0) { console.error("Wierd bug: ", time, date, datePrev); continue; }
                 if (time > /*10 minutes*/ 10 * A_MINUTE) {
                     creationTime += A_MINUTE;
