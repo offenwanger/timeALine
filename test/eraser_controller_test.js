@@ -595,5 +595,26 @@ describe('Integration Test EraserController', function () {
                     [[0.67, 0.67, 0]]
                 ]);
         });
+
+        it('should voip everything', async function () {
+            integrationEnv.mainInit();
+            IntegrationUtils.drawLine([{ x: 100, y: 100 }, { x: 120, y: 100 }], integrationEnv);
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+
+            IntegrationUtils.clickButton("#lens-button", integrationEnv.enviromentVariables.$);
+            IntegrationUtils.clickLine({ x: 150, y: 100 }, integrationEnv.ModelController.getModel().getAllTimelines()[0].id, integrationEnv);
+
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors["#lens-line"].innerData.length, 1);
+
+            IntegrationUtils.drawLensColorLine([{ x: 20, y: 100 }, { x: 80, y: 110 }, { x: 20, y: 110 },], integrationEnv);
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 1, "line not drawn");
+            assert.equal(integrationEnv.enviromentVariables.d3.selectors[".canvas-annotation-stroke"].innerData.length, 1);
+
+            await IntegrationUtils.erase([{ x: 100, y: 100 }, { x: 110, y: 100 }, { x: 120, y: 100 }], 10, integrationEnv);
+
+            assert.equal(integrationEnv.ModelController.getModel().getAllTimelines().length, 0);
+        });
     });
 });
