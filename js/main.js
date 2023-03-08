@@ -961,7 +961,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             deletedTimelines.forEach(id => mModelController.deleteTimeline(id));
             let brokenTimelines = segmentsData.filter(d => d.segments.length > 1);
             brokenTimelines.forEach(d => mModelController.breakTimeline(d.id, d.segments));
-            if (brokenTimelines.length > 0) changeMade = true;
+            if (deletedTimelines.length > 0 || brokenTimelines.length > 0) changeMade = true;
         }
         if (mMode == Mode.ERASER_STROKE || mMode == Mode.ERASER) {
             let model = mModelController.getModel();
