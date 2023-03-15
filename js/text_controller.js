@@ -147,6 +147,7 @@ function TextController(vizLayer, overlayLayer, interactionLayer) {
             .attr("font-weight", function (d) { return d.binding.cellBinding.fontWeight ? 700 : 400; })
             .style("font-style", function (d) { return d.binding.cellBinding.fontItalics ? "italic" : null; })
             .style("font-size", function (d) { return d.binding.cellBinding.fontSize })
+            .style("fill", function (d) { return d.binding.cellBinding.color ? d.binding.cellBinding.color : "black" })
             .attr("binding-id", function (d) { return d.binding.cellBinding.id; })
             .attr('opacity', 1);
 

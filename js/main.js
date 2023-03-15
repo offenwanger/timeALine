@@ -482,6 +482,10 @@ document.addEventListener('DOMContentLoaded', function (e) {
             pinDragEnd(timeline, mDraggingTimePin, linePoint.percent);
             mDraggingTimePin = null;
             mDraggingTimePinSettingTime = false;
+        } else if (mMode == Mode.COLOR_BUCKET) {
+            mModelController.setCellBindingColor(cellBindingData.cellBinding.id, mBucketColor);
+            pushVersion();
+            modelUpdated();
         }
     });
     mTextController.setDoubleClickCallback((cellId, text, x, y, height, width) => {

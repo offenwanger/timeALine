@@ -690,6 +690,11 @@ function ModelController() {
         binding.fontSize = size;
     }
 
+    function setCellBindingColor(cellBindingId, color) {
+        let binding = mModel.getCellBindingById(cellBindingId);
+        binding.color = color;
+    }
+
 
     function addTimelineStroke(timelineId, points, color, width) {
         mModel.getTimelineById(timelineId).annotationStrokes.push(new DataStructs.Stroke(points, color, width));
@@ -1401,6 +1406,7 @@ function ModelController() {
     this.toggleFontWeight = toggleFontWeight;
     this.toggleFontItalics = toggleFontItalics;
     this.setFontSize = setFontSize;
+    this.setCellBindingColor = setCellBindingColor;
 
     this.addTimelineStroke = addTimelineStroke;
     this.addCanvasStroke = addCanvasStroke;
