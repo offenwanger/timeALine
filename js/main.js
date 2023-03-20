@@ -2235,7 +2235,7 @@ document.addEventListener('DOMContentLoaded', function (e) {
             $('#color-picker-div').hide();
             log(LogEvent.TOGGLE_COLOR_PICKER, 'close');
         } else {
-            $('#color-picker-div').css('top', e.pageY);
+            $('#color-picker-div').css('top', e.pageY - $('#color-picker-div').height());
             $('#color-picker-div').css('left', e.pageX - $('#color-picker-div').width());
             $('#color-picker-div').show();
             log(LogEvent.TOGGLE_COLOR_PICKER, 'open');
