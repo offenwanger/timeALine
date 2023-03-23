@@ -77,11 +77,15 @@ function setAnalysisMode(modelUpdated, mModelController, getCanvasFromViz) {
     $('#extra-json-to-png').on('click', async () => {
         let workspace = await FileHandler.getWorkspace(false);
         await workspace.forEachVersion(async (version, versionNumber) => {
-            mModelController.setModelFromObject(version);
-            modelUpdated();
+            try {
+                mModelController.setModelFromObject(version);
+                modelUpdated();
 
-            let canvas = await getCanvasFromViz();
-            await workspace.writePNG(canvas, versionNumber);
+                let canvas = await getCanvasFromViz();
+                await workspace.writePNG(canvas, versionNumber);
+            } catch (e) {
+                console.error(e);
+            }
         })
     })
 
