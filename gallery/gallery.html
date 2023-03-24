@@ -5,61 +5,49 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="gallery.css" rel="stylesheet">
-    <script src="gallery.js"></script>
 </head>
 
 <body>
-    <div class="slideshow-container">
-
-        <div class="slide fade">
-            <div class="title">1. Mondays In January</div>
-            <div class="viz"><img src="img/MondaysInJanuary.png"></div>
-            <div class="text">
-                A visualization displaying work done on Mondays in January 2022
-                <a href="../index.html?viz=MondaysInJanuary">View in TimeSplines</a>
-            </div>
+    <div class="gallery">
+        <a target="_blank" href="../index.html?viz=MondaysInJanuary">
+            <img src="img/MondaysInJanuary.png">
+        </a>
+        <div class="desc">
+            A visualization displaying work done on Mondays in January 2022
         </div>
-
-        <div class="slide fade">
-            <div class="title">2. Academic Career</div>
-            <div class="viz"><img src="img/AcademicCareer.png"></div>
-            <div class="text">
-                This visualization displays the academic career of a new Ph.D. student.
-                Features of interest include the combination of mood data (red dots) and
-                work hours (blue dots). This visualization was used as the foundation for a
-                presentation of the students work, and therefore also includes slides for
-                presenting that work.
-            </div>
-        </div>
-
-        <div class="slide fade">
-            <div class="title">3. Music Listening</div>
-            <div class="viz"><img src="img/MusicListening.png"></div>
-            <div class="text">
-                This visualization displays music listening data pulled from multiple media sources.
-                Features of interest include the use of line shape to accomodate media in an aesthetically pleasing
-                manner.
-                <a href="../index.html?viz=MusicListening">View in TimeSplines</a>
-            </div>
-        </div>
-
-        <div class="slide fade">
-            <div class="title">4. Fictional Biography</div>
-            <div class="viz"><img class="viz" src="img/FictionalBiography.png"></div>
-            <div class="text">
-                This displays a fictional biography. Features of interest include
-                the use of a three dimentional line. 
-                <a href="../index.html?viz=FictionalBiography">View in TimeSplines</a>
-            </div>
-        </div>
-
-        <a class="prev" onclick="plusSlides(-1)">&larr;</a>
-        <a class="next" onclick="plusSlides(1)">&rarr;</a>
-
     </div>
-    <br>
 
-    <div id="dots" style="text-align:center"> </div>
+    <div class="gallery">
+        <a target="_blank" href="img/AcademicCareer.png">
+            <img src="img/AcademicCareer.png">
+        </a>
+        <div class="desc">This visualization displays the academic career of a new Ph.D. student.
+            Features of interest include the combination of mood data (red dots) and
+            work hours (blue dots). This visualization was used as the foundation for a
+            presentation of the students work, and therefore also includes slides for
+            presenting that work.</div>
+    </div>
+
+    <div class="gallery">
+        <a target="_blank" href="../index.html?viz=MusicListening">
+            <img src="img/MusicListening.png">
+        </a>
+        <div class="desc">
+            This visualization displays music listening data pulled from multiple media sources.
+            Features of interest include the use of line shape to accomodate media in an aesthetically pleasing
+            manner.
+        </div>
+    </div>
+
+    <div class="gallery">
+        <a target="_blank" href="../index.html?viz=FictionalBiography">
+            <img src="img/FictionalBiography.png">
+        </a>
+        <div class="desc">
+            This displays a fictional biography. Features of interest include
+            the use of a three dimentional line.
+        </div>
+    </div>
 </body>
 
 </html>
