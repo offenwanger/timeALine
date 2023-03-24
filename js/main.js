@@ -2382,4 +2382,24 @@ document.addEventListener('DOMContentLoaded', function (e) {
     if (new URLSearchParams(window.location.search).has('analysis')) {
         setAnalysisMode(modelUpdated, mModelController, async () => await DataUtil.vizToCanvas(mVizLayer, mModelController.getModel().getCanvas().color));
     }
+
+    if (new URLSearchParams(window.location.search).has('viz')) {
+        let loadViz = new URLSearchParams(window.location.search).get('viz');
+        let url = "gallery/json/" + loadViz + ".json";
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = function () {
+            var status = xhr.status;
+            if (status === 200) {
+                model = xhr.response;
+                mModelController.setModelFromObject(model);
+                modelUpdated();
+                setDefaultMode();
+            } else {
+                console.error("Failed to get model", xhr.response);
+            }
+        };
+        xhr.send();
+    }
 });
